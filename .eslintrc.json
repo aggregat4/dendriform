@@ -1,0 +1,15 @@
+{
+    "extends": "airbnb",
+    "env": {
+      "es6": true
+    },
+    "rules": {
+      "no-trailing-spaces": "off",
+      "no-unused-vars": "off",
+      "no-param-reassign": "off",
+      "max-len": "off",
+      "no-use-before-define": "off",
+      "arrow-body-style" : "off",
+      "no-undef": "off"
+    }
+}
