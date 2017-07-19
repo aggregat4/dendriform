@@ -40,6 +40,6 @@ Run one of the goals, for example: `npm run build:watch`
 
 # Adding Dependencies
 
-Add as an node package: `npm install <somepackage>`
+Add as a node package: `npm install <somepackage>`
 
-Then you require the relevant package in your module: `require <somepoackage>`
+Then you require the relevant package in your module: `require <somepackage>`

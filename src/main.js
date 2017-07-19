@@ -1,7 +1,7 @@
-const maquette = require('maquette');
+import h from 'maquette';
+import createProjector from 'maquette';
 
-const h = maquette.h;
-const projector = maquette.createProjector();
+const projector = createProjector();
 
 /*
 const store = {
