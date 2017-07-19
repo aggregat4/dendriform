@@ -1,4 +1,5 @@
 import * as maquette from 'maquette';
+import {isEmpty, getHashValue} from 'util';
 
 const h = maquette.h;
 const projector = maquette.createProjector();
@@ -34,6 +35,13 @@ const store = {
 	]
 }
 */
+
+
+// ---- domain specific utility functions
+function getRequestedNodeId() {
+  const requestedNode = getHashValue('node');
+  return requestedNode || 'ROOT';
+}
 
 
 function render() {
