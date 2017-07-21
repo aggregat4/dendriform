@@ -1,24 +1,28 @@
-import * as maquette from 'maquette';
-import {isEmpty, getHashValue} from './util';
+import * as maquette from 'maquette'
+import {isEmpty, getHashValue} from './util'
+import * as store from './store'
+import * as view from './view'
 
-const h = maquette.h;
-const projector = maquette.createProjector();
+const projector = maquette.createProjector()
+let STORE = {}
 
-
+loadStore()
 
 // ---- domain specific utility functions
 function getRequestedNodeId() {
-  const requestedNode = getHashValue('node');
-  return requestedNode || 'ROOT';
+  return getHashValue('node') || 'ROOT'
 }
 
-
-function render() {
-  return h('h2', ['This is the sub heading, really.']);
+function loadStore() {
+	store.loadTree(getRequestedNodeId())
+		.then((tree) => { return STORE.tree = tree })
+		.catch((reason) =>  {
+			console.log(`Error loading and rendering tree: ${reason}`)
+		})
 }
 
 // NEVER FORGET TO DEFER DOM INITIALISATION STUFF UNTIL THE DOM IS LOADED
 // YOU TWAT
 document.addEventListener('DOMContentLoaded', () => {
-  projector.append(document.querySelector('#treething'), render);
-});
+  projector.append(document.querySelector('#treething'), view.createTreeRenderer(STORE.tree))
+})

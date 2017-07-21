@@ -1,4 +1,3 @@
-// ---- Generic utility functions (util.js?)
 export function isEmpty(str) {
   return (!str || str.length === 0);
 }
