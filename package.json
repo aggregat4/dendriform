@@ -6,6 +6,9 @@
   "scripts": {
     "build": "cp src/main.css dist && cp src/index.html dist && ./node_modules/.bin/webpack src/main.js dist/main.js",
     "serve": "http-server -p 9090 dist/",
+    "watch:js": "onchange src/*.js -- npm run build -s",
+    "watch:html": "onchange src/*.html -- npm run build -s",
+    "build:watch": "parallelshell 'npm run watch:js -s' 'npm run watch:html -s'",
     "livereload": "live-reload --port 9091 dist/"
   },
   "author": "Boris Terzic <boris@terzic.be>",
@@ -17,6 +20,8 @@
   },
   "dependencies": {
     "maquette": "^2.4.3",
+    "onchange": "^3.2.1",
+    "parallelshell": "^3.0.1",
     "pouchdb-browser": "^6.1.2"
   }
 }
