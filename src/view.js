@@ -20,6 +20,6 @@ function render (node) {
     ].concat(renderChildren(node.children)))
 }
 
-export function createTreeRenderer (tree) {
-  return () => { return render(tree) }
+export function createTreeRenderer (treeProvider) {
+  return () => { return render(treeProvider()) }
 }

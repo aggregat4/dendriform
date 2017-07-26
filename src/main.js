@@ -10,6 +10,7 @@ loadStore()
 
 // ---- domain specific utility functions
 function getRequestedNodeId () {
+  console.log('hashnodevalue: ' + getHashValue('node'))
   return getHashValue('node') || 'ROOT'
 }
 
@@ -27,5 +28,11 @@ function loadStore () {
 // NEVER FORGET TO DEFER DOM INITIALISATION STUFF UNTIL THE DOM IS LOADED
 // YOU TWAT
 document.addEventListener('DOMContentLoaded', () => {
-  projector.append(document.querySelector('#treething'), view.createTreeRenderer(STORE.tree))
+  projector.append(
+    document.querySelector('#treething'),
+    view.createTreeRenderer(() => STORE.tree))
+})
+
+window.addEventListener('hashchange', () => {
+  loadStore()
 })

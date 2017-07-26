@@ -2,7 +2,7 @@
 
 1. ~~Make loadTree promise based API in the tree store~~
 2. ~~Use the loadTree API to populate the initial tree on the ROOT node~~
-3. Make navigation to node with hash parameter work
+3. ~~Make navigation to node with hash parameter work~~
 
 # Software Design
 
