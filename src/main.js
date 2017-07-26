@@ -6,6 +6,7 @@ import * as view from './view'
 const projector = maquette.createProjector()
 const STORE = {}
 
+// Initially trigger a load of the store (async) so we have something to display ASAP
 loadStore()
 
 // ---- domain specific utility functions
@@ -33,6 +34,4 @@ document.addEventListener('DOMContentLoaded', () => {
     view.createTreeRenderer(() => STORE.tree))
 })
 
-window.addEventListener('hashchange', () => {
-  loadStore()
-})
+window.addEventListener('hashchange', loadStore)
