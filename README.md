@@ -3,11 +3,12 @@
 1. ~~Make loadTree promise based API in the tree store~~
 2. ~~Use the loadTree API to populate the initial tree on the ROOT node~~
 3. ~~Make navigation to node with hash parameter work~~
+4. Start implementing the store as a pouchdb store so we can do real test with hashchange and editing nodes
 
 # Software Design
 
 ## Flow
-On DOM loaded, trigger tree store fetch, when promise completes call maquette render function with data objects.
+On DOM loaded (or hash parameter change to different node), trigger tree store fetch, when promise completes call maquette render function with data objects.
 
 On other events that mutate the tree, send update action to tree store, when promise returns call render.
 
@@ -25,21 +26,7 @@ On navigation events, set the hash value in the URL, call render.
 
 See also https://www.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/
 
-`npm install -D node-sass`
-
-(directory needs to contain at least one sccss file)
-
-`npm install eslint --save-dev`
-
-`npm install eslint-config-airbnb --save-dev`
-
-And the following plugin is needed for the airbnb style:
-
-`npm install eslint-plugin-react --save-dev`
-`npm install eslint-plugin-import --save-dev`
-`npm install eslint-plugin-jsx-a11y --save-dev`
-
-(eslint-config-airbnb apparently needs the eslint-plugin-react plugin in package.json)
+`npm install standard --save-dev`
 
 Babel when required (global install):
 
@@ -49,16 +36,10 @@ And the necessary Babel profile:
 
 `npm install --save-dev babel-preset-es2015`
 
-Browserify to make modules:
-
-`npm install browserify --save-dev`
-
 Some tools needed for the various build goals:
 
 `npm install parallelshell`
-
 `npm install onchange`
-
 `npm install http-server`
 
 ## Project Build
@@ -67,4 +48,4 @@ Run one of the goals, for example: `npm run build`
 
 ## Adding Dependencies
 
-Add as a node package: `npm install <somepackage>`
+Add as a node package: `npm install <somepackage>`, for dev dependencies add `--save-dev`
