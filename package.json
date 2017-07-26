@@ -14,9 +14,9 @@
   "devDependencies": {
     "http-server": "^0.9.0",
     "live-reload": "^1.1.0",
-    "standard": "^10.0.2",
     "onchange": "^3.2.1",
     "parallelshell": "^3.0.1",
+    "standard": "^10.0.2",
     "webpack": "^2.7.0"
   },
   "dependencies": {
