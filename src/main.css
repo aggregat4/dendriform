@@ -1,1 +1,12 @@
-/* . */
+.node a {
+  display: inline-block;
+  margin: 0 10px 0 10px;
+}
+
+div.name {
+  display: inline-block; 
+}
+
+div.node div.children {
+  margin-left: 30px;
+}
