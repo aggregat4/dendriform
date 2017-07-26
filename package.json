@@ -14,12 +14,13 @@
   "devDependencies": {
     "http-server": "^0.9.0",
     "live-reload": "^1.1.0",
-    "webpack": "^2.2.1"
-  },
-  "dependencies": {
-    "maquette": "^2.4.3",
+    "standard": "^10.0.2",
     "onchange": "^3.2.1",
     "parallelshell": "^3.0.1",
-    "pouchdb-browser": "^6.1.2"
+    "webpack": "^2.7.0"
+  },
+  "dependencies": {
+    "maquette": "^2.5.2",
+    "pouchdb-browser": "^6.3.4"
   }
 }

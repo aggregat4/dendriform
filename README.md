@@ -1,7 +1,8 @@
 # Next Steps
 
-1. Make loadTree promise based API in the tree store
-2. Use the loadTree API to populate the initial tree on the ROOT node
+1. ~~Make loadTree promise based API in the tree store~~
+2. ~~Use the loadTree API to populate the initial tree on the ROOT node~~
+3. Make navigation to node with hash parameter work
 
 # Software Design
 
@@ -32,7 +33,11 @@ See also https://www.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/
 
 `npm install eslint-config-airbnb --save-dev`
 
+And the following plugin is needed for the airbnb style:
+
 `npm install eslint-plugin-react --save-dev`
+`npm install eslint-plugin-import --save-dev`
+`npm install eslint-plugin-jsx-a11y --save-dev`
 
 (eslint-config-airbnb apparently needs the eslint-plugin-react plugin in package.json)
 
