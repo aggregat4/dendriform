@@ -4,6 +4,7 @@
 2. ~~Use the loadTree API to populate the initial tree on the ROOT node~~
 3. ~~Make navigation to node with hash parameter work~~
 4. Start implementing the store as a pouchdb store so we can do real test with hashchange and editing nodes
+5. Figure out what a sane standard way is to deal with runtimeexceptions in JS
 
 # Software Design
 
@@ -22,11 +23,31 @@ On navigation events, set the hash value in the URL, call render.
 
 # Project Development
 
-## Project Setup
+## Development dependencies
 
 See also https://www.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/
 
+### Standard JS
+
+Using standard JS for linting and style:
+
 `npm install standard --save-dev`
+`npm install eslint --save-dev`
+`npm install eslint-plugin-import --save-dev`
+
+(apparently it needs eslint to work)
+
+Disable eslint in Visual Studio Code in `.vscode\settings.json`:
+
+```
+{
+  "javascript.validate.enable" : false,
+  "standard.enable": true,
+  "eslint.enable": false
+}
+```
+
+### Babel (still needed like so?)
 
 Babel when required (global install):
 
@@ -36,11 +57,22 @@ And the necessary Babel profile:
 
 `npm install --save-dev babel-preset-es2015`
 
+### Webpack?
+
+?
+
+### Build Tools
+
 Some tools needed for the various build goals:
 
-`npm install parallelshell`
-`npm install onchange`
-`npm install http-server`
+`npm install parallelshell --save-dev`
+`npm install onchange --save-dev`
+`npm install http-server --save-dev`
+
+## Normal Dependencies
+
+- pouchdb-browser
+- maquette
 
 ## Project Build
 

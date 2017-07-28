@@ -12,6 +12,8 @@
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "MIT",
   "devDependencies": {
+    "eslint": "^4.3.0",
+    "eslint-plugin-import": "^2.7.0",
     "http-server": "^0.9.0",
     "live-reload": "^1.1.0",
     "onchange": "^3.2.1",
