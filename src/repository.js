@@ -1,33 +1,3 @@
-// const STUB_TREE = {
-//   _id: 'ROOT',
-//   _rev: 'ROOTREV',
-//   name: 'ROOT',
-//   content: 'ROOTCONTENT',
-//   children: [
-//     {
-//       _id: 'FOO',
-//       _rev: '1',
-//       name: 'Foo',
-//       content: 'foo content',
-//       children: []
-//     },
-//     {
-//       _id: 'BAR',
-//       _rev: '1',
-//       name: 'Bar',
-//       content: 'bar content',
-//       children: []
-//     },
-//     {
-//       _id: 'BAZ',
-//       _rev: '1',
-//       name: 'baz',
-//       content: 'baz content',
-//       children: []
-//     }
-//   ]
-// }
-
 import PouchDB from 'pouchdb-browser'
 
 const outlineDb = new PouchDB('outlineDB')
@@ -57,9 +27,26 @@ outlineDb.put({
   parentref: 'ROOT'
 })
 
+// returns a Promise of a loaded tree
 export function loadTree (rootId) {
-  // return new Promise((resolve, reject) => { resolve(STUB_TREE) })
   return cdbLoadNode(rootId).then(root => cdbLoadTree(root))
+}
+
+// loads the node by id, renames it and then returns a Promise of a response when done
+export function renameNode (nodeId, newName) {
+  return cdbLoadNode(nodeId)
+    .then(node => cdbPutNode({
+      _id: node._id,
+      _rev: node._rev,
+      name: newName,
+      content: node.content,
+      childrefs: node.childrefs,
+      parentref: node.parentref
+    }))
+}
+
+function cdbPutNode (node) {
+  return outlineDb.put(node)
 }
 
 // returns a promise of a node

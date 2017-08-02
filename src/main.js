@@ -1,7 +1,7 @@
 import * as maquette from 'maquette'
 import {getHashValue} from './util'
-import * as store from './store'
-import * as view from './view'
+import * as repository from './repository'
+import * as treecomponent from './tree-component'
 
 const projector = maquette.createProjector()
 const STORE = {
@@ -19,7 +19,7 @@ function getRequestedNodeId () {
 }
 
 function loadStore () {
-  store.loadTree(getRequestedNodeId())
+  repository.loadTree(getRequestedNodeId())
     .then((tree) => {
       console.log(`Tree was loaded, now store is: ${JSON.stringify(tree)}`)
       STORE.tree = tree
@@ -39,7 +39,9 @@ function loadStore () {
 document.addEventListener('DOMContentLoaded', () => {
   projector.append(
     document.querySelector('#treething'),
-    view.createTreeRenderer(() => STORE))
+    treecomponent.createTreeRenderer(() => STORE))
 })
 
 window.addEventListener('hashchange', loadStore)
+// The 'treereload' event is custom and can be triggered in some component to indicate that the store needs to be reloaded (and rerendered)
+window.addEventListener('treereload', loadStore)

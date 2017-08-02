@@ -34,6 +34,20 @@ On navigation events, set the hash value in the URL, call render.
 
 When a runtime error or exception is ascertained, an Error will be thrown. This is used for defensive programming for example.
 
+## Thoughts
+
+### Incremental Store Loading
+
+The application is moving towards a model where the store is being reloaded completely when something changes, then the virtual dom does some efficient rendering of same. This is probably going to be ok in the short term, since we need to be able to load efficiently initially anyway.
+
+However, optimally we would reduce the need to load things from the database to the bare minimum required. Given that we already load single nodes as individual objects from the pouchdb database, this sets us up for sucess. We "just" need a way to identify what nodes are dirty and "just" reload those and replace them in our store. Easy. ;|
+
+### Where To Put Controller Logic or Event Handling
+
+We are currently putting the event handler logic inside of the component/view module, meaning that the code that reacts to user and browser events is alongside the view rendering code and accesses the repository and other services. 
+
+It would be possible to factor this out and to just handle those events in a dedicated place away from the renderer, but it is currently unclear what that would bring us. Perhaps after a few thousand lines of code this will be easier to judge.
+
 # Project Development
 
 ## Development dependencies
