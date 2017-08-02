@@ -4,7 +4,7 @@
 2. ~~Use the loadTree API to populate the initial tree on the ROOT node~~
 3. ~~Make navigation to node with hash parameter work~~
 4. ~~Start implementing the store as a pouchdb store so we can do real test with hashchange and editing nodes~~
-5. Figure out what a sane standard way is to deal with runtimeexceptions in JS
+5. ~~Figure out what a sane standard way is to deal with runtimeexceptions in JS~~
 6. Implement changing of node name and persisting the change
 7. Implement splitting of nodes (ENTER inside node name)
 8. Implement merging of nodes (BACKSPACE on beginning of node name)
@@ -12,6 +12,8 @@
 # Future Steps?
 
 1. Typescript?
+2. Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
+
 
 # Software Design
 
@@ -27,6 +29,10 @@ On navigation events, set the hash value in the URL, call render.
 - Maquette for rendering
 - Tree store as a promise based api to encapuslate either a local implementation or a pouchdb remote syncing implementation
 - The controller layer reacts to DOM and other events, triggers the store actions and makes sure the renderer gets called. Will be interesting to see whether further abstractio here is useful
+
+## Runtime Errors
+
+When a runtime error or exception is ascertained, an Error will be thrown. This is used for defensive programming for example.
 
 # Project Development
 
