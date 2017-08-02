@@ -5,9 +5,9 @@
 3. ~~Make navigation to node with hash parameter work~~
 4. ~~Start implementing the store as a pouchdb store so we can do real test with hashchange and editing nodes~~
 5. ~~Figure out what a sane standard way is to deal with runtimeexceptions in JS~~
-6. Implement changing of node name and persisting the change
+6. ~~Implement changing of node name and persisting the change~~
 7. Implement splitting of nodes (ENTER inside node name)
-8. Implement merging of nodes (BACKSPACE on beginning of node name)
+8. Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end?)
 
 # Future Steps?
 
