@@ -45,6 +45,38 @@ export function renameNode (nodeId, newName) {
     }))
 }
 
+export function createSibling (name, content, existingNodeId) {
+  return cdbLoadNode(existingNodeId)
+    .then(sibling => {
+      console.log(`cdbcreateNode '${name}' '${content}' '${sibling.parentref}'`)
+      return cdbCreateNode(name, content, sibling.parentref)
+    })
+    .then(child => cdbLoadNode(child.parentref)
+      .then(parent => {
+        parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId) + 1, 0, child._id)
+        return cdbPutNode(parent)
+      })
+    )
+}
+
+function cdbCreateNode (name, content, parentref) {
+  return outlineDb.post({
+    name,
+    content,
+    childrefs: [],
+    parentref
+  }).then(response => {
+    return {
+      _id: response.id,
+      _rev: response.rev,
+      name,
+      content,
+      childrefs: [],
+      parentref
+    }
+  })
+}
+
 function cdbPutNode (node) {
   return outlineDb.put(node)
 }
