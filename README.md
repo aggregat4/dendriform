@@ -10,6 +10,7 @@
 8. We need to handle root nodes differently from other nodes: if root node then just render children (so we don't see and split root node), if not root then show name as title and render children below (see workflowy)
 9. Splitting of nodes should be more graceful: flickers and the cursor should be in the new node in the beginning
 8. Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end?)
+10. ~~BUG getting pouchdb Document update conflict when typing fast: should I debounce typing events?~~
 
 # Future Steps?
 

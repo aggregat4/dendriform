@@ -1,7 +1,11 @@
 import * as maquette from 'maquette'
 import * as repo from './repository'
+import {debounce} from './util'
 
 const h = maquette.h
+// The rename handler needs to be debounced so that we do not overload pouchdb.
+// With fast typing this would otherwise lead to document update conflicts and unnecessary load on the db.
+const debouncedRenameHandler = debounce(handleRename, 500)
 
 function renderNode (node) {
   function renderChildren (children) {
@@ -15,7 +19,7 @@ function renderNode (node) {
     { id: node._id, key: node._id, 'data-rev': node._rev },
     [
       h('a', { href: `#node=${node._id}` }, '*'),
-      h('div.name', { contentEditable: 'true', oninput: handleRename, onkeyup: possiblyHandleSplit }, node.name)
+      h('div.name', { contentEditable: 'true', oninput: debouncedRenameHandler, onkeyup: possiblyHandleSplit }, node.name)
     ].concat(renderChildren(node.children)))
 }
 
@@ -71,6 +75,7 @@ function handleSplit (kbdevent) {
     const updatedNodeName = rangeBeforeCursor.toString()
     const newSiblingNodeName = rangeAfterCursor.extractContents().textContent
     console.log(`Splitting node with id '${nodeId}' with new name '${updatedNodeName}' and new sibling '${newSiblingNodeName}'`)
+    kbdevent.target.blur()
     Promise.all([
       repo.renameNode(nodeId, updatedNodeName),
       repo.createSibling(newSiblingNodeName, null, nodeId)
