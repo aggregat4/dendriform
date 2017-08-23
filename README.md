@@ -1,16 +1,16 @@
 # Next Steps
 
 1. ~~Make loadTree promise based API in the tree store~~
-2. ~~Use the loadTree API to populate the initial tree on the ROOT node~~
-3. ~~Make navigation to node with hash parameter work~~
-4. ~~Start implementing the store as a pouchdb store so we can do real test with hashchange and editing nodes~~
-5. ~~Figure out what a sane standard way is to deal with runtimeexceptions in JS~~
-6. ~~Implement changing of node name and persisting the change~~
-7. ~~Implement splitting of nodes (ENTER inside node name)~~
-8. We need to handle root nodes differently from other nodes: if root node then just render children (so we don't see and split root node), if not root then show name as title and render children below (see workflowy)
-9. Splitting of nodes should be more graceful: flickers and the cursor should be in the new node in the beginning
-8. Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end?)
-10. ~~BUG getting pouchdb Document update conflict when typing fast: should I debounce typing events?~~
+1. ~~Use the loadTree API to populate the initial tree on the ROOT node~~
+1. ~~Make navigation to node with hash parameter work~~
+1. ~~Start implementing the store as a pouchdb store so we can do real test with hashchange and editing nodes~~
+1. ~~Figure out what a sane standard way is to deal with runtimeexceptions in JS~~
+1. ~~Implement changing of node name and persisting the change~~
+1. ~~Implement splitting of nodes (ENTER inside node name)~~
+1. ~~BUG getting pouchdb Document update conflict when typing fast: should I debounce typing events?~~
+1. We need to handle root nodes differently from other nodes: if root node then just render children (so we don't see and split root node), if not root then show name as title and render children below (see workflowy)
+1. Splitting of nodes should be more graceful: flickers and the cursor should be in the new node in the beginning
+1. Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end?)
 
 # Future Steps?
 
