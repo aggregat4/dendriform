@@ -75,11 +75,12 @@ function handleSplit (kbdevent) {
     const updatedNodeName = rangeBeforeCursor.toString()
     const newSiblingNodeName = rangeAfterCursor.extractContents().textContent
     console.log(`Splitting node with id '${nodeId}' with new name '${updatedNodeName}' and new sibling '${newSiblingNodeName}'`)
-    kbdevent.target.blur()
+    // kbdevent.target.blur()
     Promise.all([
       repo.renameNode(nodeId, updatedNodeName),
       repo.createSibling(newSiblingNodeName, null, nodeId)
-    ]).then(triggerTreeReload)
+    ])
+      .then(triggerTreeReload)
   }
 }
 
