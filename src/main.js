@@ -21,7 +21,8 @@ function getRequestedNodeId () {
 function loadStore () {
   repository.loadTree(getRequestedNodeId())
     .then((tree) => {
-      console.log(`Tree was loaded, now store is: ${JSON.stringify(tree)}`)
+      // console.log(`Tree was loaded, now store is: ${JSON.stringify(tree)}`)
+      console.log(`Tree was loaded`)
       STORE.tree = tree
       STORE.status.state = 'LOADED'
       projector.scheduleRender()
