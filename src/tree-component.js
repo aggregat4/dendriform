@@ -30,7 +30,8 @@ function renderNode (node) {
         'data-nodeid': node._id,
         contentEditable: 'true',
         oninput: debouncedRenameHandler,
-        onkeyup: possiblyHandleSplit,
+        // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
+        onkeypress: nameKeypressHandler,
         afterCreate: afterCreateHandler
       }, node.name)
     ].concat(renderChildren(node.children)))
@@ -72,10 +73,10 @@ function handleRename (event) {
   // No need to trigger a reload sine the rename is already happening in place
 }
 
-function possiblyHandleSplit (kbdevent) {
-  if (kbdevent.key === 'Enter') {
-    kbdevent.preventDefault()
-    handleSplit(kbdevent)
+function nameKeypressHandler (event) {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    handleSplit(event)
   }
 }
 
