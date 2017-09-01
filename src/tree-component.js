@@ -6,6 +6,10 @@ const h = maquette.h
 // The rename handler needs to be debounced so that we do not overload pouchdb.
 // With fast typing this would otherwise lead to document update conflicts and unnecessary load on the db.
 const debouncedRenameHandler = debounce(handleRename, 500)
+// Holds transient view state that we need to manage somehow (focus, cursor position, etc)
+const transientState = {
+  focusNodeId: null
+}
 
 function renderNode (node) {
   function renderChildren (children) {
@@ -19,8 +23,26 @@ function renderNode (node) {
     { id: node._id, key: node._id, 'data-rev': node._rev },
     [
       h('a', { href: `#node=${node._id}` }, '*'),
-      h('div.name', { contentEditable: 'true', oninput: debouncedRenameHandler, onkeyup: possiblyHandleSplit }, node.name)
+      h('div.name', {
+        // this data attribute only exists so that we can focus this node after
+        // it has been created in afterCreateHandler, we would like to get it
+        // from the parent but for some reason it is not there yet then
+        'data-nodeid': node._id,
+        contentEditable: 'true',
+        oninput: debouncedRenameHandler,
+        onkeyup: possiblyHandleSplit,
+        afterCreate: afterCreateHandler
+      }, node.name)
     ].concat(renderChildren(node.children)))
+}
+
+// as per http://maquettejs.org/docs/typedoc/interfaces/_maquette_.vnodeproperties.html#aftercreate
+// here we set focus to a node if it has been created and we set it as the focusable node in transientstate
+function afterCreateHandler (element) {
+  if (transientState && transientState.focusNodeId && element.getAttribute('data-nodeid') === transientState.focusNodeId) {
+    element.focus()
+    transientState.focusNodeId = null
+  }
 }
 
 // Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
@@ -79,8 +101,10 @@ function handleSplit (kbdevent) {
     Promise.all([
       repo.renameNode(nodeId, updatedNodeName),
       repo.createSibling(newSiblingNodeName, null, nodeId)
-    ])
-      .then(triggerTreeReload)
+        .then(newSibling => {
+          transientState.focusNodeId = newSibling._id
+        })
+    ]).then(triggerTreeReload)
   }
 }
 

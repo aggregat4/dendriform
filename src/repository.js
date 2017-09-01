@@ -45,17 +45,24 @@ export function renameNode (nodeId, newName) {
     }))
 }
 
+// returns a promise of a new sibling node
 export function createSibling (name, content, existingNodeId) {
   return cdbLoadNode(existingNodeId)
     .then(sibling => {
       console.log(`cdbcreateNode '${name}' '${content}' '${sibling.parentref}'`)
       return cdbCreateNode(name, content, sibling.parentref)
     })
-    .then(child => cdbLoadNode(child.parentref)
-      .then(parent => {
-        parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId) + 1, 0, child._id)
-        return cdbPutNode(parent)
-      })
+    .then(newSibling =>
+      // This is a bit tricky: we want to return the new sibling node, but we also have to make sure
+      // it is a child of its parent. So by using Promise.all we're forcing the parenting to happen
+      // and we are able to nevertheless return the new sibling node
+      Promise.all([
+        Promise.resolve(newSibling),
+        cdbLoadNode(newSibling.parentref).then(parent => {
+          parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId) + 1, 0, newSibling._id)
+          return cdbPutNode(parent)
+        })
+      ]).then(results => Promise.resolve(results[0]))
     )
 }
 

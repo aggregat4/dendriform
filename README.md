@@ -8,11 +8,13 @@
 1. ~~Implement changing of node name and persisting the change~~
 1. ~~Implement splitting of nodes (ENTER inside node name)~~
 1. ~~BUG getting pouchdb Document update conflict when typing fast: should I debounce typing events?~~
-1. Restart the application without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/)
+1. ~~Try out the Maquette creator answer to how to deal with focus~~
 1. BUG: FOUC like effect when splitting? Or is this just focus dancing?
+1. Restart the application without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/)
 1. We need to handle root nodes differently from other nodes: if root node then just render children (so we don't see and can't split root node), if not root then show name as title and render children below (see workflowy)
-1. Splitting of nodes should be more graceful: flickers and the cursor should be in the new node in the beginning
+1. Implement UP and DOWN arrows to mavigate between nodes
 1. Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end?)
+1. Implement indent and unindent with TAB and SHIFT+TAB
 1. Implement undo/redo (command pattern refactoring?)
 
 # Future Steps?
