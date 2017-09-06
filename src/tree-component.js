@@ -103,12 +103,23 @@ function findPreviousNameNode (node) {
   // TODO add search for OPEN nodes, not just any node
   const parentNode = node.parentNode
   if (parentNode.previousSibling) {
-    return parentNode.previousSibling.childNodes[1]
+    const lastChildNode = findLastChildNode(parentNode.previousSibling)
+    return lastChildNode.childNodes[1]
   } else if (parentNode.parentNode && parentNode.parentNode.getAttribute('class') === 'children') {
     // parentNode = div.node, parentNode.parentNode = div.children, parentNode.parentNode.parentNode = the real parent div.node
     return parentNode.parentNode.parentNode.childNodes[1]
   } else {
     return null
+  }
+}
+
+// Given a div.node it finds the LAST and deepest child (depth first) of that node, or the node itself
+function findLastChildNode (node) {
+  if (node.childNodes.length > 2) {
+    const childrenNode = node.childNodes[2]
+    return findLastChildNode(childrenNode.childNodes[childrenNode.childNodes.length - 1])
+  } else {
+    return node
   }
 }
 
