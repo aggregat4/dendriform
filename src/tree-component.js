@@ -104,8 +104,9 @@ function findPreviousNameNode (node) {
   const parentNode = node.parentNode
   if (parentNode.previousSibling) {
     return parentNode.previousSibling.childNodes[1]
-  } else if (parentNode.parentNode && parentNode.parentNode.getAttribute('class') === 'node') {
-    return parentNode.parentNode.childNodes[1]
+  } else if (parentNode.parentNode && parentNode.parentNode.getAttribute('class') === 'children') {
+    // parentNode = div.node, parentNode.parentNode = div.children, parentNode.parentNode.parentNode = the real parent div.node
+    return parentNode.parentNode.parentNode.childNodes[1]
   } else {
     return null
   }
@@ -115,7 +116,8 @@ function findNextNameNode (node) {
   // TODO make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
   const parentNode = node.parentNode
   if (parentNode.childNodes.length > 2) {
-    return parentNode.childNodes[2].childNodes[1]
+    // parentNode = div.node, parentNode.childNodes[2] = div.children, and then the first child's name node
+    return parentNode.childNodes[2].childNodes[0].childNodes[1]
   } else if (parentNode.nextSibling) {
     return parentNode.nextSibling.childNodes[1]
   } else {
