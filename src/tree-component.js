@@ -32,6 +32,7 @@ function renderNode (node) {
         oninput: debouncedRenameHandler,
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
         onkeypress: nameKeypressHandler,
+        onkeydown: nameKeydownHandler,
         afterCreate: afterCreateHandler
       }, node.name)
     ].concat(renderChildren(node.children)))
@@ -77,6 +78,48 @@ function nameKeypressHandler (event) {
   if (event.key === 'Enter') {
     event.preventDefault()
     handleSplit(event)
+  }
+}
+
+function nameKeydownHandler (event) {
+  if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    const previousNode = findPreviousNameNode(event.target)
+    if (previousNode) {
+      previousNode.focus()
+    }
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    const nextNode = findNextNameNode(event.target)
+    if (nextNode) {
+      nextNode.focus()
+    }
+  }
+}
+
+function findPreviousNameNode (node) {
+  // TODO: workflowy is a bit cleverer here: it actually finds the lowermost open node before the current node
+  // This means that we would need to do a depth first search in the previous sibling for the first open node working backwards (last child first)
+  // TODO add search for OPEN nodes, not just any node
+  const parentNode = node.parentNode
+  if (parentNode.previousSibling) {
+    return parentNode.previousSibling.childNodes[1]
+  } else if (parentNode.parentNode && parentNode.parentNode.getAttribute('class') === 'node') {
+    return parentNode.parentNode.childNodes[1]
+  } else {
+    return null
+  }
+}
+
+function findNextNameNode (node) {
+  // TODO make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
+  const parentNode = node.parentNode
+  if (parentNode.childNodes.length > 2) {
+    return parentNode.childNodes[2].childNodes[1]
+  } else if (parentNode.nextSibling) {
+    return parentNode.nextSibling.childNodes[1]
+  } else {
+    return null
   }
 }
 
