@@ -121,6 +121,31 @@ function findNextNameNode (node) {
   } else if (parentNode.nextSibling) {
     return parentNode.nextSibling.childNodes[1]
   } else {
+    const firstAncestorNextSibling = findFirstAncestorNextSibling(parentNode)
+    if (firstAncestorNextSibling) {
+      return firstAncestorNextSibling.childNodes[1]
+    } else {
+      return null
+    }
+  }
+}
+
+// Assuming we get passed a div.node this function will find the first
+// next-sibling of an ancestor node and return it (div.node) or null if
+// none could be found
+function findFirstAncestorNextSibling (node) {
+  if (node.parentNode && node.parentNode.getAttribute('class') === 'children') {
+    const parentNode = node.parentNode.parentNode
+    if (parentNode.getAttribute('id') === 'ROOT') {
+      return null
+    } else {
+      if (parentNode.nextSibling) {
+        return parentNode.nextSibling
+      } else {
+        return findFirstAncestorNextSibling(parentNode)
+      }
+    }
+  } else {
     return null
   }
 }
