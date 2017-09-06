@@ -11,8 +11,8 @@
 1. ~~Try out the Maquette creator answer to how to deal with focus~~
 1. ~~BUG: FOUC like effect when splitting? Or is this just focus dancing?~~
 1. ~~Implement UP and DOWN arrows to navigate between nodes~~
+1. ~~BUG: ArrowDown gets stuck below the root node~~
 1. We need to handle root nodes differently from other nodes: if root node then just render children (so we don't see and can't split root node), if not root then show name as title and render children below (see workflowy)
-1. BUG: ArrowDown gets stuck below the root node
 1. Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end?)
 1. Implement indent and unindent with TAB and SHIFT+TAB
 1. Implement undo/redo (command pattern refactoring?)
