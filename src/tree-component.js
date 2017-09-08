@@ -23,7 +23,7 @@ function renderNode (node, first) {
     }
   }
   function genClass (node, isFirst) {
-    return ['node', isRoot(node) ? 'root' : '', isFirst ? 'first' : ''].join(' ').trim()
+    return 'node' + (isRoot(node) ? ' root' : '') + (isFirst ? ' first' : '')
   }
   // TODO if there are no children in root yet, create an artifical one that is empty
   return h('div',
