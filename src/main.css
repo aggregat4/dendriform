@@ -13,5 +13,28 @@ div.name:focus {
 }
 
 div.node div.children {
-  margin-left: 30px;
+  margin-left: 24px;
+}
+
+/* ROOT node is special, we hide and only show the children */
+div.node.root > a {
+  display: none;
+}
+
+div.node.root > div.name {
+  display: none;
+}
+
+div.node.root > div.children {
+  margin-left: 0;
+}
+
+/* The first node in a tree is special (when not root node), we show it really big, without the star */
+div.node.first > div.name {
+  font-size: 150%;
+  margin: 6px;
+}
+
+div.node.first > a {
+  display: none;
 }

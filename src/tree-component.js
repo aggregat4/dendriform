@@ -11,16 +11,23 @@ const transientState = {
   focusNodeId: null
 }
 
-function renderNode (node) {
+function renderNode (node, first) {
+  function isRoot (node) {
+    return node._id === 'ROOT'
+  }
   function renderChildren (children) {
     if (children && children.length > 0) {
-      return [h('div.children', children.map(c => renderNode(c)))]
+      return [h('div.children', children.map(c => renderNode(c, false)))]
     } else {
       return []
     }
   }
-  return h('div.node',
-    { id: node._id, key: node._id, 'data-rev': node._rev },
+  function genClass (node, isFirst) {
+    return ['node', isRoot(node) ? 'root' : '', isFirst ? 'first' : ''].join(' ').trim()
+  }
+  // TODO if there are no children in root yet, create an artifical one that is empty
+  return h('div',
+    { id: node._id, key: node._id, 'data-rev': node._rev, class: genClass(node, first) },
     [
       h('a', { href: `#node=${node._id}` }, '*'),
       h('div.name', {
@@ -56,7 +63,7 @@ function renderTree (treeStore) {
   } else if (treeStore.status.state === 'LOADING') {
     return h('div.tree', [h('div', [`Loading tree...`])])
   } else if (treeStore.status.state === 'LOADED') {
-    return h('div.tree', [renderNode(treeStore.tree)])
+    return h('div.tree', [renderNode(treeStore.tree, true)])
   } else {
     // TODO runtimeexception ?
     return h('div.tree', [h('div.error', [`Tree is in an unknown state`])])
