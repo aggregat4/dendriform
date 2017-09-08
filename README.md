@@ -18,6 +18,7 @@
 1. Implement deleting nodes when deleting empty node
 1. Implement indent and unindent with TAB and SHIFT+TAB
 1. Implement undo/redo (command pattern refactoring?)
+1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. Implement OPEN and CLOSED nodes
 
 # Future Steps?
