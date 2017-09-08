@@ -88,7 +88,8 @@ function nameKeypressHandler (event) {
   } else if (event.key === 'Backspace') {
     // TODO check if we are at the beginning of the node, if so merge with previous sibling
     if (isCursorAtBeginning(event) && event.target.parentNode.previousSibling) {
-      mergeNodes(event.target.parentNode, event.target.parentNode.previousSibling)
+      // TODO figure out all the nodeIds, the names, and call mergenodes appropriately
+      // mergeNodes(sourceNodeId, targetNodeId, newSourceNodeName)
     }
   }
   /* else if (event.key === 'Delete') {
@@ -230,7 +231,7 @@ function splitNode (nodeId, updatedNodeName, newSiblingNodeName) {
 // 1. rename targetnode to be targetnode.name + sourcenode.name
 // 2. move all children of sourcenode to targetnode (actual move, just reparent)
 // 3. delete sourcenode
-function mergeNodes (from, to) {
+function mergeNodes (sourceNodeId, targetNodeId, newSourceNodeName) {
   // TODO implement
 }
 
