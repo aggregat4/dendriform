@@ -77,7 +77,7 @@ export function createTreeRenderer (treeProvider) {
 function handleRename (event) {
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
-  repo.renameNode(nodeId, newName)
+  renameNode(nodeId, newName)
   // No need to trigger a reload sine the rename is already happening in place
 }
 
@@ -85,6 +85,31 @@ function nameKeypressHandler (event) {
   if (event.key === 'Enter') {
     event.preventDefault()
     handleSplit(event)
+  } else if (event.key === 'Backspace') {
+    // TODO check if we are at the beginning of the node, if so merge with previous sibling
+    if (isCursorAtBeginning(event) && event.target.parentNode.previousSibling) {
+      mergeNodes(event.target.parentNode, event.target.parentNode.previousSibling)
+    }
+  }
+  /* else if (event.key === 'Delete') {
+    // TODO check if we are at the end of the node, if so merge with next sibling
+    if (cursorAtEnd(event) && event.target.parentNode.nextSibling) {
+      mergeNodes(event.target.parentNode.nextSibling, event.target.parentNode)
+    }
+  } */
+}
+
+function isCursorAtBeginning (kbdevent) {
+  return getCursorPos() === 0
+}
+
+function getCursorPos () {
+  const selection = window.getSelection()
+  if (selection.rangeCount) {
+    const selectionRange = selection.getRangeAt(0)
+    return selectionRange.endOffset
+  } else {
+    return -1
   }
 }
 
@@ -185,16 +210,32 @@ function handleSplit (kbdevent) {
     // const nodeRev = kbdevent.target.parentNode.getAttribute('data-rev')
     const updatedNodeName = rangeBeforeCursor.toString()
     const newSiblingNodeName = rangeAfterCursor.extractContents().textContent
-    console.log(`Splitting node with id '${nodeId}' with new name '${updatedNodeName}' and new sibling '${newSiblingNodeName}'`)
-    // kbdevent.target.blur()
-    Promise.all([
-      repo.renameNode(nodeId, updatedNodeName),
-      repo.createSibling(newSiblingNodeName, null, nodeId)
-        .then(newSibling => {
-          transientState.focusNodeId = newSibling._id
-        })
-    ]).then(triggerTreeReload)
+    splitNode(nodeId, updatedNodeName, newSiblingNodeName)
   }
+}
+
+// ----- Some functions that represent higher level actions on nodes, separate from dom stuff
+
+function splitNode (nodeId, updatedNodeName, newSiblingNodeName) {
+  // console.log(`Splitting node with id '${nodeId}' with new name '${updatedNodeName}' and new sibling '${newSiblingNodeName}'`)
+  Promise.all([
+    repo.renameNode(nodeId, updatedNodeName),
+    repo.createSibling(newSiblingNodeName, null, nodeId)
+      .then(newSibling => {
+        transientState.focusNodeId = newSibling._id
+      })
+  ]).then(triggerTreeReload)
+}
+
+// 1. rename targetnode to be targetnode.name + sourcenode.name
+// 2. move all children of sourcenode to targetnode (actual move, just reparent)
+// 3. delete sourcenode
+function mergeNodes (from, to) {
+  // TODO implement
+}
+
+function renameNode (nodeId, newName) {
+  repo.renameNode(nodeId, newName)
 }
 
 function triggerTreeReload () {
