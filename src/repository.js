@@ -66,6 +66,45 @@ export function createSibling (name, content, existingNodeId) {
     )
 }
 
+export function getChildNodes (nodeId) {
+  return cdbLoadNode(nodeId).then(node => cdbLoadChildren(node))
+}
+
+// takes an array of _actual_ nodes and a new parent id, and sets the parentref to that id
+export function reparentNodes (children, newParentId) {
+  const reparentedChildren = children.map(child => {
+    return {
+      _id: child._id,
+      _rev: child._rev,
+      name: child.name,
+      content: child.content,
+      childrefs: child.childrefs,
+      parentref: newParentId
+    }
+  })
+  return outlineDb.bulkDocs(reparentedChildren)
+}
+
+// deletes a node, this includes removing it as a reference from its parent's childrefs
+export function deleteNode (nodeId) {
+  return cdbLoadNode(nodeId)
+    .then(node => Promise.all([
+      cdbLoadNode(node.parentref)
+        .then(parent => {
+          const childIndex = parent.childrefs.indexOf(nodeId)
+          if (childIndex > -1) {
+            parent.childrefs.splice(childIndex, 1)
+          } else {
+            console.log(`WARN Deleting a node, but can not find its ID in its parent's childrefs`)
+          }
+          return parent
+        })
+        .then(parent => cdbPutNode(parent)),
+      outlineDb.remove(node)
+    ])
+  )
+}
+
 function cdbCreateNode (name, content, parentref) {
   return outlineDb.post({
     name,

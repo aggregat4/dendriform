@@ -4,7 +4,9 @@
 }
 
 div.name {
-  display: inline-block; 
+  display: inline-block;
+  /* pre-wrap makes whitespace show up at the beginning and end! required for merging/splitting of nodes */
+  white-space: pre-wrap;
 }
 
 div.name:focus {

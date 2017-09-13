@@ -8,7 +8,9 @@ const h = maquette.h
 const debouncedRenameHandler = debounce(handleRename, 500)
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
 const transientState = {
-  focusNodeId: null
+  focusNodeId: null,
+  focusLinePos: -1,
+  focusCharPos: -1
 }
 
 function renderNode (node, first) {
@@ -40,18 +42,34 @@ function renderNode (node, first) {
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
         onkeypress: nameKeypressHandler,
         onkeydown: nameKeydownHandler,
-        afterCreate: afterCreateHandler
+        afterCreate: transientStateHandler,
+        afterUpdate: transientStateHandler
       }, node.name)
     ].concat(renderChildren(node.children)))
 }
 
 // as per http://maquettejs.org/docs/typedoc/interfaces/_maquette_.vnodeproperties.html#aftercreate
 // here we set focus to a node if it has been created and we set it as the focusable node in transientstate
-function afterCreateHandler (element) {
+function transientStateHandler (element) {
   if (transientState && transientState.focusNodeId && element.getAttribute('data-nodeid') === transientState.focusNodeId) {
     element.focus()
+    if (transientState.focusLinePos > -1 && transientState.focusCharPos > -1) {
+      setCursorPos(element, transientState.focusLinePos, transientState.focusCharPos)
+    }
     transientState.focusNodeId = null
+    transientState.focusLinePos = -1
+    transientState.focusCharPos = -1
   }
+}
+
+// assumes that the element has only one textContent child as child 0
+function setCursorPos (el, linePos, charPos) {
+  const range = document.createRange()
+  const sel = window.getSelection()
+  range.setStart(el.childNodes[0], charPos)
+  range.collapse(true)
+  sel.removeAllRanges()
+  sel.addRange(range)
 }
 
 // Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
@@ -81,24 +99,30 @@ function handleRename (event) {
   // No need to trigger a reload sine the rename is already happening in place
 }
 
+/*
+  Note from the MDN docs: "The keypress event is fired when a key is pressed down and
+  that key normally produces a character value"
+*/
 function nameKeypressHandler (event) {
   if (event.key === 'Enter') {
     event.preventDefault()
     handleSplit(event)
-  } else if (event.key === 'Backspace') {
-    // TODO check if we are at the beginning of the node, if so merge with previous sibling
-    if (isCursorAtBeginning(event) && event.target.parentNode.previousSibling) {
-      // TODO figure out all the nodeIds, the names, and call mergenodes appropriately
-      // mergeNodes(sourceNodeId, targetNodeId, newSourceNodeName)
+  }
+}
+
+/*
+function getNodeChildIds (node) {
+  const childIds = []
+  if (node.childNodes.length > 2) {
+    // children are under a specific div.children
+    const children = node.childNodes[2].childNodes
+    for (var i = 0; i < children.length; i++) {
+      childIds.push(children[i].getAttribute('id'))
     }
   }
-  /* else if (event.key === 'Delete') {
-    // TODO check if we are at the end of the node, if so merge with next sibling
-    if (cursorAtEnd(event) && event.target.parentNode.nextSibling) {
-      mergeNodes(event.target.parentNode.nextSibling, event.target.parentNode)
-    }
-  } */
+  return childIds
 }
+*/
 
 function isCursorAtBeginning (kbdevent) {
   return getCursorPos() === 0
@@ -127,12 +151,31 @@ function nameKeydownHandler (event) {
     if (nextNode) {
       nextNode.focus()
     }
+  } else if (event.key === 'Backspace') {
+    if (isCursorAtBeginning(event) && event.target.parentNode.previousSibling) {
+      event.preventDefault()
+      // TODO figure out all the nodeIds, the names, and call mergenodes appropriately
+      const currentNode = event.target.parentNode
+      const sourceNodeId = currentNode.getAttribute('id')
+      const sourceName = event.target.textContent || ''
+      const targetNodeId = currentNode.previousSibling.getAttribute('id')
+      const targetName = currentNode.previousSibling.children[1].textContent || ''
+      // make sure we focus the right node at the right position afterwards
+      transientState.focusNodeId = targetNodeId
+      transientState.focusLinePos = 0
+      transientState.focusCharPos = targetName.length // we want to set the cursor at the end of the previous sibling's name, this will go wrong once we have rich text in nodes (and therefore not just text but also elements in there)
+      mergeNodes(sourceNodeId, targetNodeId, targetName + sourceName)
+    }
   }
+  /* else if (event.key === 'Delete') {
+    // TODO check if we are at the end of the node, if so merge with next sibling
+    if (cursorAtEnd(event) && event.target.parentNode.nextSibling) {
+      mergeNodes(event.target.parentNode.nextSibling, event.target.parentNode)
+    }
+  } */
 }
 
 function findPreviousNameNode (node) {
-  // TODO: workflowy is a bit cleverer here: it actually finds the lowermost open node before the current node
-  // This means that we would need to do a depth first search in the previous sibling for the first open node working backwards (last child first)
   // TODO add search for OPEN nodes, not just any node
   const parentNode = node.parentNode
   if (parentNode.previousSibling) {
@@ -215,7 +258,11 @@ function handleSplit (kbdevent) {
   }
 }
 
-// ----- Some functions that represent higher level actions on nodes, separate from dom stuff
+function triggerTreeReload () {
+  window.dispatchEvent(new window.Event('treereload'))
+}
+
+// --------- Some functions that represent higher level actions on nodes, separate from dom stuff
 
 function splitNode (nodeId, updatedNodeName, newSiblingNodeName) {
   // console.log(`Splitting node with id '${nodeId}' with new name '${updatedNodeName}' and new sibling '${newSiblingNodeName}'`)
@@ -224,6 +271,8 @@ function splitNode (nodeId, updatedNodeName, newSiblingNodeName) {
     repo.createSibling(newSiblingNodeName, null, nodeId)
       .then(newSibling => {
         transientState.focusNodeId = newSibling._id
+        transientState.focusLinePos = -1
+        transientState.focusLinePos = -1
       })
   ]).then(triggerTreeReload)
 }
@@ -231,14 +280,18 @@ function splitNode (nodeId, updatedNodeName, newSiblingNodeName) {
 // 1. rename targetnode to be targetnode.name + sourcenode.name
 // 2. move all children of sourcenode to targetnode (actual move, just reparent)
 // 3. delete sourcenode
-function mergeNodes (sourceNodeId, targetNodeId, newSourceNodeName) {
-  // TODO implement
+function mergeNodes (sourceNodeId, targetNodeId, newTargetNodeName) {
+  repo.getChildNodes(sourceNodeId)
+    .then(children => {
+      return Promise.all([
+        repo.renameNode(targetNodeId, newTargetNodeName),
+        repo.reparentNodes(children, targetNodeId),
+        repo.deleteNode(sourceNodeId)
+      ])
+    })
+    .then(triggerTreeReload)
 }
 
 function renameNode (nodeId, newName) {
   repo.renameNode(nodeId, newName)
-}
-
-function triggerTreeReload () {
-  window.dispatchEvent(new window.Event('treereload'))
 }

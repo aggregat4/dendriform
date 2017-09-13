@@ -20,12 +20,17 @@
 1. Implement undo/redo (command pattern refactoring?)
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. Implement OPEN and CLOSED nodes
+1. Check if it works on iOS, we possibly need to do as suggested in https://stackoverflow.com/a/45954914/1996 (call rendernow to trigger focus)
+1. Implement export in some standard format
+1. implement import in some standard format
 
 # Future Steps?
 
 1. Typescript?
-2. Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
+1. Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
 1. Restart the application without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/)
+1. We may need a periodic cleanup process in the background that checks for nodes that have no valid parent, and then gathers them under some sort of lost and found. I have a feeling that there may be cases (especially with sync) where some nodes may get lost
+
 
 # Software Design
 
