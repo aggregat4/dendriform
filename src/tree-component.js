@@ -9,7 +9,6 @@ const debouncedRenameHandler = debounce(handleRename, 500)
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
 const transientState = {
   focusNodeId: null,
-  focusLinePos: -1,
   focusCharPos: -1
 }
 
@@ -53,21 +52,21 @@ function renderNode (node, first) {
 function transientStateHandler (element) {
   if (transientState && transientState.focusNodeId && element.getAttribute('data-nodeid') === transientState.focusNodeId) {
     element.focus()
-    if (transientState.focusLinePos > -1 && transientState.focusCharPos > -1) {
-      setCursorPos(element, transientState.focusLinePos, transientState.focusCharPos)
+    if (transientState.focusCharPos > -1) {
+      setCursorPos(element, transientState.focusCharPos)
     }
     transientState.focusNodeId = null
-    transientState.focusLinePos = -1
     transientState.focusCharPos = -1
   }
 }
 
-// assumes that the element has only one textContent child as child 0
-function setCursorPos (el, linePos, charPos) {
+// NOTE this assumes that the element has only one textContent child as child 0, no rich content!
+function setCursorPos (el, charPos) {
   const range = document.createRange()
-  const sel = window.getSelection()
   range.setStart(el.childNodes[0], charPos)
-  range.collapse(true)
+  range.setEnd(el.childNodes[0], charPos)
+  // range.collapse(true)
+  const sel = window.getSelection()
   sel.removeAllRanges()
   sel.addRange(range)
 }
@@ -100,7 +99,7 @@ function handleRename (event) {
 }
 
 /*
-  Note from the MDN docs: "The keypress event is fired when a key is pressed down and
+  NOTE from the MDN docs: "The keypress event is fired when a key is pressed down and
   that key normally produces a character value"
 */
 function nameKeypressHandler (event) {
@@ -160,11 +159,7 @@ function nameKeydownHandler (event) {
       const sourceName = event.target.textContent || ''
       const targetNodeId = currentNode.previousSibling.getAttribute('id')
       const targetName = currentNode.previousSibling.children[1].textContent || ''
-      // make sure we focus the right node at the right position afterwards
-      transientState.focusNodeId = targetNodeId
-      transientState.focusLinePos = 0
-      transientState.focusCharPos = targetName.length // we want to set the cursor at the end of the previous sibling's name, this will go wrong once we have rich text in nodes (and therefore not just text but also elements in there)
-      mergeNodes(sourceNodeId, targetNodeId, targetName + sourceName)
+      mergeNodes(sourceNodeId, sourceName, targetNodeId, targetName)
     }
   }
   /* else if (event.key === 'Delete') {
@@ -264,31 +259,39 @@ function triggerTreeReload () {
 
 // --------- Some functions that represent higher level actions on nodes, separate from dom stuff
 
+function requestFocusOnNode (nodeId) {
+  transientState.focusNodeId = nodeId
+  transientState.focusCharPos = -1
+}
+
+function requestFocusOnNodeAtChar (nodeId, charPos) {
+  transientState.focusNodeId = nodeId
+  transientState.focusCharPos = charPos
+}
+
 function splitNode (nodeId, updatedNodeName, newSiblingNodeName) {
   // console.log(`Splitting node with id '${nodeId}' with new name '${updatedNodeName}' and new sibling '${newSiblingNodeName}'`)
   Promise.all([
     repo.renameNode(nodeId, updatedNodeName),
     repo.createSibling(newSiblingNodeName, null, nodeId)
-      .then(newSibling => {
-        transientState.focusNodeId = newSibling._id
-        transientState.focusLinePos = -1
-        transientState.focusLinePos = -1
-      })
+      .then(newSibling => requestFocusOnNode(newSibling._id))
   ]).then(triggerTreeReload)
 }
 
 // 1. rename targetnode to be targetnode.name + sourcenode.name
 // 2. move all children of sourcenode to targetnode (actual move, just reparent)
 // 3. delete sourcenode
-function mergeNodes (sourceNodeId, targetNodeId, newTargetNodeName) {
+// 4. focus the new node at the end of its old name
+function mergeNodes (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
   repo.getChildNodes(sourceNodeId)
     .then(children => {
       return Promise.all([
-        repo.renameNode(targetNodeId, newTargetNodeName),
+        repo.renameNode(targetNodeId, targetNodeName + sourceNodeName),
         repo.reparentNodes(children, targetNodeId),
         repo.deleteNode(sourceNodeId)
       ])
     })
+    .then(() => requestFocusOnNodeAtChar(targetNodeId, Math.max(0, targetNodeName.length)))
     .then(triggerTreeReload)
 }
 
