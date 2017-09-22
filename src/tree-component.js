@@ -47,6 +47,26 @@ function renderNode (node, first) {
     ].concat(renderChildren(node.children)))
 }
 
+// Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
+// one reason why we have the toplevel div.tree
+function renderTree (treeStore) {
+  console.log(`renderTree call`)
+  if (treeStore.status.state === 'ERROR') {
+    return h('div.tree', [h('div.error', [`Can not load tree from backing store: ${treeStore.status.msg}`])])
+  } else if (treeStore.status.state === 'LOADING') {
+    return h('div.tree', [h('div', [`Loading tree...`])])
+  } else if (treeStore.status.state === 'LOADED') {
+    return h('div.tree', [renderNode(treeStore.tree, true)])
+  } else {
+    // TODO runtimeexception ?
+    return h('div.tree', [h('div.error', [`Tree is in an unknown state`])])
+  }
+}
+
+export function createTreeRenderer (treeProvider) {
+  return () => { return renderTree(treeProvider()) }
+}
+
 // as per http://maquettejs.org/docs/typedoc/interfaces/_maquette_.vnodeproperties.html#aftercreate
 // here we set focus to a node if it has been created and we set it as the focusable node in transientstate
 function transientStateHandler (element) {
@@ -69,26 +89,6 @@ function setCursorPos (el, charPos) {
   const sel = window.getSelection()
   sel.removeAllRanges()
   sel.addRange(range)
-}
-
-// Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
-// one reason why we have the toplevel div.tree
-function renderTree (treeStore) {
-  console.log(`renderTree call`)
-  if (treeStore.status.state === 'ERROR') {
-    return h('div.tree', [h('div.error', [`Can not load tree from backing store: ${treeStore.status.msg}`])])
-  } else if (treeStore.status.state === 'LOADING') {
-    return h('div.tree', [h('div', [`Loading tree...`])])
-  } else if (treeStore.status.state === 'LOADED') {
-    return h('div.tree', [renderNode(treeStore.tree, true)])
-  } else {
-    // TODO runtimeexception ?
-    return h('div.tree', [h('div.error', [`Tree is in an unknown state`])])
-  }
-}
-
-export function createTreeRenderer (treeProvider) {
-  return () => { return renderTree(treeProvider()) }
 }
 
 function handleRename (event) {
@@ -141,6 +141,7 @@ function getCursorPos () {
   }
 }
 
+// for reference, Key values: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
 function nameKeydownHandler (event) {
   if (event.key === 'ArrowUp') {
     event.preventDefault()
@@ -168,6 +169,16 @@ function nameKeydownHandler (event) {
       const targetNode = event.target.parentNode
       const sourceNode = targetNode.nextSibling
       mergeNodes(sourceNode, targetNode)
+    }
+  } else if (event.key === 'Tab') {
+    // When tabbing you want to make the node the last child of the previous sibling (if it exists)
+    if (event.target.parentNode.previousSibling) {
+      event.preventDefault()
+      const node = event.target.parentNode
+      // when a node is a child, it is inside a "children" container of its parent
+      const oldParentNode = node.parentNode.parentNode
+      const newParentNode = node.previousSibling
+      reparentNode(node, oldParentNode, newParentNode)
     }
   }
 }
@@ -232,6 +243,14 @@ function findFirstAncestorNextSibling (node) {
   } else {
     return null
   }
+}
+
+function getNodeId (node) {
+  return node.getAttribute('id')
+}
+
+function getNodeName (node) {
+  return node.children[1].textContent || ''
 }
 
 function handleSplit (kbdevent) {
@@ -299,13 +318,29 @@ function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeN
 
 // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
 function mergeNodes (sourceNode, targetNode) {
-  const sourceNodeId = sourceNode.getAttribute('id')
-  const sourceNodeName = sourceNode.children[1].textContent || ''
-  const targetNodeId = targetNode.getAttribute('id')
-  const targetNodeName = targetNode.children[1].textContent || ''
+  const sourceNodeId = getNodeId(sourceNode)
+  const sourceNodeName = getNodeName(sourceNode)
+  const targetNodeId = getNodeId(targetNode)
+  const targetNodeName = getNodeName(targetNode)
   mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName)
 }
 
 function renameNode (nodeId, newName) {
   repo.renameNode(nodeId, newName)
+}
+
+// 1. set the node's parent Id to the new id
+// 2. add the node to the new parent's children
+// 3. remove the node from the old parent's children
+function reparentNodesById (nodeId, oldParentNodeId, newParentNodeId) {
+  repo.getNode(nodeId)
+    .then(node => repo.reparentNodes([node], newParentNodeId))
+    .then(triggerTreeReload)
+}
+
+function reparentNode (node, oldParentNode, newParentNode) {
+  const nodeId = getNodeId(node)
+  const oldParentNodeId = getNodeId(oldParentNode)
+  const newParentNodeId = getNodeId(newParentNode)
+  reparentNodesById(nodeId, oldParentNodeId, newParentNodeId)
 }

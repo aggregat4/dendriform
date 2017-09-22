@@ -66,12 +66,21 @@ export function createSibling (name, content, existingNodeId) {
     )
 }
 
+export function getNode (nodeId) {
+  return cdbLoadNode(nodeId)
+}
+
 export function getChildNodes (nodeId) {
   return cdbLoadNode(nodeId).then(node => cdbLoadChildren(node))
 }
 
-// takes an array of _actual_ nodes and a new parent id, and sets the parentref to that id
+// takes an array of _actual_ nodes and a new parent id, then it reparents those nodes by:
+// removing them from their parent childrefs
+// updating their parentref to their parent's ref
+// adding the childs to their new parents childrefs
 export function reparentNodes (children, newParentId) {
+  const childIds = children.map(child => child._id)
+  const oldParentId = children[0].parentref
   const reparentedChildren = children.map(child => {
     return {
       _id: child._id,
@@ -82,7 +91,33 @@ export function reparentNodes (children, newParentId) {
       parentref: newParentId
     }
   })
-  return outlineDb.bulkDocs(reparentedChildren)
+  return cdbLoadNode(oldParentId)
+    .then(oldParentNode => cdbPutNode({
+      _id: oldParentNode._id,
+      _rev: oldParentNode._rev,
+      name: oldParentNode.name,
+      content: oldParentNode.content,
+      parentref: oldParentNode.parentref,
+      // remove all the children from their parent
+      childrefs: oldParentNode.childrefs.filter((c) => childIds.indexOf(c) < 0)
+    }))
+    .then(() => {
+      return outlineDb.bulkDocs(reparentedChildren)
+    })
+    .then(cdbLoadNode(newParentId))
+    .then(newParentNode => {
+      // TODO for some reason the newParentNode returned is not actually a full object!? Why?
+      console.log(`newParentId: ${newParentId}, newParentNode: ${JSON.stringify(newParentNode)}`)
+      cdbPutNode({
+        _id: newParentNode._id,
+        _rev: newParentNode._rev,
+        name: newParentNode.name,
+        content: newParentNode.content,
+        parentref: newParentNode.parentref,
+        // add all the new children to the new parent
+        childrefs: (newParentNode.childrefs || []).concat(childIds)
+      })
+    })
 }
 
 // deletes a node, this includes removing it as a reference from its parent's childrefs
