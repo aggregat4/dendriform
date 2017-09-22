@@ -14,7 +14,7 @@
 1. ~~BUG: ArrowDown gets stuck below the root node~~
 1. ~~Implement cleverer arrow key handling so we actually try to find the next open node no matter how deep in the hierarhcy (see TODO in keydownhandler)~~
 1. ~~We need to handle root nodes differently from other nodes: if root node then just render children (so we don't see and can't split root node), if not root then show name as title and render children below (see workflowy)~~
-1. Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end?)
+1. ~~Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end)~~
 1. Implement deleting nodes when deleting empty node
 1. Implement indent and unindent with TAB and SHIFT+TAB
 1. Implement undo/redo (command pattern refactoring?)

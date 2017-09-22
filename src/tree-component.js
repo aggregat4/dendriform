@@ -123,6 +123,10 @@ function getNodeChildIds (node) {
 }
 */
 
+function isCursorAtEnd (kbdevent) {
+  return getCursorPos() === kbdevent.target.textContent.length
+}
+
 function isCursorAtBeginning (kbdevent) {
   return getCursorPos() === 0
 }
@@ -153,21 +157,19 @@ function nameKeydownHandler (event) {
   } else if (event.key === 'Backspace') {
     if (isCursorAtBeginning(event) && event.target.parentNode.previousSibling) {
       event.preventDefault()
-      // TODO figure out all the nodeIds, the names, and call mergenodes appropriately
-      const currentNode = event.target.parentNode
-      const sourceNodeId = currentNode.getAttribute('id')
-      const sourceName = event.target.textContent || ''
-      const targetNodeId = currentNode.previousSibling.getAttribute('id')
-      const targetName = currentNode.previousSibling.children[1].textContent || ''
-      mergeNodes(sourceNodeId, sourceName, targetNodeId, targetName)
+      const sourceNode = event.target.parentNode
+      const targetNode = sourceNode.previousSibling
+      mergeNodes(sourceNode, targetNode)
+    }
+  } else if (event.key === 'Delete') {
+    // TODO check if we are at the end of the node, if so merge with next sibling
+    if (isCursorAtEnd(event) && event.target.parentNode.nextSibling) {
+      event.preventDefault()
+      const targetNode = event.target.parentNode
+      const sourceNode = targetNode.nextSibling
+      mergeNodes(sourceNode, targetNode)
     }
   }
-  /* else if (event.key === 'Delete') {
-    // TODO check if we are at the end of the node, if so merge with next sibling
-    if (cursorAtEnd(event) && event.target.parentNode.nextSibling) {
-      mergeNodes(event.target.parentNode.nextSibling, event.target.parentNode)
-    }
-  } */
 }
 
 function findPreviousNameNode (node) {
@@ -282,7 +284,7 @@ function splitNode (nodeId, updatedNodeName, newSiblingNodeName) {
 // 2. move all children of sourcenode to targetnode (actual move, just reparent)
 // 3. delete sourcenode
 // 4. focus the new node at the end of its old name
-function mergeNodes (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
+function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
   repo.getChildNodes(sourceNodeId)
     .then(children => {
       return Promise.all([
@@ -293,6 +295,15 @@ function mergeNodes (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName)
     })
     .then(() => requestFocusOnNodeAtChar(targetNodeId, Math.max(0, targetNodeName.length)))
     .then(triggerTreeReload)
+}
+
+// Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
+function mergeNodes (sourceNode, targetNode) {
+  const sourceNodeId = sourceNode.getAttribute('id')
+  const sourceNodeName = sourceNode.children[1].textContent || ''
+  const targetNodeId = targetNode.getAttribute('id')
+  const targetNodeName = targetNode.children[1].textContent || ''
+  mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName)
 }
 
 function renameNode (nodeId, newName) {
