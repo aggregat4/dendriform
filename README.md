@@ -25,6 +25,7 @@
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. Implement breadcrumbs for navigating back
 1. Implement OPEN and CLOSED nodes
+1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node)
 1. Check if it works on iOS, we possibly need to do as suggested in https://stackoverflow.com/a/45954914/1996 (call rendernow to trigger focus)
 1. Implement export in some standard format
 1. implement import in some standard format
