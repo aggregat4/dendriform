@@ -171,9 +171,9 @@ function nameKeydownHandler (event) {
     }
   } else if (event.key === 'Tab' && !event.shiftKey) {
     // When tabbing you want to make the node the last child of the previous sibling (if it exists)
-    if (event.target.parentNode.previousSibling) {
+    const node = event.target.parentNode
+    if (node.previousSibling) {
       event.preventDefault()
-      const node = event.target.parentNode
       // when a node is a child, it is inside a "children" container of its parent
       const oldParentNode = getParentNode(node)
       const newParentNode = node.previousSibling
@@ -181,13 +181,16 @@ function nameKeydownHandler (event) {
     }
   } else if (event.key === 'Tab' && event.shiftKey) {
     // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
-    if (hasParentNode(event.target.parentNode)) {
-      event.preventDefault()
-      const node = event.target.parentNode
+    // Caution: we only allow unindent if the current node has a parent and a grandparent node, otherwise we can not unindent
+    const node = event.target.parentNode
+    if (hasParentNode(node)) {
       const oldParentNode = getParentNode(node)
-      const newParentNode = getParentNode(oldParentNode)
-      const afterNode = oldParentNode
-      reparentNodeAfter(node, oldParentNode, newParentNode, afterNode)
+      if (hasParentNode(oldParentNode)) {
+        const newParentNode = getParentNode(oldParentNode)
+        const afterNode = oldParentNode
+        event.preventDefault()
+        reparentNodeAfter(node, oldParentNode, newParentNode, afterNode)
+      }
     }
   }
 }
@@ -196,11 +199,19 @@ function nameKeydownHandler (event) {
 function hasParentNode (node) {
   if (node.parentNode &&
       node.parentNode.getAttribute('class').indexOf('children') !== -1 &&
-      getNodeId(node.parentNode.parentNode) !== 'ROOT') {
+      isNode(node.parentNode.parentNode)) {
     return true
   } else {
     return false
   }
+}
+
+function isRootNode (node) {
+  return getNodeId(node) === 'ROOT'
+}
+
+function isNode (element) {
+  return element.getAttribute('class').indexOf('node') !== -1
 }
 
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
@@ -257,7 +268,7 @@ function findNextNameNode (node) {
 function findFirstAncestorNextSibling (node) {
   if (node.parentNode && node.parentNode.getAttribute('class') === 'children') {
     const parentNode = node.parentNode.parentNode
-    if (parentNode.getAttribute('id') === 'ROOT') {
+    if (isRootNode(parentNode)) {
       return null
     } else {
       if (parentNode.nextSibling) {

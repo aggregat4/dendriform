@@ -17,6 +17,8 @@
 1. ~~Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end)~~
 1. ~~Implement deleting nodes when deleting empty node~~
 1. ~~Implement indent and unindent with TAB and SHIFT+TAB~~
+1. ~~BUG: only allow unindent when a parent and a grandparent are currently available (rendered)~~
+1. BUG: focus handling on indent/unindent is not correct
 1. Clean up the utility code and see if we can sensibly split stuff into modules that make sense (at least cursor-utils or dom-utils? maybe node-utils for DOM stuff on div.nodes?)
 1. Implement undo/redo (command pattern refactoring)
 1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN
@@ -38,7 +40,7 @@
 
 ## Promises are tricky
 
-* It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this makes sense, but debugging this is nasty.
+* It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this is obvious, but debugging this is nasty.
 
 # Software Design
 
