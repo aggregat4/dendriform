@@ -32,6 +32,11 @@
 1. Restart the application without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/)
 1. We may need a periodic cleanup process in the background that checks for nodes that have no valid parent, and then gathers them under some sort of lost and found. I have a feeling that there may be cases (especially with sync) where some nodes may get lost
 
+# Lessons learned
+
+## Promises are tricky
+
+* It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this makes sense, but debugging this is nasty.
 
 # Software Design
 

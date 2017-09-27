@@ -101,23 +101,17 @@ export function reparentNodes (children, newParentId) {
       // remove all the children from their parent
       childrefs: oldParentNode.childrefs.filter((c) => childIds.indexOf(c) < 0)
     }))
-    .then(() => {
-      return outlineDb.bulkDocs(reparentedChildren)
-    })
-    .then(cdbLoadNode(newParentId))
-    .then(newParentNode => {
-      // TODO for some reason the newParentNode returned is not actually a full object!? Why?
-      console.log(`newParentId: ${newParentId}, newParentNode: ${JSON.stringify(newParentNode)}`)
-      cdbPutNode({
-        _id: newParentNode._id,
-        _rev: newParentNode._rev,
-        name: newParentNode.name,
-        content: newParentNode.content,
-        parentref: newParentNode.parentref,
-        // add all the new children to the new parent
-        childrefs: (newParentNode.childrefs || []).concat(childIds)
-      })
-    })
+    .then(oldParentUpdateResult => outlineDb.bulkDocs(reparentedChildren))
+    .then(bulkUpdateChildrenResult => cdbLoadNode(newParentId))
+    .then(newParentNode => cdbPutNode({
+      _id: newParentNode._id,
+      _rev: newParentNode._rev,
+      name: newParentNode.name,
+      content: newParentNode.content,
+      parentref: newParentNode.parentref,
+      // add all the new children to the new parent
+      childrefs: (newParentNode.childrefs || []).concat(childIds)
+    }))
 }
 
 // deletes a node, this includes removing it as a reference from its parent's childrefs
