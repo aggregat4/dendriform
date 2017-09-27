@@ -163,24 +163,50 @@ function nameKeydownHandler (event) {
       mergeNodes(sourceNode, targetNode)
     }
   } else if (event.key === 'Delete') {
-    // TODO check if we are at the end of the node, if so merge with next sibling
     if (isCursorAtEnd(event) && event.target.parentNode.nextSibling) {
       event.preventDefault()
       const targetNode = event.target.parentNode
       const sourceNode = targetNode.nextSibling
       mergeNodes(sourceNode, targetNode)
     }
-  } else if (event.key === 'Tab') {
+  } else if (event.key === 'Tab' && !event.shiftKey) {
     // When tabbing you want to make the node the last child of the previous sibling (if it exists)
     if (event.target.parentNode.previousSibling) {
       event.preventDefault()
       const node = event.target.parentNode
       // when a node is a child, it is inside a "children" container of its parent
-      const oldParentNode = node.parentNode.parentNode
+      const oldParentNode = getParentNode(node)
       const newParentNode = node.previousSibling
       reparentNode(node, oldParentNode, newParentNode)
     }
+  } else if (event.key === 'Tab' && event.shiftKey) {
+    // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
+    if (hasParentNode(event.target.parentNode)) {
+      event.preventDefault()
+      const node = event.target.parentNode
+      const oldParentNode = getParentNode(node)
+      const newParentNode = getParentNode(oldParentNode)
+      const afterNode = oldParentNode
+      reparentNodeAfter(node, oldParentNode, newParentNode, afterNode)
+    }
   }
+}
+
+// Checks whether the current node has a parent that is NOT ROOT
+function hasParentNode (node) {
+  if (node.parentNode &&
+      node.parentNode.getAttribute('class').indexOf('children') !== -1 &&
+      getNodeId(node.parentNode.parentNode) !== 'ROOT') {
+    return true
+  } else {
+    return false
+  }
+}
+
+// TODO should we fail fast here by throwing exception after checking hasParentNode?
+function getParentNode (node) {
+  // first parentNode is div.children, its parent is the real parent node
+  return node.parentNode.parentNode
 }
 
 function findPreviousNameNode (node) {
@@ -332,15 +358,20 @@ function renameNode (nodeId, newName) {
 // 1. set the node's parent Id to the new id
 // 2. add the node to the new parent's children
 // 3. remove the node from the old parent's children
-function reparentNodesById (nodeId, oldParentNodeId, newParentNodeId) {
+function reparentNodesById (nodeId, oldParentNodeId, newParentNodeId, afterNodeId) {
   repo.getNode(nodeId)
-    .then(node => repo.reparentNodes([node], newParentNodeId))
+    .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
     .then(triggerTreeReload)
 }
 
 function reparentNode (node, oldParentNode, newParentNode) {
+  reparentNodeAfter(node, oldParentNode, newParentNode, null)
+}
+
+function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
   const nodeId = getNodeId(node)
   const oldParentNodeId = getNodeId(oldParentNode)
   const newParentNodeId = getNodeId(newParentNode)
-  reparentNodesById(nodeId, oldParentNodeId, newParentNodeId)
+  const afterNodeId = afterNode ? getNodeId(afterNode) : null
+  reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId)
 }

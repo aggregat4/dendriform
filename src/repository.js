@@ -75,10 +75,11 @@ export function getChildNodes (nodeId) {
 }
 
 // takes an array of _actual_ nodes and a new parent id, then it reparents those nodes by:
-// removing them from their parent childrefs
-// updating their parentref to their parent's ref
-// adding the childs to their new parents childrefs
-export function reparentNodes (children, newParentId) {
+// 1. removing them from their parent childrefs
+// 2. updating their parentref to their parent's ref
+// 3. adding the childs to their new parents childrefs
+// If an afterNodeId is provided the nodes are inserted after that child of the new parent
+export function reparentNodes (children, newParentId, afterNodeId) {
   const childIds = children.map(child => child._id)
   const oldParentId = children[0].parentref
   const reparentedChildren = children.map(child => {
@@ -110,8 +111,19 @@ export function reparentNodes (children, newParentId) {
       content: newParentNode.content,
       parentref: newParentNode.parentref,
       // add all the new children to the new parent
-      childrefs: (newParentNode.childrefs || []).concat(childIds)
+      childrefs: mergeNodeIds(newParentNode.childrefs || [], childIds, afterNodeId)
     }))
+}
+
+function mergeNodeIds (originalChildIds, newChildIds, afterNodeId) {
+  if (afterNodeId) {
+    const pos = originalChildIds.indexOf(afterNodeId)
+    if (pos !== -1) {
+      return originalChildIds.slice(0, pos + 1).concat(newChildIds, originalChildIds.slice(pos + 1))
+    }
+  }
+  // in all other cases we just concatenate
+  return originalChildIds.concat(newChildIds)
 }
 
 // deletes a node, this includes removing it as a reference from its parent's childrefs

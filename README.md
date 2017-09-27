@@ -16,14 +16,16 @@
 1. ~~We need to handle root nodes differently from other nodes: if root node then just render children (so we don't see and can't split root node), if not root then show name as title and render children below (see workflowy)~~
 1. ~~Implement merging of nodes (BACKSPACE on beginning of node name, or DELETE at the end)~~
 1. ~~Implement deleting nodes when deleting empty node~~
-1. Implement indent and unindent with TAB and SHIFT+TAB
-1. Clean up the utility code and see if we can sensibly split stuff into modules that make sense (at least cursor-utils? maybe node-utils for DOM stuff on div.nodes?)
-1. Implement undo/redo (command pattern refactoring?)
+1. ~~Implement indent and unindent with TAB and SHIFT+TAB~~
+1. Clean up the utility code and see if we can sensibly split stuff into modules that make sense (at least cursor-utils or dom-utils? maybe node-utils for DOM stuff on div.nodes?)
+1. Implement undo/redo (command pattern refactoring)
+1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. Implement OPEN and CLOSED nodes
 1. Check if it works on iOS, we possibly need to do as suggested in https://stackoverflow.com/a/45954914/1996 (call rendernow to trigger focus)
 1. Implement export in some standard format
 1. implement import in some standard format
+1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hanged nodes in a LOST+FOUND node?
 
 # Future Steps?
 
