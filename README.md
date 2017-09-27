@@ -23,6 +23,7 @@
 1. Implement undo/redo (command pattern refactoring)
 1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
+1. Implement breadcrumbs for navigating back
 1. Implement OPEN and CLOSED nodes
 1. Check if it works on iOS, we possibly need to do as suggested in https://stackoverflow.com/a/45954914/1996 (call rendernow to trigger focus)
 1. Implement export in some standard format
