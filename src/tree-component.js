@@ -5,8 +5,9 @@ import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, ge
 
 const h = maquette.h
 // The rename handler needs to be debounced so that we do not overload pouchdb.
-// With fast typing this would otherwise lead to document update conflicts and unnecessary load on the db.
-const debouncedRenameHandler = debounce(handleRename, 500)
+// With fast typing this would otherwise lead to document update conflicts and
+// unnecessary load on the db.
+const debouncedRenameHandler = debounce(handleRename, 250)
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
 const transientState = {
   focusNodeId: null,
@@ -225,18 +226,26 @@ function mergeNodes (sourceNode, targetNode) {
   mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName)
 }
 
+// Renames DO trigger an explicit rerender even though the changes are directly visible
+// because there is a concurrency issue with other operations: if you indent a node quickly
+// after renaming, the new name will vanish since that update has not made it to the store yet
+// and the indent triggers a rerender. The solution is to just always rerender.
 function renameNode (nodeId, newName) {
+  const cursorPos = getCursorPos()
   repo.renameNode(nodeId, newName)
+  .then(triggerTreeReload)
+  .then(() => requestFocusOnNodeAtChar(nodeId, cursorPos))
 }
 
 // 1. set the node's parent Id to the new id
 // 2. add the node to the new parent's children
 // 3. remove the node from the old parent's children
 function reparentNodesById (nodeId, oldParentNodeId, newParentNodeId, afterNodeId) {
+  const cursorPos = getCursorPos()
   repo.getNode(nodeId)
     .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
     .then(triggerTreeReload)
-    .then(() => requestFocusOnNodeAtChar(nodeId, getCursorPos()))
+    .then(() => requestFocusOnNodeAtChar(nodeId, cursorPos))
 }
 
 function reparentNode (node, oldParentNode, newParentNode) {
