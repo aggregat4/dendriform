@@ -55,3 +55,29 @@ export function isCursorAtEnd (kbdevent) {
 export function isCursorAtBeginning (kbdevent) {
   return getCursorPos() === 0
 }
+
+export function getTextBeforeCursor (kbdevent) {
+  const selection = window.getSelection()
+  if (selection.rangeCount) {
+    const selectionRange = selection.getRangeAt(0)
+    const rangeBeforeCursor = selectionRange.cloneRange()
+    rangeBeforeCursor.selectNodeContents(kbdevent.target)
+    rangeBeforeCursor.setEnd(selectionRange.endContainer, selectionRange.endOffset)
+    return rangeBeforeCursor.toString()
+  } else {
+    return null
+  }
+}
+
+export function getTextAfterCursor (kbdevent) {
+  const selection = window.getSelection()
+  if (selection.rangeCount) {
+    const selectionRange = selection.getRangeAt(0)
+    const rangeAfterCursor = selectionRange.cloneRange()
+    rangeAfterCursor.selectNodeContents(kbdevent.target)
+    rangeAfterCursor.setStart(selectionRange.endContainer, selectionRange.endOffset)
+    return rangeAfterCursor.extractContents().textContent
+  } else {
+    return null
+  }
+}

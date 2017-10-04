@@ -1,6 +1,6 @@
 import * as maquette from 'maquette'
 import * as repo from './repository'
-import {debounce, getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd} from './util'
+import {debounce, getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd, getTextBeforeCursor, getTextAfterCursor} from './util'
 import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName} from './tree-util.js'
 
 const h = maquette.h
@@ -155,24 +155,10 @@ function nameKeydownHandler (event) {
 }
 
 function handleSplit (kbdevent) {
-  const selection = window.getSelection()
-  // if there is a selection at all (including just a cursor), this should basically always be true since we are in a contenteditable and we pressed Enter
-  if (selection.rangeCount) {
-    const selectionRange = selection.getRangeAt(0)
-    const rangeBeforeCursor = selectionRange.cloneRange()
-    rangeBeforeCursor.selectNodeContents(kbdevent.target)
-    rangeBeforeCursor.setEnd(selectionRange.endContainer, selectionRange.endOffset)
-    // console.log(`range before cursor '${rangeBeforeCursor.toString()}'`);
-    const rangeAfterCursor = selectionRange.cloneRange()
-    rangeAfterCursor.selectNodeContents(kbdevent.target)
-    rangeAfterCursor.setStart(selectionRange.endContainer, selectionRange.endOffset)
-    // console.log(`range after cursor '${rangeAfterCursor.toString()}'`);
-    const nodeId = kbdevent.target.parentNode.getAttribute('id')
-    // const nodeRev = kbdevent.target.parentNode.getAttribute('data-rev')
-    const updatedNodeName = rangeBeforeCursor.toString()
-    const newSiblingNodeName = rangeAfterCursor.extractContents().textContent
-    splitNode(nodeId, updatedNodeName, newSiblingNodeName)
-  }
+  const nodeId = kbdevent.target.parentNode.getAttribute('id')
+  const updatedNodeName = getTextBeforeCursor(kbdevent) || ''
+  const newSiblingNodeName = getTextAfterCursor(kbdevent) || ''
+  splitNode(nodeId, updatedNodeName, newSiblingNodeName)
 }
 
 // --------- Some functions that represent higher level actions on nodes, separate from dom stuff
