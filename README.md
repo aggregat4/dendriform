@@ -18,17 +18,20 @@
 1. ~~Implement deleting nodes when deleting empty node~~
 1. ~~Implement indent and unindent with TAB and SHIFT+TAB~~
 1. ~~BUG: only allow unindent when a parent and a grandparent are currently available (rendered)~~
-1. BUG: focus handling on indent/unindent is not correct
+1. ~~BUG: focus handling on indent/unindent is not correct~~
 1. Clean up the utility code and see if we can sensibly split stuff into modules that make sense (at least cursor-utils or dom-utils? maybe node-utils for DOM stuff on div.nodes?)
 1. Implement undo/redo (command pattern refactoring)
-1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN
+1. Implement moving up and down with arrow keys and maintaining approximate character position
+1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN (or CTRL+UPARROW/DOWNARROW?)
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. Implement breadcrumbs for navigating back
+1. First round of prettyfication (investigate some information hierarchy, ux, similar stuff))
 1. Implement OPEN and CLOSED nodes
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node)
 1. Check if it works on iOS, we possibly need to do as suggested in https://stackoverflow.com/a/45954914/1996 (call rendernow to trigger focus)
 1. Implement export in some standard format
-1. implement import in some standard format
+1. Implement import in some standard format
+1. Implement search
 1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hanged nodes in a LOST+FOUND node?
 
 # Future Steps?

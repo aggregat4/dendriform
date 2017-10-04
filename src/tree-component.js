@@ -373,6 +373,7 @@ function reparentNodesById (nodeId, oldParentNodeId, newParentNodeId, afterNodeI
   repo.getNode(nodeId)
     .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
     .then(triggerTreeReload)
+    .then(() => requestFocusOnNodeAtChar(nodeId, getCursorPos()))
 }
 
 function reparentNode (node, oldParentNode, newParentNode) {
