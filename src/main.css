@@ -7,6 +7,8 @@ div.name {
   display: inline-block;
   /* pre-wrap makes whitespace show up at the beginning and end! required for merging/splitting of nodes */
   white-space: pre-wrap;
+  /* min-width (or a similar trick) is required to make the cursor show in Chrome when the element is empty */
+  min-width: 2px;
 }
 
 div.name:focus {
