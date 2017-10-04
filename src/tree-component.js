@@ -1,6 +1,7 @@
 import * as maquette from 'maquette'
 import * as repo from './repository'
-import {debounce} from './util'
+import {debounce, getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd} from './util'
+import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName} from './tree-util.js'
 
 const h = maquette.h
 // The rename handler needs to be debounced so that we do not overload pouchdb.
@@ -80,17 +81,6 @@ function transientStateHandler (element) {
   }
 }
 
-// NOTE this assumes that the element has only one textContent child as child 0, no rich content!
-function setCursorPos (el, charPos) {
-  const range = document.createRange()
-  range.setStart(el.childNodes[0], charPos)
-  range.setEnd(el.childNodes[0], charPos)
-  // range.collapse(true)
-  const sel = window.getSelection()
-  sel.removeAllRanges()
-  sel.addRange(range)
-}
-
 function handleRename (event) {
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
@@ -106,38 +96,6 @@ function nameKeypressHandler (event) {
   if (event.key === 'Enter') {
     event.preventDefault()
     handleSplit(event)
-  }
-}
-
-/*
-function getNodeChildIds (node) {
-  const childIds = []
-  if (node.childNodes.length > 2) {
-    // children are under a specific div.children
-    const children = node.childNodes[2].childNodes
-    for (var i = 0; i < children.length; i++) {
-      childIds.push(children[i].getAttribute('id'))
-    }
-  }
-  return childIds
-}
-*/
-
-function isCursorAtEnd (kbdevent) {
-  return getCursorPos() === kbdevent.target.textContent.length
-}
-
-function isCursorAtBeginning (kbdevent) {
-  return getCursorPos() === 0
-}
-
-function getCursorPos () {
-  const selection = window.getSelection()
-  if (selection.rangeCount) {
-    const selectionRange = selection.getRangeAt(0)
-    return selectionRange.endOffset
-  } else {
-    return -1
   }
 }
 
@@ -195,101 +153,6 @@ function nameKeydownHandler (event) {
   }
 }
 
-// Checks whether the current node has a parent that is NOT ROOT
-function hasParentNode (node) {
-  if (node.parentNode &&
-      node.parentNode.getAttribute('class').indexOf('children') !== -1 &&
-      isNode(node.parentNode.parentNode)) {
-    return true
-  } else {
-    return false
-  }
-}
-
-function isRootNode (node) {
-  return getNodeId(node) === 'ROOT'
-}
-
-function isNode (element) {
-  return element.getAttribute('class').indexOf('node') !== -1
-}
-
-// TODO should we fail fast here by throwing exception after checking hasParentNode?
-function getParentNode (node) {
-  // first parentNode is div.children, its parent is the real parent node
-  return node.parentNode.parentNode
-}
-
-function findPreviousNameNode (node) {
-  // TODO add search for OPEN nodes, not just any node
-  const parentNode = node.parentNode
-  if (parentNode.previousSibling) {
-    const lastChildNode = findLastChildNode(parentNode.previousSibling)
-    return lastChildNode.childNodes[1]
-  } else if (parentNode.parentNode && parentNode.parentNode.getAttribute('class') === 'children') {
-    // parentNode = div.node, parentNode.parentNode = div.children, parentNode.parentNode.parentNode = the real parent div.node
-    return parentNode.parentNode.parentNode.childNodes[1]
-  } else {
-    return null
-  }
-}
-
-// Given a div.node it finds the LAST and deepest child (depth first) of that node, or the node itself
-function findLastChildNode (node) {
-  if (node.childNodes.length > 2) {
-    const childrenNode = node.childNodes[2]
-    return findLastChildNode(childrenNode.childNodes[childrenNode.childNodes.length - 1])
-  } else {
-    return node
-  }
-}
-
-function findNextNameNode (node) {
-  // TODO make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
-  const parentNode = node.parentNode
-  if (parentNode.childNodes.length > 2) {
-    // parentNode = div.node, parentNode.childNodes[2] = div.children, and then the first child's name node
-    return parentNode.childNodes[2].childNodes[0].childNodes[1]
-  } else if (parentNode.nextSibling) {
-    return parentNode.nextSibling.childNodes[1]
-  } else {
-    const firstAncestorNextSibling = findFirstAncestorNextSibling(parentNode)
-    if (firstAncestorNextSibling) {
-      return firstAncestorNextSibling.childNodes[1]
-    } else {
-      return null
-    }
-  }
-}
-
-// Assuming we get passed a div.node this function will find the first
-// next-sibling of an ancestor node and return it (div.node) or null if
-// none could be found
-function findFirstAncestorNextSibling (node) {
-  if (node.parentNode && node.parentNode.getAttribute('class') === 'children') {
-    const parentNode = node.parentNode.parentNode
-    if (isRootNode(parentNode)) {
-      return null
-    } else {
-      if (parentNode.nextSibling) {
-        return parentNode.nextSibling
-      } else {
-        return findFirstAncestorNextSibling(parentNode)
-      }
-    }
-  } else {
-    return null
-  }
-}
-
-function getNodeId (node) {
-  return node.getAttribute('id')
-}
-
-function getNodeName (node) {
-  return node.children[1].textContent || ''
-}
-
 function handleSplit (kbdevent) {
   const selection = window.getSelection()
   // if there is a selection at all (including just a cursor), this should basically always be true since we are in a contenteditable and we pressed Enter
@@ -311,11 +174,11 @@ function handleSplit (kbdevent) {
   }
 }
 
+// --------- Some functions that represent higher level actions on nodes, separate from dom stuff
+
 function triggerTreeReload () {
   window.dispatchEvent(new window.Event('treereload'))
 }
-
-// --------- Some functions that represent higher level actions on nodes, separate from dom stuff
 
 function requestFocusOnNode (nodeId) {
   transientState.focusNodeId = nodeId

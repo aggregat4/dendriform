@@ -23,3 +23,35 @@ export function debounce (func, wait, immediate) {
     if (callNow) func.apply(context, args)
   }
 }
+
+export function getCursorPos () {
+  const selection = window.getSelection()
+  if (selection.rangeCount) {
+    const selectionRange = selection.getRangeAt(0)
+    return selectionRange.endOffset
+  } else {
+    return -1
+  }
+}
+
+// NOTE this assumes that the element has only one textContent child as child 0, no rich content!
+export function setCursorPos (el, charPos) {
+  if (!el.childNodes[0]) {
+    return
+  }
+  const range = document.createRange()
+  range.setStart(el.childNodes[0], charPos)
+  range.setEnd(el.childNodes[0], charPos)
+  // range.collapse(true)
+  const sel = window.getSelection()
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+export function isCursorAtEnd (kbdevent) {
+  return getCursorPos() === kbdevent.target.textContent.length
+}
+
+export function isCursorAtBeginning (kbdevent) {
+  return getCursorPos() === 0
+}
