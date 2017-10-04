@@ -4,10 +4,7 @@ import {debounce, getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd
 import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName} from './tree-util.js'
 
 const h = maquette.h
-// The rename handler needs to be debounced so that we do not overload pouchdb.
-// With fast typing this would otherwise lead to document update conflicts and
-// unnecessary load on the db.
-const debouncedRenameHandler = debounce(handleRename, 250)
+
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
 const transientState = {
   focusNodeId: null,
@@ -86,17 +83,22 @@ function handleRename (event) {
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
   renameNode(nodeId, newName)
-  // No need to trigger a reload sine the rename is already happening in place
 }
 
-/*
-  NOTE from the MDN docs: "The keypress event is fired when a key is pressed down and
-  that key normally produces a character value"
-*/
+// The rename handler needs to be debounced so that we do not overload pouchdb.
+// With fast typing this would otherwise lead to document update conflicts and
+// unnecessary load on the db.
+const debouncedRenameHandler = debounce(handleRename, 250)
+
+// NOTE from the MDN docs: "The keypress event is fired when a key is pressed down and
+// that key normally produces a character value"
 function nameKeypressHandler (event) {
   if (event.key === 'Enter') {
     event.preventDefault()
-    handleSplit(event)
+    const nodeId = event.target.parentNode.getAttribute('id')
+    const updatedNodeName = getTextBeforeCursor(event) || ''
+    const newSiblingNodeName = getTextAfterCursor(event) || ''
+    splitNode(nodeId, updatedNodeName, newSiblingNodeName)
   }
 }
 
@@ -152,13 +154,6 @@ function nameKeydownHandler (event) {
       }
     }
   }
-}
-
-function handleSplit (kbdevent) {
-  const nodeId = kbdevent.target.parentNode.getAttribute('id')
-  const updatedNodeName = getTextBeforeCursor(kbdevent) || ''
-  const newSiblingNodeName = getTextAfterCursor(kbdevent) || ''
-  splitNode(nodeId, updatedNodeName, newSiblingNodeName)
 }
 
 // --------- Some functions that represent higher level actions on nodes, separate from dom stuff

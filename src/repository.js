@@ -93,6 +93,7 @@ export function reparentNodes (children, newParentId, afterNodeId) {
     }
   })
   return cdbLoadNode(oldParentId)
+    // 1. Remove the children to move from their parent
     .then(oldParentNode => cdbPutNode({
       _id: oldParentNode._id,
       _rev: oldParentNode._rev,
@@ -102,7 +103,9 @@ export function reparentNodes (children, newParentId, afterNodeId) {
       // remove all the children from their parent
       childrefs: oldParentNode.childrefs.filter((c) => childIds.indexOf(c) < 0)
     }))
+    // 2.a. Hang the children under their new parent by updating their parent refs
     .then(oldParentUpdateResult => outlineDb.bulkDocs(reparentedChildren))
+    // 2.b. and by adding them to the childrefs of the new parent
     .then(bulkUpdateChildrenResult => cdbLoadNode(newParentId))
     .then(newParentNode => cdbPutNode({
       _id: newParentNode._id,
@@ -127,6 +130,7 @@ function mergeNodeIds (originalChildIds, newChildIds, afterNodeId) {
 }
 
 // deletes a node, this includes removing it as a reference from its parent's childrefs
+// TODO shouldn't this also delete any remaining children?
 export function deleteNode (nodeId) {
   return cdbLoadNode(nodeId)
     .then(node => Promise.all([
