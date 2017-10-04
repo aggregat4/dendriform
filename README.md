@@ -19,6 +19,7 @@
 1. ~~Implement indent and unindent with TAB and SHIFT+TAB~~
 1. ~~BUG: only allow unindent when a parent and a grandparent are currently available (rendered)~~
 1. ~~BUG: focus handling on indent/unindent is not correct~~
+1. BUG: writing a new node name, and quickly indenting can cause the node name to disappear (since rerender happens before rename command arrived at store)
 1. Clean up the utility code and see if we can sensibly split stuff into modules that make sense (at least cursor-utils or dom-utils? maybe node-utils for DOM stuff on div.nodes?)
 1. Implement undo/redo (command pattern refactoring)
 1. Implement moving up and down with arrow keys and maintaining approximate character position
