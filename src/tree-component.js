@@ -82,7 +82,11 @@ function transientStateHandler (element) {
 function handleRename (event) {
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
-  renameNode(nodeId, newName)
+  executeCommand(
+    () => renameNode(nodeId, newName),
+    nodeId,
+    getCursorPos()
+  )
 }
 
 // The rename handler needs to be debounced so that we do not overload pouchdb.
@@ -98,7 +102,10 @@ function nameKeypressHandler (event) {
     const nodeId = event.target.parentNode.getAttribute('id')
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
-    splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart)
+    executeCommand(
+      () => splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart),
+      nodeId
+    )
   }
 }
 
@@ -156,78 +163,17 @@ function nameKeydownHandler (event) {
   }
 }
 
-// --------- Some functions that represent higher level actions on nodes, separate from dom stuff
-
-function triggerTreeReload () {
-  window.dispatchEvent(new window.Event('treereload'))
-}
-
-function requestFocusOnNode (nodeId) {
-  transientState.focusNodeId = nodeId
-  transientState.focusCharPos = -1
-}
-
-function requestFocusOnNodeAtChar (nodeId, charPos) {
-  transientState.focusNodeId = nodeId
-  transientState.focusCharPos = charPos
-}
-
-function splitNode (nodeId, beforeSplitNamePart, afterSplitNamePart) {
-  // console.log(`Splitting node with id '${nodeId}' with new name '${updatedNodeName}' and new sibling '${newSiblingNodeName}'`)
-  Promise.all([
-    repo.renameNode(nodeId, afterSplitNamePart),
-    repo.createSiblingBefore(beforeSplitNamePart, null, nodeId)
-  ])
-  .then(triggerTreeReload)
-  .then(newSibling => requestFocusOnNode(nodeId))
-}
-
-// 1. rename targetnode to be targetnode.name + sourcenode.name
-// 2. move all children of sourcenode to targetnode (actual move, just reparent)
-// 3. delete sourcenode
-// 4. focus the new node at the end of its old name
-function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
-  repo.getChildNodes(sourceNodeId)
-    .then(children => {
-      return Promise.all([
-        repo.renameNode(targetNodeId, targetNodeName + sourceNodeName),
-        repo.reparentNodes(children, targetNodeId),
-        repo.deleteNode(sourceNodeId)
-      ])
-    })
-    .then(() => requestFocusOnNodeAtChar(targetNodeId, Math.max(0, targetNodeName.length)))
-    .then(triggerTreeReload)
-}
-
 // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
 function mergeNodes (sourceNode, targetNode) {
   const sourceNodeId = getNodeId(sourceNode)
   const sourceNodeName = getNodeName(sourceNode)
   const targetNodeId = getNodeId(targetNode)
   const targetNodeName = getNodeName(targetNode)
-  mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName)
-}
-
-// Renames DO trigger an explicit rerender even though the changes are directly visible
-// because there is a concurrency issue with other operations: if you indent a node quickly
-// after renaming, the new name will vanish since that update has not made it to the store yet
-// and the indent triggers a rerender. The solution is to just always rerender.
-function renameNode (nodeId, newName) {
-  const cursorPos = getCursorPos()
-  repo.renameNode(nodeId, newName)
-  .then(triggerTreeReload)
-  .then(() => requestFocusOnNodeAtChar(nodeId, cursorPos))
-}
-
-// 1. set the node's parent Id to the new id
-// 2. add the node to the new parent's children
-// 3. remove the node from the old parent's children
-function reparentNodesById (nodeId, oldParentNodeId, newParentNodeId, afterNodeId) {
-  const cursorPos = getCursorPos()
-  repo.getNode(nodeId)
-    .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
-    .then(triggerTreeReload)
-    .then(() => requestFocusOnNodeAtChar(nodeId, cursorPos))
+  executeCommand(
+    () => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName),
+    targetNodeId,
+    Math.max(0, targetNodeName.length)
+  )
 }
 
 function reparentNode (node, oldParentNode, newParentNode) {
@@ -239,5 +185,77 @@ function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
   const oldParentNodeId = getNodeId(oldParentNode)
   const newParentNodeId = getNodeId(newParentNode)
   const afterNodeId = afterNode ? getNodeId(afterNode) : null
-  reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId)
+  executeCommand(
+    () => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId),
+    nodeId,
+    getCursorPos()
+  )
+}
+
+// --------- Some functions that represent higher level actions on nodes, separate from dom stuff
+
+function triggerTreeReload () {
+  window.dispatchEvent(new window.Event('treereload'))
+}
+
+// charPos should be -1 to just request focus on the node
+function requestFocusOnNodeAtChar (nodeId, charPos) {
+  transientState.focusNodeId = nodeId
+  transientState.focusCharPos = charPos
+}
+
+// When executing UNDO commands make sure not to push the undos for them to the undo stack (right?)
+function executeCommand (command, focusNodeId, focusPos) {
+  command()
+  // TODO push the undoCommands that come back on the undo stack
+    .then(() => {
+      if (focusNodeId) {
+        requestFocusOnNodeAtChar(focusNodeId, focusPos || -1)
+      }
+    })
+    .then(triggerTreeReload)
+}
+
+// 1. rename the current node to the right hand side of the split
+// 2. insert a new sibling BEFORE the current node containing the left hand side of the split
+function splitNode (nodeId, beforeSplitNamePart, afterSplitNamePart) {
+  return Promise.all([
+    repo.renameNode(nodeId, afterSplitNamePart),
+    repo.createSiblingBefore(beforeSplitNamePart, null, nodeId)
+  ])
+  .then(() => ([]))
+}
+
+// 1. rename targetnode to be targetnode.name + sourcenode.name
+// 2. move all children of sourcenode to targetnode (actual move, just reparent)
+// 3. delete sourcenode
+// 4. focus the new node at the end of its old name
+function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
+  return repo.getChildNodes(sourceNodeId)
+    .then(children => {
+      return Promise.all([
+        repo.renameNode(targetNodeId, targetNodeName + sourceNodeName),
+        repo.reparentNodes(children, targetNodeId),
+        repo.deleteNode(sourceNodeId)
+      ])
+    })
+    .then(() => ([]))
+}
+
+// Renames DO trigger an explicit rerender even though the changes are directly visible
+// because there is a concurrency issue with other operations: if you indent a node quickly
+// after renaming, the new name will vanish since that update has not made it to the store yet
+// and the indent triggers a rerender. The solution is to just always rerender.
+function renameNode (nodeId, newName) {
+  return repo.renameNode(nodeId, newName)
+    .then(() => ([]))
+}
+
+// 1. set the node's parent Id to the new id
+// 2. add the node to the new parent's children
+// 3. remove the node from the old parent's children
+function reparentNodesById (nodeId, oldParentNodeId, newParentNodeId, afterNodeId) {
+  return repo.getNode(nodeId)
+    .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
+    .then(() => ([]))
 }

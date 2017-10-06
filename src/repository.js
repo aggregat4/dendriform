@@ -88,6 +88,9 @@ export function getChildNodes (nodeId) {
 // 3. adding the childs to their new parents childrefs
 // If an afterNodeId is provided the nodes are inserted after that child of the new parent
 export function reparentNodes (children, newParentId, afterNodeId) {
+  if (!children || children.length === 0) {
+    return Promise.resolve(null)
+  }
   const childIds = children.map(child => child._id)
   const oldParentId = children[0].parentref
   const reparentedChildren = children.map(child => {
