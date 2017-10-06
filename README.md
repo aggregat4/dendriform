@@ -21,7 +21,7 @@
 1. ~~BUG: focus handling on indent/unindent is not correct~~
 1. ~~BUG: writing a new node name, and quickly indenting can cause the node name to disappear (since rerender happens before rename command arrived at store)~~
 1. ~~Clean up the utility code and see if we can sensibly split stuff into modules that make sense (at least cursor-utils or dom-utils? maybe node-utils for DOM stuff on div.nodes?)~~
-1. BUG: when we split a node we just create a new sibling with half the text and focus that. In Workflowy however the new node retains all the children. So maybe just create the sibling before us? Or reparent all the children.
+1. ~~BUG: when we split a node we just create a new sibling with half the text and focus that. In Workflowy however the new node retains all the children. So maybe just create the sibling before us? Or reparent all the children.~~
 1. Implement undo/redo (command pattern refactoring)
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position

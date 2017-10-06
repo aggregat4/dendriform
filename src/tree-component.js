@@ -96,9 +96,9 @@ function nameKeypressHandler (event) {
   if (event.key === 'Enter') {
     event.preventDefault()
     const nodeId = event.target.parentNode.getAttribute('id')
-    const updatedNodeName = getTextBeforeCursor(event) || ''
-    const newSiblingNodeName = getTextAfterCursor(event) || ''
-    splitNode(nodeId, updatedNodeName, newSiblingNodeName)
+    const beforeSplitNamePart = getTextBeforeCursor(event) || ''
+    const afterSplitNamePart = getTextAfterCursor(event) || ''
+    splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart)
   }
 }
 
@@ -172,13 +172,14 @@ function requestFocusOnNodeAtChar (nodeId, charPos) {
   transientState.focusCharPos = charPos
 }
 
-function splitNode (nodeId, updatedNodeName, newSiblingNodeName) {
+function splitNode (nodeId, beforeSplitNamePart, afterSplitNamePart) {
   // console.log(`Splitting node with id '${nodeId}' with new name '${updatedNodeName}' and new sibling '${newSiblingNodeName}'`)
   Promise.all([
-    repo.renameNode(nodeId, updatedNodeName),
-    repo.createSibling(newSiblingNodeName, null, nodeId)
-      .then(newSibling => requestFocusOnNode(newSibling._id))
-  ]).then(triggerTreeReload)
+    repo.renameNode(nodeId, afterSplitNamePart),
+    repo.createSiblingBefore(beforeSplitNamePart, null, nodeId)
+  ])
+  .then(triggerTreeReload)
+  .then(newSibling => requestFocusOnNode(nodeId))
 }
 
 // 1. rename targetnode to be targetnode.name + sourcenode.name

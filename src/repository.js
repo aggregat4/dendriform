@@ -45,8 +45,12 @@ export function renameNode (nodeId, newName) {
     }))
 }
 
-// returns a promise of a new sibling node
-export function createSibling (name, content, existingNodeId) {
+// returns a promise of a new sibling node created before the existing node
+export function createSiblingBefore (name, content, existingNodeId) {
+  return createSibling(name, content, existingNodeId, true)
+}
+
+function createSibling (name, content, existingNodeId, before) {
   return cdbLoadNode(existingNodeId)
     .then(sibling => {
       console.log(`cdbcreateNode '${name}' '${content}' '${sibling.parentref}'`)
@@ -59,7 +63,11 @@ export function createSibling (name, content, existingNodeId) {
       Promise.all([
         Promise.resolve(newSibling),
         cdbLoadNode(newSibling.parentref).then(parent => {
-          parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId) + 1, 0, newSibling._id)
+          if (before) {
+            parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId), 0, newSibling._id)
+          } else {
+            parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId) + 1, 0, newSibling._id)
+          }
           return cdbPutNode(parent)
         })
       ]).then(results => Promise.resolve(results[0]))
