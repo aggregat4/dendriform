@@ -80,7 +80,6 @@ function transientStateHandler (element) {
 }
 
 function renameHandler (event) {
-  console.log('Handling rename')
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
   executeCommand(
@@ -193,7 +192,6 @@ function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
 // --------- Some functions that represent higher level actions on nodes, separate from dom stuff
 
 function triggerTreeReload () {
-  console.log('tree reload triggered')
   window.dispatchEvent(new window.Event('treereload'))
 }
 
@@ -203,15 +201,12 @@ function requestFocusOnNodeAtChar (nodeId, charPos) {
   transientState.focusCharPos = charPos
 }
 
-// When executing UNDO commands make sure not to push the undos for them to the undo stack (right?)
+// TODO When executing UNDO commands make sure not to push the undos for them to the undo stack (right?)
+// TODO when we do real UNDO, we may need to turn commands into objects and save not just the function but also the rerender and cursos positioning stuff
 function executeCommand (command, rerender, focusNodeId, focusPos) {
   command()
-  // TODO push the undoCommands that come back on the undo stack
-    .then(() => {
-      if (focusNodeId) {
-        requestFocusOnNodeAtChar(focusNodeId, focusPos || -1)
-      }
-    })
+    // TODO push the undoCommands that come back on the undo stack
+    .then(() => focusNodeId && requestFocusOnNodeAtChar(focusNodeId, focusPos || -1))
     .then(() => rerender && triggerTreeReload())
 }
 
