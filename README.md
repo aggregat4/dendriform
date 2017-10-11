@@ -22,7 +22,7 @@
 1. ~~BUG: writing a new node name, and quickly indenting can cause the node name to disappear (since rerender happens before rename command arrived at store)~~
 1. ~~Clean up the utility code and see if we can sensibly split stuff into modules that make sense (at least cursor-utils or dom-utils? maybe node-utils for DOM stuff on div.nodes?)~~
 1. ~~BUG: when we split a node we just create a new sibling with half the text and focus that. In Workflowy however the new node retains all the children. So maybe just create the sibling before us? Or reparent all the children.~~
-1. BUG: been refactoring to command pattern for undo/redo and now stuff is broken, try some stuff out and see it broken
+1. ~~BUG: been refactoring to command pattern for undo/redo and now stuff is broken, try some stuff out and see what is broken~~
 1. Implement undo/redo (command pattern refactoring)
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position
@@ -37,6 +37,8 @@
 1. Implement import in some standard format
 1. Implement search
 1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hanged nodes in a LOST+FOUND node?
+1. Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
+1. Implement custom debouncing/queueing for rename updates: just track the latest rename value, then periodically with setInterval, persist this change and also when performing another action like splitting, persist this change
 
 # Future Steps?
 
@@ -50,6 +52,14 @@
 ## Promises are tricky
 
 * It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this is obvious, but debugging this is nasty.
+
+## Updates need to be serialized
+
+The delayed updates of the rename action (typing a character renames the node) are causing issues: when a rename is debounced and delayed for 250 milliseconds, and you split the same node inside of that window, the node is split and suddenly you have 2 nodes called the same text when the rename finally happens.
+
+We need to debounce to not overload pouchdb, but we can't let the split happen before the rename.
+
+Does this mean we need to serialize updates ourselves? Put all Update commands (without debouncing) in a queue and process that? When do we rerender the tree?
 
 # Software Design
 

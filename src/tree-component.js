@@ -1,6 +1,6 @@
 import * as maquette from 'maquette'
 import * as repo from './repository'
-import {debounce, getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd, getTextBeforeCursor, getTextAfterCursor} from './util'
+import {getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd, getTextBeforeCursor, getTextAfterCursor} from './util'
 import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName} from './tree-util.js'
 
 const h = maquette.h
@@ -27,7 +27,7 @@ function renderNode (node, first) {
   }
   // TODO if there are no children in root yet, create an artifical one that is empty
   return h('div',
-    { id: node._id, key: node._id, 'data-rev': node._rev, class: genClass(node, first) },
+    { id: node._id, key: node._id + ':' + node._rev, 'data-rev': node._rev, class: genClass(node, first) },
     [
       h('a', { href: `#node=${node._id}` }, '*'),
       h('div.name', {
@@ -36,7 +36,7 @@ function renderNode (node, first) {
         // from the parent but for some reason it is not there yet then
         'data-nodeid': node._id,
         contentEditable: 'true',
-        oninput: debouncedRenameHandler,
+        oninput: handleRename,
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
         onkeypress: nameKeypressHandler,
         onkeydown: nameKeydownHandler,
@@ -80,19 +80,14 @@ function transientStateHandler (element) {
 }
 
 function handleRename (event) {
+  console.log('Handling rename')
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
   executeCommand(
     () => renameNode(nodeId, newName),
-    nodeId,
-    getCursorPos()
+    false
   )
 }
-
-// The rename handler needs to be debounced so that we do not overload pouchdb.
-// With fast typing this would otherwise lead to document update conflicts and
-// unnecessary load on the db.
-const debouncedRenameHandler = debounce(handleRename, 250)
 
 // NOTE from the MDN docs: "The keypress event is fired when a key is pressed down and
 // that key normally produces a character value"
@@ -104,6 +99,7 @@ function nameKeypressHandler (event) {
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     executeCommand(
       () => splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart),
+      true,
       nodeId
     )
   }
@@ -171,6 +167,7 @@ function mergeNodes (sourceNode, targetNode) {
   const targetNodeName = getNodeName(targetNode)
   executeCommand(
     () => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName),
+    true,
     targetNodeId,
     Math.max(0, targetNodeName.length)
   )
@@ -187,6 +184,7 @@ function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
   const afterNodeId = afterNode ? getNodeId(afterNode) : null
   executeCommand(
     () => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId),
+    true,
     nodeId,
     getCursorPos()
   )
@@ -195,6 +193,7 @@ function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
 // --------- Some functions that represent higher level actions on nodes, separate from dom stuff
 
 function triggerTreeReload () {
+  console.log('tree reload triggered')
   window.dispatchEvent(new window.Event('treereload'))
 }
 
@@ -205,7 +204,7 @@ function requestFocusOnNodeAtChar (nodeId, charPos) {
 }
 
 // When executing UNDO commands make sure not to push the undos for them to the undo stack (right?)
-function executeCommand (command, focusNodeId, focusPos) {
+function executeCommand (command, rerender, focusNodeId, focusPos) {
   command()
   // TODO push the undoCommands that come back on the undo stack
     .then(() => {
@@ -213,12 +212,13 @@ function executeCommand (command, focusNodeId, focusPos) {
         requestFocusOnNodeAtChar(focusNodeId, focusPos || -1)
       }
     })
-    .then(triggerTreeReload)
+    .then(() => rerender && triggerTreeReload())
 }
 
 // 1. rename the current node to the right hand side of the split
 // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
 function splitNode (nodeId, beforeSplitNamePart, afterSplitNamePart) {
+  console.log(`Splitnode call with before=${beforeSplitNamePart} and after=${afterSplitNamePart}`)
   return Promise.all([
     repo.renameNode(nodeId, afterSplitNamePart),
     repo.createSiblingBefore(beforeSplitNamePart, null, nodeId)
@@ -242,10 +242,6 @@ function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeN
     .then(() => ([]))
 }
 
-// Renames DO trigger an explicit rerender even though the changes are directly visible
-// because there is a concurrency issue with other operations: if you indent a node quickly
-// after renaming, the new name will vanish since that update has not made it to the store yet
-// and the indent triggers a rerender. The solution is to just always rerender.
 function renameNode (nodeId, newName) {
   return repo.renameNode(nodeId, newName)
     .then(() => ([]))

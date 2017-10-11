@@ -33,16 +33,31 @@ export function loadTree (rootId) {
 }
 
 // loads the node by id, renames it and then returns a Promise of a response when done
-export function renameNode (nodeId, newName) {
+export function renameNode (nodeId, newName, retryCount) {
   return cdbLoadNode(nodeId)
-    .then(node => cdbPutNode({
-      _id: node._id,
-      _rev: node._rev,
-      name: newName,
-      content: node.content,
-      childrefs: node.childrefs,
-      parentref: node.parentref
-    }))
+    .then(node => {
+      if (newName !== node.name) {
+        return cdbPutNode({
+          _id: node._id,
+          _rev: node._rev,
+          name: newName,
+          content: node.content,
+          childrefs: node.childrefs,
+          parentref: node.parentref
+        })
+      } else {
+        console.log(`not actually renaming since "${newName}" was already set`)
+      }
+    })
+    .catch((err) => {
+      console.log(`ERROR handler for renameNode for new name "${newName}": ${JSON.stringify(err)}`)
+      // TODO we are naively just retrying when we get an update conflict, not sure this is never an infinite loop
+      // TODO evaluate whether to use the upsert plugin for this? https://github.com/pouchdb/upsert
+      const retries = retryCount || 0
+      if (err.status === 409 && retries <= 25) {
+        renameNode(nodeId, newName, retries + 1)
+      }
+    })
 }
 
 // returns a promise of a new sibling node created before the existing node
