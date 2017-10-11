@@ -36,7 +36,7 @@ function renderNode (node, first) {
         // from the parent but for some reason it is not there yet then
         'data-nodeid': node._id,
         contentEditable: 'true',
-        oninput: handleRename,
+        oninput: renameHandler,
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
         onkeypress: nameKeypressHandler,
         onkeydown: nameKeydownHandler,
@@ -79,7 +79,7 @@ function transientStateHandler (element) {
   }
 }
 
-function handleRename (event) {
+function renameHandler (event) {
   console.log('Handling rename')
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
