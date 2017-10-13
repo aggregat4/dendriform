@@ -8,7 +8,8 @@ const h = maquette.h
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
 const transientState = {
   focusNodeId: null,
-  focusCharPos: -1
+  focusCharPos: -1,
+  focusNodePreviousName: null
 }
 
 function renderNode (node, first) {
@@ -36,7 +37,8 @@ function renderNode (node, first) {
         // from the parent but for some reason it is not there yet then
         'data-nodeid': node._id,
         contentEditable: 'true',
-        oninput: renameHandler,
+        onfocus: nameOnFocusHandler,
+        oninput: nameInputHandler,
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
         onkeypress: nameKeypressHandler,
         onkeydown: nameKeydownHandler,
@@ -79,12 +81,22 @@ function transientStateHandler (element) {
   }
 }
 
-function renameHandler (event) {
+function nameOnFocusHandler (event) {
+  transientState.focusNodePreviousName = event.target.textContent || ''
+}
+
+function nameInputHandler (event) {
+  console.log('calling rename')
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
+  const oldName = transientState.focusNodePreviousName
+  transientState.focusNodePreviousName = newName
   executeCommand(
-    () => renameNode(nodeId, newName),
-    false
+    () => renameNode(nodeId, oldName, newName),
+    false,
+    null,
+    null,
+    true
   )
 }
 
@@ -155,6 +167,15 @@ function nameKeydownHandler (event) {
         reparentNodeAfter(node, oldParentNode, newParentNode, afterNode)
       }
     }
+  } else if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z
+    console.log('pressing undo')
+    event.preventDefault()
+    const undoCommand = UNDO_BUFFER.pop()
+    if (undoCommand) {
+      console.log('undo buffer not empty')
+      // TODO undo commands also need a nodeId, and possibly focus stuff
+      executeCommand(undoCommand, true, null, null, false) // not undoable
+    }
   }
 }
 
@@ -201,13 +222,17 @@ function requestFocusOnNodeAtChar (nodeId, charPos) {
   transientState.focusCharPos = charPos
 }
 
+const UNDO_BUFFER = []
+const REDO_BUFFER = []
+
 // TODO When executing UNDO commands make sure not to push the undos for them to the undo stack (right?)
 // TODO when we do real UNDO, we may need to turn commands into objects and save not just the function but also the rerender and cursos positioning stuff
-function executeCommand (command, rerender, focusNodeId, focusPos) {
+function executeCommand (command, renderRequired, focusNodeId, focusPos, undoable) {
   command()
-    // TODO push the undoCommands that come back on the undo stack
+    .then(undoCommands => undoable && UNDO_BUFFER.push(...undoCommands))
+    .then(() => undoable && REDO_BUFFER.push(command))
     .then(() => focusNodeId && requestFocusOnNodeAtChar(focusNodeId, focusPos || -1))
-    .then(() => rerender && triggerTreeReload())
+    .then(() => renderRequired && triggerTreeReload())
 }
 
 // 1. rename the current node to the right hand side of the split
@@ -237,9 +262,11 @@ function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeN
     .then(() => ([]))
 }
 
-function renameNode (nodeId, newName) {
+function renameNode (nodeId, oldName, newName) {
   return repo.renameNode(nodeId, newName)
-    .then(() => ([]))
+    .then(() => ([
+      () => renameNode(nodeId, newName, oldName)
+    ]))
 }
 
 // 1. set the node's parent Id to the new id
