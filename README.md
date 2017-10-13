@@ -25,7 +25,8 @@
 1. ~~BUG: been refactoring to command pattern for undo/redo and now stuff is broken, try some stuff out and see what is broken~~
 1. ~~Implement command pattern refactoring~~
 1. ~~Implement primitive undo for contenteditable changes~~
-1. Refactor command patter so that commands contain everything including undoability and focusNodeid, etc since we need it for undoing
+1. Refactor command pattern so that commands contain everything including undoability and focusNodeid, etc since we need it for undoing
+1. Refine undo in contenteditable so that single character edits are coalesced?
 1. Implement undo for structural changes
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position
