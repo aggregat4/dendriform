@@ -83,21 +83,23 @@ function transientStateHandler (element) {
 
 function nameOnFocusHandler (event) {
   transientState.focusNodePreviousName = event.target.textContent || ''
+  transientState.focusNodePreviousPos = getCursorPos()
 }
 
 function nameInputHandler (event) {
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
   const oldName = transientState.focusNodePreviousName
+  const beforeFocusNodeId = nodeId
+  const beforeFocusPos = transientState.focusNodePreviousPos
   transientState.focusNodePreviousName = newName
+  transientState.focusNodePreviousPos = getCursorPos()
   executeCommand(
-    new Command(
-      () => renameNode(nodeId, oldName, newName),
-      false,
-      null,
-      null,
-      true
-    )
+    new CommandBuilder(() => renameNode(nodeId, oldName, newName))
+      .isUndoable()
+      .withBeforeFocusNodeId(beforeFocusNodeId)
+      .withBeforeFocusPos(beforeFocusPos)
+      .build()
   )
 }
 
@@ -110,11 +112,10 @@ function nameKeypressHandler (event) {
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     executeCommand(
-      new Command(
-        () => splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart),
-        true,
-        nodeId
-      )
+      new CommandBuilder(() => splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart))
+        .requiresRender()
+        .withAfterFocusNodeId(nodeId)
+        .build()
     )
   }
 }
@@ -196,12 +197,11 @@ function mergeNodes (sourceNode, targetNode) {
   const targetNodeId = getNodeId(targetNode)
   const targetNodeName = getNodeName(targetNode)
   executeCommand(
-    new Command(
-      () => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName),
-      true,
-      targetNodeId,
-      Math.max(0, targetNodeName.length)
-    )
+    new CommandBuilder(() => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
+      .requiresRender()
+      .withAfterFocusNodeId(targetNodeId)
+      .withAfterFocuPos(Math.max(0, targetNodeName.length))
+      .build()
   )
 }
 
@@ -215,12 +215,12 @@ function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
   const newParentNodeId = getNodeId(newParentNode)
   const afterNodeId = afterNode ? getNodeId(afterNode) : null
   executeCommand(
-    new Command(
-      () => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId),
-      true,
-      nodeId,
-      getCursorPos()
-    )
+    new CommandBuilder(
+      () => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId))
+      .requiresRender()
+      .withAfterFocusNodeId(nodeId)
+      .withAfterFocuPos(getCursorPos())
+      .build()
   )
 }
 
@@ -239,23 +239,84 @@ function requestFocusOnNodeAtChar (nodeId, charPos) {
 const UNDO_BUFFER = []
 const REDO_BUFFER = []
 
+class CommandBuilder {
+  constructor (fn) {
+    this.fn = fn
+  }
+
+  requiresRender () {
+    this.renderRequired = true
+    return this
+  }
+
+  withBeforeFocusNodeId (beforeFocusNodeId) {
+    this.beforeFocusNodeId = beforeFocusNodeId
+    return this
+  }
+
+  withBeforeFocusPos (beforeFocusPos) {
+    this.beforeFocusPos = beforeFocusPos
+    return this
+  }
+
+  withAfterFocusNodeId (afterFocusNodeId) {
+    this.afterFocusNodeId = afterFocusNodeId
+    return this
+  }
+
+  withAfterFocusPos (afterFocusPos) {
+    this.afterFocuPos = afterFocusPos
+    return this
+  }
+
+  isUndoable () {
+    this.undoable = true
+    return this
+  }
+
+  build () {
+    return new Command(
+      this.fn,
+      this.renderRequired || false,
+      this.beforeFocusNodeId || null,
+      this.beforeFocusPos || -1,
+      this.afterFocusNodeId || null,
+      this.afterFocusPos || -1,
+      this.undoable || false
+    )
+  }
+}
+
 class Command {
-  constructor (fn, renderRequired, focusNodeId, focusPos, undoable) {
+  constructor (fn, renderRequired, beforeFocusNodeId, beforeFocusPos, afterFocusNodeId, afterFocusPos, undoable) {
     this.fn = fn
     this.renderRequired = renderRequired
-    this.focusNodeId = focusNodeId
-    this.focusPos = focusPos
+    this.beforeFocusNodeId = beforeFocusNodeId
+    this.beforeFocusPos = beforeFocusPos
+    this.afterFocusNodeId = afterFocusNodeId
+    this.afterFocusPos = afterFocusPos
     this.undoable = undoable
   }
 }
 
-// TODO When executing UNDO commands make sure not to push the undos for them to the undo stack (right?)
-// TODO when we do real UNDO, we may need to turn commands into objects and save not just the function but also the rerender and cursos positioning stuff
 function executeCommand (command) {
   command.fn()
-    .then(undoCommands => command.undoable && UNDO_BUFFER.push(...undoCommands))
+    .then(undoCommands => {
+      if (command.undoable) {
+        const undoCommandsWithFocus = undoCommands.map(c => {
+          // if a command is triggered and there was a valid focus position before the change
+          // then we want to restore the focus to that position after executing the undo command
+          if (command.beforeFocusNodeId) {
+            c.afterFocusNodeId = command.beforeFocusNodeId
+            c.afterFocusPos = command.beforeFocusPos
+          }
+          return c
+        })
+        UNDO_BUFFER.push(...undoCommandsWithFocus)
+      }
+    })
     .then(() => command.undoable && REDO_BUFFER.push(command))
-    .then(() => command.focusNodeId && requestFocusOnNodeAtChar(command.focusNodeId, command.focusPos || -1))
+    .then(() => command.afterFocusNodeId && requestFocusOnNodeAtChar(command.afterFocusNodeId, command.afterFocusPos))
     .then(() => command.renderRequired && triggerTreeReload())
 }
 
