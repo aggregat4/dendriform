@@ -86,17 +86,18 @@ function nameOnFocusHandler (event) {
 }
 
 function nameInputHandler (event) {
-  console.log('calling rename')
   const nodeId = event.target.parentNode.getAttribute('id')
   const newName = event.target.textContent || ''
   const oldName = transientState.focusNodePreviousName
   transientState.focusNodePreviousName = newName
   executeCommand(
-    () => renameNode(nodeId, oldName, newName),
-    false,
-    null,
-    null,
-    true
+    new Command(
+      () => renameNode(nodeId, oldName, newName),
+      false,
+      null,
+      null,
+      true
+    )
   )
 }
 
@@ -109,9 +110,11 @@ function nameKeypressHandler (event) {
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     executeCommand(
-      () => splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart),
-      true,
-      nodeId
+      new Command(
+        () => splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart),
+        true,
+        nodeId
+      )
     )
   }
 }
@@ -167,14 +170,21 @@ function nameKeydownHandler (event) {
         reparentNodeAfter(node, oldParentNode, newParentNode, afterNode)
       }
     }
-  } else if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z
+  }
+  maybeUndo(event)
+}
+
+document.addEventListener('keydown', maybeUndo)
+
+function maybeUndo (event) {
+  if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z
     console.log('pressing undo')
     event.preventDefault()
     const undoCommand = UNDO_BUFFER.pop()
     if (undoCommand) {
       console.log('undo buffer not empty')
       // TODO undo commands also need a nodeId, and possibly focus stuff
-      executeCommand(undoCommand, true, null, null, false) // not undoable
+      executeCommand(undoCommand)
     }
   }
 }
@@ -186,10 +196,12 @@ function mergeNodes (sourceNode, targetNode) {
   const targetNodeId = getNodeId(targetNode)
   const targetNodeName = getNodeName(targetNode)
   executeCommand(
-    () => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName),
-    true,
-    targetNodeId,
-    Math.max(0, targetNodeName.length)
+    new Command(
+      () => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName),
+      true,
+      targetNodeId,
+      Math.max(0, targetNodeName.length)
+    )
   )
 }
 
@@ -203,10 +215,12 @@ function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
   const newParentNodeId = getNodeId(newParentNode)
   const afterNodeId = afterNode ? getNodeId(afterNode) : null
   executeCommand(
-    () => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId),
-    true,
-    nodeId,
-    getCursorPos()
+    new Command(
+      () => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId),
+      true,
+      nodeId,
+      getCursorPos()
+    )
   )
 }
 
@@ -225,14 +239,24 @@ function requestFocusOnNodeAtChar (nodeId, charPos) {
 const UNDO_BUFFER = []
 const REDO_BUFFER = []
 
+class Command {
+  constructor (fn, renderRequired, focusNodeId, focusPos, undoable) {
+    this.fn = fn
+    this.renderRequired = renderRequired
+    this.focusNodeId = focusNodeId
+    this.focusPos = focusPos
+    this.undoable = undoable
+  }
+}
+
 // TODO When executing UNDO commands make sure not to push the undos for them to the undo stack (right?)
 // TODO when we do real UNDO, we may need to turn commands into objects and save not just the function but also the rerender and cursos positioning stuff
-function executeCommand (command, renderRequired, focusNodeId, focusPos, undoable) {
-  command()
-    .then(undoCommands => undoable && UNDO_BUFFER.push(...undoCommands))
-    .then(() => undoable && REDO_BUFFER.push(command))
-    .then(() => focusNodeId && requestFocusOnNodeAtChar(focusNodeId, focusPos || -1))
-    .then(() => renderRequired && triggerTreeReload())
+function executeCommand (command) {
+  command.fn()
+    .then(undoCommands => command.undoable && UNDO_BUFFER.push(...undoCommands))
+    .then(() => command.undoable && REDO_BUFFER.push(command))
+    .then(() => command.focusNodeId && requestFocusOnNodeAtChar(command.focusNodeId, command.focusPos || -1))
+    .then(() => command.renderRequired && triggerTreeReload())
 }
 
 // 1. rename the current node to the right hand side of the split
@@ -263,9 +287,10 @@ function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeN
 }
 
 function renameNode (nodeId, oldName, newName) {
+  console.log(`renaming node to "${newName}"`)
   return repo.renameNode(nodeId, newName)
     .then(() => ([
-      () => renameNode(nodeId, newName, oldName)
+      new Command(() => renameNode(nodeId, newName, oldName), true, null, null, false) // undo commands are not undoable
     ]))
 }
 

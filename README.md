@@ -25,8 +25,9 @@
 1. ~~BUG: been refactoring to command pattern for undo/redo and now stuff is broken, try some stuff out and see what is broken~~
 1. ~~Implement command pattern refactoring~~
 1. ~~Implement primitive undo for contenteditable changes~~
-1. Refactor command pattern so that commands contain everything including undoability and focusNodeid, etc since we need it for undoing
-1. Refine undo in contenteditable so that single character edits are coalesced?
+1. ~~Implement global UNDO handler for when not focused on a node~~
+1. ~~Refactor command pattern so that commands contain everything including undoability and focusNodeid, etc since we need it for undoing~~
+1. Fix focus after undo
 1. Implement undo for structural changes
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position
@@ -40,16 +41,17 @@
 1. Implement export in some standard format
 1. Implement import in some standard format
 1. Implement search
+1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
+1. Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
 1. Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
-1. Implement custom debouncing/queueing for rename updates: just track the latest rename value, then periodically with setInterval, persist this change and also when performing another action like splitting, persist this change
+1. Implement custom debouncing/queueing for rename updates: just track the latest rename value, then periodically with setInterval, persist this change and also when performing another action like splitting, persist this change. The current system looks good, but can run into conflicted updates in the data store
 
 # Future Steps?
 
 1. Typescript?
 1. Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
 1. Restart the application without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/)
-1. We may need a periodic cleanup process in the background that checks for nodes that have no valid parent, and then gathers them under some sort of lost and found. I have a feeling that there may be cases (especially with sync) where some nodes may get lost
 
 # Lessons learned
 
