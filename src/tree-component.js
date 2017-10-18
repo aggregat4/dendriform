@@ -9,8 +9,12 @@ const h = maquette.h
 const transientState = {
   focusNodeId: null,
   focusCharPos: -1,
-  focusNodePreviousName: null
+  focusNodePreviousName: null,
+  focusNodePreviousPos: -1
 }
+
+// We need to support UNDO when not specifically focused inside a node
+document.addEventListener('keydown', maybeUndo)
 
 function renderNode (node, first) {
   function isRoot (node) {
@@ -81,6 +85,9 @@ function transientStateHandler (element) {
   }
 }
 
+// When entering a node with the cursor, we need to initialize some transient state
+// that is required for implementing UNDO handling. This state is later updated in the
+// actual mutating methods, but we need a valid initial value
 function nameOnFocusHandler (event) {
   transientState.focusNodePreviousName = event.target.textContent || ''
   transientState.focusNodePreviousPos = getCursorPos()
@@ -174,8 +181,6 @@ function nameKeydownHandler (event) {
   }
   maybeUndo(event)
 }
-
-document.addEventListener('keydown', maybeUndo)
 
 function maybeUndo (event) {
   if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z
