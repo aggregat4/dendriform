@@ -1,14 +1,23 @@
+.node {
+  display: block;
+}
+
 .node a {
   display: inline-block;
+  position: absolute;
   margin: 0 10px 0 10px;
 }
 
 div.name {
-  display: inline-block;
+  display: block;
+  position: relative;
   /* pre-wrap makes whitespace show up at the beginning and end! required for merging/splitting of nodes */
   white-space: pre-wrap;
+  word-wrap: break-word;
   /* min-width (or a similar trick) is required to make the cursor show in Chrome when the element is empty */
-  min-width: 2px;
+  min-width: 20px;
+  /* leaves space for the bullet since that is positioned absolute */
+  margin-left: 30px;
 }
 
 div.name:focus {
