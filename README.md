@@ -6,6 +6,10 @@ This application is heavily inspired by [Workflowy](http://workflowy.com), one o
 
 It is currently mostly a playground and personal project for learning client side technologies better, but may actually become usable enough to work with. No promises.
 
+## Useful links
+
+* `package.json` spec: https://docs.npmjs.com/files/package.json
+
 ## Next Steps
 
 1. ~~Make loadTree promise based API in the tree store~~
