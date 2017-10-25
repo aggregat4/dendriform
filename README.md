@@ -1,4 +1,12 @@
-# Next Steps
+# Dendriform
+
+A web based outliner with offline capabilities.
+
+This application is heavily inspired by [Workflowy](http://workflowy.com), one of the most elegant outliners ever developed.
+
+It is currently mostly a playground and personal project for learning client side technologies better, but may actually become usable enough to work with. No promises.
+
+## Next Steps
 
 1. ~~Make loadTree promise based API in the tree store~~
 1. ~~Use the loadTree API to populate the initial tree on the ROOT node~~
@@ -47,19 +55,19 @@
 1. Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
 1. Implement custom debouncing/queueing for rename updates: just track the latest rename value, then periodically with setInterval, persist this change and also when performing another action like splitting, persist this change. The current system looks good, but can run into conflicted updates in the data store
 
-# Future Steps?
+## Ideas
 
 1. Typescript?
 1. Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
 1. Restart the application without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/)
 
-# Lessons learned
+## Lessons learned
 
-## Promises are tricky
+### Promises are tricky
 
 * It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this is obvious, but debugging this is nasty.
 
-## Updates need to be serialized
+### Updates need to be serialized
 
 The delayed updates of the rename action (typing a character renames the node) are causing issues: when a rename is debounced and delayed for 250 milliseconds, and you split the same node inside of that window, the node is split and suddenly you have 2 nodes called the same text when the rename finally happens.
 
@@ -67,48 +75,52 @@ We need to debounce to not overload pouchdb, but we can't let the split happen b
 
 Does this mean we need to serialize updates ourselves? Put all Update commands (without debouncing) in a queue and process that? When do we rerender the tree?
 
-# Software Design
+## Software Design
 
-## Flow
+### Flow
 On DOM loaded (or hash parameter change to different node), trigger tree store fetch, when promise completes call maquette render function with data objects.
 
 On other events that mutate the tree, send update action to tree store, when promise returns call render.
 
 On navigation events, set the hash value in the URL, call render.
 
-## Architecture
+### Runtime Errors
 
-- Maquette for rendering
-- Tree store as a promise based api to encapuslate either a local implementation or a pouchdb remote syncing implementation
-- The controller layer reacts to DOM and other events, triggers the store actions and makes sure the renderer gets called. Will be interesting to see whether further abstractio here is useful
+When a runtime error or exception happens, an Error will be thrown. This is used for defensive programming for example.
 
-## Runtime Errors
+### Thoughts
 
-When a runtime error or exception is ascertained, an Error will be thrown. This is used for defensive programming for example.
-
-## Thoughts
-
-### Incremental Store Loading
+#### Incremental Store Loading
 
 The application is moving towards a model where the store is being reloaded completely when something changes, then the virtual dom does some efficient rendering of same. This is probably going to be ok in the short term, since we need to be able to load efficiently initially anyway.
 
 However, optimally we would reduce the need to load things from the database to the bare minimum required. Given that we already load single nodes as individual objects from the pouchdb database, this sets us up for sucess. We "just" need a way to identify what nodes are dirty and "just" reload those and replace them in our store. Easy. ;|
 
-### Where To Put Controller Logic or Event Handling
+#### Where To Put Controller Logic or Event Handling
 
 We are currently putting the event handler logic inside of the component/view module, meaning that the code that reacts to user and browser events is alongside the view rendering code and accesses the repository and other services. 
 
 It would be possible to factor this out and to just handle those events in a dedicated place away from the renderer, but it is currently unclear what that would bring us. Perhaps after a few thousand lines of code this will be easier to judge.
 
-# Project Development
+## Project Development
 
-## Development dependencies
+### Development Tooling
 
-See also https://www.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/
+This project uses a minimal build tool approach that is inspired by [How to Use NPM as a Build Tool](https://www.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/).
 
-### Standard JS
+To get started, do the following:
 
-Using standard JS for linting and style:
+1. clone the repository
+2. perform an `npm install`
+3. check out the `package.json` file for the few goals that are provided, for example `npm run watch' will start watching for changes in the files and rebuilds the project if necessary
+
+The application can be tested by loading the `dist/index.html` file in your browser.
+
+#### Standard JS
+
+This project adheres to the standard JS convention.
+
+There is some tooling in Visual Studio Code for linting and style checks:
 
 `npm install standard --save-dev`
 `npm install eslint --save-dev`
@@ -126,7 +138,7 @@ Disable eslint in Visual Studio Code in `.vscode\settings.json`:
 }
 ```
 
-### Babel (still needed like so?)
+#### Babel (still needed like so?)
 
 Babel when required (global install):
 
@@ -150,12 +162,10 @@ Some tools needed for the various build goals:
 
 ## Normal Dependencies
 
-- pouchdb-browser
-- maquette
+The project currently only uses two external dependencies:
 
-## Project Build
-
-Run one of the goals, for example: `npm run build`
+* pouchdb-browser
+* maquette
 
 ## Adding Dependencies
 

@@ -1,7 +1,7 @@
 {
-  "name": "tree",
+  "name": "dendriform",
   "version": "1.0.0",
-  "description": "Outliner with extras",
+  "description": "A web based outliner with offline capabilities",
   "main": "main.js",
   "scripts": {
     "build": "cp src/*.css dist && cp src/*.html dist && ./node_modules/.bin/webpack src/main.js dist/main.js",
@@ -10,7 +10,7 @@
     "livereload": "live-reload --port 9091 dist/"
   },
   "author": "Boris Terzic <boris@terzic.be>",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "devDependencies": {
     "eslint": "^4.3.0",
     "eslint-plugin-import": "^2.7.0",
