@@ -40,6 +40,7 @@ It is currently mostly a playground and personal project for learning client sid
 1. ~~Implement global UNDO handler for when not focused on a node~~
 1. ~~Refactor command pattern so that commands contain everything including undoability and focusNodeid, etc since we need it for undoing~~
 1. ~~Fix focus after node rename undo~~
+1. ~~Fix focus after node rename undo AGAIN, onfocus appears to happen before selection updated, so switched to selectionchange listener~~
 1. Implement undo for structural changes
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position
