@@ -1,7 +1,7 @@
 import * as maquette from 'maquette'
 import * as repo from './repository'
 import {getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd, getTextBeforeCursor, getTextAfterCursor} from './util'
-import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName} from './tree-util.js'
+import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName, isNode} from './tree-util.js'
 
 const h = maquette.h
 
@@ -13,8 +13,10 @@ const transientState = {
   focusNodePreviousPos: -1
 }
 
-// We need to support UNDO when not specifically focused inside a node
+// We need to support UNDO when activated anywhere in the document
 document.addEventListener('keydown', maybeUndo)
+// We need to track when the selection changes so we can store the current cursor position (needed for UNDO)
+document.addEventListener('selectionchange', selectionChangeHandler)
 
 function renderNode (node, first) {
   function isRoot (node) {
@@ -41,7 +43,7 @@ function renderNode (node, first) {
         // from the parent but for some reason it is not there yet then
         'data-nodeid': node._id,
         contentEditable: 'true',
-        onfocus: nameOnFocusHandler,
+        onblur: nameOnBlurHandler,
         oninput: nameInputHandler,
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
         onkeypress: nameKeypressHandler,
@@ -88,9 +90,26 @@ function transientStateHandler (element) {
 // When entering a node with the cursor, we need to initialize some transient state
 // that is required for implementing UNDO handling. This state is later updated in the
 // actual mutating methods, but we need a valid initial value
-function nameOnFocusHandler (event) {
-  transientState.focusNodePreviousName = event.target.textContent || ''
-  transientState.focusNodePreviousPos = getCursorPos()
+//
+// In a sane universe we would use the onfocus event on the node name to track this
+// position: this would allow us to very easily set the cursor position just once on
+// getting the focus in the node name. HOWEVER it appears that the onfocus event is
+// faster than updating the selection and so we get stale values from that approach.
+function selectionChangeHandler (event) {
+  if (!transientState.focusNodePreviousName &&
+      document.activeElement &&
+      document.activeElement.parentNode &&
+      isNode(document.activeElement.parentNode)) {
+    transientState.focusNodePreviousName = getNodeName(document.activeElement.parentNode)
+    transientState.focusNodePreviousPos = getCursorPos(document.activeElement)
+  }
+}
+
+// In order for our cusor position saving approach in "selectionChangeHandler" to
+// work, we need to make sure that the values are reset when we leave the node name
+function nameOnBlurHandler (event) {
+  transientState.focusNodePreviousName = null
+  transientState.focusNodePreviousPos = -1
 }
 
 function nameInputHandler (event) {
@@ -100,7 +119,7 @@ function nameInputHandler (event) {
   const beforeFocusNodeId = nodeId
   const beforeFocusPos = transientState.focusNodePreviousPos
   transientState.focusNodePreviousName = newName
-  transientState.focusNodePreviousPos = getCursorPos()
+  transientState.focusNodePreviousPos = getCursorPos(event.target)
   executeCommand(
     new CommandBuilder(() => renameNode(nodeId, oldName, newName))
       .isUndoable()
@@ -163,7 +182,7 @@ function nameKeydownHandler (event) {
       // when a node is a child, it is inside a "children" container of its parent
       const oldParentNode = getParentNode(node)
       const newParentNode = node.previousSibling
-      reparentNode(node, oldParentNode, newParentNode)
+      reparentNode(node, getCursorPos(event.target), oldParentNode, newParentNode)
     }
   } else if (event.key === 'Tab' && event.shiftKey) {
     // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
@@ -175,21 +194,18 @@ function nameKeydownHandler (event) {
         const newParentNode = getParentNode(oldParentNode)
         const afterNode = oldParentNode
         event.preventDefault()
-        reparentNodeAfter(node, oldParentNode, newParentNode, afterNode)
+        reparentNodeAfter(node, getCursorPos(event.target), oldParentNode, newParentNode, afterNode)
       }
     }
   }
-  maybeUndo(event)
 }
 
 function maybeUndo (event) {
   if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z
-    console.log('pressing undo')
     event.preventDefault()
+    console.log('pressing undo')
     const undoCommand = UNDO_BUFFER.pop()
     if (undoCommand) {
-      console.log('undo buffer not empty')
-      // TODO undo commands also need a nodeId, and possibly focus stuff
       executeCommand(undoCommand)
     }
   }
@@ -210,11 +226,11 @@ function mergeNodes (sourceNode, targetNode) {
   )
 }
 
-function reparentNode (node, oldParentNode, newParentNode) {
-  reparentNodeAfter(node, oldParentNode, newParentNode, null)
+function reparentNode (node, cursorPos, oldParentNode, newParentNode) {
+  reparentNodeAfter(node, cursorPos, oldParentNode, newParentNode, null)
 }
 
-function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
+function reparentNodeAfter (node, cursorPos, oldParentNode, newParentNode, afterNode) {
   const nodeId = getNodeId(node)
   const oldParentNodeId = getNodeId(oldParentNode)
   const newParentNodeId = getNodeId(newParentNode)
@@ -224,7 +240,7 @@ function reparentNodeAfter (node, oldParentNode, newParentNode, afterNode) {
       () => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId))
       .requiresRender()
       .withAfterFocusNodeId(nodeId)
-      .withAfterFocuPos(getCursorPos())
+      .withAfterFocuPos(cursorPos)
       .build()
   )
 }
@@ -305,19 +321,20 @@ class Command {
 }
 
 function executeCommand (command) {
+  console.log(`executing command: ${JSON.stringify(command)}`)
   command.fn()
     .then(undoCommands => {
       if (command.undoable) {
-        const undoCommandsWithFocus = undoCommands.map(c => {
+        undoCommands.forEach(c => {
           // if a command is triggered and there was a valid focus position before the change
           // then we want to restore the focus to that position after executing the undo command
           if (command.beforeFocusNodeId) {
             c.afterFocusNodeId = command.beforeFocusNodeId
             c.afterFocusPos = command.beforeFocusPos
           }
-          return c
         })
-        UNDO_BUFFER.push(...undoCommandsWithFocus)
+        console.log(`storing UNDO command: ${JSON.stringify(undoCommands)}`)
+        UNDO_BUFFER.push(...undoCommands)
       }
     })
     .then(() => command.undoable && REDO_BUFFER.push(command))
@@ -356,7 +373,7 @@ function renameNode (nodeId, oldName, newName) {
   console.log(`renaming node to "${newName}"`)
   return repo.renameNode(nodeId, newName)
     .then(() => ([
-      new Command(() => renameNode(nodeId, newName, oldName), true, null, null, false) // undo commands are not undoable
+      new CommandBuilder(() => renameNode(nodeId, newName, oldName)).requiresRender().build()
     ]))
 }
 

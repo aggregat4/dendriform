@@ -24,7 +24,7 @@ export function debounce (func, wait, immediate) {
   }
 }
 
-export function getCursorPos () {
+export function getCursorPos (element) {
   const selection = window.getSelection()
   if (selection.rangeCount) {
     const selectionRange = selection.getRangeAt(0)

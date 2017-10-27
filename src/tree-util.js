@@ -15,7 +15,7 @@ function isRootNode (node) {
   return getNodeId(node) === 'ROOT'
 }
 
-function isNode (element) {
+export function isNode (element) {
   return element.getAttribute('class').indexOf('node') !== -1
 }
 

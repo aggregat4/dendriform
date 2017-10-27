@@ -2,9 +2,9 @@
 
 A web based outliner with offline capabilities.
 
-This application is heavily inspired by [Workflowy](http://workflowy.com), one of the most elegant outliners ever developed.
+This application is heavily inspired by [Workflowy](http://workflowy.com), one of the most elegant outliners out there.
 
-It is currently mostly a playground and personal project for learning client side technologies better, but may actually become usable enough to work with. No promises.
+It is currently mostly a playground and personal project for learning client side technologies better, but may actually become usable enough to work with.
 
 ## Useful links
 
