@@ -14,7 +14,7 @@ const transientState = {
 }
 
 // We need to support UNDO when activated anywhere in the document
-document.addEventListener('keydown', maybeUndo)
+document.addEventListener('keydown', globalKeyDownHandler)
 // We need to track when the selection changes so we can store the current cursor position (needed for UNDO)
 document.addEventListener('selectionchange', selectionChangeHandler)
 
@@ -200,10 +200,9 @@ function nameKeydownHandler (event) {
   }
 }
 
-function maybeUndo (event) {
-  if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z
+function globalKeyDownHandler (event) {
+  if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z, so trigger UNDO
     event.preventDefault()
-    console.log('pressing undo')
     const undoCommand = UNDO_BUFFER.pop()
     if (undoCommand) {
       executeCommand(undoCommand)
