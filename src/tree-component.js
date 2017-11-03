@@ -220,7 +220,7 @@ function mergeNodes (sourceNode, targetNode) {
     new CommandBuilder(() => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
       .requiresRender()
       .withAfterFocusNodeId(targetNodeId)
-      .withAfterFocuPos(Math.max(0, targetNodeName.length))
+      .withAfterFocusPos(Math.max(0, targetNodeName.length))
       .build()
   )
 }
@@ -235,11 +235,10 @@ function reparentNodeAfter (node, cursorPos, oldParentNode, newParentNode, after
   const newParentNodeId = getNodeId(newParentNode)
   const afterNodeId = afterNode ? getNodeId(afterNode) : null
   executeCommand(
-    new CommandBuilder(
-      () => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId))
+    new CommandBuilder(() => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId))
       .requiresRender()
       .withAfterFocusNodeId(nodeId)
-      .withAfterFocuPos(cursorPos)
+      .withAfterFocusPos(cursorPos)
       .build()
   )
 }
@@ -285,7 +284,7 @@ class CommandBuilder {
   }
 
   withAfterFocusPos (afterFocusPos) {
-    this.afterFocuPos = afterFocusPos
+    this.afterFocusPos = afterFocusPos
     return this
   }
 
