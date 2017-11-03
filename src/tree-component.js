@@ -121,7 +121,7 @@ function nameInputHandler (event) {
   transientState.focusNodePreviousName = newName
   transientState.focusNodePreviousPos = getCursorPos(event.target)
   executeCommand(
-    new CommandBuilder(() => renameNode(nodeId, oldName, newName))
+    new CommandBuilder(() => renameNodeById(nodeId, oldName, newName))
       .isUndoable()
       .withBeforeFocusNodeId(beforeFocusNodeId)
       .withBeforeFocusPos(beforeFocusPos)
@@ -138,7 +138,8 @@ function nameKeypressHandler (event) {
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     executeCommand(
-      new CommandBuilder(() => splitNode(nodeId, beforeSplitNamePart, afterSplitNamePart))
+      new CommandBuilder(() => splitNodeById(nodeId, beforeSplitNamePart, afterSplitNamePart))
+        .isUndoable()
         .requiresRender()
         .withAfterFocusNodeId(nodeId)
         .build()
@@ -222,6 +223,7 @@ function mergeNodes (sourceNode, targetNode) {
   const targetNodeName = getNodeName(targetNode)
   executeCommand(
     new CommandBuilder(() => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
+      .isUndoable()
       .requiresRender()
       .withAfterFocusNodeId(targetNodeId)
       .withAfterFocusPos(Math.max(0, targetNodeName.length))
@@ -346,7 +348,7 @@ function executeCommand (command) {
 
 // 1. rename the current node to the right hand side of the split
 // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
-function splitNode (nodeId, beforeSplitNamePart, afterSplitNamePart) {
+function splitNodeById (nodeId, beforeSplitNamePart, afterSplitNamePart) {
   return repo.renameNode(nodeId, afterSplitNamePart)
     .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
     .then((newSiblingRepoNode) => ([
@@ -358,24 +360,24 @@ function splitNode (nodeId, beforeSplitNamePart, afterSplitNamePart) {
 // 2. move all children of sourcenode to targetnode (actual move, just reparent)
 // 3. delete sourcenode
 // 4. focus the new node at the end of its old name
+//
+// For the undo it is assumed that a merge never happens to a target node with children
+// This function will not undo the merging of the child collections (this mirrors workflowy
+// maybe we want to revisit this in the future)
 function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
   return repo.getChildNodes(sourceNodeId)
-    .then(children => {
-      return Promise.all([
-        repo.renameNode(targetNodeId, targetNodeName + sourceNodeName),
-        repo.reparentNodes(children, targetNodeId),
-        repo.deleteNode(sourceNodeId)
-      ])
-    })
-    .then((results) => ([
-      new CommandBuilder(() => splitNode(targetNodeId, targetNodeName, sourceNodeName)).requiresRender().build()
+    .then(children => repo.reparentNodes(children, targetNodeId))
+    .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
+    .then(() => repo.deleteNode(sourceNodeId))
+    .then(() => ([
+      new CommandBuilder(() => splitNodeById(targetNodeId, targetNodeName, sourceNodeName)).requiresRender().build()
     ]))
 }
 
-function renameNode (nodeId, oldName, newName) {
+function renameNodeById (nodeId, oldName, newName) {
   return repo.renameNode(nodeId, newName)
     .then(() => ([
-      new CommandBuilder(() => renameNode(nodeId, newName, oldName)).requiresRender().build()
+      new CommandBuilder(() => renameNodeById(nodeId, newName, oldName)).requiresRender().build()
     ]))
 }
 

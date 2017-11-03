@@ -3,6 +3,7 @@
 // Checks whether the current node has a parent that is NOT ROOT
 export function hasParentNode (node) {
   if (node.parentNode &&
+      node.parentNode.getAttribute('class') &&
       node.parentNode.getAttribute('class').indexOf('children') !== -1 &&
       isNode(node.parentNode.parentNode)) {
     return true
@@ -17,8 +18,7 @@ function isRootNode (node) {
 
 export function isNode (element) {
   const classAttribute = element.getAttribute('class')
-  return (classAttribute &&
-          classAttribute.indexOf('node') !== -1)
+  return (classAttribute && classAttribute.indexOf('node') !== -1)
 }
 
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
