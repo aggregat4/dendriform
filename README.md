@@ -42,9 +42,10 @@ It is currently mostly a playground and personal project for learning client sid
 1. ~~Fix focus after node rename undo~~
 1. ~~Fix focus after node rename undo AGAIN, onfocus appears to happen before selection updated, so switched to selectionchange listener~~
 1. ~~BUG: backspace at beginning of node no longer positions cursor at end of previous node~~
+1. ~~Implement Undo for merging and splitting~~
 1. Implement Undo for node reparenting (tab, shift+tab) remember we may need to save the original after position, map out the different cases
 1. BUG: undoing the repeated merging of nodes is buggy: after the first undo the bigger node gets duplicated until all undos are done, no doubt this has something to do with the damn target/source node shenanigans when splitting
-1. Implement undo for structural changes
+1. Upgrade to maquette 3: https://dev.afas.nl/blog-dev/maquette-3-released
 1. Typescript?
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position
