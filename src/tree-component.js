@@ -1,7 +1,7 @@
 import * as maquette from 'maquette'
 import * as repo from './repository'
 import {getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd, getTextBeforeCursor, getTextAfterCursor} from './util'
-import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName, isNode} from './tree-util.js'
+import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName, isNode, hasChildren} from './tree-util.js'
 
 const h = maquette.h
 
@@ -211,7 +211,11 @@ function globalKeyDownHandler (event) {
 }
 
 // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
+// Merges are only allowed if the target node has no children
 function mergeNodes (sourceNode, targetNode) {
+  if (hasChildren(targetNode)) {
+    return
+  }
   const sourceNodeId = getNodeId(sourceNode)
   const sourceNodeName = getNodeName(sourceNode)
   const targetNodeId = getNodeId(targetNode)
@@ -343,12 +347,11 @@ function executeCommand (command) {
 // 1. rename the current node to the right hand side of the split
 // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
 function splitNode (nodeId, beforeSplitNamePart, afterSplitNamePart) {
-  console.log(`Splitnode call with before=${beforeSplitNamePart} and after=${afterSplitNamePart}`)
-  return Promise.all([
-    repo.renameNode(nodeId, afterSplitNamePart),
-    repo.createSiblingBefore(beforeSplitNamePart, null, nodeId)
-  ])
-  .then(() => ([]))
+  return repo.renameNode(nodeId, afterSplitNamePart)
+    .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
+    .then((newSiblingRepoNode) => ([
+      new CommandBuilder(() => mergeNodesById(newSiblingRepoNode._id, afterSplitNamePart, nodeId, beforeSplitNamePart)).requiresRender().build()
+    ]))
 }
 
 // 1. rename targetnode to be targetnode.name + sourcenode.name
@@ -364,11 +367,12 @@ function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeN
         repo.deleteNode(sourceNodeId)
       ])
     })
-    .then(() => ([]))
+    .then((results) => ([
+      new CommandBuilder(() => splitNode(targetNodeId, targetNodeName, sourceNodeName)).requiresRender().build()
+    ]))
 }
 
 function renameNode (nodeId, oldName, newName) {
-  console.log(`renaming node to "${newName}"`)
   return repo.renameNode(nodeId, newName)
     .then(() => ([
       new CommandBuilder(() => renameNode(nodeId, newName, oldName)).requiresRender().build()

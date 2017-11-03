@@ -16,13 +16,23 @@ function isRootNode (node) {
 }
 
 export function isNode (element) {
-  return element.getAttribute('class').indexOf('node') !== -1
+  const classAttribute = element.getAttribute('class')
+  return (classAttribute &&
+          classAttribute.indexOf('node') !== -1)
 }
 
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
 export function getParentNode (node) {
   // first parentNode is div.children, its parent is the real parent node
   return node.parentNode.parentNode
+}
+
+export function hasChildren (node) {
+  return (
+    node.childNodes.length > 2 &&
+    node.childNodes[2].getAttribute('class').indexOf('children') !== -1 &&
+    node.childNodes[2].childNodes.length > 0
+  )
 }
 
 export function findPreviousNameNode (node) {
