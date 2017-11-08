@@ -354,7 +354,9 @@ function splitNodeById (nodeId, beforeSplitNamePart, afterSplitNamePart) {
   return repo.renameNode(nodeId, afterSplitNamePart)
     .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
     .then((newSiblingRepoNode) => ([
-      new CommandBuilder(() => mergeNodesById(newSiblingRepoNode._id, afterSplitNamePart, nodeId, beforeSplitNamePart)).requiresRender().build()
+      new CommandBuilder(() => mergeNodesById(newSiblingRepoNode._id, afterSplitNamePart, nodeId, beforeSplitNamePart))
+        .requiresRender()
+        .build()
     ]))
 }
 
@@ -363,18 +365,33 @@ function splitNodeById (nodeId, beforeSplitNamePart, afterSplitNamePart) {
 // 3. delete sourcenode
 // 4. focus the new node at the end of its old name
 //
-// For the undo it is assumed that a merge never happens to a target node with children
+// For undo it is assumed that a merge never happens to a target node with children
 // This function will not undo the merging of the child collections (this mirrors workflowy
 // maybe we want to revisit this in the future)
 function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
-  return repo.getChildNodes(sourceNodeId)
+  return repo.getChildNodes(sourceNodeId) // TODO add flag to also get deleted nodes!
     .then(children => repo.reparentNodes(children, targetNodeId))
     .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
     .then(() => repo.deleteNode(sourceNodeId))
     .then(() => ([
-      new CommandBuilder(() => splitNodeById(targetNodeId, targetNodeName, sourceNodeName))
+      new CommandBuilder(() => _unmergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName, sourceNodeName))
         .requiresRender()
         .build()
+    ]))
+}
+
+// We need a dedicated "unmerge" command because when we merge, we delete a node and if we
+// want to undo that action we need to be able to "resurrect" that node so that a chain
+// of undo commands has a chance of working since they may refer to that original node's Id.
+function _unmergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
+  return repo.undeleteNode(sourceNodeId, sourceNodeName)
+    .then(() => repo.getChildNodes(targetNodeId))  // TODO add flag to also get deleted nodes!
+    .then(children => repo.reparentNodes(children, sourceNodeId))
+    .then(() => repo.renameNode(targetNodeId, targetNodeName))
+    .then(() => ([
+      // new CommandBuilder(() => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
+      //   .requiresRender()
+      //   .build()
     ]))
 }
 

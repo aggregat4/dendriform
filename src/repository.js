@@ -155,25 +155,22 @@ function mergeNodeIds (originalChildIds, newChildIds, afterNodeId) {
   return originalChildIds.concat(newChildIds)
 }
 
-// deletes a node, this includes removing it as a reference from its parent's childrefs
-// TODO shouldn't this also delete any remaining children?
+// deletes a node, this just sets a deleted flag to true
 export function deleteNode (nodeId) {
   return cdbLoadNode(nodeId)
-    .then(node => Promise.all([
-      cdbLoadNode(node.parentref)
-        .then(parent => {
-          const childIndex = parent.childrefs.indexOf(nodeId)
-          if (childIndex > -1) {
-            parent.childrefs.splice(childIndex, 1)
-          } else {
-            console.log(`WARN Deleting a node, but can not find its ID in its parent's childrefs`)
-          }
-          return parent
-        })
-        .then(parent => cdbPutNode(parent)),
-      outlineDb.remove(node)
-    ])
-  )
+    .then(node => {
+      node.deleted = true
+      return cdbPutNode(node)
+    })
+}
+
+// undeletes a node, just removing its deleted flag
+export function undeleteNode (nodeId) {
+  return cdbLoadNode(nodeId)
+    .then(node => {
+      delete node.deleted // removing this flag from the object since it is not required anymore
+      return cdbPutNode(node)
+    })
 }
 
 function cdbCreateNode (name, content, parentref) {
@@ -198,12 +195,18 @@ function cdbPutNode (node) {
   return outlineDb.put(node)
 }
 
-// returns a promise of a node
+// returns a promise of a node, but only if it was not deleted
 function cdbLoadNode (nodeId) {
-  return outlineDb.get(nodeId)
+  return outlineDb.get(nodeId).then(node => {
+    if (node.deleted && node.deleted === true) {
+      throw new Error(`Node with id '${nodeId}' was deleted`)
+    } else {
+      return node
+    }
+  })
 }
 
-// returns a promise of an array of nodes
+// returns a promise of an array of nodes that are NOT deleted
 function cdbLoadChildren (node) {
   // TODO: add sanity checking that we are really passing in nodes here and not some garbage
   // TODO: at some later point make sure we can also deal with different versions of the pouchdb data
@@ -213,7 +216,9 @@ function cdbLoadChildren (node) {
     keys: node.childrefs
   }).then(children => {
     // console.log(`= ${JSON.stringify(children)}`);
-    return children.rows.map(child => child.doc)
+    return children.rows
+      .map(child => child.doc)
+      .filter(child => !(child.deleted && child.deleted === true))
   })
 }
 
