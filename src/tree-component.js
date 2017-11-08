@@ -237,14 +237,16 @@ function reparentNode (node, cursorPos, oldParentNode, newParentNode) {
 
 function reparentNodeAfter (node, cursorPos, oldParentNode, newParentNode, afterNode) {
   const nodeId = getNodeId(node)
+  const oldAfterNodeId = node.previousSibling ? getNodeId(node.previousSibling) : null
   const oldParentNodeId = getNodeId(oldParentNode)
   const newParentNodeId = getNodeId(newParentNode)
   const afterNodeId = afterNode ? getNodeId(afterNode) : null
   executeCommand(
-    new CommandBuilder(() => reparentNodesById(nodeId, oldParentNodeId, newParentNodeId, afterNodeId))
+    new CommandBuilder(() => reparentNodesById(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, afterNodeId))
       .requiresRender()
       .withAfterFocusNodeId(nodeId)
       .withAfterFocusPos(cursorPos)
+      .isUndoable()
       .build()
   )
 }
@@ -370,22 +372,30 @@ function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeN
     .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
     .then(() => repo.deleteNode(sourceNodeId))
     .then(() => ([
-      new CommandBuilder(() => splitNodeById(targetNodeId, targetNodeName, sourceNodeName)).requiresRender().build()
+      new CommandBuilder(() => splitNodeById(targetNodeId, targetNodeName, sourceNodeName))
+        .requiresRender()
+        .build()
     ]))
 }
 
 function renameNodeById (nodeId, oldName, newName) {
   return repo.renameNode(nodeId, newName)
     .then(() => ([
-      new CommandBuilder(() => renameNodeById(nodeId, newName, oldName)).requiresRender().build()
+      new CommandBuilder(() => renameNodeById(nodeId, newName, oldName))
+        .requiresRender()
+        .build()
     ]))
 }
 
 // 1. set the node's parent Id to the new id
 // 2. add the node to the new parent's children
 // 3. remove the node from the old parent's children
-function reparentNodesById (nodeId, oldParentNodeId, newParentNodeId, afterNodeId) {
+function reparentNodesById (nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, afterNodeId) {
   return repo.getNode(nodeId)
     .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
-    .then(() => ([]))
+    .then(() => ([
+      new CommandBuilder(() => reparentNodesById(nodeId, newParentNodeId, null, oldParentNodeId, oldAfterNodeId))
+        .requiresRender()
+        .build()
+    ]))
 }
