@@ -29,12 +29,12 @@ outlineDb.put({
 
 // returns a Promise of a loaded tree
 export function loadTree (rootId) {
-  return cdbLoadNode(rootId).then(root => cdbLoadTree(root))
+  return cdbLoadNode(rootId, false).then(root => cdbLoadTree(root))
 }
 
 // loads the node by id, renames it and then returns a Promise of a response when done
 export function renameNode (nodeId, newName, retryCount) {
-  return cdbLoadNode(nodeId)
+  return cdbLoadNode(nodeId, false)
     .then(node => {
       if (newName !== node.name) {
         return cdbPutNode({
@@ -43,7 +43,8 @@ export function renameNode (nodeId, newName, retryCount) {
           name: newName,
           content: node.content,
           childrefs: node.childrefs,
-          parentref: node.parentref
+          parentref: node.parentref,
+          deleted: !!node.deleted
         })
       } else {
         console.log(`not actually renaming since "${newName}" was already set`)
@@ -66,7 +67,7 @@ export function createSiblingBefore (name, content, existingNodeId) {
 }
 
 function createSibling (name, content, existingNodeId, before) {
-  return cdbLoadNode(existingNodeId)
+  return cdbLoadNode(existingNodeId, false)
     .then(sibling => {
       console.log(`cdbcreateNode '${name}' '${content}' '${sibling.parentref}'`)
       return cdbCreateNode(name, content, sibling.parentref)
@@ -77,7 +78,7 @@ function createSibling (name, content, existingNodeId, before) {
       // and we are able to nevertheless return the new sibling node
       Promise.all([
         Promise.resolve(newSibling),
-        cdbLoadNode(newSibling.parentref).then(parent => {
+        cdbLoadNode(newSibling.parentref, false).then(parent => {
           if (before) {
             parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId), 0, newSibling._id)
           } else {
@@ -90,11 +91,11 @@ function createSibling (name, content, existingNodeId, before) {
 }
 
 export function getNode (nodeId) {
-  return cdbLoadNode(nodeId)
+  return cdbLoadNode(nodeId, false)
 }
 
-export function getChildNodes (nodeId) {
-  return cdbLoadNode(nodeId).then(node => cdbLoadChildren(node))
+export function getChildNodes (nodeId, includeDeleted) {
+  return cdbLoadNode(nodeId, includeDeleted).then(node => cdbLoadChildren(node, includeDeleted))
 }
 
 // takes an array of _actual_ nodes and a new parent id, then it reparents those nodes by:
@@ -115,10 +116,11 @@ export function reparentNodes (children, newParentId, afterNodeId) {
       name: child.name,
       content: child.content,
       childrefs: child.childrefs,
-      parentref: newParentId
+      parentref: newParentId,
+      deleted: !!child.deleted
     }
   })
-  return cdbLoadNode(oldParentId)
+  return cdbLoadNode(oldParentId, false)
     // 1. Remove the children to move from their parent
     .then(oldParentNode => cdbPutNode({
       _id: oldParentNode._id,
@@ -127,12 +129,13 @@ export function reparentNodes (children, newParentId, afterNodeId) {
       content: oldParentNode.content,
       parentref: oldParentNode.parentref,
       // remove all the children from their parent
-      childrefs: oldParentNode.childrefs.filter((c) => childIds.indexOf(c) < 0)
+      childrefs: oldParentNode.childrefs.filter((c) => childIds.indexOf(c) < 0),
+      deleted: !!oldParentNode.deleted
     }))
     // 2.a. Hang the children under their new parent by updating their parent refs
     .then(oldParentUpdateResult => outlineDb.bulkDocs(reparentedChildren))
     // 2.b. and by adding them to the childrefs of the new parent
-    .then(bulkUpdateChildrenResult => cdbLoadNode(newParentId))
+    .then(bulkUpdateChildrenResult => cdbLoadNode(newParentId, false))
     .then(newParentNode => cdbPutNode({
       _id: newParentNode._id,
       _rev: newParentNode._rev,
@@ -140,7 +143,8 @@ export function reparentNodes (children, newParentId, afterNodeId) {
       content: newParentNode.content,
       parentref: newParentNode.parentref,
       // add all the new children to the new parent
-      childrefs: mergeNodeIds(newParentNode.childrefs || [], childIds, afterNodeId)
+      childrefs: mergeNodeIds(newParentNode.childrefs || [], childIds, afterNodeId),
+      deleted: !!newParentNode.deleted
     }))
 }
 
@@ -157,7 +161,7 @@ function mergeNodeIds (originalChildIds, newChildIds, afterNodeId) {
 
 // deletes a node, this just sets a deleted flag to true
 export function deleteNode (nodeId) {
-  return cdbLoadNode(nodeId)
+  return cdbLoadNode(nodeId, false)
     .then(node => {
       node.deleted = true
       return cdbPutNode(node)
@@ -166,7 +170,7 @@ export function deleteNode (nodeId) {
 
 // undeletes a node, just removing its deleted flag
 export function undeleteNode (nodeId) {
-  return cdbLoadNode(nodeId)
+  return cdbLoadNode(nodeId, true)
     .then(node => {
       delete node.deleted // removing this flag from the object since it is not required anymore
       return cdbPutNode(node)
@@ -196,9 +200,9 @@ function cdbPutNode (node) {
 }
 
 // returns a promise of a node, but only if it was not deleted
-function cdbLoadNode (nodeId) {
+function cdbLoadNode (nodeId, includeDeleted) {
   return outlineDb.get(nodeId).then(node => {
-    if (node.deleted && node.deleted === true) {
+    if (node.deleted && node.deleted === true && !includeDeleted) {
       throw new Error(`Node with id '${nodeId}' was deleted`)
     } else {
       return node
@@ -207,7 +211,7 @@ function cdbLoadNode (nodeId) {
 }
 
 // returns a promise of an array of nodes that are NOT deleted
-function cdbLoadChildren (node) {
+function cdbLoadChildren (node, includeDeleted) {
   // TODO: add sanity checking that we are really passing in nodes here and not some garbage
   // TODO: at some later point make sure we can also deal with different versions of the pouchdb data
   // console.log(`Call getChildren(${JSON.stringify(node)})`);
@@ -218,13 +222,13 @@ function cdbLoadChildren (node) {
     // console.log(`= ${JSON.stringify(children)}`);
     return children.rows
       .map(child => child.doc)
-      .filter(child => !(child.deleted && child.deleted === true))
+      .filter(child => !(child.deleted && child.deleted === true && !includeDeleted))
   })
 }
 
 // returns a promise that recursively resolves this node and all its children
 function cdbLoadTree (node) {
-  return cdbLoadChildren(node)
+  return cdbLoadChildren(node, false)
     .then(children => Promise.all(children.map(child => cdbLoadTree(child))))
     .then(values => {
       node.children = values

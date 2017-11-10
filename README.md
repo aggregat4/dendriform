@@ -44,8 +44,8 @@ It is currently mostly a playground and personal project for learning client sid
 1. ~~BUG: backspace at beginning of node no longer positions cursor at end of previous node~~
 1. ~~Implement Undo for merging and splitting~~
 1. ~~Implement Undo for node reparenting (tab, shift+tab) remember we may need to save the original after position, map out the different cases~~
-1. Implement reparentChildren and remove reparentNodes with many nodes: we need to transparently handle that child nodes can contain deleted nodes (or this should be a flag on the retrieval of getChildren, that may work)
-1. BUG: undoing the repeated merging of nodes is buggy: after the first undo the bigger node gets duplicated until all undos are done, no doubt this has something to do with the damn target/source node shenanigans when splitting
+1. ~~BUG: undoing the repeated merging of nodes is buggy: after the first undo the bigger node gets duplicated until all undos are done~~
+1. ~~Implement soft-deletes so that we don't ever lose nodes and IDs that are referenced in the undo stack are lost~~
 1. Upgrade to maquette 3: https://dev.afas.nl/blog-dev/maquette-3-released
 1. Typescript?
 1. Implement focus on *first child node* when loading page

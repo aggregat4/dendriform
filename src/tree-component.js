@@ -369,7 +369,7 @@ function splitNodeById (nodeId, beforeSplitNamePart, afterSplitNamePart) {
 // This function will not undo the merging of the child collections (this mirrors workflowy
 // maybe we want to revisit this in the future)
 function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
-  return repo.getChildNodes(sourceNodeId) // TODO add flag to also get deleted nodes!
+  return repo.getChildNodes(sourceNodeId, true) // TODO add flag to also get deleted nodes!
     .then(children => repo.reparentNodes(children, targetNodeId))
     .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
     .then(() => repo.deleteNode(sourceNodeId))
@@ -388,11 +388,7 @@ function _unmergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNo
     .then(() => repo.getChildNodes(targetNodeId))  // TODO add flag to also get deleted nodes!
     .then(children => repo.reparentNodes(children, sourceNodeId))
     .then(() => repo.renameNode(targetNodeId, targetNodeName))
-    .then(() => ([
-      // new CommandBuilder(() => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
-      //   .requiresRender()
-      //   .build()
-    ]))
+    .then(() => ([]))
 }
 
 function renameNodeById (nodeId, oldName, newName) {
