@@ -10,6 +10,75 @@ It is currently mostly a playground and personal project for learning client sid
 
 * `package.json` spec: https://docs.npmjs.com/files/package.json
 
+## Project Development
+
+### Development Tooling
+
+This project uses a minimal build tool approach that is inspired by [How to Use NPM as a Build Tool](https://www.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/).
+
+To get started, do the following:
+
+1. clone the repository
+2. perform an `npm install`
+3. check out the `package.json` file for the few goals that are provided, for example `npm run watch' will start watching for changes in the files and rebuilds the project if necessary
+
+The application can be tested by loading the `dist/index.html` file in your browser.
+
+#### Standard JS
+
+This project adheres to the standard JS convention.
+
+There is some tooling in Visual Studio Code for linting and style checks:
+
+`npm install standard --save-dev`
+`npm install eslint --save-dev`
+`npm install eslint-plugin-import --save-dev`
+
+(apparently it needs eslint to work)
+
+Disable eslint in Visual Studio Code in `.vscode\settings.json`:
+
+```
+{
+  "javascript.validate.enable" : false,
+  "standard.enable": true,
+  "eslint.enable": false
+}
+```
+
+#### Babel (still needed like so?)
+
+Babel when required (global install):
+
+`sudo npm install --global babel-cli`
+
+And the necessary Babel profile:
+
+`npm install --save-dev babel-preset-es2015`
+
+### Webpack?
+
+?
+
+### Build Tools
+
+Some tools needed for the various build goals:
+
+`npm install parallelshell --save-dev`
+`npm install onchange --save-dev`
+`npm install http-server --save-dev`
+
+## Project Dependencies
+
+The project currently only uses two external dependencies:
+
+* pouchdb-browser
+* maquette
+
+### Adding Dependencies
+
+Add as a node package: `npm install <somepackage>`, for dev dependencies add `--save-dev`
+
 ## Next Steps
 
 1. ~~Make loadTree promise based API in the tree store~~
@@ -112,72 +181,3 @@ However, optimally we would reduce the need to load things from the database to 
 We are currently putting the event handler logic inside of the component/view module, meaning that the code that reacts to user and browser events is alongside the view rendering code and accesses the repository and other services. 
 
 It would be possible to factor this out and to just handle those events in a dedicated place away from the renderer, but it is currently unclear what that would bring us. Perhaps after a few thousand lines of code this will be easier to judge.
-
-## Project Development
-
-### Development Tooling
-
-This project uses a minimal build tool approach that is inspired by [How to Use NPM as a Build Tool](https://www.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/).
-
-To get started, do the following:
-
-1. clone the repository
-2. perform an `npm install`
-3. check out the `package.json` file for the few goals that are provided, for example `npm run watch' will start watching for changes in the files and rebuilds the project if necessary
-
-The application can be tested by loading the `dist/index.html` file in your browser.
-
-#### Standard JS
-
-This project adheres to the standard JS convention.
-
-There is some tooling in Visual Studio Code for linting and style checks:
-
-`npm install standard --save-dev`
-`npm install eslint --save-dev`
-`npm install eslint-plugin-import --save-dev`
-
-(apparently it needs eslint to work)
-
-Disable eslint in Visual Studio Code in `.vscode\settings.json`:
-
-```
-{
-  "javascript.validate.enable" : false,
-  "standard.enable": true,
-  "eslint.enable": false
-}
-```
-
-#### Babel (still needed like so?)
-
-Babel when required (global install):
-
-`sudo npm install --global babel-cli`
-
-And the necessary Babel profile:
-
-`npm install --save-dev babel-preset-es2015`
-
-### Webpack?
-
-?
-
-### Build Tools
-
-Some tools needed for the various build goals:
-
-`npm install parallelshell --save-dev`
-`npm install onchange --save-dev`
-`npm install http-server --save-dev`
-
-## Normal Dependencies
-
-The project currently only uses two external dependencies:
-
-* pouchdb-browser
-* maquette
-
-## Adding Dependencies
-
-Add as a node package: `npm install <somepackage>`, for dev dependencies add `--save-dev`
