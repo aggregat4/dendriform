@@ -12,17 +12,17 @@
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "Apache-2.0",
   "devDependencies": {
-    "eslint": "^4.3.0",
-    "eslint-plugin-import": "^2.7.0",
-    "http-server": "^0.9.0",
+    "eslint": "^4.10.0",
+    "eslint-plugin-import": "^2.8.0",
+    "http-server": "^0.10.0",
     "live-reload": "^1.1.0",
     "onchange": "^3.2.1",
-    "parallelshell": "^3.0.1",
-    "standard": "^10.0.2",
-    "webpack": "^2.7.0"
+    "parallelshell": "^3.0.2",
+    "standard": "^10.0.3",
+    "webpack": "^3.8.1"
   },
   "dependencies": {
-    "maquette": "^2.5.2",
+    "maquette": "^3.0.1",
     "pouchdb-browser": "^6.3.4"
   }
 }

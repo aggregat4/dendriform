@@ -9,6 +9,8 @@ const h = maquette.h
 const transientState = {
   focusNodeId: null,
   focusCharPos: -1,
+  // previus node state so we can undo correctly, this is separate from the actual focus and char pos we want
+  focusNodePreviousId: null,
   focusNodePreviousName: null,
   focusNodePreviousPos: -1
 }
@@ -36,21 +38,20 @@ function renderNode (node, first) {
   return h('div',
     { id: node._id, key: node._id + ':' + node._rev, 'data-rev': node._rev, class: genClass(node, first) },
     [
-      h('a', { href: `#node=${node._id}` }, '*'),
+      h('a', { href: `#node=${node._id}` }, ['*']),
       h('div.name', {
         // this data attribute only exists so that we can focus this node after
         // it has been created in afterCreateHandler, we would like to get it
         // from the parent but for some reason it is not there yet then
         'data-nodeid': node._id,
         contentEditable: 'true',
-        onblur: nameOnBlurHandler,
         oninput: nameInputHandler,
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
         onkeypress: nameKeypressHandler,
         onkeydown: nameKeydownHandler,
         afterCreate: transientStateHandler,
         afterUpdate: transientStateHandler
-      }, node.name)
+      }, [node.name])
     ].concat(renderChildren(node.children)))
 }
 
@@ -89,35 +90,30 @@ function transientStateHandler (element) {
 
 // When entering a node with the cursor, we need to initialize some transient state
 // that is required for implementing UNDO handling. This state is later updated in the
-// actual mutating methods, but we need a valid initial value
+// actual mutating methods, but we need a valid initial (and previous) value
 //
 // In a sane universe we would use the onfocus event on the node name to track this
 // position: this would allow us to very easily set the cursor position just once on
 // getting the focus in the node name. HOWEVER it appears that the onfocus event is
 // faster than updating the selection and so we get stale values from that approach.
 function selectionChangeHandler (event) {
-  if (!transientState.focusNodePreviousName &&
-      document.activeElement &&
+  if (document.activeElement &&
       document.activeElement.parentNode &&
       isNode(document.activeElement.parentNode)) {
+    const nodeId = getNodeId(document.activeElement.parentNode)
+    transientState.focusNodePreviousId = nodeId
     transientState.focusNodePreviousName = getNodeName(document.activeElement.parentNode)
     transientState.focusNodePreviousPos = getCursorPos(document.activeElement)
   }
 }
 
-// In order for our cusor position saving approach in "selectionChangeHandler" to
-// work, we need to make sure that the values are reset when we leave the node name
-function nameOnBlurHandler (event) {
-  transientState.focusNodePreviousName = null
-  transientState.focusNodePreviousPos = -1
-}
-
 function nameInputHandler (event) {
-  const nodeId = event.target.parentNode.getAttribute('id')
-  const newName = event.target.textContent || ''
+  const nodeId = getNodeId(event.target.parentNode)
+  const newName = getNodeName(event.target.parentNode)
   const oldName = transientState.focusNodePreviousName
   const beforeFocusNodeId = nodeId
   const beforeFocusPos = transientState.focusNodePreviousPos
+  transientState.focusNodePreviousId = nodeId
   transientState.focusNodePreviousName = newName
   transientState.focusNodePreviousPos = getCursorPos(event.target)
   executeCommand(
@@ -134,7 +130,7 @@ function nameInputHandler (event) {
 function nameKeypressHandler (event) {
   if (event.key === 'Enter') {
     event.preventDefault()
-    const nodeId = event.target.parentNode.getAttribute('id')
+    const nodeId = getNodeId(event.target.parentNode)
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     executeCommand(
@@ -327,7 +323,7 @@ class Command {
 }
 
 function executeCommand (command) {
-  console.log(`executing command: ${JSON.stringify(command)}`)
+  // console.log(`executing command: ${JSON.stringify(command)}`)
   command.fn()
     .then(undoCommands => {
       if (command.undoable) {
@@ -339,7 +335,7 @@ function executeCommand (command) {
             c.afterFocusPos = command.beforeFocusPos
           }
         })
-        console.log(`storing UNDO command: ${JSON.stringify(undoCommands)}`)
+        // console.log(`storing UNDO command: ${JSON.stringify(undoCommands)}`)
         UNDO_BUFFER.push(...undoCommands)
       }
     })
@@ -354,10 +350,16 @@ function splitNodeById (nodeId, beforeSplitNamePart, afterSplitNamePart) {
   return repo.renameNode(nodeId, afterSplitNamePart)
     .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
     .then((newSiblingRepoNode) => ([
-      new CommandBuilder(() => mergeNodesById(newSiblingRepoNode._id, afterSplitNamePart, nodeId, beforeSplitNamePart))
+      new CommandBuilder(() => _unsplitNodeById(newSiblingRepoNode._id, nodeId, beforeSplitNamePart + afterSplitNamePart))
         .requiresRender()
         .build()
     ]))
+}
+
+function _unsplitNodeById (newNodeId, originalNodeId, name) {
+  return repo.deleteNode(newNodeId)
+    .then(() => repo.renameNode(originalNodeId, name))
+    .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
 }
 
 // 1. rename targetnode to be targetnode.name + sourcenode.name
@@ -388,10 +390,11 @@ function _unmergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNo
     .then(() => repo.getChildNodes(targetNodeId))  // TODO add flag to also get deleted nodes!
     .then(children => repo.reparentNodes(children, sourceNodeId))
     .then(() => repo.renameNode(targetNodeId, targetNodeName))
-    .then(() => ([]))
+    .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
 }
 
 function renameNodeById (nodeId, oldName, newName) {
+  console.log(`renaming from '${oldName}' to '${newName}'`)
   return repo.renameNode(nodeId, newName)
     .then(() => ([
       new CommandBuilder(() => renameNodeById(nodeId, newName, oldName))

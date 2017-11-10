@@ -115,7 +115,8 @@ Add as a node package: `npm install <somepackage>`, for dev dependencies add `--
 1. ~~Implement Undo for node reparenting (tab, shift+tab) remember we may need to save the original after position, map out the different cases~~
 1. ~~BUG: undoing the repeated merging of nodes is buggy: after the first undo the bigger node gets duplicated until all undos are done~~
 1. ~~Implement soft-deletes so that we don't ever lose nodes and IDs that are referenced in the undo stack are lost~~
-1. Upgrade to maquette 3: https://dev.afas.nl/blog-dev/maquette-3-released
+1. ~~BUG: when undoing splits we were reverting the name of the node to that of its preceding sibling when undoing. Apparently we don't accurately track the previous node state~~
+1. ~~Upgrade to maquette 3: https://dev.afas.nl/blog-dev/maquette-3-released~~
 1. Typescript?
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position
@@ -133,7 +134,8 @@ Add as a node package: `npm install <somepackage>`, for dev dependencies add `--
 1. Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
 1. Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
-1. Implement custom debouncing/queueing for rename updates: just track the latest rename value, then periodically with setInterval, persist this change and also when performing another action like splitting, persist this change. The current system looks good, but can run into conflicted updates in the data store
+1. Implement custom debouncing/queueing for rename updates: just track the latest rename value, then periodically with setInterval, persist this change and also when performing another action like splitting, persist this change. The current system looks good, but can run into conflicted updates in the data store.
+1. Performance is going to be shit with bigger trees: we always reload the entire tree on structural changes, this is easier to implement but very inefficient.
 
 ## Ideas
 
