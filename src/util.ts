@@ -1,14 +1,14 @@
-export function isEmpty (str) {
+export function isEmpty (str: string) : boolean {
   return (!str || str.length === 0)
 }
 
-export function getHashValue (key) {
+export function getHashValue (key: string) : string {
   const matches = window.location.hash.match(new RegExp(`${key}=([^&]*)?`))
   return matches && matches.length >= 2 ? matches[1] : null
 }
 
 // from https://davidwalsh.name/javascript-debounce-function
-export function debounce (func, wait, immediate) {
+export function debounce (func, wait : number, immediate: boolean) {
   let timeout
   return function () {
     const context = this
@@ -24,7 +24,7 @@ export function debounce (func, wait, immediate) {
   }
 }
 
-export function getCursorPos (element) {
+export function getCursorPos () : number {
   const selection = window.getSelection()
   if (selection.rangeCount) {
     const selectionRange = selection.getRangeAt(0)
@@ -35,7 +35,7 @@ export function getCursorPos (element) {
 }
 
 // NOTE this assumes that the element has only one textContent child as child 0, no rich content!
-export function setCursorPos (el, charPos) {
+export function setCursorPos (el: HTMLElement, charPos: number) : void {
   if (!el.childNodes[0]) {
     return
   }
@@ -48,20 +48,20 @@ export function setCursorPos (el, charPos) {
   sel.addRange(range)
 }
 
-export function isCursorAtEnd (kbdevent) {
-  return getCursorPos() === kbdevent.target.textContent.length
+export function isCursorAtEnd (kbdevent: KeyboardEvent) : boolean {
+  return getCursorPos() === (kbdevent.target as HTMLElement).textContent.length
 }
 
-export function isCursorAtBeginning (kbdevent) {
+export function isCursorAtBeginning (kbdevent: KeyboardEvent) : boolean {
   return getCursorPos() === 0
 }
 
-export function getTextBeforeCursor (kbdevent) {
+export function getTextBeforeCursor (kbdevent: KeyboardEvent) : string {
   const selection = window.getSelection()
   if (selection.rangeCount) {
     const selectionRange = selection.getRangeAt(0)
     const rangeBeforeCursor = selectionRange.cloneRange()
-    rangeBeforeCursor.selectNodeContents(kbdevent.target)
+    rangeBeforeCursor.selectNodeContents(kbdevent.target as HTMLElement)
     rangeBeforeCursor.setEnd(selectionRange.endContainer, selectionRange.endOffset)
     return rangeBeforeCursor.toString()
   } else {
@@ -69,12 +69,12 @@ export function getTextBeforeCursor (kbdevent) {
   }
 }
 
-export function getTextAfterCursor (kbdevent) {
+export function getTextAfterCursor (kbdevent: KeyboardEvent) : string {
   const selection = window.getSelection()
   if (selection.rangeCount) {
     const selectionRange = selection.getRangeAt(0)
     const rangeAfterCursor = selectionRange.cloneRange()
-    rangeAfterCursor.selectNodeContents(kbdevent.target)
+    rangeAfterCursor.selectNodeContents(kbdevent.target as HTMLElement)
     rangeAfterCursor.setStart(selectionRange.endContainer, selectionRange.endOffset)
     return rangeAfterCursor.extractContents().textContent
   } else {

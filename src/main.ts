@@ -4,21 +4,40 @@ import * as repository from './repository'
 import * as treecomponent from './tree-component'
 
 const projector = maquette.createProjector()
+
+enum State {
+  LOADING,
+  LOADED,
+  ERROR
+}
+
+interface Status {
+  state: State
+  msg: string
+}
+
+interface Store {
+  status: Status
+  tree: any
+}
+
 const STORE = {
   status: {
-    state: 'LOADING'
-  }
+    state: 'LOADING',
+    msg: undefined
+  },
+  tree: {}
 }
 
 // Initially trigger a load of the store (async) so we have something to display ASAP
 loadStore()
 
 // ---- domain specific utility functions
-function getRequestedNodeId () {
+function getRequestedNodeId () : string {
   return getHashValue('node') || 'ROOT'
 }
 
-function loadStore () {
+function loadStore () : void {
   repository.loadTree(getRequestedNodeId())
     .then((tree) => {
       // console.log(`Tree was loaded, now store is: ${JSON.stringify(tree)}`)
