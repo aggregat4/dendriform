@@ -67,6 +67,8 @@ Some tools needed for the various build goals:
 `npm install parallelshell --save-dev`
 `npm install onchange --save-dev`
 `npm install http-server --save-dev`
+`npm install typescript --save-dev`
+`npm install ts-loader --save-dev`
 
 ## Project Dependencies
 
@@ -117,6 +119,7 @@ Add as a node package: `npm install <somepackage>`, for dev dependencies add `--
 1. ~~Implement soft-deletes so that we don't ever lose nodes and IDs that are referenced in the undo stack are lost~~
 1. ~~BUG: when undoing splits we were reverting the name of the node to that of its preceding sibling when undoing. Apparently we don't accurately track the previous node state~~
 1. ~~Upgrade to maquette 3: https://dev.afas.nl/blog-dev/maquette-3-released~~
+
 1. Typescript?
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position

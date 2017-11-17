@@ -382,7 +382,7 @@ function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeN
     ]))
 }
 
-// We need a dedicated "unmerge" command because when we merge, we delete a node and if we
+// We need dedicated "unmerge" command because when we merge, we delete a node and if we
 // want to undo that action we need to be able to "resurrect" that node so that a chain
 // of undo commands has a chance of working since they may refer to that original node's Id.
 function _unmergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
