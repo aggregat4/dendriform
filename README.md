@@ -120,7 +120,8 @@ Add as a node package: `npm install <somepackage>`, for dev dependencies add `--
 1. ~~BUG: when undoing splits we were reverting the name of the node to that of its preceding sibling when undoing. Apparently we don't accurately track the previous node state~~
 1. ~~Upgrade to maquette 3: https://dev.afas.nl/blog-dev/maquette-3-released~~
 
-1. Typescript?
+1. Try out Typescript and see if we want to move to that
+1. Replace the hardcoded test nodes in repository.js with something clever where we at least make one empty node when the database is empty, this can then stay in production
 1. Implement focus on *first child node* when loading page
 1. Implement moving up and down with arrow keys and maintaining approximate character position
 1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN (or CTRL+UPARROW/DOWNARROW?)

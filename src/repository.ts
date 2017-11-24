@@ -1,6 +1,6 @@
 import PouchDB from 'pouchdb-browser'
 
-const outlineDb = new PouchDB('outlineDB')
+const outlineDb : any = new PouchDB('outlineDB')
 outlineDb.put({
   _id: 'ROOT',
   name: 'ROOT node name',
@@ -27,17 +27,31 @@ outlineDb.put({
   parentref: 'ROOT'
 })
 
-// returns a Promise of a loaded tree
-export function loadTree (rootId) {
+export interface RepositoryNode {
+  _id: string,
+  _rev: string,
+  name: string,
+  content: string,
+  childrefs: string[],
+  parentref: string,
+  deleted: boolean
+}
+
+export interface ResolvedRepositoryNode {
+  node: RepositoryNode,
+  children: ResolvedRepositoryNode[]
+}
+
+export function loadTree (rootId: string) : Promise<ResolvedRepositoryNode> {
   return cdbLoadNode(rootId, false).then(root => cdbLoadTree(root))
 }
 
 // loads the node by id, renames it and then returns a Promise of a response when done
-export function renameNode (nodeId, newName, retryCount) {
-  return cdbLoadNode(nodeId, false)
+export function renameNode (nodeId: string, newName: string, retryCount: number) : void {
+  cdbLoadNode(nodeId, false)
     .then(node => {
       if (newName !== node.name) {
-        return cdbPutNode({
+        cdbPutNode({
           _id: node._id,
           _rev: node._rev,
           name: newName,
@@ -62,11 +76,11 @@ export function renameNode (nodeId, newName, retryCount) {
 }
 
 // returns a promise of a new sibling node created before the existing node
-export function createSiblingBefore (name, content, existingNodeId) {
+export function createSiblingBefore (name: string, content: string, existingNodeId: string) : Promise<RepositoryNode> {
   return createSibling(name, content, existingNodeId, true)
 }
 
-function createSibling (name, content, existingNodeId, before) {
+function createSibling (name: string, content: string, existingNodeId: string, before: boolean) : Promise<RepositoryNode> {
   return cdbLoadNode(existingNodeId, false)
     .then(sibling => {
       console.log(`cdbcreateNode '${name}' '${content}' '${sibling.parentref}'`)
@@ -90,11 +104,11 @@ function createSibling (name, content, existingNodeId, before) {
     )
 }
 
-export function getNode (nodeId) {
+export function getNode (nodeId: string) : Promise<RepositoryNode> {
   return cdbLoadNode(nodeId, false)
 }
 
-export function getChildNodes (nodeId, includeDeleted) {
+export function getChildNodes (nodeId: string, includeDeleted: boolean) : Promise<RepositoryNode[]> {
   return cdbLoadNode(nodeId, includeDeleted).then(node => cdbLoadChildren(node, includeDeleted))
 }
 
@@ -103,9 +117,9 @@ export function getChildNodes (nodeId, includeDeleted) {
 // 2. updating their parentref to their parent's ref
 // 3. adding the childs to their new parents childrefs
 // If an afterNodeId is provided the nodes are inserted after that child of the new parent
-export function reparentNodes (children, newParentId, afterNodeId) {
+export function reparentNodes (children: RepositoryNode[], newParentId: string, afterNodeId: string) : void {
   if (!children || children.length === 0) {
-    return Promise.resolve(null)
+    return
   }
   const childIds = children.map(child => child._id)
   const oldParentId = children[0].parentref
@@ -120,7 +134,7 @@ export function reparentNodes (children, newParentId, afterNodeId) {
       deleted: !!child.deleted
     }
   })
-  return cdbLoadNode(oldParentId, false)
+  cdbLoadNode(oldParentId, false)
     // 1. Remove the children to move from their parent
     .then(oldParentNode => cdbPutNode({
       _id: oldParentNode._id,
@@ -148,7 +162,7 @@ export function reparentNodes (children, newParentId, afterNodeId) {
     }))
 }
 
-function mergeNodeIds (originalChildIds, newChildIds, afterNodeId) {
+function mergeNodeIds (originalChildIds: string[], newChildIds: string[], afterNodeId: string) : string[] {
   if (afterNodeId) {
     const pos = originalChildIds.indexOf(afterNodeId)
     if (pos !== -1) {
@@ -160,8 +174,8 @@ function mergeNodeIds (originalChildIds, newChildIds, afterNodeId) {
 }
 
 // deletes a node, this just sets a deleted flag to true
-export function deleteNode (nodeId) {
-  return cdbLoadNode(nodeId, false)
+export function deleteNode (nodeId: string) : void {
+  cdbLoadNode(nodeId, false)
     .then(node => {
       node.deleted = true
       return cdbPutNode(node)
@@ -169,15 +183,15 @@ export function deleteNode (nodeId) {
 }
 
 // undeletes a node, just removing its deleted flag
-export function undeleteNode (nodeId) {
-  return cdbLoadNode(nodeId, true)
+export function undeleteNode (nodeId: string) : void {
+  cdbLoadNode(nodeId, true)
     .then(node => {
       delete node.deleted // removing this flag from the object since it is not required anymore
       return cdbPutNode(node)
     })
 }
 
-function cdbCreateNode (name, content, parentref) {
+function cdbCreateNode (name: string, content: string, parentref: string) : RepositoryNode {
   return outlineDb.post({
     name,
     content,
@@ -195,12 +209,12 @@ function cdbCreateNode (name, content, parentref) {
   })
 }
 
-function cdbPutNode (node) {
-  return outlineDb.put(node)
+function cdbPutNode (node: RepositoryNode) : void {
+  outlineDb.put(node)
 }
 
-// returns a promise of a node, but only if it was not deleted
-function cdbLoadNode (nodeId, includeDeleted) {
+// returns a promise of a node, you can determine whether to include deleted or not
+function cdbLoadNode (nodeId: string, includeDeleted: boolean) : Promise<RepositoryNode> {
   return outlineDb.get(nodeId).then(node => {
     if (node.deleted && node.deleted === true && !includeDeleted) {
       throw new Error(`Node with id '${nodeId}' was deleted`)
@@ -211,7 +225,7 @@ function cdbLoadNode (nodeId, includeDeleted) {
 }
 
 // returns a promise of an array of nodes that are NOT deleted
-function cdbLoadChildren (node, includeDeleted) {
+function cdbLoadChildren (node: RepositoryNode, includeDeleted: boolean) : Promise<RepositoryNode[]> {
   // TODO: add sanity checking that we are really passing in nodes here and not some garbage
   // TODO: at some later point make sure we can also deal with different versions of the pouchdb data
   // console.log(`Call getChildren(${JSON.stringify(node)})`);
@@ -227,11 +241,13 @@ function cdbLoadChildren (node, includeDeleted) {
 }
 
 // returns a promise that recursively resolves this node and all its children
-function cdbLoadTree (node) {
+function cdbLoadTree (node: RepositoryNode) : Promise<ResolvedRepositoryNode> {
   return cdbLoadChildren(node, false)
     .then(children => Promise.all(children.map(child => cdbLoadTree(child))))
     .then(values => {
-      node.children = values
-      return node
+      return {
+        node: node,
+        children: values
+      }
     })
 }

@@ -1,12 +1,58 @@
-import * as maquette from 'maquette'
+import {h, VNode} from 'maquette'
 import * as repo from './repository'
 import {getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd, getTextBeforeCursor, getTextAfterCursor} from './util'
 import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName, isNode, hasChildren} from './tree-util'
+import { RepositoryNode, ResolvedRepositoryNode } from './repository';
 
-const h = maquette.h
+enum State {
+  LOADING,
+  LOADED,
+  ERROR
+}
+
+interface Status {
+  state: State
+  msg: string
+}
+
+interface Store {
+  status: Status
+  tree: repo.ResolvedRepositoryNode
+}
+
+const STORE : Store = {
+  status: {
+    state: State.LOADING,
+    msg: null
+  } as Status,
+  tree: null
+}
+
+export function loadTree(nodeId: string) : Promise<Status> {
+  return repo.loadTree(nodeId)
+    .then((tree) => {
+      STORE.tree = tree
+      STORE.status.state = State.LOADED
+      return Promise.resolve(STORE.status)
+    })
+    .catch((reason) => {
+      STORE.tree = null
+      STORE.status.state = State.ERROR
+      STORE.status.msg = `Error loading tree: ${reason}`
+      return Promise.resolve(STORE.status)
+    })
+}
+
+interface TransientState {
+  focusNodeId: string,
+  focusCharPos: number,
+  focusNodePreviousId: null,
+  focusNodePreviousName: null,
+  focusNodePreviousPos: number
+}
 
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
-const transientState = {
+const transientState : TransientState = {
   focusNodeId: null,
   focusCharPos: -1,
   // previus node state so we can undo correctly, this is separate from the actual focus and char pos we want
@@ -17,33 +63,39 @@ const transientState = {
 
 // We need to support UNDO when activated anywhere in the document
 document.addEventListener('keydown', globalKeyDownHandler)
-// We need to track when the selection changes so we can store the current cursor position (needed for UNDO)
+// We need to track when the selection changes so we can store the current 
+// cursor position (needed for UNDO)
 document.addEventListener('selectionchange', selectionChangeHandler)
 
-function renderNode (node, first) {
-  function isRoot (node) {
+function renderNode (node: repo.ResolvedRepositoryNode, first: boolean) : VNode {
+  function isRoot (node: RepositoryNode) : boolean {
     return node._id === 'ROOT'
   }
-  function renderChildren (children) {
+  function renderChildren (children: repo.ResolvedRepositoryNode[]) : VNode[]  {
     if (children && children.length > 0) {
       return [h('div.children', children.map(c => renderNode(c, false)))]
     } else {
       return []
     }
   }
-  function genClass (node, isFirst) {
-    return 'node' + (isRoot(node) ? ' root' : '') + (isFirst ? ' first' : '')
+  function genClass (resolvedNode: ResolvedRepositoryNode, isFirst: boolean) : string {
+    return 'node' + (isRoot(resolvedNode.node) ? ' root' : '') + (isFirst ? ' first' : '')
   }
   // TODO if there are no children in root yet, create an artifical one that is empty
   return h('div',
-    { id: node._id, key: node._id + ':' + node._rev, 'data-rev': node._rev, class: genClass(node, first) },
+    {
+      id: node.node._id,
+      key: node.node._id + ':' + node.node._rev,
+      'data-rev': node.node._rev,
+      class: genClass(node, first)
+    },
     [
-      h('a', { href: `#node=${node._id}` }, ['*']),
+      h('a', { href: `#node=${node.node._id}` }, ['*']),
       h('div.name', {
         // this data attribute only exists so that we can focus this node after
         // it has been created in afterCreateHandler, we would like to get it
-        // from the parent but for some reason it is not there yet then
-        'data-nodeid': node._id,
+        // from the parent dom node, but for some reason it is not there yet then
+        'data-nodeid': node.node._id,
         contentEditable: 'true',
         oninput: nameInputHandler,
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
@@ -51,17 +103,24 @@ function renderNode (node, first) {
         onkeydown: nameKeydownHandler,
         afterCreate: transientStateHandler,
         afterUpdate: transientStateHandler
-      }, [node.name])
+      }, [node.node.name])
     ].concat(renderChildren(node.children)))
 }
 
 // Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
 // one reason why we have the toplevel div.tree
-function renderTree (treeStore) {
+export function renderTree () : VNode {
   console.log(`renderTree call`)
-  if (treeStore.status.state === 'ERROR') {
-    return h('div.tree', [h('div.error', [`Can not load tree from backing store: ${treeStore.status.msg}`])])
-  } else if (treeStore.status.state === 'LOADING') {
+  // TODO Refactor
+  switch(STORE.status.state) {
+    case State.LOADED:
+    case State.LOADING:
+    case State.ERROR:
+    default:
+  }
+  if (STORE.status.state === State.ERROR) {
+    return h('div.tree', [h('div.error', [`Can not load tree from backing store: ${STORE.status.msg}`])])
+  } else if (STORE.status.state === State.LOADING) {
     return h('div.tree', [h('div', [`Loading tree...`])])
   } else if (treeStore.status.state === 'LOADED') {
     return h('div.tree', [renderNode(treeStore.tree, true)])
@@ -69,10 +128,6 @@ function renderTree (treeStore) {
     // TODO runtimeexception ?
     return h('div.tree', [h('div.error', [`Tree is in an unknown state`])])
   }
-}
-
-export function createTreeRenderer (treeProvider) {
-  return () => { return renderTree(treeProvider()) }
 }
 
 // as per http://maquettejs.org/docs/typedoc/interfaces/_maquette_.vnodeproperties.html#aftercreate
