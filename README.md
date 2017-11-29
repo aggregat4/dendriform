@@ -14,9 +14,7 @@ It is currently mostly a playground and personal project for learning client sid
 
 ### Development Tooling
 
-This project uses a minimal build tool approach that is inspired by [How to Use NPM as a Build Tool](https://www.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/).
-
-To get started, do the following:
+This project uses npm and webpack to build. To get started, do the following:
 
 1. clone the repository
 2. perform an `npm install`
@@ -54,7 +52,7 @@ Babel when required (global install):
 
 And the necessary Babel profile:
 
-`npm install --save-dev babel-preset-es2015`
+`npm install --save-dev babel-preset-env`
 
 ### Webpack?
 
@@ -119,6 +117,7 @@ Add as a node package: `npm install <somepackage>`, for dev dependencies add `--
 1. ~~Implement soft-deletes so that we don't ever lose nodes and IDs that are referenced in the undo stack are lost~~
 1. ~~BUG: when undoing splits we were reverting the name of the node to that of its preceding sibling when undoing. Apparently we don't accurately track the previous node state~~
 1. ~~Upgrade to maquette 3: https://dev.afas.nl/blog-dev/maquette-3-released~~
+1. ~~Removed Babel since with Typescript not needed?~~
 
 1. Try out Typescript and see if we want to move to that
 1. Replace the hardcoded test nodes in repository.js with something clever where we at least make one empty node when the database is empty, this can then stay in production

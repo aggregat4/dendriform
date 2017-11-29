@@ -1,75 +1,75 @@
 // DOM Utilities for working with Node Elements and its structure
 
 // Checks whether the current node has a parent that is NOT ROOT
-export function hasParentNode (node: HTMLElement) : boolean {
-  if (node.parentNode &&
-      (node.parentNode as HTMLElement).classList.contains('children') &&
-      isNode(node.parentNode.parentNode as HTMLElement)) {
+export function hasParentNode (node: Element) : boolean {
+  if (node.parentElement &&
+      node.parentElement.classList.contains('children') &&
+      isNode(node.parentElement.parentElement)) {
     return true
   } else {
     return false
   }
 }
 
-function isRootNode (node: HTMLElement) : boolean {
+function isRootNode (node: Element) : boolean {
   return getNodeId(node) === 'ROOT'
 }
 
-export function isNode (element: HTMLElement) : boolean {
+export function isNode (element: Element) : boolean {
   return element.classList.contains('node')
 }
 
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
-export function getParentNode (node: HTMLElement) : HTMLElement {
-  // first parentNode is div.children, its parent is the real parent node
-  return node.parentNode.parentNode as HTMLElement
+export function getParentNode (node: Element) : Element {
+  // first parentElement is div.children, its parent is the real parent node
+  return node.parentElement.parentElement
 }
 
-export function hasChildren (node: HTMLElement) : boolean {
+export function hasChildren (node: Element) : boolean {
   return (
-    node.childNodes.length > 2 &&
-    (node.childNodes[2] as HTMLElement).classList.contains('children') &&
-    node.childNodes[2].childNodes.length > 0
+    node.children.length > 2 &&
+    node.children[2].classList.contains('children') &&
+    node.children[2].children.length > 0
   )
 }
 
 // TODO this is very fragile, it actually returns a name node? where is this used?
-export function findPreviousNameNode (nodeNameElement: HTMLElement) : HTMLElement {
+export function findPreviousNameNode (nodeNameElement: Element) : Element {
   // TODO add search for OPEN nodes, not just any node
-  const node = nodeNameElement.parentNode
+  const node: Element = nodeNameElement.parentElement
   if (node.previousSibling) {
-    const lastChildNode = findLastChildNode(node.previousSibling as HTMLElement)
-    return lastChildNode.childNodes[1] as HTMLElement
-  } else if (node.parentNode && (node.parentNode as HTMLElement).classList.contains('children')) {
-    // parentNode = div.node, node.parentNode = div.children, node.parentNode.parentNode = the real parent div.node
-    return ((node.parentNode as HTMLElement).parentNode as HTMLElement).childNodes[1] as HTMLElement
+    const lastChildNode = findLastChildNode(node.previousElementSibling)
+    return lastChildNode.children[1]
+  } else if (node.parentElement && node.parentElement.classList.contains('children')) {
+    // parentElement = div.node, node.parentElement = div.children, node.parentElement.parentElement = the real parent div.node
+    return node.parentElement.parentElement.children[1]
   } else {
     return null
   }
 }
 
 // Given a div.node it finds the LAST and deepest child (depth first) of that node, or the node itself
-function findLastChildNode (node: HTMLElement) : HTMLElement {
-  if (node.childNodes.length > 2) {
-    const childrenNode : HTMLElement = node.childNodes[2] as HTMLElement
-    return findLastChildNode(childrenNode.childNodes[childrenNode.childNodes.length - 1] as HTMLElement)
+function findLastChildNode (node: Element) : Element {
+  if (node.children.length > 2) {
+    const childrenNode : Element = node.children[2]
+    return findLastChildNode(childrenNode.children[childrenNode.children.length - 1])
   } else {
     return node
   }
 }
 
-export function findNextNameNode (node: HTMLElement) : HTMLElement {
+export function findNextNameNode (node: Element) : Element {
   // TODO make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
-  const parentNode : HTMLElement = node.parentNode as HTMLElement
-  if (parentNode.childNodes.length > 2) {
-    // parentNode = div.node, parentNode.childNodes[2] = div.children, and then the first child's name node
-    return parentNode.childNodes[2].childNodes[0].childNodes[1] as HTMLElement
-  } else if (parentNode.nextSibling) {
-    return parentNode.nextSibling.childNodes[1] as HTMLElement
+  const parentElement : Element = node.parentElement
+  if (parentElement.children.length > 2) {
+    // parentElement = div.node, parentElement.children[2] = div.children, and then the first child's name node
+    return parentElement.children[2].children[0].children[1]
+  } else if (parentElement.nextElementSibling) {
+    return parentElement.nextElementSibling.children[1]
   } else {
-    const firstAncestorNextSibling = findFirstAncestorNextSibling(parentNode)
+    const firstAncestorNextSibling = findFirstAncestorNextSibling(parentElement)
     if (firstAncestorNextSibling) {
-      return firstAncestorNextSibling.childNodes[1] as HTMLElement
+      return firstAncestorNextSibling.children[1]
     } else {
       return null
     }
@@ -79,16 +79,16 @@ export function findNextNameNode (node: HTMLElement) : HTMLElement {
 // Assuming we get passed a div.node this function will find the first
 // next-sibling of an ancestor node and return it (div.node) or null if
 // none could be found
-function findFirstAncestorNextSibling (node: HTMLElement) : HTMLElement {
-  if (node.parentNode && (node.parentNode as HTMLElement).classList.contains('children')) {
-    const parentNode : HTMLElement = node.parentNode.parentNode as HTMLElement
-    if (isRootNode(parentNode)) {
+function findFirstAncestorNextSibling (node: Element) : Element {
+  if (node.parentElement && node.parentElement.classList.contains('children')) {
+    const parentElement : Element = node.parentElement.parentElement
+    if (isRootNode(parentElement)) {
       return null
     } else {
-      if (parentNode.nextSibling) {
-        return parentNode.nextSibling as HTMLElement
+      if (parentElement.nextElementSibling) {
+        return parentElement.nextElementSibling
       } else {
-        return findFirstAncestorNextSibling(parentNode)
+        return findFirstAncestorNextSibling(parentElement)
       }
     }
   } else {
@@ -96,20 +96,20 @@ function findFirstAncestorNextSibling (node: HTMLElement) : HTMLElement {
   }
 }
 
-export function getNodeId (node: HTMLElement) : string {
+export function getNodeId (node: Element) : string {
   return node.getAttribute('id')
 }
 
-export function getNodeName (node: HTMLElement) : String {
+export function getNodeName (node: Element) : string {
   return node.children[1].textContent || ''
 }
 
 /*
 function getNodeChildIds (node) {
   const childIds = []
-  if (node.childNodes.length > 2) {
+  if (node.children.length > 2) {
     // children are under a specific div.children
-    const children = node.childNodes[2].childNodes
+    const children = node.children[2].children
     for (var i = 0; i < children.length; i++) {
       childIds.push(children[i].getAttribute('id'))
     }

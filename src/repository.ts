@@ -47,8 +47,8 @@ export function loadTree (rootId: string) : Promise<ResolvedRepositoryNode> {
 }
 
 // loads the node by id, renames it and then returns a Promise of a response when done
-export function renameNode (nodeId: string, newName: string, retryCount: number) : void {
-  cdbLoadNode(nodeId, false)
+export function renameNode (nodeId: string, newName: string, retryCount?: number) : Promise<any> {
+  return cdbLoadNode(nodeId, false)
     .then(node => {
       if (newName !== node.name) {
         cdbPutNode({
@@ -117,9 +117,9 @@ export function getChildNodes (nodeId: string, includeDeleted: boolean) : Promis
 // 2. updating their parentref to their parent's ref
 // 3. adding the childs to their new parents childrefs
 // If an afterNodeId is provided the nodes are inserted after that child of the new parent
-export function reparentNodes (children: RepositoryNode[], newParentId: string, afterNodeId: string) : void {
+export function reparentNodes (children: RepositoryNode[], newParentId: string, afterNodeId?: string) : Promise<any> {
   if (!children || children.length === 0) {
-    return
+    return Promise.resolve()
   }
   const childIds = children.map(child => child._id)
   const oldParentId = children[0].parentref
@@ -134,7 +134,7 @@ export function reparentNodes (children: RepositoryNode[], newParentId: string, 
       deleted: !!child.deleted
     }
   })
-  cdbLoadNode(oldParentId, false)
+  return cdbLoadNode(oldParentId, false)
     // 1. Remove the children to move from their parent
     .then(oldParentNode => cdbPutNode({
       _id: oldParentNode._id,
@@ -174,8 +174,8 @@ function mergeNodeIds (originalChildIds: string[], newChildIds: string[], afterN
 }
 
 // deletes a node, this just sets a deleted flag to true
-export function deleteNode (nodeId: string) : void {
-  cdbLoadNode(nodeId, false)
+export function deleteNode (nodeId: string) : Promise<any> {
+  return cdbLoadNode(nodeId, false)
     .then(node => {
       node.deleted = true
       return cdbPutNode(node)
@@ -183,8 +183,8 @@ export function deleteNode (nodeId: string) : void {
 }
 
 // undeletes a node, just removing its deleted flag
-export function undeleteNode (nodeId: string) : void {
-  cdbLoadNode(nodeId, true)
+export function undeleteNode (nodeId: string) : Promise<any> {
+  return cdbLoadNode(nodeId, true)
     .then(node => {
       delete node.deleted // removing this flag from the object since it is not required anymore
       return cdbPutNode(node)

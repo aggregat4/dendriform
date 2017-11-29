@@ -28,26 +28,11 @@ const STORE : Store = {
   tree: null
 }
 
-export function loadTree(nodeId: string) : Promise<Status> {
-  return repo.loadTree(nodeId)
-    .then((tree) => {
-      STORE.tree = tree
-      STORE.status.state = State.LOADED
-      return Promise.resolve(STORE.status)
-    })
-    .catch((reason) => {
-      STORE.tree = null
-      STORE.status.state = State.ERROR
-      STORE.status.msg = `Error loading tree: ${reason}`
-      return Promise.resolve(STORE.status)
-    })
-}
-
 interface TransientState {
   focusNodeId: string,
   focusCharPos: number,
-  focusNodePreviousId: null,
-  focusNodePreviousName: null,
+  focusNodePreviousId: string,
+  focusNodePreviousName: string,
   focusNodePreviousPos: number
 }
 
@@ -66,6 +51,37 @@ document.addEventListener('keydown', globalKeyDownHandler)
 // We need to track when the selection changes so we can store the current 
 // cursor position (needed for UNDO)
 document.addEventListener('selectionchange', selectionChangeHandler)
+
+export function load(nodeId: string) : Promise<Status> {
+  return repo.loadTree(nodeId)
+    .then((tree) => {
+      STORE.tree = tree
+      STORE.status.state = State.LOADED
+      return Promise.resolve(STORE.status)
+    })
+    .catch((reason) => {
+      STORE.tree = null
+      STORE.status.state = State.ERROR
+      STORE.status.msg = `Error loading tree: ${reason}`
+      return Promise.resolve(STORE.status)
+    })
+}
+
+// Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
+// one reason why we have the toplevel div.tree
+export function render () : VNode {
+  console.log(`renderTree call`)
+  return h('div.tree', renderTree())
+}
+
+function renderTree() : VNode[] {
+  switch(STORE.status.state) {
+    case State.ERROR:   return [h('div.error', [`Can not load tree from backing store: ${STORE.status.msg}`])]
+    case State.LOADING: return [h('div', [`Loading tree...`])]
+    case State.LOADED:  return [renderNode(STORE.tree, true)]
+    default:            return [h('div.error', [`Tree is in an unknown state`])]
+  }
+}
 
 function renderNode (node: repo.ResolvedRepositoryNode, first: boolean) : VNode {
   function isRoot (node: RepositoryNode) : boolean {
@@ -101,38 +117,16 @@ function renderNode (node: repo.ResolvedRepositoryNode, first: boolean) : VNode 
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
         onkeypress: nameKeypressHandler,
         onkeydown: nameKeydownHandler,
+        // special maquette handlers that get triggered on certain VDOM operations
         afterCreate: transientStateHandler,
         afterUpdate: transientStateHandler
       }, [node.node.name])
     ].concat(renderChildren(node.children)))
 }
 
-// Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
-// one reason why we have the toplevel div.tree
-export function renderTree () : VNode {
-  console.log(`renderTree call`)
-  // TODO Refactor
-  switch(STORE.status.state) {
-    case State.LOADED:
-    case State.LOADING:
-    case State.ERROR:
-    default:
-  }
-  if (STORE.status.state === State.ERROR) {
-    return h('div.tree', [h('div.error', [`Can not load tree from backing store: ${STORE.status.msg}`])])
-  } else if (STORE.status.state === State.LOADING) {
-    return h('div.tree', [h('div', [`Loading tree...`])])
-  } else if (treeStore.status.state === 'LOADED') {
-    return h('div.tree', [renderNode(treeStore.tree, true)])
-  } else {
-    // TODO runtimeexception ?
-    return h('div.tree', [h('div.error', [`Tree is in an unknown state`])])
-  }
-}
-
 // as per http://maquettejs.org/docs/typedoc/interfaces/_maquette_.vnodeproperties.html#aftercreate
 // here we set focus to a node if it has been created and we set it as the focusable node in transientstate
-function transientStateHandler (element) {
+function transientStateHandler (element: HTMLElement) : void {
   if (transientState && transientState.focusNodeId && element.getAttribute('data-nodeid') === transientState.focusNodeId) {
     element.focus()
     if (transientState.focusCharPos > -1) {
@@ -151,26 +145,27 @@ function transientStateHandler (element) {
 // position: this would allow us to very easily set the cursor position just once on
 // getting the focus in the node name. HOWEVER it appears that the onfocus event is
 // faster than updating the selection and so we get stale values from that approach.
-function selectionChangeHandler (event) {
+function selectionChangeHandler (event: Event) : void {
   if (document.activeElement &&
       document.activeElement.parentNode &&
-      isNode(document.activeElement.parentNode)) {
-    const nodeId = getNodeId(document.activeElement.parentNode)
-    transientState.focusNodePreviousId = nodeId
-    transientState.focusNodePreviousName = getNodeName(document.activeElement.parentNode)
-    transientState.focusNodePreviousPos = getCursorPos(document.activeElement)
+      isNode(document.activeElement.parentElement)) {
+    const activeNode = document.activeElement.parentElement
+    transientState.focusNodePreviousId = getNodeId(activeNode)
+    transientState.focusNodePreviousName = getNodeName(activeNode)
+    transientState.focusNodePreviousPos = getCursorPos()
   }
 }
 
-function nameInputHandler (event) {
-  const nodeId = getNodeId(event.target.parentNode)
-  const newName = getNodeName(event.target.parentNode)
+function nameInputHandler (event: Event) : void {
+  const targetNode = (event.target as Element).parentElement
+  const nodeId = getNodeId(targetNode)
+  const newName = getNodeName(targetNode)
   const oldName = transientState.focusNodePreviousName
   const beforeFocusNodeId = nodeId
   const beforeFocusPos = transientState.focusNodePreviousPos
   transientState.focusNodePreviousId = nodeId
   transientState.focusNodePreviousName = newName
-  transientState.focusNodePreviousPos = getCursorPos(event.target)
+  transientState.focusNodePreviousPos = getCursorPos()
   executeCommand(
     new CommandBuilder(() => renameNodeById(nodeId, oldName, newName))
       .isUndoable()
@@ -182,10 +177,11 @@ function nameInputHandler (event) {
 
 // NOTE from the MDN docs: "The keypress event is fired when a key is pressed down and
 // that key normally produces a character value"
-function nameKeypressHandler (event) {
+function nameKeypressHandler (event: KeyboardEvent) : void {
   if (event.key === 'Enter') {
     event.preventDefault()
-    const nodeId = getNodeId(event.target.parentNode)
+    const targetNode = (event.target as Element).parentElement
+    const nodeId = getNodeId(targetNode)
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     executeCommand(
@@ -199,60 +195,60 @@ function nameKeypressHandler (event) {
 }
 
 // for reference, Key values: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
-function nameKeydownHandler (event) {
+function nameKeydownHandler (event: KeyboardEvent) : void {
   if (event.key === 'ArrowUp') {
     event.preventDefault()
-    const previousNode = findPreviousNameNode(event.target)
+    const previousNode = findPreviousNameNode(event.target as Element)
     if (previousNode) {
-      previousNode.focus()
+      (previousNode as HTMLElement).focus()
     }
   } else if (event.key === 'ArrowDown') {
     event.preventDefault()
-    const nextNode = findNextNameNode(event.target)
+    const nextNode = findNextNameNode(event.target as Element)
     if (nextNode) {
-      nextNode.focus()
+      (nextNode as HTMLElement).focus()
     }
   } else if (event.key === 'Backspace') {
-    if (isCursorAtBeginning(event) && event.target.parentNode.previousSibling) {
+    if (isCursorAtBeginning(event) && (event.target as Element).parentElement.previousElementSibling) {
       event.preventDefault()
-      const sourceNode = event.target.parentNode
-      const targetNode = sourceNode.previousSibling
+      const sourceNode = (event.target as Element).parentElement
+      const targetNode = sourceNode.previousElementSibling
       mergeNodes(sourceNode, targetNode)
     }
   } else if (event.key === 'Delete') {
-    if (isCursorAtEnd(event) && event.target.parentNode.nextSibling) {
+    if (isCursorAtEnd(event) && (event.target as Element).parentElement.nextElementSibling) {
       event.preventDefault()
-      const targetNode = event.target.parentNode
-      const sourceNode = targetNode.nextSibling
+      const targetNode = (event.target as Element).parentElement
+      const sourceNode = targetNode.nextElementSibling
       mergeNodes(sourceNode, targetNode)
     }
   } else if (event.key === 'Tab' && !event.shiftKey) {
     // When tabbing you want to make the node the last child of the previous sibling (if it exists)
-    const node = event.target.parentNode
-    if (node.previousSibling) {
+    const node = (event.target as Element).parentElement
+    if (node.previousElementSibling) {
       event.preventDefault()
       // when a node is a child, it is inside a "children" container of its parent
       const oldParentNode = getParentNode(node)
-      const newParentNode = node.previousSibling
-      reparentNode(node, getCursorPos(event.target), oldParentNode, newParentNode)
+      const newParentNode = node.previousElementSibling
+      reparentNode(node, getCursorPos(), oldParentNode, newParentNode)
     }
   } else if (event.key === 'Tab' && event.shiftKey) {
     // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
     // Caution: we only allow unindent if the current node has a parent and a grandparent node, otherwise we can not unindent
-    const node = event.target.parentNode
+    const node = (event.target as Element).parentElement
     if (hasParentNode(node)) {
       const oldParentNode = getParentNode(node)
       if (hasParentNode(oldParentNode)) {
         const newParentNode = getParentNode(oldParentNode)
         const afterNode = oldParentNode
         event.preventDefault()
-        reparentNodeAfter(node, getCursorPos(event.target), oldParentNode, newParentNode, afterNode)
+        reparentNodeAfter(node, getCursorPos(), oldParentNode, newParentNode, afterNode)
       }
     }
   }
 }
 
-function globalKeyDownHandler (event) {
+function globalKeyDownHandler (event: KeyboardEvent) : void {
   if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z, so trigger UNDO
     event.preventDefault()
     const undoCommand = UNDO_BUFFER.pop()
@@ -264,7 +260,7 @@ function globalKeyDownHandler (event) {
 
 // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
 // Merges are only allowed if the target node has no children
-function mergeNodes (sourceNode, targetNode) {
+function mergeNodes (sourceNode: Element, targetNode: Element) : void {
   if (hasChildren(targetNode)) {
     return
   }
@@ -282,13 +278,13 @@ function mergeNodes (sourceNode, targetNode) {
   )
 }
 
-function reparentNode (node, cursorPos, oldParentNode, newParentNode) {
+function reparentNode (node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element) : void {
   reparentNodeAfter(node, cursorPos, oldParentNode, newParentNode, null)
 }
 
-function reparentNodeAfter (node, cursorPos, oldParentNode, newParentNode, afterNode) {
+function reparentNodeAfter (node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element, afterNode: Element) : void {
   const nodeId = getNodeId(node)
-  const oldAfterNodeId = node.previousSibling ? getNodeId(node.previousSibling) : null
+  const oldAfterNodeId = node.previousElementSibling ? getNodeId(node.previousElementSibling) : null
   const oldParentNodeId = getNodeId(oldParentNode)
   const newParentNodeId = getNodeId(newParentNode)
   const afterNodeId = afterNode ? getNodeId(afterNode) : null
@@ -304,69 +300,85 @@ function reparentNodeAfter (node, cursorPos, oldParentNode, newParentNode, after
 
 // --------- Some functions that represent higher level actions on nodes, separate from dom stuff
 
-function triggerTreeReload () {
-  window.dispatchEvent(new window.Event('treereload'))
+function triggerTreeReload () : void {
+  window.dispatchEvent(new Event('treereload'))
 }
 
 // charPos should be -1 to just request focus on the node
-function requestFocusOnNodeAtChar (nodeId, charPos) {
+function requestFocusOnNodeAtChar (nodeId: string, charPos: number) {
   transientState.focusNodeId = nodeId
   transientState.focusCharPos = charPos
 }
 
-const UNDO_BUFFER = []
-const REDO_BUFFER = []
+const UNDO_BUFFER : Command[] = []
+const REDO_BUFFER : Command[] = []
 
 class CommandBuilder {
-  constructor (fn) {
+  fn : () => Promise<Command[]>
+  renderRequired : boolean = false
+  beforeFocusNodeId : string = null
+  beforeFocusPos : number = -1
+  afterFocusNodeId : string = null
+  afterFocusPos : number = -1
+  undoable : boolean = false
+
+  constructor (fn: () => Promise<Command[]>) {
     this.fn = fn
   }
 
-  requiresRender () {
+  requiresRender () : CommandBuilder {
     this.renderRequired = true
     return this
   }
 
-  withBeforeFocusNodeId (beforeFocusNodeId) {
+  withBeforeFocusNodeId (beforeFocusNodeId: string) : CommandBuilder {
     this.beforeFocusNodeId = beforeFocusNodeId
     return this
   }
 
-  withBeforeFocusPos (beforeFocusPos) {
+  withBeforeFocusPos (beforeFocusPos: number) : CommandBuilder {
     this.beforeFocusPos = beforeFocusPos
     return this
   }
 
-  withAfterFocusNodeId (afterFocusNodeId) {
+  withAfterFocusNodeId (afterFocusNodeId: string) : CommandBuilder {
     this.afterFocusNodeId = afterFocusNodeId
     return this
   }
 
-  withAfterFocusPos (afterFocusPos) {
+  withAfterFocusPos (afterFocusPos: number) : CommandBuilder {
     this.afterFocusPos = afterFocusPos
     return this
   }
 
-  isUndoable () {
+  isUndoable () : CommandBuilder {
     this.undoable = true
     return this
   }
 
-  build () {
+  build () : Command {
     return new Command(
       this.fn,
-      this.renderRequired || false,
-      this.beforeFocusNodeId || null,
-      this.beforeFocusPos || -1,
-      this.afterFocusNodeId || null,
-      this.afterFocusPos || -1,
-      this.undoable || false
+      this.renderRequired,
+      this.beforeFocusNodeId,
+      this.beforeFocusPos,
+      this.afterFocusNodeId,
+      this.afterFocusPos,
+      this.undoable
     )
   }
 }
 
 class Command {
-  constructor (fn, renderRequired, beforeFocusNodeId, beforeFocusPos, afterFocusNodeId, afterFocusPos, undoable) {
+  fn : () => Promise<Command[]>
+  renderRequired : boolean = false
+  beforeFocusNodeId : string = null
+  beforeFocusPos : number = -1
+  afterFocusNodeId : string = null
+  afterFocusPos : number = -1
+  undoable : boolean = false
+
+  constructor (fn: () => Promise<Command[]>, renderRequired: boolean, beforeFocusNodeId: string, beforeFocusPos: number, afterFocusNodeId: string, afterFocusPos: number, undoable: boolean) {
     this.fn = fn
     this.renderRequired = renderRequired
     this.beforeFocusNodeId = beforeFocusNodeId
@@ -377,7 +389,7 @@ class Command {
   }
 }
 
-function executeCommand (command) {
+function executeCommand (command: Command) : void {
   // console.log(`executing command: ${JSON.stringify(command)}`)
   command.fn()
     .then(undoCommands => {
@@ -401,7 +413,7 @@ function executeCommand (command) {
 
 // 1. rename the current node to the right hand side of the split
 // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
-function splitNodeById (nodeId, beforeSplitNamePart, afterSplitNamePart) {
+function splitNodeById (nodeId: string, beforeSplitNamePart: string, afterSplitNamePart: string) : Promise<Command[]> {
   return repo.renameNode(nodeId, afterSplitNamePart)
     .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
     .then((newSiblingRepoNode) => ([
@@ -411,7 +423,7 @@ function splitNodeById (nodeId, beforeSplitNamePart, afterSplitNamePart) {
     ]))
 }
 
-function _unsplitNodeById (newNodeId, originalNodeId, name) {
+function _unsplitNodeById (newNodeId: string, originalNodeId: string, name: string) : Promise<Command[]> {
   return repo.deleteNode(newNodeId)
     .then(() => repo.renameNode(originalNodeId, name))
     .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
@@ -425,13 +437,13 @@ function _unsplitNodeById (newNodeId, originalNodeId, name) {
 // For undo it is assumed that a merge never happens to a target node with children
 // This function will not undo the merging of the child collections (this mirrors workflowy
 // maybe we want to revisit this in the future)
-function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
+function mergeNodesById (sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string) : Promise<Command[]> {
   return repo.getChildNodes(sourceNodeId, true) // TODO add flag to also get deleted nodes!
     .then(children => repo.reparentNodes(children, targetNodeId))
     .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
     .then(() => repo.deleteNode(sourceNodeId))
     .then(() => ([
-      new CommandBuilder(() => _unmergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName, sourceNodeName))
+      new CommandBuilder(() => _unmergeNodesById(sourceNodeId, targetNodeId, targetNodeName))
         .requiresRender()
         .build()
     ]))
@@ -440,15 +452,15 @@ function mergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeN
 // We need dedicated "unmerge" command because when we merge, we delete a node and if we
 // want to undo that action we need to be able to "resurrect" that node so that a chain
 // of undo commands has a chance of working since they may refer to that original node's Id.
-function _unmergeNodesById (sourceNodeId, sourceNodeName, targetNodeId, targetNodeName) {
-  return repo.undeleteNode(sourceNodeId, sourceNodeName)
-    .then(() => repo.getChildNodes(targetNodeId))  // TODO add flag to also get deleted nodes!
+function _unmergeNodesById (sourceNodeId: string, targetNodeId: string, targetNodeName: string) : Promise<Command[]> {
+  return repo.undeleteNode(sourceNodeId)
+    .then(() => repo.getChildNodes(targetNodeId, true))
     .then(children => repo.reparentNodes(children, sourceNodeId))
     .then(() => repo.renameNode(targetNodeId, targetNodeName))
     .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
 }
 
-function renameNodeById (nodeId, oldName, newName) {
+function renameNodeById (nodeId: string, oldName: string, newName: string) : Promise<Command[]> {
   console.log(`renaming from '${oldName}' to '${newName}'`)
   return repo.renameNode(nodeId, newName)
     .then(() => ([
@@ -461,7 +473,7 @@ function renameNodeById (nodeId, oldName, newName) {
 // 1. set the node's parent Id to the new id
 // 2. add the node to the new parent's children
 // 3. remove the node from the old parent's children
-function reparentNodesById (nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, afterNodeId) {
+function reparentNodesById (nodeId: string, oldParentNodeId: string, oldAfterNodeId: string, newParentNodeId: string, afterNodeId: string) : Promise<Command[]> {
   return repo.getNode(nodeId)
     .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
     .then(() => ([

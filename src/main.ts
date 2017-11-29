@@ -9,10 +9,10 @@ function getRequestedNodeId () : string {
 }
 
 // Initially trigger a load of the store (async) so we have something to display ASAP
-loadStore()
+reload()
 
-function loadStore () : void {
-  treecomponent.loadTree(getRequestedNodeId())
+function reload () : void {
+  treecomponent.load(getRequestedNodeId())
     .then(status => {
       console.log(`Tree was loaded`)
       projector.scheduleRender()
@@ -24,10 +24,10 @@ function loadStore () : void {
 document.addEventListener('DOMContentLoaded', () => {
   projector.append(
     document.querySelector('#treething'),
-    treecomponent.createTreeRenderer())
+    treecomponent.render)
 })
 
-window.addEventListener('hashchange', loadStore)
+window.addEventListener('hashchange', reload)
 // The 'treereload' event is custom and can be triggered in a component to indicate
 // that the store needs to be reloaded (and rerendered)
-window.addEventListener('treereload', loadStore)
+window.addEventListener('treereload', reload)
