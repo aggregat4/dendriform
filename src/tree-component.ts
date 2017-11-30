@@ -60,17 +60,27 @@ export function load(nodeId: string) : Promise<Status> {
       return Promise.resolve(STORE.status)
     })
     .catch((reason) => {
-      STORE.tree = null
-      STORE.status.state = State.ERROR
-      STORE.status.msg = `Error loading tree: ${reason}`
-      return Promise.resolve(STORE.status)
+      if (reason.status === 404 && nodeId === 'ROOT') {
+        // When the root node was requested but could not be found, initialize the tree with a minimal structure
+        return initializeEmptyTree().then(() => load(nodeId))
+      } else {
+        STORE.tree = null
+        STORE.status.state = State.ERROR
+        STORE.status.msg = `Error loading tree: ${reason}`
+        return Promise.resolve(STORE.status)
+      }
     })
+}
+
+function initializeEmptyTree () : Promise<RepositoryNode> {
+  return repo.createNode('ROOT', 'ROOT', null)
+    .then(() => repo.createNode(null, '', null))
+    .then(child => repo.addChildToParent(child._id, 'ROOT'))
 }
 
 // Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
 // one reason why we have the toplevel div.tree
 export function render () : VNode {
-  console.log(`renderTree call`)
   return h('div.tree', renderTree())
 }
 
@@ -414,6 +424,7 @@ function executeCommand (command: Command) : void {
 // 1. rename the current node to the right hand side of the split
 // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
 function splitNodeById (nodeId: string, beforeSplitNamePart: string, afterSplitNamePart: string) : Promise<Command[]> {
+  console.log(`splitNodeById`)
   return repo.renameNode(nodeId, afterSplitNamePart)
     .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
     .then((newSiblingRepoNode) => ([
