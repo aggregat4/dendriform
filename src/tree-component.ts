@@ -63,6 +63,10 @@ export function load(nodeId: string) : Promise<Status> {
       if (reason.status === 404 && nodeId === 'ROOT') {
         // When the root node was requested but could not be found, initialize the tree with a minimal structure
         return initializeEmptyTree().then(() => load(nodeId))
+      } else if (reason.status == 404) {
+        // In case we are called with a non existent ID and it is not root, just load the root node
+        // TODO should we rather handle this in the UI and redirect to the root node?
+        return load('ROOT')
       } else {
         STORE.tree = null
         STORE.status.state = State.ERROR
@@ -72,7 +76,7 @@ export function load(nodeId: string) : Promise<Status> {
     })
 }
 
-function initializeEmptyTree () : Promise<RepositoryNode> {
+function initializeEmptyTree () : Promise<void> {
   return repo.createNode('ROOT', 'ROOT', null)
     .then(() => repo.createNode(null, '', null))
     .then(child => repo.addChildToParent(child._id, 'ROOT'))

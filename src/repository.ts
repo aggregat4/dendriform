@@ -57,33 +57,33 @@ export function createSiblingBefore (name: string, content: string, existingNode
 
 function createSibling (name: string, content: string, existingNodeId: string, before: boolean) : Promise<RepositoryNode> {
   return cdbLoadNode(existingNodeId, false)
-    .then(sibling => createNode(null, name, content).then(newSibling => {
-        console.log(`createSibling, setting parentref for new sibling`)
-        newSibling.parentref = sibling.parentref
-        return cdbPutNode(newSibling)
-      }))
-    .then(newSibling =>
-      // TODO: consider merging this logic with addChildToParent, it is a bit weird here
-      // This is a bit tricky: we want to return the new sibling node, but we also have to make sure
-      // it is a child of its parent. So by using Promise.all we're forcing the parenting to happen
-      // and we are able to nevertheless return the new sibling node
-      Promise.all([
-        Promise.resolve(newSibling),
-        cdbLoadNode(newSibling.parentref, false)
-          .then(parent => {
-            if (before) {
-              parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId), 0, newSibling._id)
-            } else {
-              parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId) + 1, 0, newSibling._id)
-            }
-            return cdbPutNode(parent)
-          })
-      ])
-      .then(results => Promise.resolve(results[0]))
-    )
+    .then(sibling => {
+      return createNode(null, name, content)
+        .then(newSibling => {
+          newSibling.parentref = sibling.parentref
+          return cdbPutNode(newSibling)
+            .then(putResult => {
+                // TODO: consider merging this logic with addChildToParent, it is a bit weird here
+                // This is a bit tricky: we want to return the new sibling node, but we also have to make sure
+                // it is a child of its parent. So by using Promise.all we're forcing the parenting to happen
+                // and we are able to nevertheless return the new sibling node
+                return cdbLoadNode(sibling.parentref, false)
+                  .then(parent => {
+                    if (before) {
+                      parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId), 0, newSibling._id)
+                    } else {
+                      parent.childrefs.splice(parent.childrefs.indexOf(existingNodeId) + 1, 0, newSibling._id)
+                    }
+                    return cdbPutNode(parent)
+                  })
+                  .then(result => Promise.resolve(newSibling))
+            })
+        })
+    })
 }
 
 export function getNode (nodeId: string) : Promise<RepositoryNode> {
+  console.log(`getNode for id '${nodeId}'`)
   return cdbLoadNode(nodeId, false)
 }
 
@@ -170,17 +170,20 @@ export function undeleteNode (nodeId: string) : Promise<any> {
     })
 }
 
+// TODO : consider if I really want to allow providing the ID here, this is actually only ok for the root node, perhaps we need a dedicated function for that?
 export function createNode (id: string, name: string, content: string) : Promise<RepositoryNode> {
-  console.log(`cdbCreateNode id:${id} - name:${name}`)
+  console.log(`createNode id: '${id}' - name: '${name}'`)
   const node = {
-    _id: id,
     name,
     content,
     childrefs: [],
   }
+  if (id) {
+    node['_id'] = id
+  }
   return outlineDb.post(node)
     .then(response => {
-      console.log(`new node created with id ${response.id}`)
+      console.log(`new node created with id ${response.id} and payload '${JSON.stringify(response)}'`)
       return {
         _id: response.id,
         _rev: response.rev,
@@ -192,28 +195,30 @@ export function createNode (id: string, name: string, content: string) : Promise
 }
 
 // Returns a promise of the parent node
-export function addChildToParent (childId: string, parentId: string) : Promise<RepositoryNode> {
+export function addChildToParent (childId: string, parentId: string) : Promise<void> {
   console.log(`addChildToParent ${childId} -> ${parentId}`)
   return cdbLoadNode(childId, false)
     .then(child => {
       child.parentref = parentId
       return cdbPutNode(child)
     })
-    .then(child => cdbLoadNode(parentId, false)
-      .then(parent => {
-        parent.childrefs.push(childId)
-        return cdbPutNode(parent)
-      })
-      .then(result => result)
+    .then(putResult => 
+      cdbLoadNode(parentId, false)
+        .then(parent => {
+          parent.childrefs.push(childId)
+          return cdbPutNode(parent)
+        })
     )
 }
 
-function cdbPutNode (node: RepositoryNode) : Promise<RepositoryNode> {
+function cdbPutNode (node: RepositoryNode) : Promise<void> {
+  console.log(`Putting node: '${JSON.stringify(node)}'`)
   return outlineDb.put(node)
 }
 
 // returns a promise of a node, you can determine whether to include deleted or not
 function cdbLoadNode (nodeId: string, includeDeleted: boolean) : Promise<RepositoryNode> {
+  console.log(`cdbLoadNode for id '${nodeId}'`)
   return outlineDb.get(nodeId).then(node => {
     if (node.deleted && node.deleted === true && !includeDeleted) {
       throw new Error(`Node with id '${nodeId}' was deleted`)
