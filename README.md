@@ -123,16 +123,17 @@ Add as a node package: `npm install <somepackage>`, for dev dependencies add `--
 1. ~~BUG: When an empty tree is started and then you split the initial empty node you get a PouchDB error, apparently the _id field of some node is not correct? Needs more debugging~~
 1. ~~Implement handling of unknown nodes~~
 1. Implement focus on *first child node* when loading page
+1. Split tree-component.ts into smaller parts. Which one? Split out the command abstraction on top of repo?
 1. Implement moving up and down with arrow keys and maintaining approximate character position
 1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN (or CTRL+UPARROW/DOWNARROW?)
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
+1. Implement export in some standard format
+1. Implement import in some standard format
 1. Implement OPEN and CLOSED nodes
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node)
 1. Check if it works on iOS, we possibly need to do as suggested in https://stackoverflow.com/a/45954914/1996 (call rendernow to trigger focus)
-1. Implement export in some standard format
-1. Implement import in some standard format
 1. Implement search
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
 1. Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
