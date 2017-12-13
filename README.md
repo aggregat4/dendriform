@@ -121,8 +121,8 @@ Add as a node package: `npm install <somepackage>`, for dev dependencies add `--
 1. ~~Try out Typescript and see if we want to move to that~~
 1. ~~Replace the hardcoded test nodes in repository.js with something clever where we at least make one empty node when the database is empty, this can then stay in production~~
 1. ~~BUG: When an empty tree is started and then you split the initial empty node you get a PouchDB error, apparently the _id field of some node is not correct? Needs more debugging~~
-1. ~~Implement handling of unknown nodes~~
-1. Implement focus on *first child node* when loading page
+1. ~~Implement handling of unknown nodes in the URL~~
+1. ~~Implement focus on first child node when loading page~~
 1. Split tree-component.ts into smaller parts. Which one? Split out the command abstraction on top of repo?
 1. Implement moving up and down with arrow keys and maintaining approximate character position
 1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN (or CTRL+UPARROW/DOWNARROW?)

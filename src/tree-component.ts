@@ -97,7 +97,7 @@ function renderTree() : VNode[] {
   }
 }
 
-function renderNode (node: repo.ResolvedRepositoryNode, first: boolean) : VNode {
+function renderNode (resolvedNode: repo.ResolvedRepositoryNode, first: boolean) : VNode {
   function isRoot (node: RepositoryNode) : boolean {
     return node._id === 'ROOT'
   }
@@ -111,21 +111,25 @@ function renderNode (node: repo.ResolvedRepositoryNode, first: boolean) : VNode 
   function genClass (resolvedNode: ResolvedRepositoryNode, isFirst: boolean) : string {
     return 'node' + (isRoot(resolvedNode.node) ? ' root' : '') + (isFirst ? ' first' : '')
   }
+  // set focus to the first element of the tree if we have not already requested focus for something else
+  if (!transientState.focusNodeId && !isRoot(resolvedNode.node)) {
+    requestFocusOnNodeAtChar(resolvedNode.node._id, -1)
+  }
   // TODO if there are no children in root yet, create an artifical one that is empty
   return h('div',
     {
-      id: node.node._id,
-      key: node.node._id + ':' + node.node._rev,
-      'data-rev': node.node._rev,
-      class: genClass(node, first)
+      id: resolvedNode.node._id,
+      key: resolvedNode.node._id + ':' + resolvedNode.node._rev,
+      'data-rev': resolvedNode.node._rev,
+      class: genClass(resolvedNode, first)
     },
     [
-      h('a', { href: `#node=${node.node._id}` }, ['*']),
+      h('a', { href: `#node=${resolvedNode.node._id}` }, ['*']),
       h('div.name', {
         // this data attribute only exists so that we can focus this node after
         // it has been created in afterCreateHandler, we would like to get it
         // from the parent dom node, but for some reason it is not there yet then
-        'data-nodeid': node.node._id,
+        'data-nodeid': resolvedNode.node._id,
         contentEditable: 'true',
         oninput: nameInputHandler,
         // the keypress event seems to be necessary to intercept (and prevent) the Enter key, input did not work
@@ -134,8 +138,8 @@ function renderNode (node: repo.ResolvedRepositoryNode, first: boolean) : VNode 
         // special maquette handlers that get triggered on certain VDOM operations
         afterCreate: transientStateHandler,
         afterUpdate: transientStateHandler
-      }, [node.node.name])
-    ].concat(renderChildren(node.children)))
+      }, [resolvedNode.node.name])
+    ].concat(renderChildren(resolvedNode.children)))
 }
 
 // as per http://maquettejs.org/docs/typedoc/interfaces/_maquette_.vnodeproperties.html#aftercreate
@@ -212,15 +216,17 @@ function nameKeypressHandler (event: KeyboardEvent) : void {
 function nameKeydownHandler (event: KeyboardEvent) : void {
   if (event.key === 'ArrowUp') {
     event.preventDefault()
-    const previousNode = findPreviousNameNode(event.target as Element)
-    if (previousNode) {
-      (previousNode as HTMLElement).focus()
+    const previousNameNode = findPreviousNameNode(event.target as Element) as HTMLElement
+    if (previousNameNode) {
+      requestFocusOnNodeAtChar(getNodeId(previousNameNode.parentElement), -1)      
+      previousNameNode.focus()
     }
   } else if (event.key === 'ArrowDown') {
     event.preventDefault()
-    const nextNode = findNextNameNode(event.target as Element)
-    if (nextNode) {
-      (nextNode as HTMLElement).focus()
+    const nextNameNode = findNextNameNode(event.target as Element) as HTMLElement
+    if (nextNameNode) {
+      requestFocusOnNodeAtChar(getNodeId(nextNameNode.parentElement), -1)
+      nextNameNode.focus()
     }
   } else if (event.key === 'Backspace') {
     if (isCursorAtBeginning(event) && (event.target as Element).parentElement.previousElementSibling) {
@@ -319,7 +325,7 @@ function triggerTreeReload () : void {
 }
 
 // charPos should be -1 to just request focus on the node
-function requestFocusOnNodeAtChar (nodeId: string, charPos: number) {
+function requestFocusOnNodeAtChar (nodeId: string, charPos: number) : void {
   transientState.focusNodeId = nodeId
   transientState.focusCharPos = charPos
 }

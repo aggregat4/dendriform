@@ -10,6 +10,11 @@ function getRequestedNodeId () : string {
 
 // Initially trigger a load of the store (async) so we have something to display ASAP
 reload()
+// Trigger a reload when the URL changes (the hash part)
+window.addEventListener('hashchange', reload)
+// The 'treereload' event is custom and can be triggered in a component to indicate
+// that the store needs to be reloaded (and rerendered)
+window.addEventListener('treereload', reload)
 
 function reload () : void {
   treecomponent.load(getRequestedNodeId())
@@ -26,8 +31,3 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('#treething'),
     treecomponent.render)
 })
-
-window.addEventListener('hashchange', reload)
-// The 'treereload' event is custom and can be triggered in a component to indicate
-// that the store needs to be reloaded (and rerendered)
-window.addEventListener('treereload', reload)
