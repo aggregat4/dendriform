@@ -61,7 +61,8 @@ interface TransientState {
   focusCharPos: number,
   focusNodePreviousId: string,
   focusNodePreviousName: string,
-  focusNodePreviousPos: number
+  focusNodePreviousPos: number,
+  treeHasBeenNavigatedTo: boolean
 }
 
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
@@ -71,7 +72,8 @@ const transientState : TransientState = {
   // previus node state so we can undo correctly, this is separate from the actual focus and char pos we want
   focusNodePreviousId: null,
   focusNodePreviousName: null,
-  focusNodePreviousPos: -1
+  focusNodePreviousPos: -1,
+  treeHasBeenNavigatedTo: false
 }
 
 // We need to support UNDO when activated anywhere in the document
@@ -80,7 +82,9 @@ document.addEventListener('keydown', globalKeyDownHandler)
 // cursor position (needed for UNDO)
 document.addEventListener('selectionchange', selectionChangeHandler)
 
-export function load(nodeId: string) : Promise<Status> {
+export function load(nodeId: string, isNavigation: boolean) : Promise<Status> {
+  transientState.treeHasBeenNavigatedTo = !!isNavigation
+  console.log(`load called with navigation ${transientState.treeHasBeenNavigatedTo}`)
   return loadTree(nodeId)
     .then((tree) => {
       STORE.tree = tree
@@ -90,11 +94,11 @@ export function load(nodeId: string) : Promise<Status> {
     .catch((reason) => {
       if (reason.status === 404 && nodeId === 'ROOT') {
         // When the root node was requested but could not be found, initialize the tree with a minimal structure
-        return initializeEmptyTree().then(() => load(nodeId))
+        return initializeEmptyTree().then(() => load(nodeId, true))
       } else if (reason.status == 404) {
         // In case we are called with a non existent ID and it is not root, just load the root node
         // TODO should we rather handle this in the UI and redirect to the root node?
-        return load('ROOT')
+        return load('ROOT', true)
       } else {
         STORE.tree = null
         STORE.status.state = State.ERROR
@@ -134,8 +138,14 @@ function renderNode (resolvedNode: ResolvedRepositoryNode, first: boolean) : VNo
     return 'node' + (isRoot(resolvedNode.node) ? ' root' : '') + (isFirst ? ' first' : '')
   }
   // set focus to the first element of the tree if we have not already requested focus for something else
-  if (!transientState.focusNodeId && !isRoot(resolvedNode.node)) {
+  if (transientState.treeHasBeenNavigatedTo && !transientState.focusNodeId && !isRoot(resolvedNode.node)) {
+    // TODO: continue from here!! this is stealing focus?
+    console.log(`requesting focus from navigation event main node`)
     requestFocusOnNodeAtChar(resolvedNode.node._id, -1)
+    // we only want to force focus on the first element if we have an explicit navigation event,
+    // otherwise we would just constantly toggle the focus back to the first node whenever 
+    // the tree is refreshed, this flag guards against that
+    transientState.treeHasBeenNavigatedTo = false
   }
   // TODO if there are no children in root yet, create an artifical one that is empty
   return h('div',

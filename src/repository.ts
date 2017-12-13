@@ -83,7 +83,7 @@ function createSibling (name: string, content: string, existingNodeId: string, b
 }
 
 export function getNode (nodeId: string) : Promise<RepositoryNode> {
-  console.log(`getNode for id '${nodeId}'`)
+  // console.log(`getNode for id '${nodeId}'`)
   return cdbLoadNode(nodeId, false)
 }
 
@@ -172,7 +172,7 @@ export function undeleteNode (nodeId: string) : Promise<any> {
 
 // TODO : consider if I really want to allow providing the ID here, this is actually only ok for the root node, perhaps we need a dedicated function for that?
 export function createNode (id: string, name: string, content: string) : Promise<RepositoryNode> {
-  console.log(`createNode id: '${id}' - name: '${name}'`)
+  // console.log(`createNode id: '${id}' - name: '${name}'`)
   const node = {
     name,
     content,
@@ -183,7 +183,7 @@ export function createNode (id: string, name: string, content: string) : Promise
   }
   return outlineDb.post(node)
     .then(response => {
-      console.log(`new node created with id ${response.id} and payload '${JSON.stringify(response)}'`)
+      // console.log(`new node created with id ${response.id} and payload '${JSON.stringify(response)}'`)
       return {
         _id: response.id,
         _rev: response.rev,
@@ -196,7 +196,7 @@ export function createNode (id: string, name: string, content: string) : Promise
 
 // Returns a promise of the parent node
 export function addChildToParent (childId: string, parentId: string) : Promise<void> {
-  console.log(`addChildToParent ${childId} -> ${parentId}`)
+  // console.log(`addChildToParent ${childId} -> ${parentId}`)
   return cdbLoadNode(childId, false)
     .then(child => {
       child.parentref = parentId
@@ -212,13 +212,13 @@ export function addChildToParent (childId: string, parentId: string) : Promise<v
 }
 
 function cdbPutNode (node: RepositoryNode) : Promise<void> {
-  console.log(`Putting node: '${JSON.stringify(node)}'`)
+  // console.log(`Putting node: '${JSON.stringify(node)}'`)
   return outlineDb.put(node)
 }
 
 // returns a promise of a node, you can determine whether to include deleted or not
 function cdbLoadNode (nodeId: string, includeDeleted: boolean) : Promise<RepositoryNode> {
-  console.log(`cdbLoadNode for id '${nodeId}'`)
+  // console.log(`cdbLoadNode for id '${nodeId}'`)
   return outlineDb.get(nodeId).then(node => {
     if (node.deleted && node.deleted === true && !includeDeleted) {
       throw new Error(`Node with id '${nodeId}' was deleted`)

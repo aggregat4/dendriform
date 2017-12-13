@@ -9,15 +9,23 @@ function getRequestedNodeId () : string {
 }
 
 // Initially trigger a load of the store (async) so we have something to display ASAP
-reload()
+navigateAndReload()
 // Trigger a reload when the URL changes (the hash part)
-window.addEventListener('hashchange', reload)
+window.addEventListener('hashchange', navigateAndReload)
 // The 'treereload' event is custom and can be triggered in a component to indicate
 // that the store needs to be reloaded (and rerendered)
-window.addEventListener('treereload', reload)
+window.addEventListener('treereload', justReload)
 
-function reload () : void {
-  treecomponent.load(getRequestedNodeId())
+function navigateAndReload () : void {
+  reload(true)
+}
+
+function justReload() : void {
+  reload(false)
+}
+
+function reload (hasNavigated) : void {
+  treecomponent.load(getRequestedNodeId(), !!hasNavigated)
     .then(status => {
       console.log(`Tree was loaded`)
       projector.scheduleRender()
