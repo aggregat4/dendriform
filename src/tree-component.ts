@@ -1,8 +1,36 @@
 import {h, VNode} from 'maquette'
-import * as repo from './repository'
-import {getCursorPos, setCursorPos, isCursorAtBeginning, isCursorAtEnd, getTextBeforeCursor, getTextAfterCursor} from './util'
-import {findPreviousNameNode, findNextNameNode, getParentNode, hasParentNode, getNodeId, getNodeName, isNode, hasChildren} from './tree-util'
-import { RepositoryNode, ResolvedRepositoryNode } from './repository';
+import {
+  getCursorPos,
+  setCursorPos,
+  isCursorAtBeginning,
+  isCursorAtEnd,
+  getTextBeforeCursor,
+  getTextAfterCursor
+} from './util'
+import {
+  findPreviousNameNode,
+  findNextNameNode,
+  getParentNode,
+  hasParentNode,
+  getNodeId,
+  getNodeName,
+  isNode,
+  hasChildren
+} from './tree-util'
+import {
+  RepositoryNode,
+  ResolvedRepositoryNode,
+  initializeEmptyTree,
+  loadTree,
+  Command,
+  CommandBuilder,
+  executeCommand,
+  popLastUndoCommand,
+  buildSplitNodeByIdCommand,
+  buildRenameNodeByIdCommand,
+  buildMergeNodesByIdCommand,
+  buildReparentNodesByIdCommand
+} from './tree-api'
 
 enum State {
   LOADING,
@@ -17,7 +45,7 @@ interface Status {
 
 interface Store {
   status: Status
-  tree: repo.ResolvedRepositoryNode
+  tree: ResolvedRepositoryNode
 }
 
 const STORE : Store = {
@@ -53,7 +81,7 @@ document.addEventListener('keydown', globalKeyDownHandler)
 document.addEventListener('selectionchange', selectionChangeHandler)
 
 export function load(nodeId: string) : Promise<Status> {
-  return repo.loadTree(nodeId)
+  return loadTree(nodeId)
     .then((tree) => {
       STORE.tree = tree
       STORE.status.state = State.LOADED
@@ -76,12 +104,6 @@ export function load(nodeId: string) : Promise<Status> {
     })
 }
 
-function initializeEmptyTree () : Promise<void> {
-  return repo.createNode('ROOT', 'ROOT', null)
-    .then(() => repo.createNode(null, '', null))
-    .then(child => repo.addChildToParent(child._id, 'ROOT'))
-}
-
 // Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
 // one reason why we have the toplevel div.tree
 export function render () : VNode {
@@ -97,11 +119,11 @@ function renderTree() : VNode[] {
   }
 }
 
-function renderNode (resolvedNode: repo.ResolvedRepositoryNode, first: boolean) : VNode {
+function renderNode (resolvedNode: ResolvedRepositoryNode, first: boolean) : VNode {
   function isRoot (node: RepositoryNode) : boolean {
     return node._id === 'ROOT'
   }
-  function renderChildren (children: repo.ResolvedRepositoryNode[]) : VNode[]  {
+  function renderChildren (children: ResolvedRepositoryNode[]) : VNode[]  {
     if (children && children.length > 0) {
       return [h('div.children', children.map(c => renderNode(c, false)))]
     } else {
@@ -184,8 +206,8 @@ function nameInputHandler (event: Event) : void {
   transientState.focusNodePreviousId = nodeId
   transientState.focusNodePreviousName = newName
   transientState.focusNodePreviousPos = getCursorPos()
-  executeCommand(
-    new CommandBuilder(() => renameNodeById(nodeId, oldName, newName))
+  exec(
+    buildRenameNodeByIdCommand(nodeId, oldName, newName)
       .isUndoable()
       .withBeforeFocusNodeId(beforeFocusNodeId)
       .withBeforeFocusPos(beforeFocusPos)
@@ -202,8 +224,8 @@ function nameKeypressHandler (event: KeyboardEvent) : void {
     const nodeId = getNodeId(targetNode)
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
-    executeCommand(
-      new CommandBuilder(() => splitNodeById(nodeId, beforeSplitNamePart, afterSplitNamePart))
+    exec(
+      buildSplitNodeByIdCommand(nodeId, beforeSplitNamePart, afterSplitNamePart)
         .isUndoable()
         .requiresRender()
         .withAfterFocusNodeId(nodeId)
@@ -271,9 +293,9 @@ function nameKeydownHandler (event: KeyboardEvent) : void {
 function globalKeyDownHandler (event: KeyboardEvent) : void {
   if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z, so trigger UNDO
     event.preventDefault()
-    const undoCommand = UNDO_BUFFER.pop()
+    const undoCommand = popLastUndoCommand()
     if (undoCommand) {
-      executeCommand(undoCommand)
+      exec(undoCommand)
     }
   }
 }
@@ -288,8 +310,8 @@ function mergeNodes (sourceNode: Element, targetNode: Element) : void {
   const sourceNodeName = getNodeName(sourceNode)
   const targetNodeId = getNodeId(targetNode)
   const targetNodeName = getNodeName(targetNode)
-  executeCommand(
-    new CommandBuilder(() => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
+  exec(
+    buildMergeNodesByIdCommand(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName)
       .isUndoable()
       .requiresRender()
       .withAfterFocusNodeId(targetNodeId)
@@ -308,8 +330,8 @@ function reparentNodeAfter (node: Element, cursorPos: number, oldParentNode: Ele
   const oldParentNodeId = getNodeId(oldParentNode)
   const newParentNodeId = getNodeId(newParentNode)
   const afterNodeId = afterNode ? getNodeId(afterNode) : null
-  executeCommand(
-    new CommandBuilder(() => reparentNodesById(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, afterNodeId))
+  exec(
+    buildReparentNodesByIdCommand(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, afterNodeId)
       .requiresRender()
       .withAfterFocusNodeId(nodeId)
       .withAfterFocusPos(cursorPos)
@@ -318,188 +340,23 @@ function reparentNodeAfter (node: Element, cursorPos: number, oldParentNode: Ele
   )
 }
 
-// --------- Some functions that represent higher level actions on nodes, separate from dom stuff
-
-function triggerTreeReload () : void {
-  window.dispatchEvent(new Event('treereload'))
-}
-
 // charPos should be -1 to just request focus on the node
 function requestFocusOnNodeAtChar (nodeId: string, charPos: number) : void {
   transientState.focusNodeId = nodeId
   transientState.focusCharPos = charPos
 }
 
-const UNDO_BUFFER : Command[] = []
-const REDO_BUFFER : Command[] = []
-
-class CommandBuilder {
-  fn : () => Promise<Command[]>
-  renderRequired : boolean = false
-  beforeFocusNodeId : string = null
-  beforeFocusPos : number = -1
-  afterFocusNodeId : string = null
-  afterFocusPos : number = -1
-  undoable : boolean = false
-
-  constructor (fn: () => Promise<Command[]>) {
-    this.fn = fn
-  }
-
-  requiresRender () : CommandBuilder {
-    this.renderRequired = true
-    return this
-  }
-
-  withBeforeFocusNodeId (beforeFocusNodeId: string) : CommandBuilder {
-    this.beforeFocusNodeId = beforeFocusNodeId
-    return this
-  }
-
-  withBeforeFocusPos (beforeFocusPos: number) : CommandBuilder {
-    this.beforeFocusPos = beforeFocusPos
-    return this
-  }
-
-  withAfterFocusNodeId (afterFocusNodeId: string) : CommandBuilder {
-    this.afterFocusNodeId = afterFocusNodeId
-    return this
-  }
-
-  withAfterFocusPos (afterFocusPos: number) : CommandBuilder {
-    this.afterFocusPos = afterFocusPos
-    return this
-  }
-
-  isUndoable () : CommandBuilder {
-    this.undoable = true
-    return this
-  }
-
-  build () : Command {
-    return new Command(
-      this.fn,
-      this.renderRequired,
-      this.beforeFocusNodeId,
-      this.beforeFocusPos,
-      this.afterFocusNodeId,
-      this.afterFocusPos,
-      this.undoable
-    )
-  }
+function exec (command: Command) : void {
+  executeCommand(command).then(result => {
+    if (result.focusNodeId) {
+      requestFocusOnNodeAtChar(result.focusNodeId, result.focusPos)
+    }
+    if (result.renderRequired) {
+      triggerTreeReload()
+    }
+  })
 }
 
-class Command {
-  fn : () => Promise<Command[]>
-  renderRequired : boolean = false
-  beforeFocusNodeId : string = null
-  beforeFocusPos : number = -1
-  afterFocusNodeId : string = null
-  afterFocusPos : number = -1
-  undoable : boolean = false
-
-  constructor (fn: () => Promise<Command[]>, renderRequired: boolean, beforeFocusNodeId: string, beforeFocusPos: number, afterFocusNodeId: string, afterFocusPos: number, undoable: boolean) {
-    this.fn = fn
-    this.renderRequired = renderRequired
-    this.beforeFocusNodeId = beforeFocusNodeId
-    this.beforeFocusPos = beforeFocusPos
-    this.afterFocusNodeId = afterFocusNodeId
-    this.afterFocusPos = afterFocusPos
-    this.undoable = undoable
-  }
-}
-
-function executeCommand (command: Command) : void {
-  // console.log(`executing command: ${JSON.stringify(command)}`)
-  command.fn()
-    .then(undoCommands => {
-      if (command.undoable) {
-        undoCommands.forEach(c => {
-          // if a command is triggered and there was a valid focus position before the change
-          // then we want to restore the focus to that position after executing the undo command
-          if (command.beforeFocusNodeId) {
-            c.afterFocusNodeId = command.beforeFocusNodeId
-            c.afterFocusPos = command.beforeFocusPos
-          }
-        })
-        // console.log(`storing UNDO command: ${JSON.stringify(undoCommands)}`)
-        UNDO_BUFFER.push(...undoCommands)
-      }
-    })
-    .then(() => command.undoable && REDO_BUFFER.push(command))
-    .then(() => command.afterFocusNodeId && requestFocusOnNodeAtChar(command.afterFocusNodeId, command.afterFocusPos))
-    .then(() => command.renderRequired && triggerTreeReload())
-}
-
-// 1. rename the current node to the right hand side of the split
-// 2. insert a new sibling BEFORE the current node containing the left hand side of the split
-function splitNodeById (nodeId: string, beforeSplitNamePart: string, afterSplitNamePart: string) : Promise<Command[]> {
-  console.log(`splitNodeById`)
-  return repo.renameNode(nodeId, afterSplitNamePart)
-    .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
-    .then((newSiblingRepoNode) => ([
-      new CommandBuilder(() => _unsplitNodeById(newSiblingRepoNode._id, nodeId, beforeSplitNamePart + afterSplitNamePart))
-        .requiresRender()
-        .build()
-    ]))
-}
-
-function _unsplitNodeById (newNodeId: string, originalNodeId: string, name: string) : Promise<Command[]> {
-  return repo.deleteNode(newNodeId)
-    .then(() => repo.renameNode(originalNodeId, name))
-    .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
-}
-
-// 1. rename targetnode to be targetnode.name + sourcenode.name
-// 2. move all children of sourcenode to targetnode (actual move, just reparent)
-// 3. delete sourcenode
-// 4. focus the new node at the end of its old name
-//
-// For undo it is assumed that a merge never happens to a target node with children
-// This function will not undo the merging of the child collections (this mirrors workflowy
-// maybe we want to revisit this in the future)
-function mergeNodesById (sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string) : Promise<Command[]> {
-  return repo.getChildNodes(sourceNodeId, true) // TODO add flag to also get deleted nodes!
-    .then(children => repo.reparentNodes(children, targetNodeId))
-    .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
-    .then(() => repo.deleteNode(sourceNodeId))
-    .then(() => ([
-      new CommandBuilder(() => _unmergeNodesById(sourceNodeId, targetNodeId, targetNodeName))
-        .requiresRender()
-        .build()
-    ]))
-}
-
-// We need dedicated "unmerge" command because when we merge, we delete a node and if we
-// want to undo that action we need to be able to "resurrect" that node so that a chain
-// of undo commands has a chance of working since they may refer to that original node's Id.
-function _unmergeNodesById (sourceNodeId: string, targetNodeId: string, targetNodeName: string) : Promise<Command[]> {
-  return repo.undeleteNode(sourceNodeId)
-    .then(() => repo.getChildNodes(targetNodeId, true))
-    .then(children => repo.reparentNodes(children, sourceNodeId))
-    .then(() => repo.renameNode(targetNodeId, targetNodeName))
-    .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
-}
-
-function renameNodeById (nodeId: string, oldName: string, newName: string) : Promise<Command[]> {
-  console.log(`renaming from '${oldName}' to '${newName}'`)
-  return repo.renameNode(nodeId, newName)
-    .then(() => ([
-      new CommandBuilder(() => renameNodeById(nodeId, newName, oldName))
-        .requiresRender()
-        .build()
-    ]))
-}
-
-// 1. set the node's parent Id to the new id
-// 2. add the node to the new parent's children
-// 3. remove the node from the old parent's children
-function reparentNodesById (nodeId: string, oldParentNodeId: string, oldAfterNodeId: string, newParentNodeId: string, afterNodeId: string) : Promise<Command[]> {
-  return repo.getNode(nodeId)
-    .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
-    .then(() => ([
-      new CommandBuilder(() => reparentNodesById(nodeId, newParentNodeId, null, oldParentNodeId, oldAfterNodeId))
-        .requiresRender()
-        .build()
-    ]))
+function triggerTreeReload () : void {
+  window.dispatchEvent(new Event('treereload'))
 }

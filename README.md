@@ -123,7 +123,7 @@ Add as a node package: `npm install <somepackage>`, for dev dependencies add `--
 1. ~~BUG: When an empty tree is started and then you split the initial empty node you get a PouchDB error, apparently the _id field of some node is not correct? Needs more debugging~~
 1. ~~Implement handling of unknown nodes in the URL~~
 1. ~~Implement focus on first child node when loading page~~
-1. Split tree-component.ts into smaller parts. Which one? Split out the command abstraction on top of repo?
+1. ~~Split tree-component.ts into smaller parts. Which one? Split out the command abstraction on top of repo?~~
 1. Implement moving up and down with arrow keys and maintaining approximate character position
 1. Implement moving nodes up and down with ALT+SHIFT+ARROWUP/ARROWDOWN (or CTRL+UPARROW/DOWNARROW?)
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
