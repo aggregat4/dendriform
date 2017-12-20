@@ -33,37 +33,37 @@ export class CommandBuilder {
     this.fn = fn
   }
 
-  public requiresRender(): CommandBuilder {
+  requiresRender(): CommandBuilder {
     this.renderRequired = true
     return this
   }
 
-  public withBeforeFocusNodeId(beforeFocusNodeId: string): CommandBuilder {
+  withBeforeFocusNodeId(beforeFocusNodeId: string): CommandBuilder {
     this.beforeFocusNodeId = beforeFocusNodeId
     return this
   }
 
-  public withBeforeFocusPos(beforeFocusPos: number): CommandBuilder {
+  withBeforeFocusPos(beforeFocusPos: number): CommandBuilder {
     this.beforeFocusPos = beforeFocusPos
     return this
   }
 
-  public withAfterFocusNodeId(afterFocusNodeId: string): CommandBuilder {
+  withAfterFocusNodeId(afterFocusNodeId: string): CommandBuilder {
     this.afterFocusNodeId = afterFocusNodeId
     return this
   }
 
-  public withAfterFocusPos(afterFocusPos: number): CommandBuilder {
+  withAfterFocusPos(afterFocusPos: number): CommandBuilder {
     this.afterFocusPos = afterFocusPos
     return this
   }
 
-  public isUndoable(): CommandBuilder {
+  isUndoable(): CommandBuilder {
     this.undoable = true
     return this
   }
 
-  public build(): Command {
+  build(): Command {
     return new Command(
       this.fn,
       this.renderRequired,
@@ -81,8 +81,8 @@ export class Command {
   readonly renderRequired: boolean = false
   readonly beforeFocusNodeId: string = null
   readonly beforeFocusPos: number = -1
-  readonly afterFocusNodeId: string = null
-  readonly afterFocusPos: number = -1
+  afterFocusNodeId: string = null
+  afterFocusPos: number = -1
   readonly undoable: boolean = false
 
   constructor(fn: () => Promise<Command[]>, renderRequired: boolean, beforeFocusNodeId: string,
@@ -118,6 +118,8 @@ export function executeCommand(command: Command): Promise<CommandResult> {
           // if a command is triggered and there was a valid focus position before the change
           // then we want to restore the focus to that position after executing the undo command
           if (command.beforeFocusNodeId) {
+            // TODO: instead of relaxing accessibility on these properties: does this even make sense?
+            // shouldÄ'nt we do this logic when building the UNDO commands down below? Check this.
             c.afterFocusNodeId = command.beforeFocusNodeId
             c.afterFocusPos = command.beforeFocusPos
           }
