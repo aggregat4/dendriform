@@ -10,6 +10,9 @@
     "interface-name": [false],
     "object-literal-sort-keys": [false],
     "arrow-parens": [false],
-    "object-literal-key-quotes": [false]
+    "object-literal-key-quotes": [false],
+    "max-classes-per-file": [false],
+    "variable-name": [true, "allow-leading-underscore"],
+    "member-access": [true, "no-public"]
   }
 }

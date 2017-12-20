@@ -1,6 +1,6 @@
 import PouchDB from 'pouchdb-browser'
 
-const outlineDb : any = new PouchDB('outlineDB')
+const outlineDb: any = new PouchDB('outlineDB')
 
 export interface RepositoryNode {
   _id: string,
@@ -21,7 +21,7 @@ export enum RelativeLinearPosition {
   BEFORE,
   AFTER,
   BEGINNING,
-  END
+  END,
 }
 
 export interface RelativeNodePosition {
@@ -29,12 +29,12 @@ export interface RelativeNodePosition {
   beforeOrAfter: RelativeLinearPosition
 }
 
-export function loadTree (rootId: string) : Promise<ResolvedRepositoryNode> {
+export function loadTree(rootId: string): Promise<ResolvedRepositoryNode> {
   return cdbLoadNode(rootId, false).then(root => cdbLoadTree(root))
 }
 
 // loads the node by id, renames it and then returns a Promise of a response when done
-export function renameNode (nodeId: string, newName: string, retryCount?: number) : Promise<any> {
+export function renameNode(nodeId: string, newName: string, retryCount?: number): Promise<any> {
   return cdbLoadNode(nodeId, false)
     .then(node => {
       if (newName !== node.name) {
@@ -45,13 +45,15 @@ export function renameNode (nodeId: string, newName: string, retryCount?: number
           content: node.content,
           childrefs: node.childrefs,
           parentref: node.parentref,
-          deleted: !!node.deleted
+          deleted: !!node.deleted,
         })
       } else {
+        // tslint:disable-next-line:no-console
         console.log(`not actually renaming since "${newName}" was already set`)
       }
     })
     .catch((err) => {
+      // tslint:disable-next-line:no-console
       console.log(`ERROR handler for renameNode for new name "${newName}": ${JSON.stringify(err)}`)
       // TODO we are naively just retrying when we get an update conflict, not sure this is never an infinite loop
       // TODO evaluate whether to use the upsert plugin for this? https://github.com/pouchdb/upsert
@@ -63,11 +65,12 @@ export function renameNode (nodeId: string, newName: string, retryCount?: number
 }
 
 // returns a promise of a new sibling node created before the existing node
-export function createSiblingBefore (name: string, content: string, existingNodeId: string) : Promise<RepositoryNode> {
+export function createSiblingBefore(name: string, content: string, existingNodeId: string): Promise<RepositoryNode> {
   return createSibling(name, content, existingNodeId, true)
 }
 
-function createSibling (name: string, content: string, existingNodeId: string, before: boolean) : Promise<RepositoryNode> {
+function createSibling(name: string, content: string, existingNodeId: string,
+                       before: boolean): Promise<RepositoryNode> {
   return cdbLoadNode(existingNodeId, false)
     .then(sibling => {
       return createNode(null, name, content)
@@ -94,12 +97,12 @@ function createSibling (name: string, content: string, existingNodeId: string, b
     })
 }
 
-export function getNode (nodeId: string) : Promise<RepositoryNode> {
+export function getNode(nodeId: string): Promise<RepositoryNode> {
   // console.log(`getNode for id '${nodeId}'`)
   return cdbLoadNode(nodeId, false)
 }
 
-export function getChildNodes (nodeId: string, includeDeleted: boolean) : Promise<RepositoryNode[]> {
+export function getChildNodes(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode[]> {
   return cdbLoadNode(nodeId, includeDeleted).then(node => cdbLoadChildren(node, includeDeleted))
 }
 
@@ -108,10 +111,12 @@ export function getChildNodes (nodeId: string, includeDeleted: boolean) : Promis
 // 2. updating their parentref to their parent's ref
 // 3. adding the childs to their new parents childrefs
 // If an afterNodeId is provided the nodes are inserted after that child of the new parent
-// TODO: this function gets used to jsut move nodes inside of the same parent as well, theoretically we could optimise this
-// by distinguishing between the case where the new parent is new and the case where the parent is the same. Or we introduce a new
+// TODO: this function gets used to jsut move nodes inside of the same parent as well,
+// theoretically we could optimise this by distinguishing between the case where the
+// new parent is new and the case where the parent is the same. Or we introduce a new
 // function just for that?
-export function reparentNodes (children: RepositoryNode[], newParentId: string, position: RelativeNodePosition) : Promise<any> {
+export function reparentNodes(children: RepositoryNode[], newParentId: string,
+                              position: RelativeNodePosition): Promise<any> {
   if (!children || children.length === 0) {
     return Promise.resolve()
   }
@@ -125,7 +130,7 @@ export function reparentNodes (children: RepositoryNode[], newParentId: string, 
       content: child.content,
       childrefs: child.childrefs,
       parentref: newParentId,
-      deleted: !!child.deleted
+      deleted: !!child.deleted,
     }
   })
   return cdbLoadNode(oldParentId, false)
@@ -138,7 +143,7 @@ export function reparentNodes (children: RepositoryNode[], newParentId: string, 
       parentref: oldParentNode.parentref,
       // remove all the children from their parent
       childrefs: oldParentNode.childrefs.filter((c) => childIds.indexOf(c) < 0),
-      deleted: !!oldParentNode.deleted
+      deleted: !!oldParentNode.deleted,
     }))
     // 2.a. Hang the children under their new parent by updating their parent refs
     .then(oldParentUpdateResult => outlineDb.bulkDocs(reparentedChildren))
@@ -152,27 +157,28 @@ export function reparentNodes (children: RepositoryNode[], newParentId: string, 
       parentref: newParentNode.parentref,
       // add all the new children to the new parent
       childrefs: mergeNodeIds(newParentNode.childrefs || [], childIds, position),
-      deleted: !!newParentNode.deleted
+      deleted: !!newParentNode.deleted,
     }))
 }
 
-function mergeNodeIds (originalChildIds: string[], newChildIds: string[], position: RelativeNodePosition) : string[] {
-  if (position.beforeOrAfter == RelativeLinearPosition.END) {
-    return originalChildIds.concat(newChildIds)  
-  }
-  else if (position.beforeOrAfter == RelativeLinearPosition.BEGINNING) {
+function mergeNodeIds(originalChildIds: string[], newChildIds: string[], position: RelativeNodePosition): string[] {
+  if (position.beforeOrAfter === RelativeLinearPosition.END) {
+    return originalChildIds.concat(newChildIds)
+  } else if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
     return newChildIds.concat(originalChildIds)
   } else {
     const pos = originalChildIds.indexOf(position.nodeId)
     if (pos !== -1) {
-      if (position.beforeOrAfter == RelativeLinearPosition.BEFORE) {
+      if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
         return originalChildIds.slice(0, pos).concat(newChildIds, originalChildIds.slice(pos))
       } else {
         return originalChildIds.slice(0, pos + 1).concat(newChildIds, originalChildIds.slice(pos + 1))
       }
     } else {
       // this should really not happen
-      console.error(`Trying to put nodes at position ${position.beforeOrAfter} of a node '${position.nodeId}' that does not exist`)
+      // tslint:disable-next-line:no-console
+      console.error(`Trying to put nodes at position ${position.beforeOrAfter} of a
+                     node '${position.nodeId}' that does not exist`)
       // but just put them at the end (graceful degradation?)
       return originalChildIds.concat(newChildIds)
     }
@@ -180,7 +186,7 @@ function mergeNodeIds (originalChildIds: string[], newChildIds: string[], positi
 }
 
 // deletes a node, this just sets a deleted flag to true
-export function deleteNode (nodeId: string) : Promise<any> {
+export function deleteNode(nodeId: string): Promise<any> {
   return cdbLoadNode(nodeId, false)
     .then(node => {
       node.deleted = true
@@ -189,7 +195,7 @@ export function deleteNode (nodeId: string) : Promise<any> {
 }
 
 // undeletes a node, just removing its deleted flag
-export function undeleteNode (nodeId: string) : Promise<any> {
+export function undeleteNode(nodeId: string): Promise<any> {
   return cdbLoadNode(nodeId, true)
     .then(node => {
       delete node.deleted // removing this flag from the object since it is not required anymore
@@ -197,16 +203,20 @@ export function undeleteNode (nodeId: string) : Promise<any> {
     })
 }
 
-// TODO : consider if I really want to allow providing the ID here, this is actually only ok for the root node, perhaps we need a dedicated function for that?
-export function createNode (id: string, name: string, content: string) : Promise<RepositoryNode> {
+// TODO: consider if I really want to allow providing the ID here, this is actually only
+// ok for the root node, perhaps we need a dedicated function for that?
+export function createNode(id: string, name: string, content: string): Promise<RepositoryNode> {
   // console.log(`createNode id: '${id}' - name: '${name}'`)
   const node = {
+    __id: id,
     name,
     content,
     childrefs: [],
   }
-  if (id) {
-    node['_id'] = id
+  if (!id) {
+    // in case an id was not provided we also do not want to pass this field to PouchDB,
+    // apparently even if empty this is a problem
+    delete node.__id
   }
   return outlineDb.post(node)
     .then(response => {
@@ -222,29 +232,29 @@ export function createNode (id: string, name: string, content: string) : Promise
 }
 
 // Returns a promise of the parent node
-export function addChildToParent (childId: string, parentId: string) : Promise<void> {
+export function addChildToParent(childId: string, parentId: string): Promise<void> {
   // console.log(`addChildToParent ${childId} -> ${parentId}`)
   return cdbLoadNode(childId, false)
     .then(child => {
       child.parentref = parentId
       return cdbPutNode(child)
     })
-    .then(putResult => 
+    .then(putResult =>
       cdbLoadNode(parentId, false)
         .then(parent => {
           parent.childrefs.push(childId)
           return cdbPutNode(parent)
-        })
+        }),
     )
 }
 
-function cdbPutNode (node: RepositoryNode) : Promise<void> {
+function cdbPutNode(node: RepositoryNode): Promise<void> {
   // console.log(`Putting node: '${JSON.stringify(node)}'`)
   return outlineDb.put(node)
 }
 
 // returns a promise of a node, you can determine whether to include deleted or not
-function cdbLoadNode (nodeId: string, includeDeleted: boolean) : Promise<RepositoryNode> {
+function cdbLoadNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode> {
   // console.log(`cdbLoadNode for id '${nodeId}'`)
   return outlineDb.get(nodeId).then(node => {
     if (node.deleted && node.deleted === true && !includeDeleted) {
@@ -256,13 +266,13 @@ function cdbLoadNode (nodeId: string, includeDeleted: boolean) : Promise<Reposit
 }
 
 // returns a promise of an array of nodes that are NOT deleted
-function cdbLoadChildren (node: RepositoryNode, includeDeleted: boolean) : Promise<RepositoryNode[]> {
+function cdbLoadChildren(node: RepositoryNode, includeDeleted: boolean): Promise<RepositoryNode[]> {
   // TODO: add sanity checking that we are really passing in nodes here and not some garbage
   // TODO: at some later point make sure we can also deal with different versions of the pouchdb data
   // console.log(`Call getChildren(${JSON.stringify(node)})`);
   return outlineDb.allDocs({
     include_docs: true,
-    keys: node.childrefs
+    keys: node.childrefs,
   }).then(children => {
     // console.log(`= ${JSON.stringify(children)}`);
     return children.rows
@@ -272,13 +282,13 @@ function cdbLoadChildren (node: RepositoryNode, includeDeleted: boolean) : Promi
 }
 
 // returns a promise that recursively resolves this node and all its children
-function cdbLoadTree (node: RepositoryNode) : Promise<ResolvedRepositoryNode> {
+function cdbLoadTree(node: RepositoryNode): Promise<ResolvedRepositoryNode> {
   return cdbLoadChildren(node, false)
     .then(children => Promise.all(children.map(child => cdbLoadTree(child))))
     .then(values => {
       return {
-        node: node,
-        children: values
+        node,
+        children: values,
       }
     })
 }
