@@ -17,6 +17,18 @@ export interface ResolvedRepositoryNode {
   children: ResolvedRepositoryNode[]
 }
 
+export enum RelativeLinearPosition {
+  BEFORE,
+  AFTER,
+  BEGINNING,
+  END
+}
+
+export interface RelativeNodePosition {
+  nodeId: string,
+  beforeOrAfter: RelativeLinearPosition
+}
+
 export function loadTree (rootId: string) : Promise<ResolvedRepositoryNode> {
   return cdbLoadNode(rootId, false).then(root => cdbLoadTree(root))
 }
@@ -96,7 +108,10 @@ export function getChildNodes (nodeId: string, includeDeleted: boolean) : Promis
 // 2. updating their parentref to their parent's ref
 // 3. adding the childs to their new parents childrefs
 // If an afterNodeId is provided the nodes are inserted after that child of the new parent
-export function reparentNodes (children: RepositoryNode[], newParentId: string, afterNodeId?: string) : Promise<any> {
+// TODO: this function gets used to jsut move nodes inside of the same parent as well, theoretically we could optimise this
+// by distinguishing between the case where the new parent is new and the case where the parent is the same. Or we introduce a new
+// function just for that?
+export function reparentNodes (children: RepositoryNode[], newParentId: string, position: RelativeNodePosition) : Promise<any> {
   if (!children || children.length === 0) {
     return Promise.resolve()
   }
@@ -136,20 +151,32 @@ export function reparentNodes (children: RepositoryNode[], newParentId: string, 
       content: newParentNode.content,
       parentref: newParentNode.parentref,
       // add all the new children to the new parent
-      childrefs: mergeNodeIds(newParentNode.childrefs || [], childIds, afterNodeId),
+      childrefs: mergeNodeIds(newParentNode.childrefs || [], childIds, position),
       deleted: !!newParentNode.deleted
     }))
 }
 
-function mergeNodeIds (originalChildIds: string[], newChildIds: string[], afterNodeId: string) : string[] {
-  if (afterNodeId) {
-    const pos = originalChildIds.indexOf(afterNodeId)
+function mergeNodeIds (originalChildIds: string[], newChildIds: string[], position: RelativeNodePosition) : string[] {
+  if (position.beforeOrAfter == RelativeLinearPosition.END) {
+    return originalChildIds.concat(newChildIds)  
+  }
+  else if (position.beforeOrAfter == RelativeLinearPosition.BEGINNING) {
+    return newChildIds.concat(originalChildIds)
+  } else {
+    const pos = originalChildIds.indexOf(position.nodeId)
     if (pos !== -1) {
-      return originalChildIds.slice(0, pos + 1).concat(newChildIds, originalChildIds.slice(pos + 1))
+      if (position.beforeOrAfter == RelativeLinearPosition.BEFORE) {
+        return originalChildIds.slice(0, pos).concat(newChildIds, originalChildIds.slice(pos))
+      } else {
+        return originalChildIds.slice(0, pos + 1).concat(newChildIds, originalChildIds.slice(pos + 1))
+      }
+    } else {
+      // this should really not happen
+      console.error(`Trying to put nodes at position ${position.beforeOrAfter} of a node '${position.nodeId}' that does not exist`)
+      // but just put them at the end (graceful degradation?)
+      return originalChildIds.concat(newChildIds)
     }
   }
-  // in all other cases we just concatenate
-  return originalChildIds.concat(newChildIds)
 }
 
 // deletes a node, this just sets a deleted flag to true

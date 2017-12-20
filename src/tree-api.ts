@@ -1,6 +1,7 @@
 import * as repo from './repository'
+import { RelativeNodePosition, RelativeLinearPosition } from './repository';
 // Re-exporting the RepositoryNode types because they need to be used by consumers of this API
-export {RepositoryNode, ResolvedRepositoryNode} from './repository'
+export {RepositoryNode, ResolvedRepositoryNode, RelativeLinearPosition, RelativeNodePosition} from './repository'
 
 export function initializeEmptyTree () : Promise<void> {
   return repo.createNode('ROOT', 'ROOT', null)
@@ -165,7 +166,7 @@ export function buildMergeNodesByIdCommand (sourceNodeId: string, sourceNodeName
 // maybe we want to revisit this in the future)
 function mergeNodesById (sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string) : Promise<Command[]> {
   return repo.getChildNodes(sourceNodeId, true) // TODO add flag to also get deleted nodes!
-    .then(children => repo.reparentNodes(children, targetNodeId))
+    .then(children => repo.reparentNodes(children, targetNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
     .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
     .then(() => repo.deleteNode(sourceNodeId))
     .then(() => ([
@@ -181,7 +182,7 @@ function mergeNodesById (sourceNodeId: string, sourceNodeName: string, targetNod
 function _unmergeNodesById (sourceNodeId: string, targetNodeId: string, targetNodeName: string) : Promise<Command[]> {
   return repo.undeleteNode(sourceNodeId)
     .then(() => repo.getChildNodes(targetNodeId, true))
-    .then(children => repo.reparentNodes(children, sourceNodeId))
+    .then(children => repo.reparentNodes(children, sourceNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
     .then(() => repo.renameNode(targetNodeId, targetNodeName))
     .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
 }
@@ -200,18 +201,18 @@ function renameNodeById (nodeId: string, oldName: string, newName: string) : Pro
     ]))
 }
 
-export function buildReparentNodesByIdCommand (nodeId: string, oldParentNodeId: string, oldAfterNodeId: string, newParentNodeId: string, afterNodeId: string) : CommandBuilder {
-  return new CommandBuilder(() => reparentNodesById(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, afterNodeId))
+export function buildReparentNodesByIdCommand (nodeId: string, oldParentNodeId: string, oldAfterNodeId: string, newParentNodeId: string, position: RelativeNodePosition) : CommandBuilder {
+  return new CommandBuilder(() => reparentNodesById(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
 }
 
 // 1. set the node's parent Id to the new id
 // 2. add the node to the new parent's children
 // 3. remove the node from the old parent's children
-function reparentNodesById (nodeId: string, oldParentNodeId: string, oldAfterNodeId: string, newParentNodeId: string, afterNodeId: string) : Promise<Command[]> {
+function reparentNodesById (nodeId: string, oldParentNodeId: string, oldAfterNodeId: string, newParentNodeId: string, position: RelativeNodePosition) : Promise<Command[]> {
   return repo.getNode(nodeId)
-    .then(node => repo.reparentNodes([node], newParentNodeId, afterNodeId))
+    .then(node => repo.reparentNodes([node], newParentNodeId, position))
     .then(() => ([
-      new CommandBuilder(() => reparentNodesById(nodeId, newParentNodeId, null, oldParentNodeId, oldAfterNodeId))
+      new CommandBuilder(() => reparentNodesById(nodeId, newParentNodeId, null, oldParentNodeId, { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: oldAfterNodeId}))
         .requiresRender()
         .build()
     ]))

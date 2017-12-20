@@ -5,7 +5,7 @@ import {
   isCursorAtBeginning,
   isCursorAtEnd,
   getTextBeforeCursor,
-  getTextAfterCursor
+  getTextAfterCursor,
 } from './util'
 import {
   findPreviousNameNode,
@@ -15,7 +15,7 @@ import {
   getNodeId,
   getNodeName,
   isNode,
-  hasChildren
+  hasChildren,
 } from './tree-util'
 import {
   RepositoryNode,
@@ -29,13 +29,15 @@ import {
   buildSplitNodeByIdCommand,
   buildRenameNodeByIdCommand,
   buildMergeNodesByIdCommand,
-  buildReparentNodesByIdCommand
+  buildReparentNodesByIdCommand,
+  RelativeNodePosition,
+  RelativeLinearPosition,
 } from './tree-api'
 
 enum State {
   LOADING,
   LOADED,
-  ERROR
+  ERROR,
 }
 
 interface Status {
@@ -48,12 +50,12 @@ interface Store {
   tree: ResolvedRepositoryNode
 }
 
-const STORE : Store = {
+const STORE: Store = {
   status: {
     state: State.LOADING,
-    msg: null
+    msg: null,
   } as Status,
-  tree: null
+  tree: null,
 }
 
 interface TransientState {
@@ -66,25 +68,24 @@ interface TransientState {
 }
 
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
-const transientState : TransientState = {
+const transientState: TransientState = {
   focusNodeId: null,
   focusCharPos: -1,
   // previus node state so we can undo correctly, this is separate from the actual focus and char pos we want
   focusNodePreviousId: null,
   focusNodePreviousName: null,
   focusNodePreviousPos: -1,
-  treeHasBeenNavigatedTo: false
+  treeHasBeenNavigatedTo: false,
 }
 
 // We need to support UNDO when activated anywhere in the document
 document.addEventListener('keydown', globalKeyDownHandler)
-// We need to track when the selection changes so we can store the current 
+// We need to track when the selection changes so we can store the current
 // cursor position (needed for UNDO)
 document.addEventListener('selectionchange', selectionChangeHandler)
 
-export function load(nodeId: string, isNavigation: boolean) : Promise<Status> {
+export function load(nodeId: string, isNavigation: boolean): Promise<Status> {
   transientState.treeHasBeenNavigatedTo = !!isNavigation
-  console.log(`load called with navigation ${transientState.treeHasBeenNavigatedTo}`)
   return loadTree(nodeId)
     .then((tree) => {
       STORE.tree = tree
@@ -95,7 +96,7 @@ export function load(nodeId: string, isNavigation: boolean) : Promise<Status> {
       if (reason.status === 404 && nodeId === 'ROOT') {
         // When the root node was requested but could not be found, initialize the tree with a minimal structure
         return initializeEmptyTree().then(() => load(nodeId, true))
-      } else if (reason.status == 404) {
+      } else if (reason.status === 404) {
         // In case we are called with a non existent ID and it is not root, just load the root node
         // TODO should we rather handle this in the UI and redirect to the root node?
         return load('ROOT', true)
@@ -110,12 +111,12 @@ export function load(nodeId: string, isNavigation: boolean) : Promise<Status> {
 
 // Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
 // one reason why we have the toplevel div.tree
-export function render () : VNode {
+export function render(): VNode {
   return h('div.tree', renderTree())
 }
 
-function renderTree() : VNode[] {
-  switch(STORE.status.state) {
+function renderTree(): VNode[] {
+  switch (STORE.status.state) {
     case State.ERROR:   return [h('div.error', [`Can not load tree from backing store: ${STORE.status.msg}`])]
     case State.LOADING: return [h('div', [`Loading tree...`])]
     case State.LOADED:  return [renderNode(STORE.tree, true)]
@@ -123,27 +124,28 @@ function renderTree() : VNode[] {
   }
 }
 
-function renderNode (resolvedNode: ResolvedRepositoryNode, first: boolean) : VNode {
-  function isRoot (node: RepositoryNode) : boolean {
+function renderNode(resolvedNode: ResolvedRepositoryNode, first: boolean): VNode {
+  function isRoot(node: RepositoryNode): boolean {
     return node._id === 'ROOT'
   }
-  function renderChildren (children: ResolvedRepositoryNode[]) : VNode[]  {
+  function renderChildren(children: ResolvedRepositoryNode[]): VNode[]  {
     if (children && children.length > 0) {
       return [h('div.children', children.map(c => renderNode(c, false)))]
     } else {
       return []
     }
   }
-  function genClass (resolvedNode: ResolvedRepositoryNode, isFirst: boolean) : string {
-    return 'node' + (isRoot(resolvedNode.node) ? ' root' : '') + (isFirst ? ' first' : '')
+  function genClass(node: ResolvedRepositoryNode, isFirst: boolean): string {
+    return 'node' + (isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '')
   }
   // set focus to the first element of the tree if we have not already requested focus for something else
   if (transientState.treeHasBeenNavigatedTo && !transientState.focusNodeId && !isRoot(resolvedNode.node)) {
     // TODO: continue from here!! this is stealing focus?
+    // tslint:disable-next-line:no-console
     console.log(`requesting focus from navigation event main node`)
     requestFocusOnNodeAtChar(resolvedNode.node._id, -1)
     // we only want to force focus on the first element if we have an explicit navigation event,
-    // otherwise we would just constantly toggle the focus back to the first node whenever 
+    // otherwise we would just constantly toggle the focus back to the first node whenever
     // the tree is refreshed, this flag guards against that
     transientState.treeHasBeenNavigatedTo = false
   }
@@ -153,7 +155,7 @@ function renderNode (resolvedNode: ResolvedRepositoryNode, first: boolean) : VNo
       id: resolvedNode.node._id,
       key: resolvedNode.node._id + ':' + resolvedNode.node._rev,
       'data-rev': resolvedNode.node._rev,
-      class: genClass(resolvedNode, first)
+      class: genClass(resolvedNode, first),
     },
     [
       h('a', { href: `#node=${resolvedNode.node._id}` }, ['*']),
@@ -169,15 +171,16 @@ function renderNode (resolvedNode: ResolvedRepositoryNode, first: boolean) : VNo
         onkeydown: nameKeydownHandler,
         // special maquette handlers that get triggered on certain VDOM operations
         afterCreate: transientStateHandler,
-        afterUpdate: transientStateHandler
-      }, [resolvedNode.node.name])
+        afterUpdate: transientStateHandler,
+      }, [resolvedNode.node.name]),
     ].concat(renderChildren(resolvedNode.children)))
 }
 
 // as per http://maquettejs.org/docs/typedoc/interfaces/_maquette_.vnodeproperties.html#aftercreate
 // here we set focus to a node if it has been created and we set it as the focusable node in transientstate
-function transientStateHandler (element: HTMLElement) : void {
-  if (transientState && transientState.focusNodeId && element.getAttribute('data-nodeid') === transientState.focusNodeId) {
+function transientStateHandler(element: HTMLElement): void {
+  if (transientState && transientState.focusNodeId &&
+      element.getAttribute('data-nodeid') === transientState.focusNodeId) {
     element.focus()
     if (transientState.focusCharPos > -1) {
       setCursorPos(element, transientState.focusCharPos)
@@ -195,7 +198,7 @@ function transientStateHandler (element: HTMLElement) : void {
 // position: this would allow us to very easily set the cursor position just once on
 // getting the focus in the node name. HOWEVER it appears that the onfocus event is
 // faster than updating the selection and so we get stale values from that approach.
-function selectionChangeHandler (event: Event) : void {
+function selectionChangeHandler(event: Event): void {
   if (document.activeElement &&
       document.activeElement.parentNode &&
       isNode(document.activeElement.parentElement)) {
@@ -206,7 +209,7 @@ function selectionChangeHandler (event: Event) : void {
   }
 }
 
-function nameInputHandler (event: Event) : void {
+function nameInputHandler(event: Event): void {
   const targetNode = (event.target as Element).parentElement
   const nodeId = getNodeId(targetNode)
   const newName = getNodeName(targetNode)
@@ -221,13 +224,13 @@ function nameInputHandler (event: Event) : void {
       .isUndoable()
       .withBeforeFocusNodeId(beforeFocusNodeId)
       .withBeforeFocusPos(beforeFocusPos)
-      .build()
+      .build(),
   )
 }
 
 // NOTE from the MDN docs: "The keypress event is fired when a key is pressed down and
 // that key normally produces a character value"
-function nameKeypressHandler (event: KeyboardEvent) : void {
+function nameKeypressHandler(event: KeyboardEvent): void {
   if (event.key === 'Enter') {
     event.preventDefault()
     const targetNode = (event.target as Element).parentElement
@@ -239,26 +242,77 @@ function nameKeypressHandler (event: KeyboardEvent) : void {
         .isUndoable()
         .requiresRender()
         .withAfterFocusNodeId(nodeId)
-        .build()
+        .build(),
     )
   }
 }
 
 // for reference, Key values: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
-function nameKeydownHandler (event: KeyboardEvent) : void {
+function nameKeydownHandler(event: KeyboardEvent): void {
   if (event.key === 'ArrowUp') {
     event.preventDefault()
-    const previousNameNode = findPreviousNameNode(event.target as Element) as HTMLElement
-    if (previousNameNode) {
-      requestFocusOnNodeAtChar(getNodeId(previousNameNode.parentElement), -1)      
-      previousNameNode.focus()
+    if (event.shiftKey && event.altKey) {
+      // this is the combination for moving a node up in its siblings or its parent's previous siblings' children
+      // if the current node has siblings before it, then just move it up
+      // else if the parent has previous siblings, then move it as a child of the first previous sibling at the end
+      const nodeElement = (event.target as Element).parentElement
+      const parentNodeElement = getParentNode(nodeElement)
+      if (nodeElement.previousElementSibling) {
+        reparentNodeAt(
+          nodeElement,
+          getCursorPos(),
+          parentNodeElement,
+          parentNodeElement,
+          RelativeLinearPosition.BEFORE,
+          nodeElement.previousElementSibling)
+      } else if (parentNodeElement.previousElementSibling) {
+        // the node itself has no previous siblings, but if its parent has one, we will move it there
+        reparentNodeAt(
+          nodeElement,
+          getCursorPos(),
+          parentNodeElement,
+          parentNodeElement.previousElementSibling,
+          RelativeLinearPosition.END,
+          null)
+      }
+    } else {
+      const previousNameNode = findPreviousNameNode(event.target as Element) as HTMLElement
+      if (previousNameNode) {
+        requestFocusOnNodeAtChar(getNodeId(previousNameNode.parentElement), -1)
+        previousNameNode.focus()
+      }
     }
   } else if (event.key === 'ArrowDown') {
     event.preventDefault()
-    const nextNameNode = findNextNameNode(event.target as Element) as HTMLElement
-    if (nextNameNode) {
-      requestFocusOnNodeAtChar(getNodeId(nextNameNode.parentElement), -1)
-      nextNameNode.focus()
+    if (event.shiftKey && event.altKey) {
+      // this is the combination for moving a node down in its siblings or its parent's next siblings' children
+      // if the current node has siblings after it, then just move it down
+      // else if the parent has next siblings, then move it as a child of the first next sibling at the end
+      const nodeElement = (event.target as Element).parentElement
+      const parentNodeElement = getParentNode(nodeElement)
+      if (nodeElement.nextElementSibling) {
+        reparentNodeAt(
+          nodeElement,
+          getCursorPos(),
+          parentNodeElement,
+          parentNodeElement,
+          RelativeLinearPosition.AFTER,
+          nodeElement.nextElementSibling)
+      } else if (parentNodeElement.nextElementSibling) {
+        // the node itself has no next siblings, but if its parent has one, we will move it there
+        reparentNodeAt(nodeElement,
+          getCursorPos(),
+          parentNodeElement,
+          parentNodeElement.nextElementSibling,
+          RelativeLinearPosition.BEGINNING,
+          null)
+      }
+    } else {
+      const nextNameNode = findNextNameNode(event.target as Element) as HTMLElement
+      if (nextNameNode) {
+        requestFocusOnNodeAtChar(getNodeId(nextNameNode.parentElement), -1)
+        nextNameNode.focus()
+      }
     }
   } else if (event.key === 'Backspace') {
     if (isCursorAtBeginning(event) && (event.target as Element).parentElement.previousElementSibling) {
@@ -286,7 +340,8 @@ function nameKeydownHandler (event: KeyboardEvent) : void {
     }
   } else if (event.key === 'Tab' && event.shiftKey) {
     // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
-    // Caution: we only allow unindent if the current node has a parent and a grandparent node, otherwise we can not unindent
+    // Caution: we only allow unindent if the current node has a parent and a grandparent node,
+    // otherwise we can not unindent
     const node = (event.target as Element).parentElement
     if (hasParentNode(node)) {
       const oldParentNode = getParentNode(node)
@@ -294,13 +349,13 @@ function nameKeydownHandler (event: KeyboardEvent) : void {
         const newParentNode = getParentNode(oldParentNode)
         const afterNode = oldParentNode
         event.preventDefault()
-        reparentNodeAfter(node, getCursorPos(), oldParentNode, newParentNode, afterNode)
+        reparentNodeAt(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.AFTER, afterNode)
       }
     }
   }
 }
 
-function globalKeyDownHandler (event: KeyboardEvent) : void {
+function globalKeyDownHandler(event: KeyboardEvent): void {
   if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z, so trigger UNDO
     event.preventDefault()
     const undoCommand = popLastUndoCommand()
@@ -312,7 +367,7 @@ function globalKeyDownHandler (event: KeyboardEvent) : void {
 
 // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
 // Merges are only allowed if the target node has no children
-function mergeNodes (sourceNode: Element, targetNode: Element) : void {
+function mergeNodes(sourceNode: Element, targetNode: Element): void {
   if (hasChildren(targetNode)) {
     return
   }
@@ -326,37 +381,41 @@ function mergeNodes (sourceNode: Element, targetNode: Element) : void {
       .requiresRender()
       .withAfterFocusNodeId(targetNodeId)
       .withAfterFocusPos(Math.max(0, targetNodeName.length))
-      .build()
+      .build(),
   )
 }
 
-function reparentNode (node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element) : void {
-  reparentNodeAfter(node, cursorPos, oldParentNode, newParentNode, null)
+function reparentNode(node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element): void {
+  reparentNodeAt(node, cursorPos, oldParentNode, newParentNode, RelativeLinearPosition.END, null)
 }
 
-function reparentNodeAfter (node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element, afterNode: Element) : void {
+function reparentNodeAt(node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element,
+                        relativePosition: RelativeLinearPosition, relativeNode: Element ): void {
   const nodeId = getNodeId(node)
   const oldAfterNodeId = node.previousElementSibling ? getNodeId(node.previousElementSibling) : null
   const oldParentNodeId = getNodeId(oldParentNode)
   const newParentNodeId = getNodeId(newParentNode)
-  const afterNodeId = afterNode ? getNodeId(afterNode) : null
+  const position: RelativeNodePosition = {
+    beforeOrAfter: relativePosition,
+    nodeId: relativeNode ? getNodeId(relativeNode) : null,
+  }
   exec(
-    buildReparentNodesByIdCommand(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, afterNodeId)
+    buildReparentNodesByIdCommand(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position)
       .requiresRender()
       .withAfterFocusNodeId(nodeId)
       .withAfterFocusPos(cursorPos)
       .isUndoable()
-      .build()
+      .build(),
   )
 }
 
 // charPos should be -1 to just request focus on the node
-function requestFocusOnNodeAtChar (nodeId: string, charPos: number) : void {
+function requestFocusOnNodeAtChar(nodeId: string, charPos: number): void {
   transientState.focusNodeId = nodeId
   transientState.focusCharPos = charPos
 }
 
-function exec (command: Command) : void {
+function exec(command: Command): void {
   executeCommand(command).then(result => {
     if (result.focusNodeId) {
       requestFocusOnNodeAtChar(result.focusNodeId, result.focusPos)
@@ -367,6 +426,6 @@ function exec (command: Command) : void {
   })
 }
 
-function triggerTreeReload () : void {
+function triggerTreeReload(): void {
   window.dispatchEvent(new Event('treereload'))
 }

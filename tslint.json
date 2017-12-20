@@ -1,0 +1,15 @@
+{
+  "extends": "tslint:recommended",
+  "rules": {
+    "max-line-length": {
+        "options": [120]
+    },
+    "semicolon": [true, "never"],
+    "quotemark": [true, "single"],
+    "ordered-imports": [false],
+    "interface-name": [false],
+    "object-literal-sort-keys": [false],
+    "arrow-parens": [false],
+    "object-literal-key-quotes": [false]
+  }
+}
