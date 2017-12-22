@@ -6,6 +6,7 @@ import {
   isCursorAtEnd,
   getTextBeforeCursor,
   getTextAfterCursor,
+  debounce,
 } from './util'
 import {
   findPreviousNameNode,
@@ -256,25 +257,7 @@ function nameKeydownHandler(event: KeyboardEvent): void {
       // if the current node has siblings before it, then just move it up
       // else if the parent has previous siblings, then move it as a child of the first previous sibling at the end
       const nodeElement = (event.target as Element).parentElement
-      const parentNodeElement = getParentNode(nodeElement)
-      if (nodeElement.previousElementSibling) {
-        reparentNodeAt(
-          nodeElement,
-          getCursorPos(),
-          parentNodeElement,
-          parentNodeElement,
-          RelativeLinearPosition.BEFORE,
-          nodeElement.previousElementSibling)
-      } else if (parentNodeElement.previousElementSibling) {
-        // the node itself has no previous siblings, but if its parent has one, we will move it there
-        reparentNodeAt(
-          nodeElement,
-          getCursorPos(),
-          parentNodeElement,
-          parentNodeElement.previousElementSibling,
-          RelativeLinearPosition.END,
-          null)
-      }
+      debouncedMoveNodeUp(nodeElement)
     } else {
       const previousNameNode = findPreviousNameNode(event.target as Element) as HTMLElement
       if (previousNameNode) {
@@ -289,24 +272,7 @@ function nameKeydownHandler(event: KeyboardEvent): void {
       // if the current node has siblings after it, then just move it down
       // else if the parent has next siblings, then move it as a child of the first next sibling at the end
       const nodeElement = (event.target as Element).parentElement
-      const parentNodeElement = getParentNode(nodeElement)
-      if (nodeElement.nextElementSibling) {
-        reparentNodeAt(
-          nodeElement,
-          getCursorPos(),
-          parentNodeElement,
-          parentNodeElement,
-          RelativeLinearPosition.AFTER,
-          nodeElement.nextElementSibling)
-      } else if (parentNodeElement.nextElementSibling) {
-        // the node itself has no next siblings, but if its parent has one, we will move it there
-        reparentNodeAt(nodeElement,
-          getCursorPos(),
-          parentNodeElement,
-          parentNodeElement.nextElementSibling,
-          RelativeLinearPosition.BEGINNING,
-          null)
-      }
+      debouncedMoveNodeDown(nodeElement)
     } else {
       const nextNameNode = findNextNameNode(event.target as Element) as HTMLElement
       if (nextNameNode) {
@@ -352,6 +318,55 @@ function nameKeydownHandler(event: KeyboardEvent): void {
         reparentNodeAt(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.AFTER, afterNode)
       }
     }
+  }
+}
+
+// debounced versions of these functions so that we don't run into pouchdb update conflicts
+const debouncedMoveNodeDown = debounce(moveNodeDown, 25)
+
+function moveNodeDown(nodeElement: Element): void {
+  const parentNodeElement = getParentNode(nodeElement)
+  if (nodeElement.nextElementSibling) {
+    reparentNodeAt(
+      nodeElement,
+      getCursorPos(),
+      parentNodeElement,
+      parentNodeElement,
+      RelativeLinearPosition.AFTER,
+      nodeElement.nextElementSibling)
+  } else if (parentNodeElement.nextElementSibling) {
+    // the node itself has no next siblings, but if its parent has one, we will move it there
+    reparentNodeAt(nodeElement,
+      getCursorPos(),
+      parentNodeElement,
+      parentNodeElement.nextElementSibling,
+      RelativeLinearPosition.BEGINNING,
+      null)
+  }
+}
+
+// debounced versions of these functions so that we don't run into pouchdb update conflicts
+const debouncedMoveNodeUp = debounce(moveNodeUp, 25)
+
+function moveNodeUp(nodeElement: Element): void {
+  const parentNodeElement = getParentNode(nodeElement)
+  if (nodeElement.previousElementSibling) {
+    reparentNodeAt(
+      nodeElement,
+      getCursorPos(),
+      parentNodeElement,
+      parentNodeElement,
+      RelativeLinearPosition.BEFORE,
+      nodeElement.previousElementSibling)
+  } else if (parentNodeElement.previousElementSibling) {
+    // the node itself has no previous siblings, but if its parent has one, we will move it there
+    reparentNodeAt(
+      nodeElement,
+      getCursorPos(),
+      parentNodeElement,
+      parentNodeElement.previousElementSibling,
+      RelativeLinearPosition.END,
+      null)
   }
 }
 

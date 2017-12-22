@@ -3,21 +3,11 @@ import { RelativeNodePosition, RelativeLinearPosition } from './repository'
 // Re-exporting the RepositoryNode types because they need to be used by consumers of this API
 export {RepositoryNode, ResolvedRepositoryNode, RelativeLinearPosition, RelativeNodePosition} from './repository'
 
-export function initializeEmptyTree(): Promise<void> {
-  return repo.createNode('ROOT', 'ROOT', null)
-    .then(() => repo.createNode(null, '', null))
-    .then(child => repo.addChildToParent(child._id, 'ROOT'))
-}
-
 const UNDO_BUFFER: Command[] = []
 const REDO_BUFFER: Command[] = []
 
 export function popLastUndoCommand(): Command {
   return UNDO_BUFFER.pop()
-}
-
-export function loadTree(nodeId: string): Promise<repo.ResolvedRepositoryNode> {
-  return repo.loadTree(nodeId)
 }
 
 export class CommandBuilder {
@@ -131,6 +121,16 @@ export function executeCommand(command: Command): Promise<CommandResult> {
     .then(() => command.undoable && REDO_BUFFER.push(command))
     .then(() => Promise.resolve(
       new CommandResult(command.afterFocusNodeId, command.afterFocusPos, command.renderRequired)))
+}
+
+export function loadTree(nodeId: string): Promise<repo.ResolvedRepositoryNode> {
+  return repo.loadTree(nodeId)
+}
+
+export function initializeEmptyTree(): Promise<void> {
+  return repo.createNode('ROOT', 'ROOT', null)
+    .then(() => repo.createNode(null, '', null))
+    .then(child => repo.addChildToParent(child._id, 'ROOT'))
 }
 
 export function buildSplitNodeByIdCommand(

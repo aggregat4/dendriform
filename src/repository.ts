@@ -208,7 +208,7 @@ export function undeleteNode(nodeId: string): Promise<any> {
 export function createNode(id: string, name: string, content: string): Promise<RepositoryNode> {
   // console.log(`createNode id: '${id}' - name: '${name}'`)
   const node = {
-    __id: id,
+    _id: id,
     name,
     content,
     childrefs: [],
@@ -216,7 +216,7 @@ export function createNode(id: string, name: string, content: string): Promise<R
   if (!id) {
     // in case an id was not provided we also do not want to pass this field to PouchDB,
     // apparently even if empty this is a problem
-    delete node.__id
+    delete node._id
   }
   return outlineDb.post(node)
     .then(response => {

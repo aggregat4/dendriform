@@ -41,6 +41,7 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
+1. Start a new branch with the direct DOM rendering approach and alternate Command implementation that does direct dom manipulation. See performance chapter down here
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
@@ -60,8 +61,24 @@ Some tools needed for the various build goals:
 
 ## Ideas
 
-1. Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
-1. Restart the application without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/)
+### Unit Testing
+Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
+
+### Performance
+We have a problem with our current model: since we use a virtual dom approach we need to rely on that to reflect changes in our model. Currently the model is always loaded from pouchdb, that is "the truth". This has the disadvantage that (async) pouchdb updates in pouchdb need to happen before we can render the changes in the state. This in turn causes delays, and even adds a need for deouncing when operations are very quick and pouchdb does not follow correctly. This makes the application feel unncessarily slow.
+
+There are two ways around this that I see:
+- Separate model: Keep the vdom approach and modify an in memory representation of the tree, serialize all updates to pouchdb and have those happen in the background. Problems here are that we need to store _another_ representation of the tree, and we need a way to deal with async updates coming in through pouchdb from other devices: when do we completely reload the local representation?
+- Pure DOM approach: Restart the view layer without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/) perhaps. We could do all local changes directly on the DOM and serialize updates in the background to pouchdb. Here too we need to deal with the background sync issues and how to merge them in.
+
+The two models are more similar then I imagined: they both operate on a local representation of the tree, which in both cases can be partial (think about collapsed nodes) and with both approaches I need to serialize updates to the backing store.
+
+So, current idea: start a new branch where we will implement synchronous commands that operate on the DOM tree and queue all backend repository updates in a serialized queue with pouchdb updates.
+
+Ideas:
+- Implement everyhting with getElementById, optionally I could try to optimise to always pass the current node as well since I usually have that, this could obviate a lookup with certain operations.
+- A load is a load: always load from backing store and rerender tree. We just need to stop rerendering for everything since we will be (hopefully) in sync
+- We should be able to reuse the current pouchdb commands, need to abstract those builders out as an interface and have two implementations?
 
 ## Lessons learned
 

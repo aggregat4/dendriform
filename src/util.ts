@@ -8,22 +8,21 @@ export function getHashValue(key: string): string {
 }
 
 // from https://davidwalsh.name/javascript-debounce-function
-export function debounce(func, wait: number, immediate: boolean) {
+export function debounce(f: (...args: any[]) => void, wait: number, immediate?: boolean): (...args: any[]) => void {
   let timeout
-  return () => {
+  return (...args2: any[]) => {
     const context = this
-    const args = arguments
     const later = () => {
       timeout = null
       if (!immediate) {
-        func.apply(context, args)
+        f.apply(context, args2)
       }
     }
     const callNow = immediate && !timeout
     clearTimeout(timeout)
     timeout = setTimeout(later, wait)
     if (callNow) {
-      func.apply(context, args)
+      f.apply(context, args2)
     }
   }
 }
