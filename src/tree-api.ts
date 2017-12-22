@@ -1,5 +1,5 @@
 import * as repo from './repository'
-import { RelativeNodePosition, RelativeLinearPosition } from './repository';
+import { RelativeNodePosition, RelativeLinearPosition } from './repository'
 // Re-exporting the RepositoryNode types because they need to be used by consumers of this API
 export {RepositoryNode, ResolvedRepositoryNode, RelativeLinearPosition, RelativeNodePosition} from './repository'
 
@@ -129,23 +129,25 @@ export function executeCommand(command: Command): Promise<CommandResult> {
       }
     })
     .then(() => command.undoable && REDO_BUFFER.push(command))
-    .then(() => Promise.resolve(new CommandResult(command.afterFocusNodeId, command.afterFocusPos, command.renderRequired)))
+    .then(() => Promise.resolve(
+      new CommandResult(command.afterFocusNodeId, command.afterFocusPos, command.renderRequired)))
 }
 
-export function buildSplitNodeByIdCommand(nodeId: string, beforeSplitNamePart: string, afterSplitNamePart: string): CommandBuilder {
+export function buildSplitNodeByIdCommand(
+    nodeId: string, beforeSplitNamePart: string, afterSplitNamePart: string): CommandBuilder {
   return new CommandBuilder(() => splitNodeById(nodeId, beforeSplitNamePart, afterSplitNamePart))
 }
 
 // 1. rename the current node to the right hand side of the split
 // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
 function splitNodeById(nodeId: string, beforeSplitNamePart: string, afterSplitNamePart: string): Promise<Command[]> {
-  console.log(`splitNodeById`)
   return repo.renameNode(nodeId, afterSplitNamePart)
     .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
     .then((newSiblingRepoNode) => ([
-      new CommandBuilder(() => _unsplitNodeById(newSiblingRepoNode._id, nodeId, beforeSplitNamePart + afterSplitNamePart))
+      new CommandBuilder(
+          () => _unsplitNodeById(newSiblingRepoNode._id, nodeId, beforeSplitNamePart + afterSplitNamePart))
         .requiresRender()
-        .build()
+        .build(),
     ]))
 }
 
@@ -155,7 +157,8 @@ function _unsplitNodeById(newNodeId: string, originalNodeId: string, name: strin
     .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
 }
 
-export function buildMergeNodesByIdCommand(sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string): CommandBuilder {
+export function buildMergeNodesByIdCommand(
+    sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string): CommandBuilder {
   return new CommandBuilder(() => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
 }
 
@@ -167,15 +170,17 @@ export function buildMergeNodesByIdCommand(sourceNodeId: string, sourceNodeName:
 // For undo it is assumed that a merge never happens to a target node with children
 // This function will not undo the merging of the child collections (this mirrors workflowy
 // maybe we want to revisit this in the future)
-function mergeNodesById(sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string): Promise<Command[]> {
+function mergeNodesById(
+    sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string): Promise<Command[]> {
   return repo.getChildNodes(sourceNodeId, true) // TODO add flag to also get deleted nodes!
-    .then(children => repo.reparentNodes(children, targetNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
+    .then(children =>
+      repo.reparentNodes(children, targetNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
     .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
     .then(() => repo.deleteNode(sourceNodeId))
     .then(() => ([
       new CommandBuilder(() => _unmergeNodesById(sourceNodeId, targetNodeId, targetNodeName))
         .requiresRender()
-        .build()
+        .build(),
     ]))
 }
 
@@ -185,7 +190,8 @@ function mergeNodesById(sourceNodeId: string, sourceNodeName: string, targetNode
 function _unmergeNodesById(sourceNodeId: string, targetNodeId: string, targetNodeName: string): Promise<Command[]> {
   return repo.undeleteNode(sourceNodeId)
     .then(() => repo.getChildNodes(targetNodeId, true))
-    .then(children => repo.reparentNodes(children, sourceNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
+    .then(children =>
+      repo.reparentNodes(children, sourceNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
     .then(() => repo.renameNode(targetNodeId, targetNodeName))
     .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
 }
@@ -195,28 +201,42 @@ export function buildRenameNodeByIdCommand(nodeId: string, oldName: string, newN
 }
 
 function renameNodeById(nodeId: string, oldName: string, newName: string): Promise<Command[]> {
-  console.log(`renaming from '${oldName}' to '${newName}'`)
   return repo.renameNode(nodeId, newName)
     .then(() => ([
       new CommandBuilder(() => renameNodeById(nodeId, newName, oldName))
         .requiresRender()
-        .build()
+        .build(),
     ]))
 }
 
-export function buildReparentNodesByIdCommand(nodeId: string, oldParentNodeId: string, oldAfterNodeId: string, newParentNodeId: string, position: RelativeNodePosition): CommandBuilder {
+export function buildReparentNodesByIdCommand(
+    nodeId: string,
+    oldParentNodeId: string,
+    oldAfterNodeId: string,
+    newParentNodeId: string,
+    position: RelativeNodePosition): CommandBuilder {
   return new CommandBuilder(() => reparentNodesById(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
 }
 
 // 1. set the node's parent Id to the new id
 // 2. add the node to the new parent's children
 // 3. remove the node from the old parent's children
-function reparentNodesById(nodeId: string, oldParentNodeId: string, oldAfterNodeId: string, newParentNodeId: string, position: RelativeNodePosition): Promise<Command[]> {
+function reparentNodesById(
+    nodeId: string,
+    oldParentNodeId: string,
+    oldAfterNodeId: string,
+    newParentNodeId: string,
+    position: RelativeNodePosition): Promise<Command[]> {
   return repo.getNode(nodeId)
     .then(node => repo.reparentNodes([node], newParentNodeId, position))
     .then(() => ([
-      new CommandBuilder(() => reparentNodesById(nodeId, newParentNodeId, null, oldParentNodeId, { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: oldAfterNodeId}))
+      new CommandBuilder(() => reparentNodesById(
+          nodeId,
+          newParentNodeId,
+          null,
+          oldParentNodeId,
+          { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: oldAfterNodeId}))
         .requiresRender()
-        .build()
+        .build(),
     ]))
 }

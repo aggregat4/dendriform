@@ -4,7 +4,7 @@ import * as treecomponent from './tree-component'
 
 const projector = createProjector()
 
-function getRequestedNodeId () : string {
+function getRequestedNodeId(): string {
   return getHashValue('node') || 'ROOT'
 }
 
@@ -16,17 +16,18 @@ window.addEventListener('hashchange', navigateAndReload)
 // that the store needs to be reloaded (and rerendered)
 window.addEventListener('treereload', justReload)
 
-function navigateAndReload () : void {
+function navigateAndReload(): void {
   reload(true)
 }
 
-function justReload() : void {
+function justReload(): void {
   reload(false)
 }
 
-function reload (hasNavigated) : void {
+function reload(hasNavigated): void {
   treecomponent.load(getRequestedNodeId(), !!hasNavigated)
     .then(status => {
+      // tslint:disable-next-line:no-console
       console.log(`Tree was loaded`)
       projector.scheduleRender()
     })
