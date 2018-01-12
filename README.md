@@ -41,7 +41,11 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. Start a new branch with the direct DOM rendering approach and alternate Command implementation that does direct dom manipulation. See performance chapter down here
+1. Start a new branch with the direct DOM rendering approach and alternate Command implementation that does direct dom manipulation. See performance chapter down here. Following plan:
+  - I am creating commands that don't ahve functions in them, this needs to be finised and refactored in tree-component.
+  - These commands can then be executed multiple times. There needs to be a CommandExecutor for the current PouchDb backend and we need on that just modifies the local store.
+  - Still to figure out: I still feel that we need a synchronous API to the tree-api that modifies the local store, and we "just" need to send off the async commands to the pouchdb thing. 
+  - Also: note that we don't really need to take into account that focus and reload stuff from the couchdb backend right? Maybe that also influences the API.
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
@@ -65,7 +69,7 @@ Some tools needed for the various build goals:
 Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
 
 ### Performance
-We have a problem with our current model: since we use a virtual dom approach we need to rely on that to reflect changes in our model. Currently the model is always loaded from pouchdb, that is "the truth". This has the disadvantage that (async) pouchdb updates in pouchdb need to happen before we can render the changes in the state. This in turn causes delays, and even adds a need for deouncing when operations are very quick and pouchdb does not follow correctly. This makes the application feel unncessarily slow.
+We have a problem with our current model: since we use a virtual dom approach we need to rely on that to reflect changes in our model. Currently the model is always loaded from pouchdb, that is "the truth". This has the disadvantage that (async) updates in pouchdb need to happen before we can render the changes in the state. This in turn causes delays, and even adds a need for debouncing when operations are very quick and pouchdb does not keep up. This makes the application feel unncessarily slow.
 
 There are two ways around this that I see:
 - Separate model: Keep the vdom approach and modify an in memory representation of the tree, serialize all updates to pouchdb and have those happen in the background. Problems here are that we need to store _another_ representation of the tree, and we need a way to deal with async updates coming in through pouchdb from other devices: when do we completely reload the local representation?

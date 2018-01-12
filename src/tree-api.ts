@@ -1,7 +1,35 @@
 import * as repo from './repository'
-import { RelativeNodePosition, RelativeLinearPosition } from './repository'
+import {ResolvedRepositoryNode, RelativeNodePosition, RelativeLinearPosition} from './repository'
 // Re-exporting the RepositoryNode types because they need to be used by consumers of this API
 export {RepositoryNode, ResolvedRepositoryNode, RelativeLinearPosition, RelativeNodePosition} from './repository'
+
+export enum State {
+  LOADING,
+  LOADED,
+  ERROR,
+}
+
+export interface Status {
+  state: State
+  msg: string
+}
+
+export interface Store {
+  status: Status
+  tree: ResolvedRepositoryNode
+}
+
+const STORE: Store = {
+  status: {
+    state: State.LOADING,
+    msg: null,
+  } as Status,
+  tree: null,
+}
+
+export function getStore(): Store {
+  return STORE
+}
 
 const UNDO_BUFFER: Command[] = []
 const REDO_BUFFER: Command[] = []
@@ -10,8 +38,13 @@ export function popLastUndoCommand(): Command {
   return UNDO_BUFFER.pop()
 }
 
+interface CommandPayload {
+  name: string
+}
+
 export class CommandBuilder {
-  private fn: () => Promise<Command[]>
+  // private fn: () => Promise<Command[]>
+  private payload: CommandPayload
   private renderRequired: boolean = false
   private beforeFocusNodeId: string = null
   private beforeFocusPos: number = -1
@@ -19,8 +52,8 @@ export class CommandBuilder {
   private afterFocusPos: number = -1
   private undoable: boolean = false
 
-  constructor(fn: () => Promise<Command[]>) {
-    this.fn = fn
+  constructor(payload: any) {
+    this.payload = payload
   }
 
   requiresRender(): CommandBuilder {
@@ -55,7 +88,7 @@ export class CommandBuilder {
 
   build(): Command {
     return new Command(
-      this.fn,
+      this.payload,
       this.renderRequired,
       this.beforeFocusNodeId,
       this.beforeFocusPos,
@@ -67,7 +100,8 @@ export class CommandBuilder {
 }
 
 export class Command {
-  readonly fn: () => Promise<Command[]>
+  // readonly fn: () => Promise<Command[]>
+  readonly payload: CommandPayload
   readonly renderRequired: boolean = false
   readonly beforeFocusNodeId: string = null
   readonly beforeFocusPos: number = -1
@@ -123,8 +157,28 @@ export function executeCommand(command: Command): Promise<CommandResult> {
       new CommandResult(command.afterFocusNodeId, command.afterFocusPos, command.renderRequired)))
 }
 
-export function loadTree(nodeId: string): Promise<repo.ResolvedRepositoryNode> {
+export function loadTree(nodeId: string): Promise<Status> {
   return repo.loadTree(nodeId)
+    .then((tree) => {
+      STORE.tree = tree
+      STORE.status.state = State.LOADED
+      return Promise.resolve(STORE.status)
+    })
+    .catch((reason) => {
+      if (reason.status === 404 && nodeId === 'ROOT') {
+        // When the root node was requested but could not be found, initialize the tree with a minimal structure
+        return initializeEmptyTree().then(() => loadTree(nodeId))
+      } else if (reason.status === 404) {
+        // In case we are called with a non existent ID and it is not root, just load the root node
+        // TODO should we rather handle this in the UI and redirect to the root node?
+        return loadTree('ROOT')
+      } else {
+        STORE.tree = null
+        STORE.status.state = State.ERROR
+        STORE.status.msg = `Error loading tree: ${reason}`
+        return Promise.resolve(STORE.status)
+      }
+    })
 }
 
 export function initializeEmptyTree(): Promise<void> {
@@ -133,9 +187,44 @@ export function initializeEmptyTree(): Promise<void> {
     .then(child => repo.addChildToParent(child._id, 'ROOT'))
 }
 
-export function buildSplitNodeByIdCommand(
-    nodeId: string, beforeSplitNamePart: string, afterSplitNamePart: string): CommandBuilder {
-  return new CommandBuilder(() => splitNodeById(nodeId, beforeSplitNamePart, afterSplitNamePart))
+export class SplitNodeByIdCommandPayload implements CommandPayload {
+  readonly name = 'splitNodeById'
+  // uses parameter properties to have a sort of data class
+  constructor(
+    readonly nodeId: string,
+    readonly beforeSplitNamePart: string,
+    readonly afterSplitNamePart: string,
+  ) {}
+}
+
+export class MergeNodesByIdCommandPayload implements CommandPayload {
+  readonly name = 'mergeNodesById'
+  constructor(
+    readonly sourceNodeId: string,
+    readonly sourceNodeName: string,
+    readonly targetNodeId: string,
+    readonly targetNodeName: string,
+  ) {}
+}
+
+export class RenameNodesByIdCommandPayload implements CommandPayload {
+  readonly name = 'renameNodeById'
+  constructor(
+    readonly nodeId: string,
+    readonly oldName: string,
+    readonly newName: string,
+  ) {}
+}
+
+export class ReparentNodesByIdCommandPayload implements CommandPayload {
+  readonly name = 'reparentNodesById'
+  constructor(
+    readonly nodeId: string,
+    readonly oldParentNodeId: string,
+    readonly oldAfterNodeId: string,
+    readonly newParentNodeId: string,
+    readonly position: RelativeNodePosition,
+  ) {}
 }
 
 // 1. rename the current node to the right hand side of the split
@@ -155,11 +244,6 @@ function _unsplitNodeById(newNodeId: string, originalNodeId: string, name: strin
   return repo.deleteNode(newNodeId)
     .then(() => repo.renameNode(originalNodeId, name))
     .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
-}
-
-export function buildMergeNodesByIdCommand(
-    sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string): CommandBuilder {
-  return new CommandBuilder(() => mergeNodesById(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
 }
 
 // 1. rename targetnode to be targetnode.name + sourcenode.name
@@ -196,10 +280,6 @@ function _unmergeNodesById(sourceNodeId: string, targetNodeId: string, targetNod
     .then(() => ([])) // TODO these are not really commands, we don't need to undo these (and can't)
 }
 
-export function buildRenameNodeByIdCommand(nodeId: string, oldName: string, newName: string): CommandBuilder {
-  return new CommandBuilder(() => renameNodeById(nodeId, oldName, newName))
-}
-
 function renameNodeById(nodeId: string, oldName: string, newName: string): Promise<Command[]> {
   return repo.renameNode(nodeId, newName)
     .then(() => ([
@@ -207,15 +287,6 @@ function renameNodeById(nodeId: string, oldName: string, newName: string): Promi
         .requiresRender()
         .build(),
     ]))
-}
-
-export function buildReparentNodesByIdCommand(
-    nodeId: string,
-    oldParentNodeId: string,
-    oldAfterNodeId: string,
-    newParentNodeId: string,
-    position: RelativeNodePosition): CommandBuilder {
-  return new CommandBuilder(() => reparentNodesById(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
 }
 
 // 1. set the node's parent Id to the new id

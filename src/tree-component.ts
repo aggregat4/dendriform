@@ -19,6 +19,10 @@ import {
   hasChildren,
 } from './tree-util'
 import {
+  Status,
+  State,
+  Store,
+  getStore,
   RepositoryNode,
   ResolvedRepositoryNode,
   initializeEmptyTree,
@@ -35,30 +39,6 @@ import {
   RelativeLinearPosition,
 } from './tree-api'
 
-enum State {
-  LOADING,
-  LOADED,
-  ERROR,
-}
-
-interface Status {
-  state: State
-  msg: string
-}
-
-interface Store {
-  status: Status
-  tree: ResolvedRepositoryNode
-}
-
-const STORE: Store = {
-  status: {
-    state: State.LOADING,
-    msg: null,
-  } as Status,
-  tree: null,
-}
-
 interface TransientState {
   focusNodeId: string,
   focusCharPos: number,
@@ -72,7 +52,7 @@ interface TransientState {
 const transientState: TransientState = {
   focusNodeId: null,
   focusCharPos: -1,
-  // previus node state so we can undo correctly, this is separate from the actual focus and char pos we want
+  // previous node state so we can undo correctly, this is separate from the actual focus and char pos we want
   focusNodePreviousId: null,
   focusNodePreviousName: null,
   focusNodePreviousPos: -1,
@@ -85,42 +65,23 @@ document.addEventListener('keydown', globalKeyDownHandler)
 // cursor position (needed for UNDO)
 document.addEventListener('selectionchange', selectionChangeHandler)
 
+// TODO: make sure this is ONLY navigation! and refactor signature
 export function load(nodeId: string, isNavigation: boolean): Promise<Status> {
   transientState.treeHasBeenNavigatedTo = !!isNavigation
   return loadTree(nodeId)
-    .then((tree) => {
-      STORE.tree = tree
-      STORE.status.state = State.LOADED
-      return Promise.resolve(STORE.status)
-    })
-    .catch((reason) => {
-      if (reason.status === 404 && nodeId === 'ROOT') {
-        // When the root node was requested but could not be found, initialize the tree with a minimal structure
-        return initializeEmptyTree().then(() => load(nodeId, true))
-      } else if (reason.status === 404) {
-        // In case we are called with a non existent ID and it is not root, just load the root node
-        // TODO should we rather handle this in the UI and redirect to the root node?
-        return load('ROOT', true)
-      } else {
-        STORE.tree = null
-        STORE.status.state = State.ERROR
-        STORE.status.msg = `Error loading tree: ${reason}`
-        return Promise.resolve(STORE.status)
-      }
-    })
 }
 
 // Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
 // one reason why we have the toplevel div.tree
 export function render(): VNode {
-  return h('div.tree', renderTree())
+  return h('div.tree', renderTree(getStore()))
 }
 
-function renderTree(): VNode[] {
-  switch (STORE.status.state) {
-    case State.ERROR:   return [h('div.error', [`Can not load tree from backing store: ${STORE.status.msg}`])]
+function renderTree(store: Store): VNode[] {
+  switch (store.status.state) {
+    case State.ERROR:   return [h('div.error', [`Can not load tree from backing store: ${store.status.msg}`])]
     case State.LOADING: return [h('div', [`Loading tree...`])]
-    case State.LOADED:  return [renderNode(STORE.tree, true)]
+    case State.LOADED:  return [renderNode(store.tree, true)]
     default:            return [h('div.error', [`Tree is in an unknown state`])]
   }
 }
