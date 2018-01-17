@@ -46,6 +46,7 @@ Some tools needed for the various build goals:
   - These commands can then be executed multiple times. There needs to be a CommandExecutor for the current PouchDb backend and we need on that just modifies the local store.
   - Still to figure out: I still feel that we need a synchronous API to the tree-api that modifies the local store, and we "just" need to send off the async commands to the pouchdb thing. 
   - Also: note that we don't really need to take into account that focus and reload stuff from the couchdb backend right? Maybe that also influences the API.
+  - Current state (17.1.2018) working on the command executor in tree-api, got a basic idea and classes, need to finish command dispatching, then updating the code in tree-component and then testing, also implement the local store executor!
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)

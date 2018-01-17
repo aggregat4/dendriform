@@ -338,7 +338,7 @@ function globalKeyDownHandler(event: KeyboardEvent): void {
     if (undoCommand) {
       exec(undoCommand)
     }
-  }
+  } // TODO: REDO Handling!!
 }
 
 // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
