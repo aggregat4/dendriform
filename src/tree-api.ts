@@ -31,6 +31,13 @@ export function getStore(): Store {
   return STORE
 }
 
+export interface TreeService {
+  loadTree: (nodeId: string) => Promise<Status>,
+  initializeEmptyTree: () => Promise<void>,
+  getStore: () => Store,
+}
+
+// TODO: move to pouchdb impl
 export function loadTree(nodeId: string): Promise<Status> {
   return repo.loadTree(nodeId)
     .then((tree) => {
@@ -55,6 +62,7 @@ export function loadTree(nodeId: string): Promise<Status> {
     })
 }
 
+// TODO: move to pouchdb impl
 export function initializeEmptyTree(): Promise<void> {
   return repo.createNode('ROOT', 'ROOT', null)
     .then(() => repo.createNode(null, '', null))
@@ -73,7 +81,6 @@ interface CommandPayload {
 }
 
 export class Command {
-  // readonly fn: () => Promise<Command[]>
   constructor(
     readonly payload: CommandPayload,
     readonly renderRequired: boolean = false,
@@ -94,7 +101,6 @@ export class CommandResult {
 }
 
 export class CommandBuilder {
-  // private fn: () => Promise<Command[]>
   private payload: CommandPayload
   private renderRequired: boolean = false
   private beforeFocusNodeId: string = null
@@ -150,74 +156,6 @@ export class CommandBuilder {
   }
 }
 
-interface CommandExecutor {
-  exec: (command: Command) => Promise<Command>
-}
-
-class PouchDbCommandExecutor implements CommandExecutor {
-  exec(command: Command): Promise<Command> {
-    if (command.payload instanceof SplitNodeByIdCommandPayload) {
-      return splitNodeById(command.payload.nodeId, command.payload.beforeSplitNamePart,
-        command.payload.afterSplitNamePart)
-    }
-    // TODO: implement!
-  }
-}
-
-const POUCHDB_EXECUTOR = new PouchDbCommandExecutor()
-
-class StoreCommandExecutor implements CommandExecutor {
-  exec(command: Command): Promise<Command> {
-    // TODO: implementat!
-    return new Promise(() => 42)
-  }
-}
-
-const STORE_EXECUTOR = new StoreCommandExecutor()
-
-export function executeCommand(command: Command): void {
-  // Current plan:
-  //  - have 2 executors: one for local repo, and one for pouchdb repo
-  //  - gather their results (basically Promises of UndoCommands) and combine them (we need to undo in both places)
-  //  - compose the undocommand promises with our focus handling
-  //  - store actual Promises of commands in the UNDO and REDO buffers.
-  //    This allos us to immediately return and to have consistently ordered
-  //    UNDO and REDO buffers AND it allows us to nevertheless do things
-  //    asynchronously (like if pouchdb takes a long time to complete, we will
-  //    then defer waiting for that to the undo command handling)
-/*
-  return command.fn()
-    .then(undoCommand => {
-      if (command.undoable) {
-        // if a command is triggered and there was a valid focus position before the change
-        // then we want to restore the focus to that position after executing the undo command
-        if (command.beforeFocusNodeId) {
-          // TODO: instead of relaxing accessibility on these properties: does this even make sense?
-          // should'nt we do this logic when building the UNDO commands down below? Check this.
-          undoCommand.afterFocusNodeId = command.beforeFocusNodeId
-          undoCommand.afterFocusPos = command.beforeFocusPos
-        }
-        UNDO_BUFFER.push(undoCommand)
-        REDO_BUFFER.push(command)
-      }
-    })
-    */
-  // console.log(`executing command: ${JSON.stringify(command)}`)
-  const undoCommandPromises: Array<Promise<Command>> = [STORE_EXECUTOR.exec(command), POUCHDB_EXECUTOR.exec(command)]
-    .map(undoCommandPromise => undoCommandPromise.then((undoCommand) => {
-      if (command.undoable) {
-        if (command.beforeFocusNodeId) {
-          undoCommand.afterFocusNodeId = command.beforeFocusNodeId
-          undoCommand.afterFocusPos = command.beforeFocusPos
-        }
-      }
-    }))
-  if (command.undoable) {
-    UNDO_BUFFER.push(...undoCommandPromises)
-    REDO_BUFFER.push(Promise.all(undoCommandPromises).then(() => Promise.resolve(command)))
-  }
-}
-
 export class SplitNodeByIdCommandPayload implements CommandPayload {
   readonly name = 'splitNodeById'
   // uses parameter properties to have a sort of data class
@@ -258,7 +196,7 @@ class UnmergeNodesByIdCommandPayload implements CommandPayload {
   ) {}
 }
 
-export class RenameNodesByIdCommandPayload implements CommandPayload {
+export class RenameNodeByIdCommandPayload implements CommandPayload {
   readonly name = 'renameNodeById'
   constructor(
     readonly nodeId: string,
@@ -278,22 +216,97 @@ export class ReparentNodesByIdCommandPayload implements CommandPayload {
   ) {}
 }
 
+interface CommandExecutor {
+  exec: (command: Command) => Promise<Command>
+}
+
+class PouchDbCommandExecutor implements CommandExecutor {
+  exec(command: Command): Promise<Command> {
+    if (command.payload instanceof SplitNodeByIdCommandPayload) {
+      return splitNodeById(command.payload)
+    } else if (command.payload instanceof UnsplitNodeByIdCommandPayload) {
+      _unsplitNodeById(command.payload)
+      return null
+    } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
+      return mergeNodesById(command.payload)
+    } else if (command.payload instanceof UnmergeNodesByIdCommandPayload) {
+      _unmergeNodesById(command.payload)
+      return null
+    } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
+      return renameNodeById(command.payload)
+    } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
+      return reparentNodesById(command.payload)
+    } else {
+      throw new Error(`Received an unknown command with name ${command.payload}`)
+    }
+  }
+}
+
+const POUCHDB_EXECUTOR = new PouchDbCommandExecutor()
+
+class StoreCommandExecutor implements CommandExecutor {
+  exec(command: Command): Promise<Command> {
+    if (command.payload instanceof SplitNodeByIdCommandPayload) {
+
+    } else if (command.payload instanceof UnsplitNodeByIdCommandPayload) {
+    } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
+    } else if (command.payload instanceof UnmergeNodesByIdCommandPayload) {
+    } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
+    } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
+    } else {
+      throw new Error(`Received an unknown command with name ${command.payload}`)
+    }
+  }
+}
+
+const STORE_EXECUTOR = new StoreCommandExecutor()
+
+// Current plan:
+//  - have 2 executors: one for local repo, and one for pouchdb repo
+//  - gather their results (basically Promises of UndoCommands) and combine them (we need to undo in both places)
+//  - compose the undocommand promises with our focus handling
+//  - store actual Promises of commands in the UNDO and REDO buffers.
+//    This allos us to immediately return and to have consistently ordered
+//    UNDO and REDO buffers AND it allows us to nevertheless do things
+//    asynchronously (like if pouchdb takes a long time to complete, we will
+//    then defer waiting for that to the undo command handling)
+export function executeCommand(command: Command): void {
+  // console.log(`executing command: ${JSON.stringify(command)}`)
+  const undoCommandPromises: Array<Promise<Command>> =
+    [STORE_EXECUTOR.exec(command), POUCHDB_EXECUTOR.exec(command)]
+    .map(undoCommandPromise => undoCommandPromise.then((undoCommand) => {
+      if (command.undoable) {
+        if (command.beforeFocusNodeId) {
+          undoCommand.afterFocusNodeId = command.beforeFocusNodeId
+          undoCommand.afterFocusPos = command.beforeFocusPos
+        }
+      }
+      return undoCommand
+    }))
+  if (command.undoable) {
+    UNDO_BUFFER.push(...undoCommandPromises)
+    REDO_BUFFER.push(Promise.all(undoCommandPromises).then(() => Promise.resolve(command)))
+  }
+}
+
 // 1. rename the current node to the right hand side of the split
 // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
-function splitNodeById(nodeId: string, beforeSplitNamePart: string, afterSplitNamePart: string): Promise<Command> {
-  return repo.renameNode(nodeId, afterSplitNamePart)
-    .then((result) => repo.createSiblingBefore(beforeSplitNamePart, null, nodeId))
+function splitNodeById(cmd: SplitNodeByIdCommandPayload): Promise<Command> {
+  return repo.renameNode(cmd.nodeId, cmd.afterSplitNamePart)
+    .then((result) => repo.createSiblingBefore(cmd.beforeSplitNamePart, null, cmd.nodeId))
     .then((newSiblingRepoNode) =>
       new CommandBuilder(
-          () => _unsplitNodeById(newSiblingRepoNode._id, nodeId, beforeSplitNamePart + afterSplitNamePart))
+          () => _unsplitNodeById(
+            new UnsplitNodeByIdCommandPayload(
+              newSiblingRepoNode._id, cmd.nodeId, cmd.beforeSplitNamePart + cmd.afterSplitNamePart)))
         .requiresRender()
         .build(),
     )
 }
 
-function _unsplitNodeById(newNodeId: string, originalNodeId: string, originalName: string): Promise<void> {
-  return repo.deleteNode(newNodeId)
-    .then(() => repo.renameNode(originalNodeId, originalName))
+function _unsplitNodeById(cmd: UnsplitNodeByIdCommandPayload): Promise<void> {
+  return repo.deleteNode(cmd.newNodeId)
+    .then(() => repo.renameNode(cmd.originalNodeId, cmd.originalName))
 }
 
 // 1. rename targetnode to be targetnode.name + sourcenode.name
@@ -304,15 +317,15 @@ function _unsplitNodeById(newNodeId: string, originalNodeId: string, originalNam
 // For undo it is assumed that a merge never happens to a target node with children
 // This function will not undo the merging of the child collections (this mirrors workflowy
 // maybe we want to revisit this in the future)
-function mergeNodesById(
-    sourceNodeId: string, sourceNodeName: string, targetNodeId: string, targetNodeName: string): Promise<Command> {
-  return repo.getChildNodes(sourceNodeId, true) // TODO add flag to also get deleted nodes!
+function mergeNodesById(cmd: MergeNodesByIdCommandPayload): Promise<Command> {
+  return repo.getChildNodes(cmd.sourceNodeId, true) // TODO add flag to also get deleted nodes!
     .then(children =>
-      repo.reparentNodes(children, targetNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
-    .then(() => repo.renameNode(targetNodeId, targetNodeName + sourceNodeName))
-    .then(() => repo.deleteNode(sourceNodeId))
+      repo.reparentNodes(children, cmd.targetNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
+    .then(() => repo.renameNode(cmd.targetNodeId, cmd.targetNodeName + cmd.sourceNodeName))
+    .then(() => repo.deleteNode(cmd.sourceNodeId))
     .then(() =>
-      new CommandBuilder(() => _unmergeNodesById(sourceNodeId, targetNodeId, targetNodeName))
+      new CommandBuilder(() => _unmergeNodesById(
+          new UnmergeNodesByIdCommandPayload(cmd.sourceNodeId, cmd.targetNodeId, cmd.targetNodeName)))
         .requiresRender()
         .build(),
     )
@@ -321,18 +334,19 @@ function mergeNodesById(
 // We need dedicated "unmerge" command because when we merge, we delete a node and if we
 // want to undo that action we need to be able to "resurrect" that node so that a chain
 // of undo commands has a chance of working since they may refer to that original node's Id.
-function _unmergeNodesById(sourceNodeId: string, targetNodeId: string, targetNodeName: string): Promise<void> {
-  return repo.undeleteNode(sourceNodeId)
-    .then(() => repo.getChildNodes(targetNodeId, true))
+function _unmergeNodesById(cmd: UnmergeNodesByIdCommandPayload): Promise<void> {
+  return repo.undeleteNode(cmd.sourceNodeId)
+    .then(() => repo.getChildNodes(cmd.targetNodeId, true))
     .then(children =>
-      repo.reparentNodes(children, sourceNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
-    .then(() => repo.renameNode(targetNodeId, targetNodeName))
+      repo.reparentNodes(children, cmd.sourceNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
+    .then(() => repo.renameNode(cmd.targetNodeId, cmd.targetNodeName))
 }
 
-function renameNodeById(nodeId: string, oldName: string, newName: string): Promise<Command> {
-  return repo.renameNode(nodeId, newName)
+function renameNodeById(cmd: RenameNodeByIdCommandPayload): Promise<Command> {
+  return repo.renameNode(cmd.nodeId, cmd.newName)
     .then(() =>
-      new CommandBuilder(() => renameNodeById(nodeId, newName, oldName))
+      new CommandBuilder(() => renameNodeById(
+          new RenameNodeByIdCommandPayload(cmd.nodeId, cmd.newName, cmd.oldName)))
         .requiresRender()
         .build(),
     )
@@ -341,21 +355,17 @@ function renameNodeById(nodeId: string, oldName: string, newName: string): Promi
 // 1. set the node's parent Id to the new id
 // 2. add the node to the new parent's children
 // 3. remove the node from the old parent's children
-function reparentNodesById(
-    nodeId: string,
-    oldParentNodeId: string,
-    oldAfterNodeId: string,
-    newParentNodeId: string,
-    position: RelativeNodePosition): Promise<Command> {
-  return repo.getNode(nodeId)
-    .then(node => repo.reparentNodes([node], newParentNodeId, position))
+function reparentNodesById(cmd: ReparentNodesByIdCommandPayload): Promise<Command> {
+  return repo.getNode(cmd.nodeId)
+    .then(node => repo.reparentNodes([node], cmd.newParentNodeId, cmd.position))
     .then(() =>
       new CommandBuilder(() => reparentNodesById(
-          nodeId,
-          newParentNodeId,
-          null,
-          oldParentNodeId,
-          { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: oldAfterNodeId}))
+          new ReparentNodesByIdCommandPayload(
+            cmd.nodeId,
+            cmd.newParentNodeId,
+            null,
+            cmd.oldParentNodeId,
+            { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: cmd.oldAfterNodeId})))
         .requiresRender()
         .build(),
     )
