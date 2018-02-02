@@ -42,12 +42,20 @@ Some tools needed for the various build goals:
 ## Next Steps
 
 1. Start a new branch with the direct DOM rendering approach and alternate Command implementation that does direct dom manipulation. See performance chapter down here. Following plan:
-  - I am creating commands that don't ahve functions in them, this needs to be finised and refactored in tree-component.
+  - I am creating commands that don't have functions in them, this needs to be finised and refactored in tree-component.
   - These commands can then be executed multiple times. There needs to be a CommandExecutor for the current PouchDb backend and we need on that just modifies the local store.
   - Still to figure out: I still feel that we need a synchronous API to the tree-api that modifies the local store, and we "just" need to send off the async commands to the pouchdb thing. 
   - Also: note that we don't really need to take into account that focus and reload stuff from the couchdb backend right? Maybe that also influences the API.
   - Current state (17.1.2018) working on the command executor in tree-api, got a basic idea and classes, need to finish command dispatching, then updating the code in tree-component and then testing, also implement the local store executor!
   - State 19.1.2018: need to refactor modules (see diagram): introducing a tree manager that handles undo/redo and is the interface implementation to the actual tree component. In addition we make a CachingTreeService that is initialized with another TreeService (e.g. PouchDbTreeService) and then implements the load/initempty/getstore methods in terms of delegating to the underlying service
+  - State 2.2.2018:
+    I have split the Treeservices in 3 layers: Manager -> Caching -> PouchDb.
+    I have have decided to fully work with client side generated IDs for the nodes (UUIDs) which means that we no longer require information fromm the backing store to generate UNDO commands.
+    The logic for creating the UDO Command from a command needs to be moved to the payload (from the pouchdb implementation).
+    This means that undo commands can be generated and managed completely by the manager that also has the undo/redo stacks.
+    Then it should be possible to do the local implementation in CachingTreeService and then try to wire everything up with 
+    the component. Jezus.
+
 1. Refactor the module structure, no cyclic dependencies and remove implementations to own modules
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))

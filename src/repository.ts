@@ -64,16 +64,11 @@ export function renameNode(nodeId: string, newName: string, retryCount?: number)
     })
 }
 
-// returns a promise of a new sibling node created before the existing node
-export function createSiblingBefore(name: string, content: string, existingNodeId: string): Promise<RepositoryNode> {
-  return createSibling(name, content, existingNodeId, true)
-}
-
-function createSibling(name: string, content: string, existingNodeId: string,
-                       before: boolean): Promise<RepositoryNode> {
+export function createSibling(siblingId: string, name: string, content: string, existingNodeId: string,
+                              before: boolean): Promise<RepositoryNode> {
   return cdbLoadNode(existingNodeId, false)
     .then(sibling => {
-      return createNode(null, name, content)
+      return createNode(siblingId, name, content)
         .then(newSibling => {
           newSibling.parentref = sibling.parentref
           return cdbPutNode(newSibling)
@@ -213,11 +208,11 @@ export function createNode(id: string, name: string, content: string): Promise<R
     content,
     childrefs: [],
   }
-  if (!id) {
+/*  if (!id) {
     // in case an id was not provided we also do not want to pass this field to PouchDB,
     // apparently even if empty this is a problem
     delete node._id
-  }
+  } */
   return outlineDb.post(node)
     .then(response => {
       // console.log(`new node created with id ${response.id} and payload '${JSON.stringify(response)}'`)
