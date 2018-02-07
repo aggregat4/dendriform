@@ -16,7 +16,7 @@ import {generateUUID} from './util'
 import {RelativeLinearPosition} from './repository'
 import * as repo from './repository'
 
-class PouchDbTreeService implements TreeService {
+export class PouchDbTreeService implements TreeService {
 
   loadTree(nodeId: string): Promise<LoadedTree> {
     return repo.loadTree(nodeId)
@@ -35,19 +35,19 @@ class PouchDbTreeService implements TreeService {
       })
   }
 
-  exec(command: Command): void {
+  exec(command: Command): Promise<any> {
     if (command.payload instanceof SplitNodeByIdCommandPayload) {
-      splitNodeById(command.payload)
+      return splitNodeById(command.payload)
     } else if (command.payload instanceof UnsplitNodeByIdCommandPayload) {
-      _unsplitNodeById(command.payload)
+      return _unsplitNodeById(command.payload)
     } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
-      mergeNodesById(command.payload)
+      return mergeNodesById(command.payload)
     } else if (command.payload instanceof UnmergeNodesByIdCommandPayload) {
-      _unmergeNodesById(command.payload)
+      return _unmergeNodesById(command.payload)
     } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
-      renameNodeById(command.payload)
+      return renameNodeById(command.payload)
     } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
-      reparentNodesById(command.payload)
+      return reparentNodesById(command.payload)
     } else {
       throw new Error(`Received an unknown command with name ${command.payload}`)
     }
@@ -63,19 +63,12 @@ class PouchDbTreeService implements TreeService {
 
 // 1. rename the current node to the right hand side of the split
 // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
-function splitNodeById(cmd: SplitNodeByIdCommandPayload): Promise<Command> {
+function splitNodeById(cmd: SplitNodeByIdCommandPayload): Promise<any> {
   return repo.renameNode(cmd.nodeId, cmd.afterSplitNamePart)
     .then((result) => repo.createSibling(cmd.siblingId, cmd.beforeSplitNamePart, null, cmd.nodeId, true))
-    .then((newSiblingRepoNode) =>
-      new CommandBuilder(
-            new UnsplitNodeByIdCommandPayload(
-              cmd.siblingId, cmd.nodeId, cmd.beforeSplitNamePart + cmd.afterSplitNamePart))
-        .requiresRender()
-        .build(),
-    )
 }
 
-function _unsplitNodeById(cmd: UnsplitNodeByIdCommandPayload): Promise<void> {
+function _unsplitNodeById(cmd: UnsplitNodeByIdCommandPayload): Promise<any> {
   return repo.deleteNode(cmd.newNodeId)
     .then(() => repo.renameNode(cmd.originalNodeId, cmd.originalName))
 }
@@ -88,24 +81,18 @@ function _unsplitNodeById(cmd: UnsplitNodeByIdCommandPayload): Promise<void> {
 // For undo it is assumed that a merge never happens to a target node with children
 // This function will not undo the merging of the child collections (this mirrors workflowy
 // maybe we want to revisit this in the future)
-function mergeNodesById(cmd: MergeNodesByIdCommandPayload): Promise<Command> {
+function mergeNodesById(cmd: MergeNodesByIdCommandPayload): Promise<any> {
   return repo.getChildNodes(cmd.sourceNodeId, true) // TODO add flag to also get deleted nodes!
     .then(children =>
       repo.reparentNodes(children, cmd.targetNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
     .then(() => repo.renameNode(cmd.targetNodeId, cmd.targetNodeName + cmd.sourceNodeName))
     .then(() => repo.deleteNode(cmd.sourceNodeId))
-    .then(() =>
-      new CommandBuilder(
-        new UnmergeNodesByIdCommandPayload(cmd.sourceNodeId, cmd.targetNodeId, cmd.targetNodeName))
-          .requiresRender()
-          .build(),
-    )
 }
 
 // We need dedicated "unmerge" command because when we merge, we delete a node and if we
 // want to undo that action we need to be able to "resurrect" that node so that a chain
 // of undo commands has a chance of working since they may refer to that original node's Id.
-function _unmergeNodesById(cmd: UnmergeNodesByIdCommandPayload): Promise<void> {
+function _unmergeNodesById(cmd: UnmergeNodesByIdCommandPayload): Promise<any> {
   return repo.undeleteNode(cmd.sourceNodeId)
     .then(() => repo.getChildNodes(cmd.targetNodeId, true))
     .then(children =>
@@ -113,32 +100,14 @@ function _unmergeNodesById(cmd: UnmergeNodesByIdCommandPayload): Promise<void> {
     .then(() => repo.renameNode(cmd.targetNodeId, cmd.targetNodeName))
 }
 
-function renameNodeById(cmd: RenameNodeByIdCommandPayload): Promise<Command> {
+function renameNodeById(cmd: RenameNodeByIdCommandPayload): Promise<any> {
   return repo.renameNode(cmd.nodeId, cmd.newName)
-    .then(() =>
-      new CommandBuilder(
-        new RenameNodeByIdCommandPayload(cmd.nodeId, cmd.newName, cmd.oldName))
-          .requiresRender()
-          .build(),
-    )
 }
 
 // 1. set the node's parent Id to the new id
 // 2. add the node to the new parent's children
 // 3. remove the node from the old parent's children
-function reparentNodesById(cmd: ReparentNodesByIdCommandPayload): Promise<Command> {
+function reparentNodesById(cmd: ReparentNodesByIdCommandPayload): Promise<any> {
   return repo.getNode(cmd.nodeId)
     .then(node => repo.reparentNodes([node], cmd.newParentNodeId, cmd.position))
-    .then(() =>
-      new CommandBuilder(
-        new ReparentNodesByIdCommandPayload(
-          cmd.nodeId,
-          cmd.newParentNodeId,
-          null,
-          cmd.oldParentNodeId,
-          { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: cmd.oldAfterNodeId}),
-        )
-          .requiresRender()
-          .build(),
-    )
 }

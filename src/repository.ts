@@ -4,12 +4,12 @@ const outlineDb: any = new PouchDB('outlineDB')
 
 export interface RepositoryNode {
   _id: string,
-  _rev: string,
+  _rev?: string,
   name: string,
   content: string,
   childrefs: string[],
   parentref: string,
-  deleted: boolean
+  deleted?: boolean
 }
 
 export interface ResolvedRepositoryNode {

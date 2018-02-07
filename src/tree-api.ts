@@ -20,12 +20,13 @@ export interface LoadedTree {
 }
 
 export interface TreeService {
-  loadTree: (nodeId: string) => Promise<LoadedTree>,
-  exec: (command: Command) => void,
+  loadTree(nodeId: string): Promise<LoadedTree>,
+  exec(command: Command): Promise<any>,
 }
 
 interface CommandPayload {
   name: string,
+  inverse(): CommandPayload,
 }
 
 export class Command {
@@ -113,49 +114,75 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
     readonly beforeSplitNamePart: string,
     readonly afterSplitNamePart: string,
   ) {}
+
+  inverse() {
+    return new UnsplitNodeByIdCommandPayload(
+      this.siblingId, this.nodeId, this.beforeSplitNamePart + this.afterSplitNamePart)
+  }
 }
 
 // Private use only, for undo
 export class UnsplitNodeByIdCommandPayload implements CommandPayload {
   readonly name = 'unsplitNodeById'
+
   constructor(
     readonly newNodeId: string,
     readonly originalNodeId: string,
     readonly originalName: string,
   ) {}
+
+  inverse(): CommandPayload {
+    return null
+  }
 }
 
 export class MergeNodesByIdCommandPayload implements CommandPayload {
   readonly name = 'mergeNodesById'
+
   constructor(
     readonly sourceNodeId: string,
     readonly sourceNodeName: string,
     readonly targetNodeId: string,
     readonly targetNodeName: string,
   ) {}
+
+  inverse(): CommandPayload {
+    return new UnmergeNodesByIdCommandPayload(this.sourceNodeId, this.targetNodeId, this.targetNodeName)
+  }
 }
 
 // Private use only, for undo
 export class UnmergeNodesByIdCommandPayload implements CommandPayload {
   readonly name = 'unmergeNodesById'
+
   constructor(
     readonly sourceNodeId: string,
     readonly targetNodeId: string,
     readonly targetNodeName: string,
   ) {}
+
+  inverse(): CommandPayload {
+    return null
+  }
 }
 
 export class RenameNodeByIdCommandPayload implements CommandPayload {
   readonly name = 'renameNodeById'
+
   constructor(
     readonly nodeId: string,
     readonly oldName: string,
     readonly newName: string,
   ) {}
+
+  inverse() {
+    return new RenameNodeByIdCommandPayload(this.nodeId, this.newName, this.oldName)
+  }
 }
 
 export class ReparentNodesByIdCommandPayload implements CommandPayload {
   readonly name = 'reparentNodesById'
+
   constructor(
     readonly nodeId: string,
     readonly oldParentNodeId: string,
@@ -163,4 +190,14 @@ export class ReparentNodesByIdCommandPayload implements CommandPayload {
     readonly newParentNodeId: string,
     readonly position: RelativeNodePosition,
   ) {}
+
+  inverse() {
+    return new ReparentNodesByIdCommandPayload(
+      this.nodeId,
+      this.newParentNodeId,
+      null,
+      this.oldParentNodeId,
+      { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: this.oldAfterNodeId},
+    )
+  }
 }

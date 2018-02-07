@@ -1,36 +1,47 @@
-import {Command} from './tree-api'
+import {Command, CommandBuilder, TreeService, LoadedTree} from './tree-api'
+import {CachingTreeService} from './tree-service-local'
+import {PouchDbTreeService} from './tree-service-pouchdb'
 
-const UNDO_BUFFER: Array<Promise<Command>> = []
-const REDO_BUFFER: Array<Promise<Command>> = []
+export class UndoableTreeService implements TreeService {
+  readonly undoBuffer: Array<Promise<Command>> = []
+  readonly redoBuffer: Array<Promise<Command>> = []
 
-export function popLastUndoCommand(): Promise<Command> {
-  return UNDO_BUFFER.pop()
-}
+  readonly wrappedTreeService = new CachingTreeService(new PouchDbTreeService())
 
-// Current plan:
-//  - have 2 executors: one for local repo, and one for pouchdb repo
-//  - gather their results (basically Promises of UndoCommands) and combine them (we need to undo in both places)
-//  - compose the undocommand promises with our focus handling
-//  - store actual Promises of commands in the UNDO and REDO buffers.
-//    This allos us to immediately return and to have consistently ordered
-//    UNDO and REDO buffers AND it allows us to nevertheless do things
-//    asynchronously (like if pouchdb takes a long time to complete, we will
-//    then defer waiting for that to the undo command handling)
-export function executeCommand(command: Command): void {
-  // console.log(`executing command: ${JSON.stringify(command)}`)
-  const undoCommandPromises: Array<Promise<Command>> =
-    [STORE_EXECUTOR.exec(command), POUCHDB_EXECUTOR.exec(command)]
-    .map(undoCommandPromise => undoCommandPromise.then((undoCommand) => {
-      if (command.undoable) {
-        if (command.beforeFocusNodeId) {
-          undoCommand.afterFocusNodeId = command.beforeFocusNodeId
-          undoCommand.afterFocusPos = command.beforeFocusPos
+  popUndoCommand(): Promise<Command> {
+    return this.undoBuffer.pop()
+  }
+
+  getCachedTree(): LoadedTree {
+    return this.wrappedTreeService.getCachedTree()
+  }
+
+  loadTree(nodeId: string): Promise<LoadedTree> {
+    return this.wrappedTreeService.loadTree(nodeId)
+  }
+
+  // Store actual Promises of commands in the UNDO and REDO buffers.
+  //    This allows us to immediately return and to have consistently ordered
+  //    UNDO and REDO buffers AND it allows us to nevertheless do things
+  //    asynchronously (like if pouchdb takes a long time to complete, we will
+  //    then defer waiting for that to the undo command handling)
+  exec(command: Command): Promise<any> {
+    // console.log(`executing command: ${JSON.stringify(command)}`)
+    const undoCommandPromise = this.wrappedTreeService.exec(command)
+      .then(() => {
+        if (command.undoable) {
+          const undoCommand = new CommandBuilder(command.payload).requiresRender().build()
+          if (command.beforeFocusNodeId) {
+            undoCommand.afterFocusNodeId = command.beforeFocusNodeId
+            undoCommand.afterFocusPos = command.beforeFocusPos
+          }
+          return undoCommand
         }
-      }
-      return undoCommand
-    }))
-  if (command.undoable) {
-    UNDO_BUFFER.push(...undoCommandPromises)
-    REDO_BUFFER.push(Promise.all(undoCommandPromises).then(() => Promise.resolve(command)))
+      })
+    if (command.undoable) {
+      this.undoBuffer.push(undoCommandPromise)
+      this.redoBuffer.push(undoCommandPromise.then(() => Promise.resolve(command)))
+    }
+    return undoCommandPromise
   }
 }
