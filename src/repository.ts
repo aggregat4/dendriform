@@ -30,6 +30,7 @@ export interface RelativeNodePosition {
 export interface Repository {
   cdbCreateNode(id: string, name: string, content: string): Promise<RepositoryNode>
   cdbPutNode(node: RepositoryNode, retryCount?: number): Promise<void>
+  cdbSaveAll(nodes: RepositoryNode[]): Promise<void>
   cdbLoadNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode>
   cdbLoadChildren(node: RepositoryNode, includeDeleted: boolean): Promise<RepositoryNode[]>
   cdbLoadTree(node: RepositoryNode): Promise<ResolvedRepositoryNode>
@@ -39,8 +40,6 @@ export interface Repository {
 export class PouchDbRepository implements Repository {
   private readonly outlineDb: any = new PouchDB('outlineDB')
 
-  // TODO: consider if I really want to allow providing the ID here, this is actually only
-  // ok for the root node, perhaps we need a dedicated function for that?
   cdbCreateNode(id: string, name: string, content: string): Promise<RepositoryNode> {
     const node = {
       _id: id,
@@ -74,6 +73,10 @@ export class PouchDbRepository implements Repository {
           this.cdbPutNode(node, retries + 1)
         }
       })
+  }
+
+  cdbSaveAll(nodes: RepositoryNode[]): Promise<void> {
+    return this.outlineDb.bulkDocs(nodes)
   }
 
   // returns a promise of a node, you can determine whether to include deleted or not

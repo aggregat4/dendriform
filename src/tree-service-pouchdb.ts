@@ -226,7 +226,7 @@ function reparentNodes(children: RepositoryNode[], newParentId: string,
       deleted: !!oldParentNode.deleted,
     }))
     // 2.a. Hang the children under their new parent by updating their parent refs
-    .then(oldParentUpdateResult => outlineDb.bulkDocs(reparentedChildren))
+    .then(oldParentUpdateResult => this.repo.cdbSaveAll(reparentedChildren))
     // 2.b. and by adding them to the childrefs of the new parent
     .then(bulkUpdateChildrenResult => this.repo.cdbLoadNode(newParentId, false))
     .then(newParentNode => this.repo.cdbPutNode({
