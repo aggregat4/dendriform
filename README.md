@@ -55,7 +55,21 @@ Some tools needed for the various build goals:
     This means that undo commands can be generated and managed completely by the manager that also has the undo/redo stacks.
     Then it should be possible to do the local implementation in CachingTreeService and then try to wire everything up with 
     the component. Jezus.
-
+  - State 14.2.2018
+    As I was implementing the local tree service it was obvious that all implementations were identical to the ones
+    for the pouchdb service, module the async with the promises. This indicated to me that the difference between local
+    and pouchdb exists at the Repository level: there are some basic functions like create/save/delete/.. that are platform
+    specific, but because of the generic data model that I have that is the ONLY level. All higher level functions can be
+    reused (probably).
+    So current state: moved reusable functions into PouchDbTreeService, which will have to become a "normal" TreeService and
+    "just" get its repository implementation injected.
+    Need to create a Local Repository impl
+    Need to deal with the loadTree conundrum, this was a reason for not further abstracting before this. My solution may simple be to ALSO add an "initTree(tree)" to the Repository API so that a repo can either be asked to load the entire
+    tree from storage OR to just take an existing tree and use that. At a first go I could just throw an error when calling
+    this on PouchDb. It is then up to the caching TreeService implementation to cleverly decide where it will load and where it will init. This makes way more sense.
+    <sigh>
+    It seems like a lot of wrong tracks to find the correct abstraction, but perhaps that's normal?
+    Also: I am starting to think that our performance problem may not be the storage, but rather just the VDOM rendering, if that is the case I may need to refactor the frontend as well, and that may be nasty and a lot of work, and the local tree storage may have been in vain... At least I had some interesting insights because of the UNDO/REDO work and now that we moved UMDO command creation INTO the commands, it feels much better. But also only possible because of client side ID generation!
 1. Refactor the module structure, no cyclic dependencies and remove implementations to own modules
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
