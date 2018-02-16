@@ -7,6 +7,7 @@ import {
   getTextBeforeCursor,
   getTextAfterCursor,
   debounce,
+  generateUUID,
 } from './util'
 import {
   findPreviousNameNode,
@@ -21,23 +22,19 @@ import {
 import {
   Status,
   State,
-  Store,
-  getStore,
   RepositoryNode,
   ResolvedRepositoryNode,
-  initializeEmptyTree,
-  loadTree,
   Command,
   CommandBuilder,
-  executeCommand,
-  popLastUndoCommand,
-  buildSplitNodeByIdCommand,
-  buildRenameNodeByIdCommand,
-  buildMergeNodesByIdCommand,
-  buildReparentNodesByIdCommand,
+  TreeService,
   RelativeNodePosition,
   RelativeLinearPosition,
+  SplitNodeByIdCommandPayload,
+  RenameNodeByIdCommandPayload,
+  MergeNodesByIdCommandPayload,
+  ReparentNodesByIdCommandPayload,
 } from './tree-api'
+import {UndoableTreeService} from './tree-manager'
 
 interface TransientState {
   focusNodeId: string,
@@ -58,6 +55,8 @@ const transientState: TransientState = {
   focusNodePreviousPos: -1,
   treeHasBeenNavigatedTo: false,
 }
+
+const treeService = new UndoableTreeService()
 
 // We need to support UNDO when activated anywhere in the document
 document.addEventListener('keydown', globalKeyDownHandler)
@@ -182,7 +181,8 @@ function nameInputHandler(event: Event): void {
   transientState.focusNodePreviousName = newName
   transientState.focusNodePreviousPos = getCursorPos()
   exec(
-    buildRenameNodeByIdCommand(nodeId, oldName, newName)
+    new CommandBuilder(
+      new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
       .isUndoable()
       .withBeforeFocusNodeId(beforeFocusNodeId)
       .withBeforeFocusPos(beforeFocusPos)
@@ -200,11 +200,12 @@ function nameKeypressHandler(event: KeyboardEvent): void {
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     exec(
-      buildSplitNodeByIdCommand(nodeId, beforeSplitNamePart, afterSplitNamePart)
-        .isUndoable()
-        .requiresRender()
-        .withAfterFocusNodeId(nodeId)
-        .build(),
+      new CommandBuilder(
+        new SplitNodeByIdCommandPayload(generateUUID(), nodeId, beforeSplitNamePart, afterSplitNamePart))
+          .isUndoable()
+          .requiresRender()
+          .withAfterFocusNodeId(nodeId)
+          .build(),
     )
   }
 }
@@ -334,11 +335,15 @@ function moveNodeUp(nodeElement: Element): void {
 function globalKeyDownHandler(event: KeyboardEvent): void {
   if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z, so trigger UNDO
     event.preventDefault()
-    const undoCommand = popLastUndoCommand()
-    if (undoCommand) {
-      exec(undoCommand)
-    }
-  } // TODO: REDO Handling!!
+    const undoCommandPromise = treeService.popUndoCommand()
+    if (undoCommandPromise) {
+      undoCommandPromise.then((command) => {
+        if (command) {
+          exec(command)
+        }
+      })
+    } // TODO: REDO Handling!!
+  }
 }
 
 // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
@@ -352,12 +357,13 @@ function mergeNodes(sourceNode: Element, targetNode: Element): void {
   const targetNodeId = getNodeId(targetNode)
   const targetNodeName = getNodeName(targetNode)
   exec(
-    buildMergeNodesByIdCommand(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName)
-      .isUndoable()
-      .requiresRender()
-      .withAfterFocusNodeId(targetNodeId)
-      .withAfterFocusPos(Math.max(0, targetNodeName.length))
-      .build(),
+    new CommandBuilder(
+      new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
+        .isUndoable()
+        .requiresRender()
+        .withAfterFocusNodeId(targetNodeId)
+        .withAfterFocusPos(Math.max(0, targetNodeName.length))
+        .build(),
   )
 }
 
@@ -376,12 +382,13 @@ function reparentNodeAt(node: Element, cursorPos: number, oldParentNode: Element
     nodeId: relativeNode ? getNodeId(relativeNode) : null,
   }
   exec(
-    buildReparentNodesByIdCommand(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position)
-      .requiresRender()
-      .withAfterFocusNodeId(nodeId)
-      .withAfterFocusPos(cursorPos)
-      .isUndoable()
-      .build(),
+    new CommandBuilder(
+      new ReparentNodesByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
+        .requiresRender()
+        .withAfterFocusNodeId(nodeId)
+        .withAfterFocusPos(cursorPos)
+        .isUndoable()
+        .build(),
   )
 }
 

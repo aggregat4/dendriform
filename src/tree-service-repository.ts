@@ -1,8 +1,5 @@
 import {
   TreeService,
-  LoadedTree,
-  State,
-  Status,
   Command,
   CommandBuilder,
   SplitNodeByIdCommandPayload,
@@ -19,28 +16,27 @@ import {
   ResolvedRepositoryNode,
   RelativeNodePosition,
   Repository,
-  PouchDbRepository,
+  LoadedTree,
+  State,
+  Status,
 } from './repository'
 
-export class PouchDbTreeService implements TreeService {
-  // TODO: make this injectable as soon as this service is just a generic tree service with a configurable repo
-  private readonly repo: Repository = new PouchDbRepository()
+export class RepositoryTreeService implements TreeService {
+  constructor(readonly repo: Repository) {}
 
   loadTree(nodeId: string): Promise<LoadedTree> {
-    return loadTree(nodeId)
+    return loadTreeByRootId(nodeId)
       .then((tree) => {
-        return Promise.resolve({ status: { state: State.LOADED }, tree })
-      })
-      .catch((reason) => {
-        if (reason.status === 404 && nodeId === 'ROOT') {
-          // When the root node was requested but could not be found, initialize the tree with a minimal structure
-          return this.initializeEmptyTree().then(() => this.loadTree(nodeId))
-        } else if (reason.status === 404) {
-          return Promise.resolve({ status: { state: State.NOT_FOUND } })
+        if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
+          return this.initializeEmptyTree().then(() => loadTreeByRootId(nodeId))
         } else {
-          return Promise.resolve({ status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } })
+          return tree
         }
       })
+  }
+
+  initTree(node: ResolvedRepositoryNode): void {
+    this.repo.cdbInitTree(node)
   }
 
   exec(command: Command): Promise<any> {
@@ -124,7 +120,7 @@ function reparentNodesById(cmd: ReparentNodesByIdCommandPayload): Promise<any> {
 // ----- Former Repository Functions that are reusable and more high level -----
 // -----------------------------------------------------------------------------
 
-function loadTree(rootId: string): Promise<ResolvedRepositoryNode> {
+function loadTreeByRootId(rootId: string): Promise<LoadedTree> {
   return this.repo.cdbLoadNode(rootId, false).then(root => this.repo.cdbLoadTree(root))
 }
 

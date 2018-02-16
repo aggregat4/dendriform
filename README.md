@@ -70,6 +70,10 @@ Some tools needed for the various build goals:
     <sigh>
     It seems like a lot of wrong tracks to find the correct abstraction, but perhaps that's normal?
     Also: I am starting to think that our performance problem may not be the storage, but rather just the VDOM rendering, if that is the case I may need to refactor the frontend as well, and that may be nasty and a lot of work, and the local tree storage may have been in vain... At least I had some interesting insights because of the UNDO/REDO work and now that we moved UMDO command creation INTO the commands, it feels much better. But also only possible because of client side ID generation!
+  - State 16.2.2018
+    Done most of the refactoring, I've arrived back at the frontend and need to fix 2 remaining things in the tree.component:
+    - Does it have an internal cache of the tree for rerendering purposes? If so, where and how is it managed? Does it get it from the UndoableTreeService?
+    - I'm a bit flummoxed by the exec() in tree-component and am wondering where the focus information there should be coming from. Perhaps I need to review the master branch to see where this was.
 1. Refactor the module structure, no cyclic dependencies and remove implementations to own modules
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))

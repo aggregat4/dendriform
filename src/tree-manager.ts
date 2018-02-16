@@ -1,23 +1,39 @@
-import {Command, CommandBuilder, TreeService, LoadedTree} from './tree-api'
-import {CachingTreeService} from './tree-service-local'
-import {PouchDbTreeService} from './tree-service-pouchdb'
+import {Command, CommandBuilder, TreeService} from './tree-api'
+import {RepositoryTreeService} from './tree-service-repository'
+import {InMemoryRepository} from './repository-inmemory'
+import {PouchDbRepository} from './repository-pouchdb'
+import {State, ResolvedRepositoryNode, LoadedTree} from 'src/repository'
 
 export class UndoableTreeService implements TreeService {
   readonly undoBuffer: Array<Promise<Command>> = []
   readonly redoBuffer: Array<Promise<Command>> = []
 
-  readonly wrappedTreeService = new CachingTreeService(new PouchDbTreeService())
+  readonly cachingTreeService = new RepositoryTreeService(new InMemoryRepository())
+  readonly pouchDbTreeService = new RepositoryTreeService(new PouchDbRepository())
 
   popUndoCommand(): Promise<Command> {
     return this.undoBuffer.pop()
   }
 
-  getCachedTree(): LoadedTree {
-    return this.wrappedTreeService.getCachedTree()
-  }
+  // getCachedTree(): Promise<LoadedTree> {
+  //   return this.cachingTreeService.loadTree()
+  // }
 
   loadTree(nodeId: string): Promise<LoadedTree> {
-    return this.wrappedTreeService.loadTree(nodeId)
+    return this.pouchDbTreeService.loadTree(nodeId)
+      .then((tree) => {
+        if (tree.status.state === State.LOADED) {
+          this.cachingTreeService.initTree(tree.tree)
+        }
+        // TODO: this may be slightly wrong, we are initialising the in memory tree
+        // only if we could successfully load the actual tree, in the other cases
+        // it has an undefined state, should probably clear it then...
+        return tree
+      })
+  }
+
+  initTree(node: ResolvedRepositoryNode): void {
+    throw new Error('Method not implemented.')
   }
 
   // Store actual Promises of commands in the UNDO and REDO buffers.
@@ -27,10 +43,11 @@ export class UndoableTreeService implements TreeService {
   //    then defer waiting for that to the undo command handling)
   exec(command: Command): Promise<any> {
     // console.log(`executing command: ${JSON.stringify(command)}`)
-    const undoCommandPromise = this.wrappedTreeService.exec(command)
+    const undoCommandPromise = this.cachingTreeService.exec(command)
+      .then(() => this.pouchDbTreeService.exec(command))
       .then(() => {
         if (command.undoable) {
-          const undoCommand = new CommandBuilder(command.payload).requiresRender().build()
+          const undoCommand = new CommandBuilder(command.payload.inverse()).requiresRender().build()
           if (command.beforeFocusNodeId) {
             undoCommand.afterFocusNodeId = command.beforeFocusNodeId
             undoCommand.afterFocusPos = command.beforeFocusPos

@@ -1,26 +1,10 @@
-import {ResolvedRepositoryNode, RelativeNodePosition, RelativeLinearPosition} from './repository'
+import {ResolvedRepositoryNode, RelativeNodePosition, RelativeLinearPosition, LoadedTree} from './repository'
 // Re-exporting the RepositoryNode types because they need to be used by consumers of this API
-export {RepositoryNode, ResolvedRepositoryNode, RelativeLinearPosition, RelativeNodePosition} from './repository'
-
-export enum State {
-  LOADING,
-  LOADED,
-  ERROR,
-  NOT_FOUND,
-}
-
-export interface Status {
-  state: State
-  msg?: string
-}
-
-export interface LoadedTree {
-  status: Status
-  tree?: ResolvedRepositoryNode
-}
+export {Status, State, RepositoryNode, ResolvedRepositoryNode, RelativeLinearPosition, RelativeNodePosition} from './repository'
 
 export interface TreeService {
   loadTree(nodeId: string): Promise<LoadedTree>,
+  initTree(node: ResolvedRepositoryNode): void,
   exec(command: Command): Promise<any>,
 }
 
