@@ -58,6 +58,13 @@ export class PouchDbRepository implements Repository {
         return node
       }
     })
+    .catch((reason) => {
+      // TODO: not sure this is the way, there is no Maybe/Optional in Typescript and I
+      // shy away from a custom Error class for this kind of thing
+      if (reason.status === 404) {
+        return Promise.resolve(null)
+      }
+    })
   }
 
   // returns a promise of an array of nodes that are NOT deleted

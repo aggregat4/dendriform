@@ -74,6 +74,9 @@ Some tools needed for the various build goals:
     Done most of the refactoring, I've arrived back at the frontend and need to fix 2 remaining things in the tree.component:
     - Does it have an internal cache of the tree for rerendering purposes? If so, where and how is it managed? Does it get it from the UndoableTreeService?
     - I'm a bit flummoxed by the exec() in tree-component and am wondering where the focus information there should be coming from. Perhaps I need to review the master branch to see where this was.
+  - State 23.2.2018
+    I got everything more or less wired up, all compile errors gone and was testing the new tree. Turns out the inmemory nodes after splitting were not appearing. Turns out our in memory repository was working with ResolvedRepositoryNodes and if we add a new child to a normal RepositoryNode its childrefs were updated, but not the actual list of ResolvedRepositoryNode children. Now I'm refactoring the inmemory repo to use just RepositoryNodes and then construct ResolvedRespositoryNodes at the last possible moment. Basically only when loading the tree. Now of course this will make loading way slower since we need to construct every time and it may turn out this may kill us in the perf department again.
+    I have a feeling that I will have to move towards direct DOM rendering in the end, keep the state in the dom, as well as in the repos, and then this whole in memory thing will probably have been for naught. Oh well.
 1. Refactor the module structure, no cyclic dependencies and remove implementations to own modules
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))

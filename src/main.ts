@@ -26,7 +26,7 @@ function justReload(): void {
 
 function reload(hasNavigated): void {
   treecomponent.load(getRequestedNodeId(), !!hasNavigated)
-    .then(status => {
+    .then(() => {
       // tslint:disable-next-line:no-console
       console.log(`Tree was loaded`)
       projector.scheduleRender()

@@ -1,6 +1,13 @@
 import {ResolvedRepositoryNode, RelativeNodePosition, RelativeLinearPosition, LoadedTree} from './repository'
 // Re-exporting the RepositoryNode types because they need to be used by consumers of this API
-export {Status, State, RepositoryNode, ResolvedRepositoryNode, RelativeLinearPosition, RelativeNodePosition} from './repository'
+export {
+  Status,
+  State,
+  RepositoryNode,
+  ResolvedRepositoryNode,
+  RelativeLinearPosition,
+  RelativeNodePosition,
+} from './repository'
 
 export interface TreeService {
   loadTree(nodeId: string): Promise<LoadedTree>,

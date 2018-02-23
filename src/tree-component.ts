@@ -35,6 +35,7 @@ import {
   ReparentNodesByIdCommandPayload,
 } from './tree-api'
 import {UndoableTreeService} from './tree-manager'
+import {LoadedTree} from './repository'
 
 interface TransientState {
   focusNodeId: string,
@@ -57,6 +58,9 @@ const transientState: TransientState = {
 }
 
 const treeService = new UndoableTreeService()
+// This is a reference to the currently loaded tree, it is saved so that
+// the async vdom render call can get to the current tree
+let currentTree: LoadedTree = {status: {state: State.LOADING}}
 
 // We need to support UNDO when activated anywhere in the document
 document.addEventListener('keydown', globalKeyDownHandler)
@@ -65,22 +69,25 @@ document.addEventListener('keydown', globalKeyDownHandler)
 document.addEventListener('selectionchange', selectionChangeHandler)
 
 // TODO: make sure this is ONLY navigation! and refactor signature
-export function load(nodeId: string, isNavigation: boolean): Promise<Status> {
+export function load(nodeId: string, isNavigation: boolean): Promise<void> {
   transientState.treeHasBeenNavigatedTo = !!isNavigation
-  return loadTree(nodeId)
+  return treeService.loadTree(nodeId)
+    .then(tree => {
+      currentTree = tree
+    })
 }
 
 // Virtual DOM nodes need a common parent, otherwise maquette will complain, that's
 // one reason why we have the toplevel div.tree
 export function render(): VNode {
-  return h('div.tree', renderTree(getStore()))
+  return h('div.tree', renderTree(currentTree))
 }
 
-function renderTree(store: Store): VNode[] {
-  switch (store.status.state) {
-    case State.ERROR:   return [h('div.error', [`Can not load tree from backing store: ${store.status.msg}`])]
+function renderTree(tree: LoadedTree): VNode[] {
+  switch (tree.status.state) {
+    case State.ERROR:   return [h('div.error', [`Can not load tree from backing store: ${tree.status.msg}`])]
     case State.LOADING: return [h('div', [`Loading tree...`])]
-    case State.LOADED:  return [renderNode(store.tree, true)]
+    case State.LOADED:  return [renderNode(tree.tree, true)]
     default:            return [h('div.error', [`Tree is in an unknown state`])]
   }
 }
@@ -101,7 +108,6 @@ function renderNode(resolvedNode: ResolvedRepositoryNode, first: boolean): VNode
   }
   // set focus to the first element of the tree if we have not already requested focus for something else
   if (transientState.treeHasBeenNavigatedTo && !transientState.focusNodeId && !isRoot(resolvedNode.node)) {
-    // TODO: continue from here!! this is stealing focus?
     // tslint:disable-next-line:no-console
     console.log(`requesting focus from navigation event main node`)
     requestFocusOnNodeAtChar(resolvedNode.node._id, -1)
@@ -399,11 +405,11 @@ function requestFocusOnNodeAtChar(nodeId: string, charPos: number): void {
 }
 
 function exec(command: Command): void {
-  executeCommand(command).then(result => {
-    if (result.focusNodeId) {
-      requestFocusOnNodeAtChar(result.focusNodeId, result.focusPos)
+  treeService.exec(command).then(() => {
+    if (command.afterFocusNodeId) {
+      requestFocusOnNodeAtChar(command.afterFocusNodeId, command.afterFocusPos)
     }
-    if (result.renderRequired) {
+    if (command.renderRequired) {
       triggerTreeReload()
     }
   })

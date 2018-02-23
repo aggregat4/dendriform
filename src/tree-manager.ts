@@ -2,34 +2,39 @@ import {Command, CommandBuilder, TreeService} from './tree-api'
 import {RepositoryTreeService} from './tree-service-repository'
 import {InMemoryRepository} from './repository-inmemory'
 import {PouchDbRepository} from './repository-pouchdb'
-import {State, ResolvedRepositoryNode, LoadedTree} from 'src/repository'
+import {State, ResolvedRepositoryNode, LoadedTree} from './repository'
+import {RepositoryService} from './repository-service'
 
 export class UndoableTreeService implements TreeService {
   readonly undoBuffer: Array<Promise<Command>> = []
   readonly redoBuffer: Array<Promise<Command>> = []
 
-  readonly cachingTreeService = new RepositoryTreeService(new InMemoryRepository())
-  readonly pouchDbTreeService = new RepositoryTreeService(new PouchDbRepository())
+  readonly cachingTreeService = new RepositoryTreeService(new RepositoryService(new InMemoryRepository()))
+  readonly pouchDbTreeService = new RepositoryTreeService(new RepositoryService(new PouchDbRepository()))
+
+  private currentRootNode: string = null
 
   popUndoCommand(): Promise<Command> {
     return this.undoBuffer.pop()
   }
 
-  // getCachedTree(): Promise<LoadedTree> {
-  //   return this.cachingTreeService.loadTree()
-  // }
-
   loadTree(nodeId: string): Promise<LoadedTree> {
-    return this.pouchDbTreeService.loadTree(nodeId)
-      .then((tree) => {
-        if (tree.status.state === State.LOADED) {
-          this.cachingTreeService.initTree(tree.tree)
-        }
-        // TODO: this may be slightly wrong, we are initialising the in memory tree
-        // only if we could successfully load the actual tree, in the other cases
-        // it has an undefined state, should probably clear it then...
-        return tree
-      })
+    // this is our implicit caching here: when the node was already loaded, just return it
+    if (this.currentRootNode && this.currentRootNode === nodeId) {
+      return this.cachingTreeService.loadTree(nodeId)
+    } else {
+      return this.pouchDbTreeService.loadTree(nodeId)
+        .then((tree) => {
+          if (tree.status.state === State.LOADED) {
+            this.cachingTreeService.initTree(tree.tree)
+          }
+          this.currentRootNode = nodeId
+          // TODO: this may be slightly wrong, we are initialising the in memory tree
+          // only if we could successfully load the actual tree, in the other cases
+          // it has an undefined state, should probably clear it then...
+          return tree
+        })
+    }
   }
 
   initTree(node: ResolvedRepositoryNode): void {
