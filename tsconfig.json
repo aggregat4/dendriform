@@ -6,7 +6,8 @@
     "paths": {
       // TS could not resolve these modules, this is from the https://www.typescriptlang.org/docs/handbook/module-resolution.html page under Path mapping
       "maquette": ["node_modules/maquette/dist/index"],
-      "pouchdb-browser": ["node_modules/pouchdb-browser/lib/index"]
+      "pouchdb-browser": ["node_modules/pouchdb-browser/lib/index"],
+      "redom": ["node_modules/redom/dist/redom"]
     }
   }
 }

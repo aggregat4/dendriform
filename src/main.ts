@@ -1,12 +1,69 @@
-import {createProjector} from 'maquette'
 import {getHashValue} from './util'
-import * as treecomponent from './tree-component'
+import {el, mount} from 'redom'
+import {State, Status, ResolvedRepositoryNode, RepositoryNode, LoadedTree} from './tree-api'
+import { UndoableTreeService } from './tree-manager'
 
-const projector = createProjector()
+const treeService = new UndoableTreeService()
+
+function getRequestedNodeId() {
+  return getHashValue('node') || 'ROOT'
+}
+
+class Tree {
+  private el
+  private error
+  private root
+
+  constructor(tree: LoadedTree) {
+    this.el = el('div.tree',
+      tree.status.state === State.ERROR
+        && (this.error = el('div.error', `Can not load tree from backing store: ${tree.status.msg}`)),
+      tree.status.state === State.LOADING
+        && (this.error = el('div.error', `Loading tree...`)),
+      tree.status.state === State.LOADED
+        && (this.root = new TreeNode(tree.tree, true)),
+    )
+  }
+}
+
+function isRoot(node: RepositoryNode): boolean {
+  return node._id === 'ROOT'
+}
+
+function genClass(node: ResolvedRepositoryNode, isFirst: boolean): string {
+  return 'node' + (isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '')
+}
+
+class TreeNode {
+  private el
+
+  constructor(treeNode: ResolvedRepositoryNode, first: boolean) {
+    this.el = el('div', {class: genClass(treeNode, first)},
+      el('a', { href: `#node=${treeNode.node._id}` }, '*'),
+      el('div.name', treeNode.node.name),
+    )
+  }
+}
+
+const sample1 = {status: {state: State.LOADING}}
+
+const sample2 = 
+
+const treeComponent = new Tree(sample1)
+
+document.addEventListener('DOMContentLoaded', () => {
+  mount(document.body, treeComponent)
+})
+
+/*
+
+import * as treecomponent from './tree-component'
 
 function getRequestedNodeId(): string {
   return getHashValue('node') || 'ROOT'
 }
+
+const projector = createProjector()
 
 // Initially trigger a load of the store (async) so we have something to display ASAP
 navigateAndReload()
@@ -40,3 +97,4 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('#treething'),
     treecomponent.render)
 })
+*/

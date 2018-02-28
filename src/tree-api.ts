@@ -7,6 +7,7 @@ export {
   ResolvedRepositoryNode,
   RelativeLinearPosition,
   RelativeNodePosition,
+  LoadedTree,
 } from './repository'
 
 export interface TreeService {
