@@ -21,6 +21,8 @@ export class UndoableTreeService implements TreeService {
   loadTree(nodeId: string): Promise<LoadedTree> {
     // this is our implicit caching here: when the node was already loaded, just return it
     if (this.currentRootNode && this.currentRootNode === nodeId) {
+      // tslint:disable-next-line:no-console
+      console.log('implicit caching')
       return this.cachingTreeService.loadTree(nodeId)
     } else {
       return this.pouchDbTreeService.loadTree(nodeId)
