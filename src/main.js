@@ -18,9 +18,17 @@ class Tree {
   }
 }
 
+function isRoot(node: RepositoryNode): boolean {
+  return node._id === 'ROOT'
+}
+
+function genClass(node: ResolvedRepositoryNode, isFirst: boolean): string {
+  return 'node' + (isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '')
+}
+
 class TreeNode {
   constructor(treeNode) {
-    
+    this.el = el('div')
   }
 }
 

@@ -19,8 +19,12 @@ import {
   Status,
 } from './repository'
 import {RepositoryService} from './repository-service'
+import PQueue from 'p-queue'
 
 export class RepositoryTreeService implements TreeService {
+  private queue = new PQueue({concurrency: 1})
+  private counter: number = 0
+
   constructor(readonly repoService: RepositoryService) {}
 
   loadTree(nodeId: string): Promise<LoadedTree> {
@@ -40,17 +44,17 @@ export class RepositoryTreeService implements TreeService {
 
   exec(command: Command): Promise<any> {
     if (command.payload instanceof SplitNodeByIdCommandPayload) {
-      return this.splitNodeById(command.payload)
+      return this.queue.add(() => this.splitNodeById(command.payload as SplitNodeByIdCommandPayload))
     } else if (command.payload instanceof UnsplitNodeByIdCommandPayload) {
-      return this.unsplitNodeById(command.payload)
+      return this.queue.add(() => this.unsplitNodeById(command.payload as UnsplitNodeByIdCommandPayload))
     } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
-      return this.mergeNodesById(command.payload)
+      return this.queue.add(() => this.mergeNodesById(command.payload as MergeNodesByIdCommandPayload))
     } else if (command.payload instanceof UnmergeNodesByIdCommandPayload) {
-      return this.unmergeNodesById(command.payload)
+      return this.queue.add(() => this.unmergeNodesById(command.payload as UnmergeNodesByIdCommandPayload))
     } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
-      return this.renameNodeById(command.payload)
+      return this.queue.add(() => this.renameNodeById(command.payload as RenameNodeByIdCommandPayload))
     } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
-      return this.reparentNodesById(command.payload)
+      return this.queue.add(() => this.reparentNodesById(command.payload as ReparentNodesByIdCommandPayload))
     } else {
       throw new Error(`Received an unknown command with name ${command.payload}`)
     }

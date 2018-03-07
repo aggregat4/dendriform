@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "maquette": "^3.0.1",
+    "p-queue": "^2.3.1",
     "pouchdb-browser": "^6.3.4",
     "redom": "^3.11.1"
   }
