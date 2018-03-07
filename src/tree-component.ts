@@ -203,6 +203,15 @@ class TreeNode {
 
   private exec(command: Command) {
     this.treeService.exec(command)
+    /*.then(() => {
+      // no focus handling yet, maybe unnecessary?
+       if (command.afterFocusNodeId) {
+        requestFocusOnNodeAtChar(command.afterFocusNodeId, command.afterFocusPos)
+      }
+      if (command.renderRequired) {
+        triggerTreeReload()
+      }
+    })*/
   }
 
 }
