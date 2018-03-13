@@ -82,8 +82,12 @@ export class Tree {
       this.content = this.contentNode(tree))
     // We need to bind the event handlers to the class otherwise the scope with the element
     // the event was received on. Javascript! <rolls eyes>
+    // Using single event listeners for all nodes to reduce memory usage and the chance of memory leaks
+    // This means that all event listeners here need to check whether they are triggered on
+    // a relevant node
     this.el.addEventListener('input', this.onInput.bind(this))
     this.el.addEventListener('keypress', this.onKeypress.bind(this))
+    this.el.addEventListener('keydown', this.onKeydown.bind(this))
   }
 
   update(tree: LoadedTree) {
@@ -153,6 +157,85 @@ export class Tree {
     }
   }
 
+  private onKeydown(event: KeyboardEvent): void {
+    if (!(event.target as Element).hasAttribute('data-nodeid')) {
+      return
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      if (event.shiftKey && event.altKey) {
+        // this is the combination for moving a node up in its siblings or its parent's previous siblings' children
+        // if the current node has siblings before it, then just move it up
+        // else if the parent has previous siblings, then move it as a child of the first previous sibling at the end
+        // TODO: implement
+        // const nodeElement = (event.target as Element).parentElement
+        // debouncedMoveNodeUp(nodeElement)
+      } else {
+        const previousNameNode = findPreviousNameNode(event.target as Element) as HTMLElement
+        if (previousNameNode) {
+          this.requestFocusOnNodeAtChar(getNodeId(previousNameNode.parentElement), -1)
+          previousNameNode.focus()
+        }
+      }
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      if (event.shiftKey && event.altKey) {
+        // this is the combination for moving a node down in its siblings or its parent's next siblings' children
+        // if the current node has siblings after it, then just move it down
+        // else if the parent has next siblings, then move it as a child of the first next sibling at the end
+        // TODO: implement
+        // const nodeElement = (event.target as Element).parentElement
+        // debouncedMoveNodeDown(nodeElement)
+      } else {
+        const nextNameNode = findNextNameNode(event.target as Element) as HTMLElement
+        if (nextNameNode) {
+          this.requestFocusOnNodeAtChar(getNodeId(nextNameNode.parentElement), -1)
+          nextNameNode.focus()
+        }
+      }
+    }
+    // TODO: implement
+    /*else if (event.key === 'Backspace') {
+      if (isCursorAtBeginning(event) && (event.target as Element).parentElement.previousElementSibling) {
+        event.preventDefault()
+        const sourceNode = (event.target as Element).parentElement
+        const targetNode = sourceNode.previousElementSibling
+        mergeNodes(sourceNode, targetNode)
+      }
+    } else if (event.key === 'Delete') {
+      if (isCursorAtEnd(event) && (event.target as Element).parentElement.nextElementSibling) {
+        event.preventDefault()
+        const targetNode = (event.target as Element).parentElement
+        const sourceNode = targetNode.nextElementSibling
+        mergeNodes(sourceNode, targetNode)
+      }
+    } else if (event.key === 'Tab' && !event.shiftKey) {
+      // When tabbing you want to make the node the last child of the previous sibling (if it exists)
+      const node = (event.target as Element).parentElement
+      if (node.previousElementSibling) {
+        event.preventDefault()
+        // when a node is a child, it is inside a "children" container of its parent
+        const oldParentNode = getParentNode(node)
+        const newParentNode = node.previousElementSibling
+        reparentNode(node, getCursorPos(), oldParentNode, newParentNode)
+      }
+    } else if (event.key === 'Tab' && event.shiftKey) {
+      // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
+      // Caution: we only allow unindent if the current node has a parent and a grandparent node,
+      // otherwise we can not unindent
+      const node = (event.target as Element).parentElement
+      if (hasParentNode(node)) {
+        const oldParentNode = getParentNode(node)
+        if (hasParentNode(oldParentNode)) {
+          const newParentNode = getParentNode(oldParentNode)
+          const afterNode = oldParentNode
+          event.preventDefault()
+          reparentNodeAt(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.AFTER, afterNode)
+        }
+      }
+    } */
+  }
+
   private createNewNode(name: string, parentref?: string): ResolvedRepositoryNode {
     return {
       node: {
@@ -177,6 +260,12 @@ export class Tree {
         triggerTreeReload()
       }
     })*/
+  }
+
+  // charPos should be -1 to just request focus on the node
+  private requestFocusOnNodeAtChar(nodeId: string, charPos: number): void {
+    transientState.focusNodeId = nodeId
+    transientState.focusCharPos = charPos
   }
 
 }
