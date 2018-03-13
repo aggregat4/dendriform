@@ -50,7 +50,7 @@ export class PouchDbRepository implements Repository {
 
   // returns a promise of a node, you can determine whether to include deleted or not
   cdbLoadNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode> {
-    // console.log(`cdbLoadNode for id '${nodeId}'`)
+    console.log(`cdbLoadNode for id '${nodeId}'`)
     return this.outlineDb.get(nodeId).then(node => {
       if (node.deleted && node.deleted === true && !includeDeleted) {
         throw new Error(`Node with id '${nodeId}' was deleted`)

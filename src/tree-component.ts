@@ -80,6 +80,10 @@ export class Tree {
     this.treeService = treeService
     this.el = el('div.tree',
       this.content = this.contentNode(tree))
+    // We need to bind the event handlers to the class otherwise the scope with the element
+    // the event was received on. Javascript! <rolls eyes>
+    this.el.addEventListener('input', this.onInput.bind(this))
+    this.el.addEventListener('keypress', this.onKeypress.bind(this))
   }
 
   update(tree: LoadedTree) {
@@ -95,54 +99,11 @@ export class Tree {
       return new TreeNode(tree.tree, true, this.treeService)
     }
   }
-}
-
-class TreeNode {
-  private el
-  private anchor
-  private name
-  private treeService
-
-  constructor(treeNode: ResolvedRepositoryNode, first: boolean, treeService: TreeService) {
-    this.treeService = treeService
-    this.el = el(
-      'div',
-      {
-        id: treeNode.node._id,
-        class: this.genClass(treeNode, first),
-      },
-      this.anchor = el('a', { href: `#node=${treeNode.node._id}` }, '*'),
-      this.name = el('div.name',
-        {
-          'data-nodeid': treeNode.node._id,
-          contentEditable: true,
-          // onkeydown
-          // afterCreate
-          // afterUpdate
-        },
-        treeNode.node.name),
-      treeNode.children && treeNode.children.length > 0 && el('div.children',
-          treeNode.children.map(c => new TreeNode(c, false, this.treeService))),
-    )
-    // We need to bind the event handlers to the class otherwise the scope with the element
-    // the event was received on. Javascript! <rolls eyes>
-    this.name.addEventListener('input', this.onInput.bind(this))
-    this.name.addEventListener('keypress', this.onKeypress.bind(this))
-  }
-
-  getElement(): Element {
-    return this.el
-  }
-
-  private isRoot(node: RepositoryNode): boolean {
-    return node._id === 'ROOT'
-  }
-
-  private genClass(node: ResolvedRepositoryNode, isFirst: boolean): string {
-    return 'node' + (this.isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '')
-  }
 
   private onInput(event: Event) {
+    if (!(event.target as Element).hasAttribute('data-nodeid')) {
+      return
+    }
     const targetNode = (event.target as Element).parentElement
     const nodeId = getNodeId(targetNode)
     const newName = getNodeName(targetNode)
@@ -163,15 +124,19 @@ class TreeNode {
   }
 
   private onKeypress(event: KeyboardEvent) {
+    if (!(event.target as Element).hasAttribute('data-nodeid')) {
+      return
+    }
     if (event.key === 'Enter') {
       event.preventDefault()
       const targetNode = (event.target as Element).parentElement
       const nodeId = getNodeId(targetNode)
       const beforeSplitNamePart = getTextBeforeCursor(event) || ''
       const afterSplitNamePart = getTextAfterCursor(event) || ''
+      const newNode = this.createNewNode(beforeSplitNamePart, getNodeId(getParentNode(targetNode)))
       this.exec(
         new CommandBuilder(
-          new SplitNodeByIdCommandPayload(generateUUID(), nodeId, beforeSplitNamePart, afterSplitNamePart))
+          new SplitNodeByIdCommandPayload(newNode.node._id, nodeId, beforeSplitNamePart, afterSplitNamePart))
             .isUndoable()
             .requiresRender()
             .withAfterFocusNodeId(nodeId)
@@ -181,7 +146,7 @@ class TreeNode {
       const nameNode = (event.target as Element)
       nameNode.textContent = afterSplitNamePart
       const newSibling = new TreeNode(
-        this.createNewNode(beforeSplitNamePart, getNodeId(getParentNode(targetNode))),
+        newNode,
         false,
         this.treeService)
       targetNode.insertAdjacentElement('beforebegin', newSibling.getElement())
@@ -212,6 +177,49 @@ class TreeNode {
         triggerTreeReload()
       }
     })*/
+  }
+
+}
+
+class TreeNode {
+  private el
+  private anchor
+  private name
+  private treeService
+
+  constructor(treeNode: ResolvedRepositoryNode, first: boolean, treeService: TreeService) {
+    this.treeService = treeService
+    this.el = el(
+      'div',
+      {
+        id: treeNode.node._id,
+        class: this.genClass(treeNode, first),
+      },
+      this.anchor = el('a', { href: `#node=${treeNode.node._id}` }, '*'),
+      this.name = el('div.name',
+        {
+          'data-nodeid': treeNode.node._id,
+          contentEditable: true,
+          // onkeydown
+          // afterCreate
+          // afterUpdate
+        },
+        treeNode.node.name),
+      treeNode.children && treeNode.children.length > 0 && el('div.children',
+          treeNode.children.map(c => new TreeNode(c, false, this.treeService))),
+    )
+  }
+
+  getElement(): Element {
+    return this.el
+  }
+
+  private isRoot(node: RepositoryNode): boolean {
+    return node._id === 'ROOT'
+  }
+
+  private genClass(node: ResolvedRepositoryNode, isFirst: boolean): string {
+    return 'node' + (this.isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '')
   }
 
 }
