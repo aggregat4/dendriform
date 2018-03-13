@@ -60,7 +60,7 @@ export class RepositoryService {
       .then(sibling => {
         return this.repo.cdbCreateNode(siblingId, name, content)
           .then(newSibling => {
-            console.log(`created sibling with ID ${siblingId}`)
+            // console.log(`created sibling with ID ${siblingId}`)
             newSibling.parentref = sibling.parentref
             return this.repo.cdbPutNode(newSibling)
               .then(putResult => {
