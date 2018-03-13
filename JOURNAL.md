@@ -52,3 +52,6 @@ Also added a queue to tree-service-repository to sequentially process all the as
 Next step is to continue with the event handlers, copy the existing maquette command logic and to implement the associated DOM updates.
 
 Note: Undo operations will require similar DOM work.
+
+## 13.3.2018
+Fixed a bug in node splitting and added moving up and down in the tree. Started work on the keydown event handler, next up is implementing the DOM logic for moving nodes up and down the tree.

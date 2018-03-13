@@ -167,9 +167,8 @@ export class Tree {
         // this is the combination for moving a node up in its siblings or its parent's previous siblings' children
         // if the current node has siblings before it, then just move it up
         // else if the parent has previous siblings, then move it as a child of the first previous sibling at the end
-        // TODO: implement
-        // const nodeElement = (event.target as Element).parentElement
-        // debouncedMoveNodeUp(nodeElement)
+        const nodeElement = (event.target as Element).parentElement
+        this.moveNodeUp(nodeElement)
       } else {
         const previousNameNode = findPreviousNameNode(event.target as Element) as HTMLElement
         if (previousNameNode) {
@@ -183,9 +182,8 @@ export class Tree {
         // this is the combination for moving a node down in its siblings or its parent's next siblings' children
         // if the current node has siblings after it, then just move it down
         // else if the parent has next siblings, then move it as a child of the first next sibling at the end
-        // TODO: implement
-        // const nodeElement = (event.target as Element).parentElement
-        // debouncedMoveNodeDown(nodeElement)
+        const nodeElement = (event.target as Element).parentElement
+        this.moveNodeDown(nodeElement)
       } else {
         const nextNameNode = findNextNameNode(event.target as Element) as HTMLElement
         if (nextNameNode) {
@@ -247,6 +245,71 @@ export class Tree {
       },
       children: [],
     }
+  }
+
+  private moveNodeDown(nodeElement: Element): void {
+    const parentNodeElement = getParentNode(nodeElement)
+    if (nodeElement.nextElementSibling) {
+      this.reparentNodeAt(
+        nodeElement,
+        getCursorPos(),
+        parentNodeElement,
+        parentNodeElement,
+        RelativeLinearPosition.AFTER,
+        nodeElement.nextElementSibling)
+    } else if (parentNodeElement.nextElementSibling) {
+      // the node itself has no next siblings, but if its parent has one, we will move it there
+      this.reparentNodeAt(nodeElement,
+        getCursorPos(),
+        parentNodeElement,
+        parentNodeElement.nextElementSibling,
+        RelativeLinearPosition.BEGINNING,
+        null)
+    }
+  }
+
+  private moveNodeUp(nodeElement: Element): void {
+    const parentNodeElement = getParentNode(nodeElement)
+    if (nodeElement.previousElementSibling) {
+      this.reparentNodeAt(
+        nodeElement,
+        getCursorPos(),
+        parentNodeElement,
+        parentNodeElement,
+        RelativeLinearPosition.BEFORE,
+        nodeElement.previousElementSibling)
+    } else if (parentNodeElement.previousElementSibling) {
+      // the node itself has no previous siblings, but if its parent has one, we will move it there
+      this.reparentNodeAt(
+        nodeElement,
+        getCursorPos(),
+        parentNodeElement,
+        parentNodeElement.previousElementSibling,
+        RelativeLinearPosition.END,
+        null)
+    }
+  }
+
+  private reparentNodeAt(node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element,
+                         relativePosition: RelativeLinearPosition, relativeNode: Element ): void {
+    const nodeId = getNodeId(node)
+    const oldAfterNodeId = node.previousElementSibling ? getNodeId(node.previousElementSibling) : null
+    const oldParentNodeId = getNodeId(oldParentNode)
+    const newParentNodeId = getNodeId(newParentNode)
+    const position: RelativeNodePosition = {
+      beforeOrAfter: relativePosition,
+      nodeId: relativeNode ? getNodeId(relativeNode) : null,
+    }
+    this.exec(
+      new CommandBuilder(
+        new ReparentNodesByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
+          .requiresRender()
+          .withAfterFocusNodeId(nodeId)
+          .withAfterFocusPos(cursorPos)
+          .isUndoable()
+          .build(),
+    )
+    // TODO: implement the DOM handling for this
   }
 
   private exec(command: Command) {
