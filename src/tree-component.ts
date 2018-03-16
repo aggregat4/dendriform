@@ -191,23 +191,23 @@ export class Tree {
           nextNameNode.focus()
         }
       }
-    }
-    // TODO: implement
-    /*else if (event.key === 'Backspace') {
+    } else if (event.key === 'Backspace') {
       if (isCursorAtBeginning(event) && (event.target as Element).parentElement.previousElementSibling) {
         event.preventDefault()
         const sourceNode = (event.target as Element).parentElement
         const targetNode = sourceNode.previousElementSibling
-        mergeNodes(sourceNode, targetNode)
+        this.mergeNodes(sourceNode, targetNode)
       }
     } else if (event.key === 'Delete') {
       if (isCursorAtEnd(event) && (event.target as Element).parentElement.nextElementSibling) {
         event.preventDefault()
         const targetNode = (event.target as Element).parentElement
         const sourceNode = targetNode.nextElementSibling
-        mergeNodes(sourceNode, targetNode)
+        this.mergeNodes(sourceNode, targetNode)
       }
-    } else if (event.key === 'Tab' && !event.shiftKey) {
+    }
+    // TODO: implement
+    /* else if (event.key === 'Tab' && !event.shiftKey) {
       // When tabbing you want to make the node the last child of the previous sibling (if it exists)
       const node = (event.target as Element).parentElement
       if (node.previousElementSibling) {
@@ -310,10 +310,15 @@ export class Tree {
           .build(),
     )
     // DOM handling
+    // Children of nodes are hung beneath a dedicated div.children node, so make sure that exists
+    if (newParentNode.children.length <= 2) {
+      newParentNode.appendChild(el('div.children'))
+    }
+    const parentChildrenNode = newParentNode.children[2]
     if (relativePosition === RelativeLinearPosition.BEGINNING) {
-      newParentNode.insertBefore(node, newParentNode.firstChild)
+      parentChildrenNode.insertBefore(node, newParentNode.firstChild)
     } else if (relativePosition === RelativeLinearPosition.END) {
-      newParentNode.appendChild(node)
+      parentChildrenNode.appendChild(node)
     } else if (relativePosition === RelativeLinearPosition.BEFORE) {
       relativeNode.insertAdjacentElement('beforebegin', node)
     } else if (relativePosition === RelativeLinearPosition.AFTER) {
@@ -321,6 +326,46 @@ export class Tree {
     } else {
       throw new Error(`Invalid RelativeLinearPosition: ${relativePosition}`)
     }
+  }
+
+  // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
+  // Merges are only allowed if the target node has no children
+  private mergeNodes(sourceNode: Element, targetNode: Element): void {
+    if (hasChildren(targetNode)) {
+      return
+    }
+    const sourceNodeId = getNodeId(sourceNode)
+    const sourceNodeName = getNodeName(sourceNode)
+    const targetNodeId = getNodeId(targetNode)
+    const targetNodeName = getNodeName(targetNode)
+    this.exec(
+      new CommandBuilder(
+        new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
+          .isUndoable()
+          .requiresRender()
+          .withAfterFocusNodeId(targetNodeId)
+          .withAfterFocusPos(Math.max(0, targetNodeName.length))
+          .build(),
+    )
+    // DOM Handling
+    // 1. rename targetnode to be targetnode.name + sourcenode.name
+    // 2. move all children of sourcenode to targetnode (actual move, just reparent)
+    // 3. delete sourcenode
+    // 4. focus the new node at the end of its old name
+    targetNode.children[1].textContent = targetNodeName + sourceNodeName
+    // Only move source node children if it has any
+    // TODO: make this childnodestuff safer with some utility methods
+    if (sourceNode.children.length > 2) {
+      if (targetNode.children.length <= 2) {
+        targetNode.appendChild(el('div.children'))
+      }
+      const targetChildrenNode = targetNode.children[2]
+      const sourceChildrenNode = sourceNode.children[2]
+      sourceChildrenNode.childNodes.forEach((childNode, currentIndex, listObj) => {
+        targetChildrenNode.appendChild(childNode)
+      })
+    }
+    sourceNode.remove()
   }
 
   private exec(command: Command) {
