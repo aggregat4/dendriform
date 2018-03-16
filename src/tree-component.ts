@@ -18,7 +18,7 @@ import {
   getNodeName,
   isNode,
   hasChildren,
-} from './tree-util'
+} from './dom-util'
 import {
   Status,
   State,
@@ -205,9 +205,7 @@ export class Tree {
         const sourceNode = targetNode.nextElementSibling
         this.mergeNodes(sourceNode, targetNode)
       }
-    }
-    // TODO: implement
-    /* else if (event.key === 'Tab' && !event.shiftKey) {
+    } else if (event.key === 'Tab' && !event.shiftKey) {
       // When tabbing you want to make the node the last child of the previous sibling (if it exists)
       const node = (event.target as Element).parentElement
       if (node.previousElementSibling) {
@@ -215,7 +213,7 @@ export class Tree {
         // when a node is a child, it is inside a "children" container of its parent
         const oldParentNode = getParentNode(node)
         const newParentNode = node.previousElementSibling
-        reparentNode(node, getCursorPos(), oldParentNode, newParentNode)
+        this.reparentNodeAt(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.END, null)
       }
     } else if (event.key === 'Tab' && event.shiftKey) {
       // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
@@ -228,10 +226,16 @@ export class Tree {
           const newParentNode = getParentNode(oldParentNode)
           const afterNode = oldParentNode
           event.preventDefault()
-          reparentNodeAt(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.AFTER, afterNode)
+          this.reparentNodeAt(
+            node,
+            getCursorPos(),
+            oldParentNode,
+            newParentNode,
+            RelativeLinearPosition.AFTER,
+            afterNode)
         }
       }
-    } */
+    }
   }
 
   private createNewNode(name: string, parentref?: string): ResolvedRepositoryNode {
@@ -316,7 +320,7 @@ export class Tree {
     }
     const parentChildrenNode = newParentNode.children[2]
     if (relativePosition === RelativeLinearPosition.BEGINNING) {
-      parentChildrenNode.insertBefore(node, newParentNode.firstChild)
+      parentChildrenNode.insertBefore(node, parentChildrenNode.firstChild)
     } else if (relativePosition === RelativeLinearPosition.END) {
       parentChildrenNode.appendChild(node)
     } else if (relativePosition === RelativeLinearPosition.BEFORE) {

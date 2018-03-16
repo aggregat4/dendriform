@@ -18,7 +18,7 @@ import {
   getNodeName,
   isNode,
   hasChildren,
-} from './tree-util'
+} from './dom-util'
 import {
   Status,
   State,

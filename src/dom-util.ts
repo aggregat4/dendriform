@@ -51,7 +51,7 @@ export function findPreviousNameNode(nodeNameElement: Element): Element {
 
 // Given a div.node it finds the LAST and deepest child (depth first) of that node, or the node itself
 function findLastChildNode(node: Element): Element {
-  if (node.children.length > 2) {
+  if (hasChildren(node)) {
     const childrenNode: Element = node.children[2]
     return findLastChildNode(childrenNode.children[childrenNode.children.length - 1])
   } else {
@@ -62,7 +62,7 @@ function findLastChildNode(node: Element): Element {
 export function findNextNameNode(node: Element): Element {
   // TODO make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
   const parentElement: Element = node.parentElement
-  if (parentElement.children.length > 2) {
+  if (hasChildren(parentElement)) {
     // parentElement = div.node, parentElement.children[2] = div.children, and then the first child's name node
     return parentElement.children[2].children[0].children[1]
   } else if (parentElement.nextElementSibling) {
@@ -104,17 +104,3 @@ export function getNodeId(node: Element): string {
 export function getNodeName(node: Element): string {
   return node.children[1].textContent || ''
 }
-
-/*
-function getNodeChildIds (node) {
-  const childIds = []
-  if (node.children.length > 2) {
-    // children are under a specific div.children
-    const children = node.children[2].children
-    for (var i = 0; i < children.length; i++) {
-      childIds.push(children[i].getAttribute('id'))
-    }
-  }
-  return childIds
-}
-*/
