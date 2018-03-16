@@ -309,20 +309,39 @@ export class Tree {
           .isUndoable()
           .build(),
     )
-    // TODO: implement the DOM handling for this
+    // DOM handling
+    if (relativePosition === RelativeLinearPosition.BEGINNING) {
+      newParentNode.insertBefore(node, newParentNode.firstChild)
+    } else if (relativePosition === RelativeLinearPosition.END) {
+      newParentNode.appendChild(node)
+    } else if (relativePosition === RelativeLinearPosition.BEFORE) {
+      relativeNode.insertAdjacentElement('beforebegin', node)
+    } else if (relativePosition === RelativeLinearPosition.AFTER) {
+      relativeNode.insertAdjacentElement('afterend', node)
+    } else {
+      throw new Error(`Invalid RelativeLinearPosition: ${relativePosition}`)
+    }
   }
 
   private exec(command: Command) {
     this.treeService.exec(command)
-    /*.then(() => {
-      // no focus handling yet, maybe unnecessary?
-       if (command.afterFocusNodeId) {
-        requestFocusOnNodeAtChar(command.afterFocusNodeId, command.afterFocusPos)
+      .then(() => {
+        // no focus handling yet, maybe unnecessary?
+        if (command.afterFocusNodeId) {
+          this.focus(command.afterFocusNodeId, command.afterFocusPos)
+        }
+      })
+  }
+
+  private focus(nodeId: string, charPos: number) {
+    const element = document.getElementById(nodeId)
+    if (element) {
+      const nameElement: HTMLElement = element.children[1] as HTMLElement
+      nameElement.focus()
+      if (charPos > -1) {
+        setCursorPos(nameElement, charPos)
       }
-      if (command.renderRequired) {
-        triggerTreeReload()
-      }
-    })*/
+    }
   }
 
   // charPos should be -1 to just request focus on the node

@@ -95,7 +95,7 @@ export class RepositoryService {
   // takes an array of _actual_ nodes and a new parent id, then it reparents those nodes by:
   // 1. removing them from their parent childrefs
   // 2. updating their parentref to their parent's ref
-  // 3. adding the childs to their new parents childrefs
+  // 3. adding the children to their new parents childrefs
   // If an afterNodeId is provided the nodes are inserted after that child of the new parent
   // TODO: this function gets used to jsut move nodes inside of the same parent as well,
   // theoretically we could optimise this by distinguishing between the case where the
