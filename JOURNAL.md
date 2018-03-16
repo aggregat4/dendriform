@@ -55,3 +55,6 @@ Note: Undo operations will require similar DOM work.
 
 ## 13.3.2018
 Fixed a bug in node splitting and added moving up and down in the tree. Started work on the keydown event handler, next up is implementing the DOM logic for moving nodes up and down the tree.
+
+## 16.3.2018
+Implemented most features, big open thing is UNDO. UNDOing the commands to exec is easy, but I need to implement the logic for the UNDO commands in DOM. This may then spark some refactoring since the DOM logic is currently spread over the specific methods.

@@ -56,6 +56,8 @@ const transientState: TransientState = {
   treeHasBeenNavigatedTo: false,
 }
 
+// TODO: implement UNDO
+
 // We need to track when the selection changes so we can store the current
 // cursor position (needed for UNDO)
 document.addEventListener('selectionchange', selectionChangeHandler)
