@@ -103,13 +103,13 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
   constructor(
     readonly siblingId: string,
     readonly nodeId: string,
-    readonly beforeSplitNamePart: string,
-    readonly afterSplitNamePart: string,
+    readonly newNodeName: string,
+    readonly remainingNodeName: string,
   ) {}
 
   inverse() {
     return new UnsplitNodeByIdCommandPayload(
-      this.siblingId, this.nodeId, this.beforeSplitNamePart + this.afterSplitNamePart)
+      this.siblingId, this.nodeId, this.newNodeName + this.remainingNodeName)
   }
 }
 
@@ -139,7 +139,11 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
   ) {}
 
   inverse(): CommandPayload {
-    return new UnmergeNodesByIdCommandPayload(this.sourceNodeId, this.targetNodeId, this.targetNodeName)
+    return new UnmergeNodesByIdCommandPayload(
+      this.sourceNodeId,
+      this.sourceNodeName,
+      this.targetNodeId,
+      this.targetNodeName)
   }
 }
 
@@ -149,6 +153,7 @@ export class UnmergeNodesByIdCommandPayload implements CommandPayload {
 
   constructor(
     readonly sourceNodeId: string,
+    readonly sourceNodeName: string,
     readonly targetNodeId: string,
     readonly targetNodeName: string,
   ) {}

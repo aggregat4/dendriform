@@ -34,6 +34,8 @@ import {
   RenameNodeByIdCommandPayload,
   MergeNodesByIdCommandPayload,
   ReparentNodesByIdCommandPayload,
+  UnsplitNodeByIdCommandPayload,
+  UnmergeNodesByIdCommandPayload,
 } from './tree-api'
 
 interface TransientState {
@@ -55,8 +57,6 @@ const transientState: TransientState = {
   focusNodePreviousPos: -1,
   treeHasBeenNavigatedTo: false,
 }
-
-// TODO: implement UNDO
 
 // We need to track when the selection changes so we can store the current
 // cursor position (needed for UNDO)
@@ -90,6 +90,8 @@ export class Tree {
     this.el.addEventListener('input', this.onInput.bind(this))
     this.el.addEventListener('keypress', this.onKeypress.bind(this))
     this.el.addEventListener('keydown', this.onKeydown.bind(this))
+    // We need to support UNDO when activated anywhere in the document
+    document.addEventListener('keydown', this.globalKeyDownHandler.bind(this))
   }
 
   update(tree: LoadedTree) {
@@ -102,7 +104,7 @@ export class Tree {
     } else if (tree.status.state === State.LOADING) {
       return el('div.error', `Loading tree...`)
     } else if (tree.status.state === State.LOADED) {
-      return new TreeNode(tree.tree, true, this.treeService)
+      return new TreeNode(tree.tree, true)
     }
   }
 
@@ -139,23 +141,16 @@ export class Tree {
       const nodeId = getNodeId(targetNode)
       const beforeSplitNamePart = getTextBeforeCursor(event) || ''
       const afterSplitNamePart = getTextAfterCursor(event) || ''
-      const newNode = this.createNewNode(beforeSplitNamePart, getNodeId(getParentNode(targetNode)))
+      const newNodeId = generateUUID()
       this.exec(
         new CommandBuilder(
-          new SplitNodeByIdCommandPayload(newNode.node._id, nodeId, beforeSplitNamePart, afterSplitNamePart))
+          new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart, afterSplitNamePart))
             .isUndoable()
             .requiresRender()
             .withAfterFocusNodeId(nodeId)
             .build(),
       )
-      // The change was saved, now perform the split in the DOM
-      const nameNode = (event.target as Element)
-      nameNode.textContent = afterSplitNamePart
-      const newSibling = new TreeNode(
-        newNode,
-        false,
-        this.treeService)
-      targetNode.insertAdjacentElement('beforebegin', newSibling.getElement())
+      domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
     }
   }
 
@@ -240,19 +235,6 @@ export class Tree {
     }
   }
 
-  private createNewNode(name: string, parentref?: string): ResolvedRepositoryNode {
-    return {
-      node: {
-        _id: generateUUID(),
-        name,
-        content: null,
-        childrefs: [],
-        parentref,
-      },
-      children: [],
-    }
-  }
-
   private moveNodeDown(nodeElement: Element): void {
     const parentNodeElement = getParentNode(nodeElement)
     if (nodeElement.nextElementSibling) {
@@ -315,23 +297,7 @@ export class Tree {
           .isUndoable()
           .build(),
     )
-    // DOM handling
-    // Children of nodes are hung beneath a dedicated div.children node, so make sure that exists
-    if (newParentNode.children.length <= 2) {
-      newParentNode.appendChild(el('div.children'))
-    }
-    const parentChildrenNode = newParentNode.children[2]
-    if (relativePosition === RelativeLinearPosition.BEGINNING) {
-      parentChildrenNode.insertBefore(node, parentChildrenNode.firstChild)
-    } else if (relativePosition === RelativeLinearPosition.END) {
-      parentChildrenNode.appendChild(node)
-    } else if (relativePosition === RelativeLinearPosition.BEFORE) {
-      relativeNode.insertAdjacentElement('beforebegin', node)
-    } else if (relativePosition === RelativeLinearPosition.AFTER) {
-      relativeNode.insertAdjacentElement('afterend', node)
-    } else {
-      throw new Error(`Invalid RelativeLinearPosition: ${relativePosition}`)
-    }
+    domReparentNode(node, newParentNode, relativeNode, relativePosition)
   }
 
   // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
@@ -353,25 +319,7 @@ export class Tree {
           .withAfterFocusPos(Math.max(0, targetNodeName.length))
           .build(),
     )
-    // DOM Handling
-    // 1. rename targetnode to be targetnode.name + sourcenode.name
-    // 2. move all children of sourcenode to targetnode (actual move, just reparent)
-    // 3. delete sourcenode
-    // 4. focus the new node at the end of its old name
-    targetNode.children[1].textContent = targetNodeName + sourceNodeName
-    // Only move source node children if it has any
-    // TODO: make this childnodestuff safer with some utility methods
-    if (sourceNode.children.length > 2) {
-      if (targetNode.children.length <= 2) {
-        targetNode.appendChild(el('div.children'))
-      }
-      const targetChildrenNode = targetNode.children[2]
-      const sourceChildrenNode = sourceNode.children[2]
-      sourceChildrenNode.childNodes.forEach((childNode, currentIndex, listObj) => {
-        targetChildrenNode.appendChild(childNode)
-      })
-    }
-    sourceNode.remove()
+    domMergeNodes(sourceNode, sourceNodeName, targetNode, targetNodeName)
   }
 
   private exec(command: Command) {
@@ -401,6 +349,68 @@ export class Tree {
     transientState.focusCharPos = charPos
   }
 
+  private globalKeyDownHandler(event: KeyboardEvent): void {
+    if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z, so trigger UNDO
+      event.preventDefault()
+      this.undoLastCommand()
+    }
+  }
+
+  private undoLastCommand(): void {
+    const undoCommandPromise = this.treeService.popUndoCommand()
+    if (undoCommandPromise) {
+      undoCommandPromise.then((command) => {
+        if (command) {
+          this.exec(command)
+          // DOM Undo Handling
+          // TODO: consider moving this to the exec function, then redo is also handled
+          // I have not done this here since we currently optimise the actual initial
+          // dom operations by using the DOM elements directly, no need to getElementById them all...
+          if (command.payload instanceof SplitNodeByIdCommandPayload) {
+            const splitCommand = command.payload as SplitNodeByIdCommandPayload
+            domSplitNode(
+              document.getElementById(splitCommand.nodeId),
+              splitCommand.newNodeName,
+              splitCommand.remainingNodeName,
+              splitCommand.siblingId)
+          } else if (command.payload instanceof UnsplitNodeByIdCommandPayload) {
+            const unsplitCommand = command.payload as UnsplitNodeByIdCommandPayload
+            domUnsplitNode(
+              document.getElementById(unsplitCommand.originalNodeId),
+              document.getElementById(unsplitCommand.newNodeId),
+              unsplitCommand.originalName)
+          } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
+            const mergeNodesCommand = command.payload as MergeNodesByIdCommandPayload
+            domMergeNodes(
+              document.getElementById(mergeNodesCommand.sourceNodeId),
+              mergeNodesCommand.sourceNodeName,
+              document.getElementById(mergeNodesCommand.targetNodeId),
+              mergeNodesCommand.targetNodeName)
+          } else if (command.payload instanceof UnmergeNodesByIdCommandPayload) {
+            const unmergeCommand = command.payload as UnmergeNodesByIdCommandPayload
+            domUnmergeNode(
+              document.getElementById(unmergeCommand.sourceNodeId),
+              unmergeCommand.sourceNodeName,
+              unmergeCommand.targetNodeId,
+              unmergeCommand.targetNodeName)
+          } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
+            const renameCommand = command.payload as RenameNodeByIdCommandPayload
+            domRenameNode(document.getElementById(renameCommand.nodeId), renameCommand.newName)
+          } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
+            const reparentCommand = command.payload as ReparentNodesByIdCommandPayload
+            const relativeNode = reparentCommand.position.nodeId ?
+              document.getElementById(reparentCommand.position.nodeId) : null
+            domReparentNode(
+              document.getElementById(reparentCommand.nodeId),
+              document.getElementById(reparentCommand.newParentNodeId),
+              relativeNode,
+              reparentCommand.position.beforeOrAfter)
+          }
+        }
+      })
+    } // TODO: REDO Handling!!
+  }
+
 }
 
 class TreeNode {
@@ -409,8 +419,7 @@ class TreeNode {
   private name
   private treeService
 
-  constructor(treeNode: ResolvedRepositoryNode, first: boolean, treeService: TreeService) {
-    this.treeService = treeService
+  constructor(treeNode: ResolvedRepositoryNode, first: boolean) {
     this.el = el(
       'div',
       {
@@ -422,13 +431,10 @@ class TreeNode {
         {
           'data-nodeid': treeNode.node._id,
           contentEditable: true,
-          // onkeydown
-          // afterCreate
-          // afterUpdate
         },
         treeNode.node.name),
       treeNode.children && treeNode.children.length > 0 && el('div.children',
-          treeNode.children.map(c => new TreeNode(c, false, this.treeService))),
+          treeNode.children.map(c => new TreeNode(c, false))),
     )
   }
 
@@ -444,4 +450,87 @@ class TreeNode {
     return 'node' + (this.isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '')
   }
 
+}
+
+// --------------------------------------------------------------------------------------
+// ---- DOM Node Operations -------------------------------------------------------------
+// --------------------------------------------------------------------------------------
+
+function domMergeNodes(sourceNode: Element, sourceNodeName: string,
+                       targetNode: Element, targetNodeName: string): void {
+  // DOM Handling
+  // 1. rename targetnode to be targetnode.name + sourcenode.name
+  // 2. move all children of sourcenode to targetnode (actual move, just reparent)
+  // 3. delete sourcenode
+  // 4. focus the new node at the end of its old name
+  targetNode.children[1].textContent = targetNodeName + sourceNodeName
+  // Only move source node children if it has any
+  // TODO: make this childnodestuff safer with some utility methods
+  if (sourceNode.children.length > 2) {
+    if (targetNode.children.length <= 2) {
+      targetNode.appendChild(el('div.children'))
+    }
+    const targetChildrenNode = targetNode.children[2]
+    const sourceChildrenNode = sourceNode.children[2]
+    sourceChildrenNode.childNodes.forEach((childNode, currentIndex, listObj) => {
+      targetChildrenNode.appendChild(childNode)
+    })
+  }
+  sourceNode.remove()
+}
+
+function domUnmergeNode(mergedNode: Element, originalMergedNodeName: string,
+                        otherNodeId: string, otherNodeName: string): void {
+  domSplitNode(mergedNode, otherNodeName, originalMergedNodeName, otherNodeId)
+}
+
+function domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
+                      newNodeId: string): void {
+  domRenameNode(node, originalNodeName)
+  const newNode = createNewNode(newNodeId, newNodeName, getNodeId(getParentNode(node)))
+  const newSibling = new TreeNode(newNode, false)
+  node.insertAdjacentElement('beforebegin', newSibling.getElement())
+}
+
+function createNewNode(id: string, name: string, parentref?: string): ResolvedRepositoryNode {
+  return {
+    node: {
+      _id: id,
+      name,
+      content: null,
+      childrefs: [],
+      parentref,
+    },
+    children: [],
+  }
+}
+
+function domUnsplitNode(originalNode: Element, newNode: Element, originalName: string): void {
+  newNode.remove()
+  domRenameNode(originalNode, originalName)
+}
+
+function domRenameNode(node: Element, newName: string) {
+  const nameNode = node.children[1]
+  node.textContent = newName
+}
+
+function domReparentNode(node: Element, newParentNode: Element,
+                         relativeNode: Element, relativePosition: RelativeLinearPosition): void {
+  // Children of nodes are hung beneath a dedicated div.children node, so make sure that exists
+  if (newParentNode.children.length <= 2) {
+    newParentNode.appendChild(el('div.children'))
+  }
+  const parentChildrenNode = newParentNode.children[2]
+  if (relativePosition === RelativeLinearPosition.BEGINNING) {
+    parentChildrenNode.insertBefore(node, parentChildrenNode.firstChild)
+  } else if (relativePosition === RelativeLinearPosition.END) {
+    parentChildrenNode.appendChild(node)
+  } else if (relativePosition === RelativeLinearPosition.BEFORE) {
+    relativeNode.insertAdjacentElement('beforebegin', node)
+  } else if (relativePosition === RelativeLinearPosition.AFTER) {
+    relativeNode.insertAdjacentElement('afterend', node)
+  } else {
+    throw new Error(`Invalid RelativeLinearPosition: ${relativePosition}`)
+  }
 }
