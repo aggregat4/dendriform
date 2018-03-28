@@ -67,3 +67,6 @@ There is also an optimization question: currently I directly call the DOM manipu
 Think about that.
 
 Next up is testing undo, and considering refactoring/moving the DOM stuff somewhere.
+
+## 28.3.2018
+Tested undo a bit and fixed a bug with splitting nodes. Cleaned up code and removed unused code. Merged direct-dom branch into master.
