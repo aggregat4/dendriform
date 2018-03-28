@@ -1,3 +1,8 @@
+.tree {
+  font: 1rem sans-serif;
+  line-height: 1.5;
+}
+
 .node {
   display: block;
 }
@@ -8,7 +13,7 @@
   margin: 0 10px 0 10px;
 }
 
-div.name {
+.node .name {
   display: block;
   position: relative;
   /* pre-wrap makes whitespace show up at the beginning and end! required for merging/splitting of nodes */
@@ -20,34 +25,34 @@ div.name {
   margin-left: 30px;
 }
 
-div.name:focus {
+.node .name:focus {
   outline: none;
   background-color: #f5f5aa;
 }
 
-div.node div.children {
+.node .children {
   margin-left: 24px;
 }
 
 /* ROOT node is special, we hide and only show the children */
-div.node.root > a {
+.node.root > a {
   display: none;
 }
 
-div.node.root > div.name {
+.node.root > .name {
   display: none;
 }
 
-div.node.root > div.children {
+.node.root > .children {
   margin-left: 0;
 }
 
 /* The first node in a tree is special (when not root node), we show it really big, without the star */
-div.node.first > div.name {
+.node.first > .name {
   font-size: 150%;
   margin: 6px;
 }
 
-div.node.first > a {
+.node.first > a {
   display: none;
 }

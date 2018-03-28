@@ -18,6 +18,7 @@ import {
   getNodeName,
   isNode,
   hasChildren,
+  isNameNode,
 } from './tree-dom-util'
 import {
   Status,
@@ -123,7 +124,7 @@ export class Tree {
   }
 
   private onInput(event: Event) {
-    if (!(event.target as Element).hasAttribute('data-nodeid')) {
+    if (!isNameNode(event.target as Element)) {
       return
     }
     const targetNode = (event.target as Element).parentElement
@@ -147,7 +148,7 @@ export class Tree {
   }
 
   private onKeypress(event: KeyboardEvent) {
-    if (!(event.target as Element).hasAttribute('data-nodeid')) {
+    if (!isNameNode(event.target as Element)) {
       return
     }
     if (event.key === 'Enter') {
@@ -172,7 +173,7 @@ export class Tree {
   }
 
   private onKeydown(event: KeyboardEvent): void {
-    if (!(event.target as Element).hasAttribute('data-nodeid')) {
+    if (!isNameNode(event.target as Element)) {
       return
     }
     if (event.key === 'ArrowUp') {
@@ -447,11 +448,7 @@ class TreeNode {
       },
       this.anchor = el('a', { href: `#node=${treeNode.node._id}` }, '*'),
       this.name = el('div.name',
-        {
-          'data-nodeid': treeNode.node._id,
-          contentEditable: true,
-        },
-        treeNode.node.name),
+        { contentEditable: true }, treeNode.node.name),
       treeNode.children && treeNode.children.length > 0 && el('div.children',
           treeNode.children.map(c => new TreeNode(c, false))),
     )

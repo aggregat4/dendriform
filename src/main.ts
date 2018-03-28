@@ -26,3 +26,6 @@ update()
 document.addEventListener('DOMContentLoaded', () => {
   mount(document.body, treeComponent)
 })
+
+// Trigger a reload when the URL changes (the hash part)
+window.addEventListener('hashchange', update)

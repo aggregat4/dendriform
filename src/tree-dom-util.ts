@@ -19,6 +19,10 @@ export function isNode(element: Element): boolean {
   return element.classList.contains('node')
 }
 
+export function isNameNode(el: Element): boolean {
+  return el.classList.contains('name')
+}
+
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
 export function getParentNode(node: Element): Element {
   // first parentElement is div.children, its parent is the real parent node
