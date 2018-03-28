@@ -135,6 +135,7 @@ export class Tree {
     transientState.focusNodePreviousId = nodeId
     transientState.focusNodePreviousName = newName
     transientState.focusNodePreviousPos = getCursorPos()
+    // no dom operation needed since this is a rename
     this.exec(
       new CommandBuilder(
         new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
@@ -156,6 +157,9 @@ export class Tree {
       const beforeSplitNamePart = getTextBeforeCursor(event) || ''
       const afterSplitNamePart = getTextAfterCursor(event) || ''
       const newNodeId = generateUUID()
+      // tslint:disable-next-line:no-console
+      console.log(`About to split nodes and create a new node with ID ${newNodeId}`)
+      domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
       this.exec(
         new CommandBuilder(
           new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart, afterSplitNamePart))
@@ -164,7 +168,6 @@ export class Tree {
             .withAfterFocusNodeId(nodeId)
             .build(),
       )
-      domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
     }
   }
 
@@ -302,6 +305,7 @@ export class Tree {
       beforeOrAfter: relativePosition,
       nodeId: relativeNode ? getNodeId(relativeNode) : null,
     }
+    domReparentNode(node, newParentNode, relativeNode, relativePosition)
     this.exec(
       new CommandBuilder(
         new ReparentNodesByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
@@ -311,7 +315,6 @@ export class Tree {
           .isUndoable()
           .build(),
     )
-    domReparentNode(node, newParentNode, relativeNode, relativePosition)
   }
 
   // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
@@ -324,6 +327,7 @@ export class Tree {
     const sourceNodeName = getNodeName(sourceNode)
     const targetNodeId = getNodeId(targetNode)
     const targetNodeName = getNodeName(targetNode)
+    domMergeNodes(sourceNode, sourceNodeName, targetNode, targetNodeName)
     this.exec(
       new CommandBuilder(
         new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
@@ -333,7 +337,6 @@ export class Tree {
           .withAfterFocusPos(Math.max(0, targetNodeName.length))
           .build(),
     )
-    domMergeNodes(sourceNode, sourceNodeName, targetNode, targetNodeName)
   }
 
   private exec(command: Command) {
@@ -348,6 +351,8 @@ export class Tree {
 
   private focus(nodeId: string, charPos: number) {
     const element = document.getElementById(nodeId)
+    // tslint:disable-next-line:no-console
+    console.log(`focusing on node ${nodeId}, exists?`, element)
     if (element) {
       const nameElement: HTMLElement = element.children[1] as HTMLElement
       nameElement.focus()
@@ -375,7 +380,6 @@ export class Tree {
     if (undoCommandPromise) {
       undoCommandPromise.then((command) => {
         if (command) {
-          this.exec(command)
           // DOM Undo Handling
           // TODO: consider moving this to the exec function, then redo is also handled
           // I have not done this here since we currently optimise the actual initial
@@ -420,6 +424,7 @@ export class Tree {
               relativeNode,
               reparentCommand.position.beforeOrAfter)
           }
+          this.exec(command)
         }
       })
     } // TODO: REDO Handling!!
@@ -526,7 +531,7 @@ function domUnsplitNode(originalNode: Element, newNode: Element, originalName: s
 
 function domRenameNode(node: Element, newName: string) {
   const nameNode = node.children[1]
-  node.textContent = newName
+  nameNode.textContent = newName
 }
 
 function domReparentNode(node: Element, newParentNode: Element,
