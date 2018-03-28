@@ -29,10 +29,6 @@ export class RepositoryService {
       .then(child => this.addChildToParent(child._id, 'ROOT'))
   }
 
-  initializeTree(node: ResolvedRepositoryNode): void {
-    this.repo.cdbInitTree(node)
-  }
-
   // loads the node by id, renames it and then returns a Promise of a response when done
   renameNode(nodeId: string, newName: string): Promise<any> {
     return this.repo.cdbLoadNode(nodeId, false)

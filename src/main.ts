@@ -1,7 +1,7 @@
 import {getHashValue} from './util'
 import {mount} from 'redom'
 import {State, Status, LoadedTree} from './tree-api'
-import {UndoableTreeService} from './tree-manager'
+import {UndoableTreeService} from './tree-service-undoable'
 import {Tree} from './tree-component'
 
 function getRequestedNodeId() {

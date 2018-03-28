@@ -18,7 +18,7 @@ import {
   getNodeName,
   isNode,
   hasChildren,
-} from './dom-util'
+} from './tree-dom-util'
 import {
   Status,
   State,
@@ -57,6 +57,20 @@ const transientState: TransientState = {
   focusNodePreviousPos: -1,
   treeHasBeenNavigatedTo: false,
 }
+
+// TODO: evaluate whether we need this functionality in the DOM version of this code, this was needed in Maquette
+// here we set focus to a node if it has been created and we set it as the focusable node in transientstate
+// function transientStateHandler(element: HTMLElement): void {
+//   if (transientState && transientState.focusNodeId &&
+//       element.getAttribute('data-nodeid') === transientState.focusNodeId) {
+//     element.focus()
+//     if (transientState.focusCharPos > -1) {
+//       setCursorPos(element, transientState.focusCharPos)
+//     }
+//     transientState.focusNodeId = null
+//     transientState.focusCharPos = -1
+//   }
+// }
 
 // We need to track when the selection changes so we can store the current
 // cursor position (needed for UNDO)

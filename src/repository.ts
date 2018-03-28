@@ -43,7 +43,6 @@ export interface RelativeNodePosition {
 }
 
 export interface Repository {
-  cdbInitTree(node: ResolvedRepositoryNode): Promise<void>,
   cdbCreateNode(id: string, name: string, content: string): Promise<RepositoryNode>
   cdbPutNode(node: RepositoryNode, retryCount?: number): Promise<void>
   cdbSaveAll(nodes: RepositoryNode[]): Promise<void>

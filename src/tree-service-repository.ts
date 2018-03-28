@@ -22,8 +22,9 @@ import {RepositoryService} from './repository-service'
 import PQueue from 'p-queue'
 
 export class RepositoryTreeService implements TreeService {
+  // We are using a single threaded queue to serialize all updates to the repository,
+  // this avoids concurrent updates that may overwhelm the persistent implementation
   private queue = new PQueue({concurrency: 1})
-  private counter: number = 0
 
   constructor(readonly repoService: RepositoryService) {}
 
@@ -36,10 +37,6 @@ export class RepositoryTreeService implements TreeService {
           return tree
         }
       })
-  }
-
-  initTree(node: ResolvedRepositoryNode): void {
-    this.repoService.initializeTree(node)
   }
 
   exec(command: Command): Promise<any> {

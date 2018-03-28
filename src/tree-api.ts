@@ -12,7 +12,6 @@ export {
 
 export interface TreeService {
   loadTree(nodeId: string): Promise<LoadedTree>,
-  initTree(node: ResolvedRepositoryNode): void,
   exec(command: Command): Promise<any>,
 }
 

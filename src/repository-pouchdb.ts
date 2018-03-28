@@ -5,10 +5,6 @@ import {Repository, RepositoryNode, ResolvedRepositoryNode, LoadedTree, State} f
 export class PouchDbRepository implements Repository {
   private readonly outlineDb: any = new PouchDB('outlineDB')
 
-  cdbInitTree(node: ResolvedRepositoryNode): Promise<void> {
-    throw new Error('Method not implemented.')
-  }
-
   cdbCreateNode(id: string, name: string, content: string): Promise<RepositoryNode> {
     const node = {
       _id: id,
