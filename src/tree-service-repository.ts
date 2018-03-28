@@ -63,8 +63,8 @@ export class RepositoryTreeService implements TreeService {
   // 1. rename the current node to the right hand side of the split
   // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
   private splitNodeById(cmd: SplitNodeByIdCommandPayload): Promise<any> {
-    return this.repoService.renameNode(cmd.nodeId, cmd.afterSplitNamePart)
-      .then((result) => this.repoService.createSibling(cmd.siblingId, cmd.beforeSplitNamePart, null, cmd.nodeId, true))
+    return this.repoService.renameNode(cmd.nodeId, cmd.remainingNodeName)
+      .then((result) => this.repoService.createSibling(cmd.siblingId, cmd.newNodeName, null, cmd.nodeId, true))
   }
 
   private unsplitNodeById(cmd: UnsplitNodeByIdCommandPayload): Promise<any> {

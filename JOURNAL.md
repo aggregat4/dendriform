@@ -66,4 +66,4 @@ There is also an optimization question: currently I directly call the DOM manipu
 
 Think about that.
 
-Next up is testing undo, and considering refactoring/moving the DOM stuff somewhere
+Next up is testing undo, and considering refactoring/moving the DOM stuff somewhere.

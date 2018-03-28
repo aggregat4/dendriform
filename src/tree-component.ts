@@ -84,7 +84,7 @@ export class Tree {
       this.content = this.contentNode(tree))
     // We need to bind the event handlers to the class otherwise the scope with the element
     // the event was received on. Javascript! <rolls eyes>
-    // Using single event listeners for all nodes to reduce memory usage and the chance of memory leaks
+    // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
     // This means that all event listeners here need to check whether they are triggered on
     // a relevant node
     this.el.addEventListener('input', this.onInput.bind(this))
