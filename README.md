@@ -41,6 +41,7 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
+1. BUG: undoing a new node creation after some typing in node will have one step where the previous node appears and then disappears, apparently there is some undo shenanigans going on? Either the command creation or the DOM stuff?
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
@@ -49,15 +50,13 @@ Some tools needed for the various build goals:
 1. Implement export in some standard format
 1. Implement import in some standard format
 1. Implement OPEN and CLOSED nodes
-1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node)
-1. Check if it works on iOS, we possibly need to do as suggested in https://stackoverflow.com/a/45954914/1996 (call rendernow to trigger focus)
 1. Implement search (with https://github.com/pouchdb-community/pouchdb-quick-search perhaps?)
+1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node)
+1. Check if it works on iOS and Android
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
 1. Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
 1. Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
-1. Implement custom debouncing/queueing for rename updates: just track the latest rename value, then periodically with setInterval, persist this change and also when performing another action like splitting, persist this change. The current system looks good, but can run into conflicted updates in the data store.
-1. Performance is going to be shit with bigger trees: we always reload the entire tree on structural changes, this is easier to implement but very inefficient.
 1. Implement moving up and down with arrow keys and maintaining approximate character position
 
 ## Ideas
