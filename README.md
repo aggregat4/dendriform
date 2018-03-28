@@ -41,15 +41,11 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. Start a new branch with the direct DOM rendering approach and alternate Command implementation that does direct dom manipulation. See performance chapter down here. Following plan:
-  - I am creating commands that don't have functions in them, this needs to be finised and refactored in tree-component.
-  - These commands can then be executed multiple times. There needs to be a CommandExecutor for the current PouchDb backend and we need on that just modifies the local store.
-1. See if we can not reduce the amount of code in tree-component, or if we organize it differently, I don't like that the Tree class contains all of that stuff
-1. BUG: if your select an entire node's text and then press DELETE it will merge the nodes instead of just deleting the selection: need to put a guard in to check whether something is selected
-1. Refactor the module structure, no cyclic dependencies and remove implementations to own modules
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
+1. See if we can not reduce the amount of code in tree-component, or if we organize it differently, I don't like that the Tree class contains all of that stuff and the DOM code is still in here as well. Also consider moving the dom code to the exec function at the cost of losing direct access to the DOM elements when I do it locally.
+1. BUG: if your select an entire node's text and then press DELETE it will merge the nodes instead of just deleting the selection: need to put a guard in to check whether something is selected
 1. Implement export in some standard format
 1. Implement import in some standard format
 1. Implement OPEN and CLOSED nodes
