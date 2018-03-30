@@ -133,6 +133,7 @@ export class Tree {
     const oldName = transientState.focusNodePreviousName
     const beforeFocusNodeId = nodeId
     const beforeFocusPos = transientState.focusNodePreviousPos
+    // TODO: clean up transient state mangement, what do I need still now that we do DOM
     transientState.focusNodePreviousId = nodeId
     transientState.focusNodePreviousName = newName
     transientState.focusNodePreviousPos = getCursorPos()
@@ -141,8 +142,6 @@ export class Tree {
       new CommandBuilder(
         new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
         .isUndoable()
-        .withBeforeFocusNodeId(beforeFocusNodeId)
-        .withBeforeFocusPos(beforeFocusPos)
         .build(),
     )
   }
@@ -158,15 +157,21 @@ export class Tree {
       const beforeSplitNamePart = getTextBeforeCursor(event) || ''
       const afterSplitNamePart = getTextAfterCursor(event) || ''
       const newNodeId = generateUUID()
-      // tslint:disable-next-line:no-console
-      console.log(`About to split nodes and create a new node with ID ${newNodeId}`)
+      // make sure we save the transientstate so we can undo properly, especially when we split at the end of a node
+      transientState.focusNodePreviousId = nodeId
+      transientState.focusNodePreviousName = afterSplitNamePart
+      transientState.focusNodePreviousPos = 0
+      // we need to save this position before we start manipulating the DOM
+      const beforeFocusPos = getCursorPos()
       domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
       this.exec(
         new CommandBuilder(
           new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart, afterSplitNamePart))
             .isUndoable()
             .requiresRender()
-            .withAfterFocusNodeId(nodeId)
+            // The before position and node is used for the after position and node in undo
+            .withBeforeFocusNodeId(nodeId)
+            .withBeforeFocusPos(beforeFocusPos)
             .build(),
       )
     }
@@ -187,7 +192,7 @@ export class Tree {
       } else {
         const previousNameNode = findPreviousNameNode(event.target as Element) as HTMLElement
         if (previousNameNode) {
-          this.requestFocusOnNodeAtChar(getNodeId(previousNameNode.parentElement), -1)
+          this.saveTransientState(getNodeId(previousNameNode.parentElement), -1)
           previousNameNode.focus()
         }
       }
@@ -202,7 +207,7 @@ export class Tree {
       } else {
         const nextNameNode = findNextNameNode(event.target as Element) as HTMLElement
         if (nextNameNode) {
-          this.requestFocusOnNodeAtChar(getNodeId(nextNameNode.parentElement), -1)
+          this.saveTransientState(getNodeId(nextNameNode.parentElement), -1)
           nextNameNode.focus()
         }
       }
@@ -343,7 +348,6 @@ export class Tree {
   private exec(command: Command) {
     this.treeService.exec(command)
       .then(() => {
-        // no focus handling yet, maybe unnecessary?
         if (command.afterFocusNodeId) {
           this.focus(command.afterFocusNodeId, command.afterFocusPos)
         }
@@ -353,7 +357,7 @@ export class Tree {
   private focus(nodeId: string, charPos: number) {
     const element = document.getElementById(nodeId)
     // tslint:disable-next-line:no-console
-    console.log(`focusing on node ${nodeId}, exists?`, element)
+    // console.log(`focusing on node ${nodeId} at ${charPos}, exists?`, element)
     if (element) {
       const nameElement: HTMLElement = element.children[1] as HTMLElement
       nameElement.focus()
@@ -364,7 +368,7 @@ export class Tree {
   }
 
   // charPos should be -1 to just request focus on the node
-  private requestFocusOnNodeAtChar(nodeId: string, charPos: number): void {
+  private saveTransientState(nodeId: string, charPos: number): void {
     transientState.focusNodeId = nodeId
     transientState.focusCharPos = charPos
   }
@@ -379,7 +383,7 @@ export class Tree {
   private undoLastCommand(): void {
     const undoCommandPromise = this.treeService.popUndoCommand()
     if (undoCommandPromise) {
-      undoCommandPromise.then((command) => {
+      undoCommandPromise.then((command: Command) => {
         if (command) {
           // DOM Undo Handling
           // TODO: consider moving this to the exec function, then redo is also handled
