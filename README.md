@@ -41,7 +41,6 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. BUG: undoing a new node creation after some typing in node will have one step where the previous node appears and then disappears, apparently there is some undo shenanigans going on? Either the command creation or the DOM stuff?
 1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
