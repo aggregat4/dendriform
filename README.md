@@ -41,7 +41,6 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. Implement breadcrumbs for navigating back
 1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. See if we can not reduce the amount of code in tree-component, or if we organize it differently, I don't like that the Tree class contains all of that stuff and the DOM code is still in here as well. Also consider moving the dom code to the exec function at the cost of losing direct access to the DOM elements when I do it locally.
