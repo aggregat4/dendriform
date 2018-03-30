@@ -3,6 +3,10 @@
   line-height: 1.5;
 }
 
+.breadcrumbs > span::after {
+  content: ' > ';
+}
+
 .node {
   display: block;
 }

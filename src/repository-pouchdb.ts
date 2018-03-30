@@ -1,7 +1,6 @@
 import PouchDB from 'pouchdb-browser'
 import {Repository, RepositoryNode, ResolvedRepositoryNode, LoadedTree, State} from './repository'
 
-// TODO: move this to its own file
 export class PouchDbRepository implements Repository {
   private readonly outlineDb: any = new PouchDB('outlineDB')
 
@@ -92,10 +91,10 @@ export class PouchDbRepository implements Repository {
   }
 
   cdbLoadTree(node: RepositoryNode): Promise<LoadedTree> {
-    return this.loadTreeNodeRecursively(node)
-      .then((tree) => {
-        return Promise.resolve({ status: { state: State.LOADED }, tree })
-      })
+    return Promise.all([
+        this.loadTreeNodeRecursively(node),
+        this.loadParents(node, [])])
+      .then(results => Promise.resolve({ status: { state: State.LOADED }, tree: results[0], parents: results[1] }) )
       .catch((reason) => {
         if (reason.status === 404) {
           return Promise.resolve({ status: { state: State.NOT_FOUND } })
@@ -103,5 +102,20 @@ export class PouchDbRepository implements Repository {
           return Promise.resolve({ status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } })
         }
       })
+  }
+
+  private loadParents(child: RepositoryNode, parents: RepositoryNode[]): Promise<RepositoryNode[]> {
+    console.log(`loading parents for `, child, ` with parents array `, parents)
+    if (child.parentref && child.parentref !== 'ROOT') {
+      return this.cdbLoadNode(child.parentref, false)
+        .then(parent => {
+          parents.push(parent)
+          return this.loadParents(parent, parents)
+        })
+        .catch(reason => Promise.resolve(parents))
+    } else {
+      console.log(`no more parentref, resolving promise with parents `, parents)
+      return Promise.resolve(parents)
+    }
   }
 }

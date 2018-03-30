@@ -92,11 +92,13 @@ export class Tree {
   private el
   private content
   private treeService
+  private breadcrumbs
 
   constructor(tree: LoadedTree, treeService: TreeService) {
     this.treeService = treeService
     this.el = el('div.tree',
-      this.content = this.contentNode(tree))
+      this.breadcrumbs = this.generateBreadcrumbs(tree),
+      this.content = this.generateTreeNodes(tree))
     // We need to bind the event handlers to the class otherwise the scope with the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
@@ -110,10 +112,24 @@ export class Tree {
   }
 
   update(tree: LoadedTree) {
-    setChildren(this.el, this.contentNode(tree))
+    setChildren(this.el,
+      this.breadcrumbs = this.generateBreadcrumbs(tree),
+      this.content = this.generateTreeNodes(tree))
   }
 
-  private contentNode(tree: LoadedTree) {
+  private generateBreadcrumbs(tree: LoadedTree) {
+    if (!tree.parents || tree.tree.node._id === 'ROOT') {
+      return
+    } else {
+      const fullParents = tree.parents.concat([createNewRepositoryNode('ROOT', 'ROOT')])
+      // breadcrumbs need to start at ROOT and go down
+      fullParents.reverse()
+      return el('div.breadcrumbs',
+        fullParents.map(repoNode => el('span', el('a', {href: '#node=' + repoNode._id}, repoNode.name))))
+    }
+  }
+
+  private generateTreeNodes(tree: LoadedTree) {
     if (tree.status.state === State.ERROR) {
       return el('div.error', `Can not load tree from backing store: ${tree.status.msg}`)
     } else if (tree.status.state === State.LOADING) {
@@ -512,15 +528,19 @@ function domSplitNode(node: Element, newNodeName: string, originalNodeName: stri
   node.insertAdjacentElement('beforebegin', newSibling.getElement())
 }
 
+function createNewRepositoryNode(id: string, name: string, parentref?: string): RepositoryNode {
+  return {
+    _id: id,
+    name,
+    content: null,
+    childrefs: [],
+    parentref,
+  }
+}
+
 function createNewNode(id: string, name: string, parentref?: string): ResolvedRepositoryNode {
   return {
-    node: {
-      _id: id,
-      name,
-      content: null,
-      childrefs: [],
-      parentref,
-    },
+    node: createNewRepositoryNode(id, name, parentref),
     children: [],
   }
 }

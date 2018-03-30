@@ -28,6 +28,7 @@ export interface Status {
 export interface LoadedTree {
   status: Status
   tree?: ResolvedRepositoryNode
+  parents?: RepositoryNode[]
 }
 
 export enum RelativeLinearPosition {
