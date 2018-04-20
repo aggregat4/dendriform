@@ -10,7 +10,7 @@ It is currently mostly a playground and personal project for learning client sid
 
 ## Useful links
 
-* `package.json` spec: https://docs.npmjs.com/files/package.json
+* [`package.json` spec](https://docs.npmjs.com/files/package.json)
 
 ## Project Development
 
@@ -48,7 +48,7 @@ Some tools needed for the various build goals:
 1. Implement export in some standard format
 1. Implement import in some standard format
 1. Implement OPEN and CLOSED nodes
-1. Implement search (with https://github.com/pouchdb-community/pouchdb-quick-search perhaps?)
+1. Implement search (with [pouchdb-quick-search](https://github.com/pouchdb-community/pouchdb-quick-search) perhaps?)
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node)
 1. Check if it works on iOS and Android
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
@@ -60,23 +60,30 @@ Some tools needed for the various build goals:
 ## Ideas
 
 ### Unit Testing
-Consider adding unit tests with this approach https://www.npmjs.com/package/mocha-webpack
+
+Consider adding unit tests with this approach [https://www.npmjs.com/package/mocha-webpack](https://www.npmjs.com/package/mocha-webpack)
 
 ### Performance
+
 We have a problem with our current model: since we use a virtual dom approach we need to rely on that to reflect changes in our model. Currently the model is always loaded from pouchdb, that is "the truth". This has the disadvantage that (async) updates in pouchdb need to happen before we can render the changes in the state. This in turn causes delays, and even adds a need for debouncing when operations are very quick and pouchdb does not keep up. This makes the application feel unncessarily slow.
 
 There are two ways around this that I see:
-- Separate model: Keep the vdom approach and modify an in memory representation of the tree, serialize all updates to pouchdb and have those happen in the background. Problems here are that we need to store _another_ representation of the tree, and we need a way to deal with async updates coming in through pouchdb from other devices: when do we completely reload the local representation?
-- Pure DOM approach: Restart the view layer without maquette, go pure dom, try to use RE:DOM (https://redom.js.org/) perhaps. We could do all local changes directly on the DOM and serialize updates in the background to pouchdb. Here too we need to deal with the background sync issues and how to merge them in.
+
+* Separate model: Keep the vdom approach and modify an in memory representation of the tree, serialize all updates to pouchdb and have those happen in the background. Problems here are that we need to store _another_ representation of the tree, and we need a way to deal with async updates coming in through pouchdb from other devices: when do we completely reload the local representation?
+
+* Pure DOM approach: Restart the view layer without maquette, go pure dom, try to use [RE:DOM](https://redom.js.org/) perhaps. We could do all local changes directly on the DOM and serialize updates in the background to pouchdb. Here too we need to deal with the background sync issues and how to merge them in.
 
 The two models are more similar then I imagined: they both operate on a local representation of the tree, which in both cases can be partial (think about collapsed nodes) and with both approaches I need to serialize updates to the backing store.
 
 So, current idea: start a new branch where we will implement synchronous commands that operate on the DOM tree and queue all backend repository updates in a serialized queue with pouchdb updates.
 
 Ideas:
-- Implement everyhting with getElementById, optionally I could try to optimise to always pass the current node as well since I usually have that, this could obviate a lookup with certain operations.
-- A load is a load: always load from backing store and rerender tree. We just need to stop rerendering for everything since we will be (hopefully) in sync
-- We should be able to reuse the current pouchdb commands, need to abstract those builders out as an interface and have two implementations?
+
+* Implement everyhting with getElementById, optionally I could try to optimise to always pass the current node as well since I usually have that, this could obviate a lookup with certain operations.
+
+* A load is a load: always load from backing store and rerender tree. We just need to stop rerendering for everything since we will be (hopefully) in sync
+
+* We should be able to reuse the current pouchdb commands, need to abstract those builders out as an interface and have two implementations?
 
 ## Lessons learned
 
@@ -95,6 +102,7 @@ Does this mean we need to serialize updates ourselves? Put all Update commands (
 ## Software Design
 
 ### Flow
+
 On DOM loaded (or hash parameter change to different node), trigger tree store fetch, when promise completes call maquette render function with data objects.
 
 On other events that mutate the tree, send update action to tree store, when promise returns call render.
@@ -115,6 +123,6 @@ However, optimally we would reduce the need to load things from the database to 
 
 #### Where To Put Controller Logic or Event Handling
 
-We are currently putting the event handler logic inside of the component/view module, meaning that the code that reacts to user and browser events is alongside the view rendering code and accesses the repository and other services. 
+We are currently putting the event handler logic inside of the component/view module, meaning that the code that reacts to user and browser events is alongside the view rendering code and accesses the repository and other services.
 
 It would be possible to factor this out and to just handle those events in a dedicated place away from the renderer, but it is currently unclear what that would bring us. Perhaps after a few thousand lines of code this will be easier to judge.
