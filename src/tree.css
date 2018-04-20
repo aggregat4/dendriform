@@ -21,10 +21,10 @@
 .tree {
   /* Units in CSS: https://developer.mozilla.org/en-US/docs/Learn/CSS/Introduction_to_CSS/Values_and_units */
   font: 1rem sans-serif;
-  line-height: 1.5;
+  line-height: 1.4;
   margin: 24px auto 24px auto;
   /* Optimal width of text in a column: https://ux.stackexchange.com/a/3623 */
-  max-width: 66rem;
+  max-width: 75ch;
   border-left: 1px #eeeeee dotted;
 }
 
@@ -48,6 +48,9 @@
 
 .node {
   display: block;
+  /* This is spacing before a node so that it does not "stick" to the previous one.
+     Hard to get the right balance between this and the line-height. */
+  margin-top: 4px;
 }
 
 .node a {
