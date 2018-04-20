@@ -86,3 +86,8 @@ Next up is testing undo, and considering refactoring/moving the DOM stuff somewh
 ## 28.3.2018
 
 Tested undo a bit and fixed a bug with splitting nodes. Cleaned up code and removed unused code. Merged direct-dom branch into master.
+
+## 20.4.2018
+
+First round of prettyfication, did some general spacing and sizing stuff, especially reducing the max-width of the tree so it remains readable. Otherwise looked and compared to workflowy and Dynalist for certain aspects. This is ok for now I think.
+
