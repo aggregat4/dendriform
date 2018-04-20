@@ -1,10 +1,49 @@
+/* This is not actually our palette, this was just to get some inspiration, colors have already been modified in the css. */
+/* Palette URL: http://paletton.com/#uid=33v0u0kllll9dtAfhptrphd-od5 */
+.color-primary-0 { color: #29526D }	/* Main Primary color */
+.color-primary-1 { color: #6E8797 }
+.color-primary-2 { color: #476B82 }
+.color-primary-3 { color: #113C58 }
+.color-primary-4 { color: #032A43 }
+
+.color-secondary-1-0 { color: #AA8C39 }	/* Main Secondary color (1) */
+.color-secondary-1-1 { color: #ECDAA8 }
+.color-secondary-1-2 { color: #CBB26A }
+.color-secondary-1-3 { color: #896A14 }
+.color-secondary-1-4 { color: #684D00 }
+
+.color-secondary-2-0 { color: #AA5439 }	/* Main Secondary color (2) */
+.color-secondary-2-1 { color: #ECB8A8 }
+.color-secondary-2-2 { color: #CB816A }
+.color-secondary-2-3 { color: #893014 }
+.color-secondary-2-4 { color: #681900 }
+
 .tree {
+  /* Units in CSS: https://developer.mozilla.org/en-US/docs/Learn/CSS/Introduction_to_CSS/Values_and_units */
   font: 1rem sans-serif;
   line-height: 1.5;
+  margin: 24px auto 24px auto;
+  /* Optimal width of text in a column: https://ux.stackexchange.com/a/3623 */
+  max-width: 66rem;
+  border-left: 1px #eeeeee dotted;
+}
+
+.breadcrumbs {
+  padding: 0 6px 0 6px;
+  margin: 6px 0 12px 0;
 }
 
 .breadcrumbs > span::after {
   content: ' > ';
+}
+
+.breadcrumbs a {
+  text-decoration: none;
+  color: #29526D;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
 }
 
 .node {
@@ -14,7 +53,16 @@
 .node a {
   display: inline-block;
   position: absolute;
-  margin: 0 10px 0 10px;
+  padding: 0 6px 0 6px;
+  text-decoration: none;
+}
+
+.node a, .node a:hover, .node a:active, node a:visited {
+  color: black;
+}
+
+.node a:hover {
+  background: rgb(182, 197, 206); /* #c1c1ff; */
 }
 
 .node .name {
@@ -26,15 +74,20 @@
   /* min-width (or a similar trick) is required to make the cursor show in Chrome when the element is empty */
   min-width: 20px;
   /* leaves space for the bullet since that is positioned absolute */
-  margin-left: 30px;
+  margin-left: 19px;
+  padding: 0 6px 0 6px;
 }
 
 .node .name:focus {
   outline: none;
-  background-color: #f5f5aa;
+  background-color: rgb(243, 235, 214); /* #f5f5aa; */
 }
 
 .node .children {
+  margin-left: 0px;
+}
+
+.node .children .children {
   margin-left: 24px;
 }
 
@@ -54,7 +107,7 @@
 /* The first node in a tree is special (when not root node), we show it really big, without the star */
 .node.first > .name {
   font-size: 150%;
-  margin: 6px;
+  margin: 0 0 6px 0;
 }
 
 .node.first > a {

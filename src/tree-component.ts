@@ -466,7 +466,7 @@ class TreeNode {
         id: treeNode.node._id,
         class: this.genClass(treeNode, first),
       },
-      this.anchor = el('a', { href: `#node=${treeNode.node._id}` }, '*'),
+      this.anchor = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
       this.name = el('div.name',
         { contentEditable: true }, treeNode.node.name),
       treeNode.children && treeNode.children.length > 0 && el('div.children',

@@ -41,7 +41,6 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. First round of prettyfication of the UI (investigate some information hierarchy, ux, similar stuff))
 1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. See if we can not reduce the amount of code in tree-component, or if we organize it differently, I don't like that the Tree class contains all of that stuff and the DOM code is still in here as well. Also consider moving the dom code to the exec function at the cost of losing direct access to the DOM elements when I do it locally.
 1. BUG: if your select an entire node's text and then press DELETE it will merge the nodes instead of just deleting the selection: need to put a guard in to check whether something is selected
