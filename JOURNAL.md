@@ -90,4 +90,3 @@ Tested undo a bit and fixed a bug with splitting nodes. Cleaned up code and remo
 ## 20.4.2018
 
 First round of prettyfication, did some general spacing and sizing stuff, especially reducing the max-width of the tree so it remains readable. Otherwise looked and compared to workflowy and Dynalist for certain aspects. This is ok for now I think.
-

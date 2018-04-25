@@ -14,6 +14,7 @@ import {
   findNextNameNode,
   getParentNode,
   hasParentNode,
+  findLastChildNode,
   getNodeId,
   getNodeName,
   isNode,
@@ -269,6 +270,23 @@ export class Tree {
             newParentNode,
             RelativeLinearPosition.AFTER,
             afterNode)
+        }
+      }
+    } else if (event.key === 'Home' && event.ctrlKey) {
+      // Move to the top of the current tree (not the root, but its first child)
+      const treeDiv = (event.target as Element).closest('.tree')
+      const firstNode = treeDiv.querySelector('div.node div.node')
+      if (firstNode) {
+        (firstNode.children[1] as HTMLElement).focus()
+      }
+    } else if (event.key === 'End' && event.ctrlKey) {
+      // Move to the bottom (last leaf node) of the current tree
+      const treeDiv = (event.target as Element).closest('.tree')
+      const rootNode = treeDiv.querySelector('div.node')
+      if (rootNode) {
+        const lastNode = findLastChildNode(rootNode)
+        if (lastNode) {
+          (lastNode.children[1] as HTMLElement).focus()
         }
       }
     }

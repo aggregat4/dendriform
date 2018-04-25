@@ -54,7 +54,7 @@ export function findPreviousNameNode(nodeNameElement: Element): Element {
 }
 
 // Given a div.node it finds the LAST and deepest child (depth first) of that node, or the node itself
-function findLastChildNode(node: Element): Element {
+export function findLastChildNode(node: Element): Element {
   if (hasChildren(node)) {
     const childrenNode: Element = node.children[2]
     return findLastChildNode(childrenNode.children[childrenNode.children.length - 1])

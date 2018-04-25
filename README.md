@@ -41,9 +41,9 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. Implement navigating to the end and beginning of the tree with CTRL+HOME/END (or whatever the mac equivalent is?)
 1. See if we can not reduce the amount of code in tree-component, or if we organize it differently, I don't like that the Tree class contains all of that stuff and the DOM code is still in here as well. Also consider moving the dom code to the exec function at the cost of losing direct access to the DOM elements when I do it locally.
 1. BUG: if your select an entire node's text and then press DELETE it will merge the nodes instead of just deleting the selection: need to put a guard in to check whether something is selected
+1. Implement REDO
 1. Implement export in some standard format
 1. Implement import in some standard format
 1. Implement OPEN and CLOSED nodes
@@ -55,6 +55,7 @@ Some tools needed for the various build goals:
 1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
 1. Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
 1. Implement moving up and down with arrow keys and maintaining approximate character position
+1. Implement multi-select and delete and move operations (at least with keyboard)
 
 ## Ideas
 
