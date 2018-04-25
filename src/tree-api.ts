@@ -8,6 +8,8 @@ export {
   RelativeLinearPosition,
   RelativeNodePosition,
   LoadedTree,
+  createNewRepositoryNode,
+  createNewResolvedRepositoryNode,
 } from './repository'
 
 export interface TreeService {

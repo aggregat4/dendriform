@@ -8,6 +8,23 @@ export interface RepositoryNode {
   deleted?: boolean
 }
 
+export function createNewRepositoryNode(id: string, name: string, parentref?: string): RepositoryNode {
+  return {
+    _id: id,
+    name,
+    content: null,
+    childrefs: [],
+    parentref,
+  }
+}
+
+export function createNewResolvedRepositoryNode(id: string, name: string, parentref?: string): ResolvedRepositoryNode {
+  return {
+    node: createNewRepositoryNode(id, name, parentref),
+    children: [],
+  }
+}
+
 export interface ResolvedRepositoryNode {
   node: RepositoryNode,
   children: ResolvedRepositoryNode[]

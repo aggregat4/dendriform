@@ -13,6 +13,7 @@
     "object-literal-key-quotes": [false],
     "max-classes-per-file": [false],
     "variable-name": [true, "allow-leading-underscore"],
-    "member-access": [true, "no-public"]
+    "member-access": [true, "no-public"],
+    "member-ordering": [false]
   }
 }
