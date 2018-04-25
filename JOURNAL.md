@@ -90,3 +90,22 @@ Tested undo a bit and fixed a bug with splitting nodes. Cleaned up code and remo
 ## 20.4.2018
 
 First round of prettyfication, did some general spacing and sizing stuff, especially reducing the max-width of the tree so it remains readable. Otherwise looked and compared to workflowy and Dynalist for certain aspects. This is ok for now I think.
+
+## 25.4.2018
+
+Design notes for search in Dendriform.
+
+### At load time
+
+- index each node during rendering with LUNR: {name, description, nodeid, [all ancestor ids]}
+
+### At search time
+
+- debounced search term trigger
+
+- search LUNR index with prefix search, retrieve ALL results
+
+- build a map (a node inclusion map):
+    nodeid -> {name_highlight_pos: [], desc_highlight_pos: []}
+
+- rerender (no reload!) tree with this map as a filter + highlight as you go
