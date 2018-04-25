@@ -109,3 +109,7 @@ Design notes for search in Dendriform.
     nodeid -> {name_highlight_pos: [], desc_highlight_pos: []}
 
 - rerender (no reload!) tree with this map as a filter + highlight as you go
+
+## 25.4.2018
+
+Source code refactor and cleanup with the DOM stuff, now moved into TreeNode and that class is in its own file. Also the exec function in Tree now takes care of triggering DOM operations if a parameter is passed. This opens the way to trivially (sic) implement REDO at some point.

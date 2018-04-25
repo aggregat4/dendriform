@@ -42,12 +42,11 @@ Some tools needed for the various build goals:
 ## Next Steps
 
 1. BUG: if your select an entire node's text and then press DELETE it will merge the nodes instead of just deleting the selection: need to put a guard in to check whether something is selected
-1. See if we can not reduce the amount of code in tree-component, or if we organize it differently, I don't like that the Tree class contains all of that stuff and the DOM code is still in here as well. Also consider moving the dom code to the exec function at the cost of losing direct access to the DOM elements when I do it locally.
 1. Implement REDO
 1. Implement export in some standard format
 1. Implement import in some standard format
 1. Implement OPEN and CLOSED nodes
-1. Implement search (with [pouchdb-quick-search](https://github.com/pouchdb-community/pouchdb-quick-search) perhaps?)
+1. Implement search, see design notes in journal
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node) (what node though? config? hmm)
 1. Check if it works on iOS and Android
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
