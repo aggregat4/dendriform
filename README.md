@@ -41,7 +41,6 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. Implement search, see design notes in journal
 1. Implement search highlighting
 1. BUG: if your select an entire node's text and then press DELETE it will merge the nodes instead of just deleting the selection: need to put a guard in to check whether something is selected
 1. Implement REDO
