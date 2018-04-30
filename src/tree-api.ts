@@ -11,6 +11,20 @@ export {
   createNewRepositoryNode,
   createNewResolvedRepositoryNode,
 } from './repository'
+import {getHashValue} from './util'
+
+export function getRequestedNodeId() {
+  return getHashValue('node') || 'ROOT'
+}
+
+export interface Filter {
+  query: string
+}
+
+export interface Highlight {
+  pos: number,
+  length: number
+}
 
 export interface TreeService {
   loadTree(nodeId: string): Promise<LoadedTree>,

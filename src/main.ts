@@ -1,12 +1,7 @@
-import {getHashValue} from './util'
 import {mount} from 'redom'
-import {State, Status, LoadedTree} from './tree-api'
+import {State, Status, LoadedTree, getRequestedNodeId} from './tree-api'
 import {UndoableTreeService} from './tree-service-undoable'
 import {Tree} from './tree-component'
-
-function getRequestedNodeId() {
-  return getHashValue('node') || 'ROOT'
-}
 
 const treeService = new UndoableTreeService()
 

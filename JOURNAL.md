@@ -113,3 +113,9 @@ Design notes for search in Dendriform.
 ### Status
 
 Source code refactor and cleanup with the DOM stuff, now moved into TreeNode and that class is in its own file. Also the exec function in Tree now takes care of triggering DOM operations if a parameter is passed. This opens the way to trivially (sic) implement REDO at some point.
+
+## 30.4.2018
+
+New idea for search: if we do it with a "real" fulltext index we need to update the index with all changes to the tree.
+
+Alternative: when the query gets updated, reload the current tree and filter the nodes by the query (just substring).

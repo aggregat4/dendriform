@@ -46,6 +46,11 @@
   text-decoration: underline;
 }
 
+.searchbox {
+  padding: 0 6px 0 6px;
+  margin: 6px 0 12px 0;
+}
+
 .node {
   display: block;
   /* This is spacing before a node so that it does not "stick" to the previous one.

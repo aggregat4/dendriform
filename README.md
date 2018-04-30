@@ -41,18 +41,22 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
+1. Implement search, see design notes in journal
+1. Implement search highlighting
 1. BUG: if your select an entire node's text and then press DELETE it will merge the nodes instead of just deleting the selection: need to put a guard in to check whether something is selected
 1. Implement REDO
+1. Implement OPEN and CLOSED nodes
+1. Implement node descriptions! render, search, etc
 1. Implement export in some standard format
 1. Implement import in some standard format
-1. Implement OPEN and CLOSED nodes
-1. Implement search, see design notes in journal
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node) (what node though? config? hmm)
 1. Check if it works on iOS and Android
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
 1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
 1. Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
 1. Implement multi-select and delete and move operations (at least with keyboard)
+1. i18n (also consider search, maybe other find mechanism? https://stackoverflow.com/a/38151393/1996)
+1. Accessibility: is that even possible with this tree? How do I make the commands accessible? Do I need a menu per item anyway? How can I make moving a node in the tree accessible?
 1. MAYBE Implement moving up and down with arrow keys and maintaining approximate character position
 1. MAYBE Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 
@@ -113,15 +117,3 @@ On navigation events, set the hash value in the URL, call render.
 When a runtime error or exception happens, an Error will be thrown. This is used for defensive programming for example.
 
 ### Thoughts
-
-#### Incremental Store Loading
-
-The application is moving towards a model where the store is being reloaded completely when something changes, then the virtual dom does some efficient rendering of same. This is probably going to be ok in the short term, since we need to be able to load efficiently initially anyway.
-
-However, optimally we would reduce the need to load things from the database to the bare minimum required. Given that we already load single nodes as individual objects from the pouchdb database, this sets us up for sucess. We "just" need a way to identify what nodes are dirty and "just" reload those and replace them in our store. Easy. ;|
-
-#### Where To Put Controller Logic or Event Handling
-
-We are currently putting the event handler logic inside of the component/view module, meaning that the code that reacts to user and browser events is alongside the view rendering code and accesses the repository and other services.
-
-It would be possible to factor this out and to just handle those events in a dedicated place away from the renderer, but it is currently unclear what that would bring us. Perhaps after a few thousand lines of code this will be easier to judge.

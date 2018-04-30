@@ -10,16 +10,51 @@ import {
   SplitNodeByIdCommandPayload,
   UnmergeNodesByIdCommandPayload,
   UnsplitNodeByIdCommandPayload,
-  createNewResolvedRepositoryNode } from './tree-api'
-import { getNodeId, getParentNode } from './tree-dom-util'
+  createNewResolvedRepositoryNode,
+  Filter,
+  Highlight } from './tree-api'
+import { getNodeId, getParentNode, hasChildren } from './tree-dom-util'
 
 export class TreeNode {
   private el
   private anchor
-  private name
-  private treeService
+  private name: string
+  private nameHits: Highlight[]
+  // Future extension: allow descriptions to be searched
+  // private descHits: FilterHits
+  private includedInFilter: boolean = false
 
-  constructor(treeNode: ResolvedRepositoryNode, first: boolean) {
+  // 1. check for own filterhits
+  // 2. process all children
+  // 3. if filter then generate a list of all includedInFilter children
+  // 3. if self included inFilter or ANY children included in filter: then includedInFilter = true
+  // 4. if (filter and includedInFilter): render node and those children that are included
+  // 5. if not filter: render node and all children
+  constructor(treeNode: ResolvedRepositoryNode, first: boolean, filter?: Filter) {
+    // Process all the children
+    let children = treeNode.children && treeNode.children.length > 0 ?
+      treeNode.children.map(c => new TreeNode(c, false, filter)) : []
+    if (filter) {
+      // only include children that also are in the filter
+      children = children.filter(c => c.isIncludedInFilter())
+      // Check for own filterHits
+      this.nameHits = []
+      let pos = 0 - filter.query.length
+      const lowerCaseName = treeNode.node.name.toLowerCase()
+      while ((pos = lowerCaseName.indexOf(filter.query, pos + filter.query.length)) > -1) {
+        this.nameHits.push({pos, length: filter.query.length})
+      }
+      // When there are filtered children or we have a hit, then we should be included
+      if (children.length > 0 || this.nameHits.length > 0) {
+        this.includedInFilter = true
+      }
+    }
+    if (!filter || this.includedInFilter) {
+      this.generateDom(treeNode, first, children)
+    }
+  }
+
+  private generateDom(treeNode: ResolvedRepositoryNode, first: boolean, children: TreeNode[]) {
     this.el = el(
       'div',
       {
@@ -29,9 +64,12 @@ export class TreeNode {
       this.anchor = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
       this.name = el('div.name',
         { contentEditable: true }, treeNode.node.name),
-      treeNode.children && treeNode.children.length > 0 && el('div.children',
-        treeNode.children.map(c => new TreeNode(c, false))),
+        el('div.children', children),
     )
+  }
+
+  isIncludedInFilter(): boolean {
+    return this.includedInFilter
   }
 
   getElement(): Element {

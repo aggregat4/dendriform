@@ -11,7 +11,8 @@ import {
   SplitNodeByIdCommandPayload,
   State,
   TreeService,
-  createNewRepositoryNode } from './tree-api'
+  createNewRepositoryNode,
+  getRequestedNodeId} from './tree-api'
 import {
   findLastChildNode,
   findNextNameNode,
@@ -31,7 +32,9 @@ import {
   getTextBeforeCursor,
   isCursorAtBeginning,
   isCursorAtEnd,
-  setCursorPos } from './util'
+  setCursorPos,
+  isEmpty,
+  debounce} from './util'
 
 interface TransientState {
   focusNodeId: string,
@@ -73,10 +76,14 @@ export class Tree {
   private content
   private treeService
   private breadcrumbs
+  private searchBox
+  private searchField
+  private searchButton
 
   constructor(tree: LoadedTree, treeService: TreeService) {
     this.treeService = treeService
     this.el = el('div.tree',
+      this.searchBox = this.generateSearchBox(),
       this.breadcrumbs = this.generateBreadcrumbs(tree),
       this.content = this.generateTreeNodes(tree))
     // We need to bind the event handlers to the class otherwise the scope with the element
@@ -87,14 +94,24 @@ export class Tree {
     this.el.addEventListener('input', this.onInput.bind(this))
     this.el.addEventListener('keypress', this.onKeypress.bind(this))
     this.el.addEventListener('keydown', this.onKeydown.bind(this))
+    this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 250))
     // We need to support UNDO when activated anywhere in the document
     document.addEventListener('keydown', this.globalKeyDownHandler.bind(this))
   }
 
   update(tree: LoadedTree) {
     setChildren(this.el,
+      // retain the searchbox as it was if we update and we already had one
+      this.searchBox = this.searchBox || this.generateSearchBox(),
       this.breadcrumbs = this.generateBreadcrumbs(tree),
       this.content = this.generateTreeNodes(tree))
+  }
+
+  private generateSearchBox() {
+    return el('div.searchbox',
+      this.searchField = el('input', {type: 'search', placeholder: 'Filter'}))
+    /* Removing the search button because we don't really need it. Right?
+      this.searchButton = el('button', 'Filter')) */
   }
 
   private generateBreadcrumbs(tree: LoadedTree) {
@@ -114,8 +131,18 @@ export class Tree {
     } else if (tree.status.state === State.LOADING) {
       return el('div.error', `Loading tree...`)
     } else if (tree.status.state === State.LOADED) {
-      return new TreeNode(tree.tree, true)
+      const doFilter = !isEmpty(this.searchField.value)
+      // tslint:disable-next-line:no-console
+      console.log(`doFilter? `, doFilter)
+      return new TreeNode(
+        tree.tree,
+        true,
+        doFilter ? {query: this.searchField.value} : undefined)
     }
+  }
+
+  private onQueryChange(event: Event) {
+    this.treeService.loadTree(getRequestedNodeId()).then(tree => this.update(tree))
   }
 
   private onInput(event: Event) {

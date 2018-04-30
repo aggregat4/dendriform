@@ -1,5 +1,5 @@
 export function isEmpty(str: string): boolean {
-  return (!str || str.length === 0)
+  return !str || str.trim() === ''
 }
 
 export function getHashValue(key: string): string {
