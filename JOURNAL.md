@@ -1,5 +1,41 @@
 # Journal
 
+## Sometime in 2017
+
+### Promises are tricky
+
+* It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this is obvious, but debugging this is nasty.
+
+### Updates need to be serialized
+
+The delayed updates of the rename action (typing a character renames the node) are causing issues: when a rename is debounced and delayed for 250 milliseconds, and you split the same node inside of that window, the node is split and suddenly you have 2 nodes called the same text when the rename finally happens.
+
+We need to debounce to not overload pouchdb, but we can't let the split happen before the rename.
+
+Does this mean we need to serialize updates ourselves? Put all Update commands (without debouncing) in a queue and process that? When do we rerender the tree?
+
+### Virtual DOM Issues
+
+We have a problem with our current model: since we use a virtual dom approach we need to rely on that to reflect changes in our model. Currently the model is always loaded from pouchdb, that is "the truth". This has the disadvantage that (async) updates in pouchdb need to happen before we can render the changes in the state. This in turn causes delays, and even adds a need for debouncing when operations are very quick and pouchdb does not keep up. This makes the application feel unncessarily slow.
+
+There are two ways around this that I see:
+
+* Separate model: Keep the vdom approach and modify an in memory representation of the tree, serialize all updates to pouchdb and have those happen in the background. Problems here are that we need to store _another_ representation of the tree, and we need a way to deal with async updates coming in through pouchdb from other devices: when do we completely reload the local representation?
+
+* Pure DOM approach: Restart the view layer without maquette, go pure dom, try to use [RE:DOM](https://redom.js.org/) perhaps. We could do all local changes directly on the DOM and serialize updates in the background to pouchdb. Here too we need to deal with the background sync issues and how to merge them in.
+
+The two models are more similar then I imagined: they both operate on a local representation of the tree, which in both cases can be partial (think about collapsed nodes) and with both approaches I need to serialize updates to the backing store.
+
+So, current idea: start a new branch where we will implement synchronous commands that operate on the DOM tree and queue all backend repository updates in a serialized queue with pouchdb updates.
+
+Ideas:
+
+* Implement everyhting with getElementById, optionally I could try to optimise to always pass the current node as well since I usually have that, this could obviate a lookup with certain operations.
+
+* A load is a load: always load from backing store and rerender tree. We just need to stop rerendering for everything since we will be (hopefully) in sync
+
+* We should be able to reuse the current pouchdb commands, need to abstract those builders out as an interface and have two implementations?
+
 ## 17.1.2018
 
 working on the command executor in tree-api, got a basic idea and classes, need to finish command dispatching, then updating the code in tree-component and then testing, also implement the local store executor!
@@ -38,9 +74,9 @@ Also: I am starting to think that our performance problem may not be the storage
 
 Done most of the refactoring, I've arrived back at the frontend and need to fix 2 remaining things in the tree.component:
 
-- Does it have an internal cache of the tree for rerendering purposes? If so, where and how is it managed? Does it get it from the UndoableTreeService?
+* Does it have an internal cache of the tree for rerendering purposes? If so, where and how is it managed? Does it get it from the UndoableTreeService?
 
-- I'm a bit flummoxed by the exec() in tree-component and am wondering where the focus information there should be coming from. Perhaps I need to review the master branch to see where this was.
+* I'm a bit flummoxed by the exec() in tree-component and am wondering where the focus information there should be coming from. Perhaps I need to review the master branch to see where this was.
 
 ## 23.2.2018
 
@@ -51,9 +87,9 @@ I have a feeling that I will have to move towards direct DOM rendering in the en
 
 Started new branch called direct-dom and trying to redo rendering with RE:DOM. Basic minimal component works, need to load a real tree from Repo and see how we update the component. Two steps:
 
-- update just the one root node first (this involves changing the state as well), then updating the child
+* update just the one root node first (this involves changing the state as well), then updating the child
 
-- add a List component to the node so we can update children
+* add a List component to the node so we can update children
 
 ## 7.3.2018
 
@@ -97,18 +133,18 @@ Design notes for search in Dendriform.
 
 ### At load time
 
-- index each node during rendering with LUNR: {name, description, nodeid, [all ancestor ids]}
+* index each node during rendering with LUNR: {name, description, nodeid, [all ancestor ids]}
 
 ### At search time
 
-- debounced search term trigger
+* debounced search term trigger
 
-- search LUNR index with prefix search, retrieve ALL results
+* search LUNR index with prefix search, retrieve ALL results
 
-- build a map (a node inclusion map):
+* build a map (a node inclusion map):
     nodeid -> {name_highlight_pos: [], desc_highlight_pos: []}
 
-- rerender (no reload!) tree with this map as a filter + highlight as you go
+* rerender (no reload!) tree with this map as a filter + highlight as you go
 
 ### Status
 
@@ -119,3 +155,9 @@ Source code refactor and cleanup with the DOM stuff, now moved into TreeNode and
 New idea for search: if we do it with a "real" fulltext index we need to update the index with all changes to the tree.
 
 Alternative: when the query gets updated, reload the current tree and filter the nodes by the query (just substring).
+
+## 4.5.2018
+
+Search/Filter was way more elegant to implement in the same pass where we render the tree, since we descend depth first anyway we can gather status of all child nodes as we backtrack up the tree and decide whether or not a node (and its children) need to be rendered.
+
+Implemented search highlighting (straightforward) and fixed a bug where we needed to take into account whether or not something is selected in the current node before we do something like delete or backspace on it. Turns out the selection API of the DOM is incredibly crufty.

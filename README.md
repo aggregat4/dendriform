@@ -58,61 +58,18 @@ Some tools needed for the various build goals:
 1. Accessibility: is that even possible with this tree? How do I make the commands accessible? Do I need a menu per item anyway? How can I make moving a node in the tree accessible?
 1. MAYBE Implement moving up and down with arrow keys and maintaining approximate character position
 1. MAYBE Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
-
-## Ideas
-
-### Unit Testing
-
-Consider adding unit tests with this approach [https://www.npmjs.com/package/mocha-webpack](https://www.npmjs.com/package/mocha-webpack)
-
-### Performance
-
-We have a problem with our current model: since we use a virtual dom approach we need to rely on that to reflect changes in our model. Currently the model is always loaded from pouchdb, that is "the truth". This has the disadvantage that (async) updates in pouchdb need to happen before we can render the changes in the state. This in turn causes delays, and even adds a need for debouncing when operations are very quick and pouchdb does not keep up. This makes the application feel unncessarily slow.
-
-There are two ways around this that I see:
-
-* Separate model: Keep the vdom approach and modify an in memory representation of the tree, serialize all updates to pouchdb and have those happen in the background. Problems here are that we need to store _another_ representation of the tree, and we need a way to deal with async updates coming in through pouchdb from other devices: when do we completely reload the local representation?
-
-* Pure DOM approach: Restart the view layer without maquette, go pure dom, try to use [RE:DOM](https://redom.js.org/) perhaps. We could do all local changes directly on the DOM and serialize updates in the background to pouchdb. Here too we need to deal with the background sync issues and how to merge them in.
-
-The two models are more similar then I imagined: they both operate on a local representation of the tree, which in both cases can be partial (think about collapsed nodes) and with both approaches I need to serialize updates to the backing store.
-
-So, current idea: start a new branch where we will implement synchronous commands that operate on the DOM tree and queue all backend repository updates in a serialized queue with pouchdb updates.
-
-Ideas:
-
-* Implement everyhting with getElementById, optionally I could try to optimise to always pass the current node as well since I usually have that, this could obviate a lookup with certain operations.
-
-* A load is a load: always load from backing store and rerender tree. We just need to stop rerendering for everything since we will be (hopefully) in sync
-
-* We should be able to reuse the current pouchdb commands, need to abstract those builders out as an interface and have two implementations?
-
-## Lessons learned
-
-### Promises are tricky
-
-* It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this is obvious, but debugging this is nasty.
-
-### Updates need to be serialized
-
-The delayed updates of the rename action (typing a character renames the node) are causing issues: when a rename is debounced and delayed for 250 milliseconds, and you split the same node inside of that window, the node is split and suddenly you have 2 nodes called the same text when the rename finally happens.
-
-We need to debounce to not overload pouchdb, but we can't let the split happen before the rename.
-
-Does this mean we need to serialize updates ourselves? Put all Update commands (without debouncing) in a queue and process that? When do we rerender the tree?
+1. Consider adding unit tests with this approach [https://www.npmjs.com/package/mocha-webpack](https://www.npmjs.com/package/mocha-webpack)
 
 ## Software Design
 
-### Flow
+### Behavioural
 
-On DOM loaded (or hash parameter change to different node), trigger tree store fetch, when promise completes call maquette render function with data objects.
+TODO
 
-On other events that mutate the tree, send update action to tree store, when promise returns call render.
+### Structural
 
-On navigation events, set the hash value in the URL, call render.
+TODO
 
 ### Runtime Errors
 
 When a runtime error or exception happens, an Error will be thrown. This is used for defensive programming for example.
-
-### Thoughts
