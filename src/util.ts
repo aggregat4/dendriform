@@ -101,3 +101,14 @@ export function generateUUID() {
     return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
   })
 }
+
+export function isTextSelected(): boolean {
+  const selection = window.getSelection()
+  // The Selection specification is a mess, ancient stuff:
+  // https://www.w3.org/TR/selection-api/#h_note_15
+  // As far as I can tell we are guaranteed to always have
+  // a range and checking the begin and start offsets of that
+  // range seem the most efficient way to check whether the selection
+  // is empty or not.
+  return !!selection && selection.getRangeAt(0).startOffset !== selection.getRangeAt(0).endOffset
+}

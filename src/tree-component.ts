@@ -34,7 +34,8 @@ import {
   isCursorAtEnd,
   setCursorPos,
   isEmpty,
-  debounce} from './util'
+  debounce,
+  isTextSelected} from './util'
 
 interface TransientState {
   focusNodeId: string,
@@ -234,14 +235,18 @@ export class Tree {
         }
       }
     } else if (event.key === 'Backspace') {
-      if (isCursorAtBeginning(event) && (event.target as Element).parentElement.previousElementSibling) {
+      if (!isTextSelected() &&
+          isCursorAtBeginning(event) &&
+          (event.target as Element).parentElement.previousElementSibling) {
         event.preventDefault()
         const sourceNode = (event.target as Element).parentElement
         const targetNode = sourceNode.previousElementSibling
         this.mergeNodes(sourceNode, targetNode)
       }
     } else if (event.key === 'Delete') {
-      if (isCursorAtEnd(event) && (event.target as Element).parentElement.nextElementSibling) {
+      if (!isTextSelected() &&
+          isCursorAtEnd(event) &&
+          (event.target as Element).parentElement.nextElementSibling) {
         event.preventDefault()
         const targetNode = (event.target as Element).parentElement
         const sourceNode = targetNode.nextElementSibling

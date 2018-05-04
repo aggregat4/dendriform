@@ -51,6 +51,11 @@
   margin: 6px 0 12px 0;
 }
 
+.searchbox input {
+  font-size: inherit;
+  font-family: inherit;
+}
+
 .node {
   display: block;
   /* This is spacing before a node so that it does not "stick" to the previous one.

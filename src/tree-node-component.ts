@@ -1,4 +1,4 @@
-import { el } from 'redom'
+import { el, text } from 'redom'
 import {
   Command,
   MergeNodesByIdCommandPayload,
@@ -12,7 +12,8 @@ import {
   UnsplitNodeByIdCommandPayload,
   createNewResolvedRepositoryNode,
   Filter,
-  Highlight } from './tree-api'
+  Highlight,
+  getRequestedNodeId} from './tree-api'
 import { getNodeId, getParentNode, hasChildren } from './tree-dom-util'
 
 export class TreeNode {
@@ -62,10 +63,8 @@ export class TreeNode {
         class: this.genClass(treeNode, first),
       },
       this.anchor = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
-      this.name = el('div.name',
-        { contentEditable: true }, treeNode.node.name),
-        el('div.children', children),
-    )
+      this.name = el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
+      el('div.children', children))
   }
 
   isIncludedInFilter(): boolean {
@@ -74,6 +73,30 @@ export class TreeNode {
 
   getElement(): Element {
     return this.el
+  }
+
+  private highlightName(name: string): Element[] {
+    // Only attempt to mark up search hits when we are included in the filter
+    // and we actually have any hits ourselves (could be only our children have hits)
+    if (this.isIncludedInFilter() && this.nameHits.length > 0) {
+      const segments = []
+      let pos = 0
+      // tslint:disable-next-line:prefer-for-of
+      for (let i = 0; i < this.nameHits.length; i++) {
+        const hit = this.nameHits[i]
+        if (pos !== hit.pos) {
+          segments.push(text(name.slice(pos, hit.pos)))
+        }
+        pos = hit.pos + hit.length
+        segments.push(el('mark', name.slice(hit.pos, pos)))
+      }
+      if (pos < name.length) {
+        segments.push(text(name.slice(pos, name.length)))
+      }
+      return segments
+    } else {
+      return [text(name)]
+    }
   }
 
   private isRoot(node: RepositoryNode): boolean {
