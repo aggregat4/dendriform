@@ -23,6 +23,14 @@ export function isNameNode(el: Element): boolean {
   return el.classList.contains('name')
 }
 
+export function getNameElement(node: Element): Element {
+  return node.children[0].children[1]
+}
+
+export function getChildrenElement(node: Element): Element {
+  return node.children[0].children[2]
+}
+
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
 export function getParentNode(node: Element): Element {
   // first parentElement is div.children, its parent is the real parent node
@@ -31,9 +39,9 @@ export function getParentNode(node: Element): Element {
 
 export function hasChildren(node: Element): boolean {
   return (
-    node.children.length > 2 &&
-    node.children[2].classList.contains('children') &&
-    node.children[2].children.length > 0
+    node.children[0].children.length > 2 &&
+    node.children[0].children[2].classList.contains('children') &&
+    node.children[0].children[2].children.length > 0
   )
 }
 
@@ -43,11 +51,11 @@ export function findPreviousNameNode(nodeNameElement: Element): Element {
   const node: Element = nodeNameElement.parentElement
   if (node.previousSibling) {
     const lastChildNode = findLastChildNode(node.previousElementSibling)
-    return lastChildNode.children[1]
+    return getNameElement(lastChildNode)
   } else if (node.parentElement && node.parentElement.classList.contains('children')) {
     // parentElement = div.node, node.parentElement = div.children,
     // node.parentElement.parentElement = the real parent div.node
-    return node.parentElement.parentElement.children[1]
+    return getNameElement(node.parentElement.parentElement)
   } else {
     return null
   }
@@ -56,7 +64,7 @@ export function findPreviousNameNode(nodeNameElement: Element): Element {
 // Given a div.node it finds the LAST and deepest child (depth first) of that node, or the node itself
 export function findLastChildNode(node: Element): Element {
   if (hasChildren(node)) {
-    const childrenNode: Element = node.children[2]
+    const childrenNode: Element = getChildrenElement(node)
     return findLastChildNode(childrenNode.children[childrenNode.children.length - 1])
   } else {
     return node
@@ -64,17 +72,16 @@ export function findLastChildNode(node: Element): Element {
 }
 
 export function findNextNameNode(node: Element): Element {
-  // TODO make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
+  // TODO: make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
   const parentElement: Element = node.parentElement
   if (hasChildren(parentElement)) {
-    // parentElement = div.node, parentElement.children[2] = div.children, and then the first child's name node
-    return parentElement.children[2].children[0].children[1]
+    return getNameElement(getChildrenElement(parentElement).children[0])
   } else if (parentElement.nextElementSibling) {
     return parentElement.nextElementSibling.children[1]
   } else {
     const firstAncestorNextSibling = findFirstAncestorNextSibling(parentElement)
     if (firstAncestorNextSibling) {
-      return firstAncestorNextSibling.children[1]
+      return getNameElement(firstAncestorNextSibling)
     } else {
       return null
     }
@@ -106,5 +113,5 @@ export function getNodeId(node: Element): string {
 }
 
 export function getNodeName(node: Element): string {
-  return node.children[1].textContent || ''
+  return getNameElement(node).textContent || ''
 }

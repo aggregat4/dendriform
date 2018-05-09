@@ -5,7 +5,8 @@ export interface RepositoryNode {
   content: string,
   childrefs: string[],
   parentref: string,
-  deleted?: boolean
+  deleted?: boolean,
+  collapsed?: boolean,
 }
 
 export function createNewRepositoryNode(id: string, name: string, parentref?: string): RepositoryNode {

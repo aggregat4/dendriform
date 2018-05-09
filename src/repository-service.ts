@@ -42,6 +42,7 @@ export class RepositoryService {
             childrefs: node.childrefs,
             parentref: node.parentref,
             deleted: !!node.deleted,
+            collapsed: !!node.collapsed,
           })
         } else {
           // tslint:disable-next-line:no-console
@@ -113,6 +114,7 @@ export class RepositoryService {
         childrefs: child.childrefs,
         parentref: newParentId,
         deleted: !!child.deleted,
+        collapsed: !!child.collapsed,
       }
     })
     return this.repo.cdbLoadNode(oldParentId, false)
@@ -126,6 +128,7 @@ export class RepositoryService {
         // remove all the children from their parent
         childrefs: oldParentNode.childrefs.filter((c) => childIds.indexOf(c) < 0),
         deleted: !!oldParentNode.deleted,
+        collapsed: !!oldParentNode.collapsed,
       }))
       // 2.a. Hang the children under their new parent by updating their parent refs
       .then(oldParentUpdateResult => this.repo.cdbSaveAll(reparentedChildren))
@@ -140,6 +143,7 @@ export class RepositoryService {
         // add all the new children to the new parent
         childrefs: this.mergeNodeIds(newParentNode.childrefs || [], childIds, position),
         deleted: !!newParentNode.deleted,
+        collapsed: !!newParentNode.collapsed,
       }))
   }
 

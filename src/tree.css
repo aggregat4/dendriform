@@ -34,16 +34,11 @@
 }
 
 .breadcrumbs > span::after {
-  content: ' > ';
+  content: ' / ';
 }
 
 .breadcrumbs a {
-  text-decoration: none;
   color: #29526D;
-}
-
-.breadcrumbs a:hover {
-  text-decoration: underline;
 }
 
 .searchbox {
@@ -64,11 +59,17 @@
   margin-top: 4px;
 }
 
+.node .nc {
+  position: relative;
+}
+
 .node a {
   display: inline-block;
   position: absolute;
   padding: 0 6px 0 6px;
   text-decoration: none;
+  width: 1ch;
+  text-align: center;
 }
 
 .node a, .node a:hover, .node a:active, node a:visited {
@@ -77,6 +78,27 @@
 
 .node a:hover {
   background: rgb(182, 197, 206); /* #c1c1ff; */
+}
+
+.node span.toggle {
+  display: inline-block;
+  position: absolute;
+  margin-left: -2ch;
+  padding: 0 6px 0 6px;
+  width: 1ch;
+}
+
+.node span.toggle.open:before {
+  content: '−'; /* &#8722; */
+}
+
+.node span.toggle.closed:before {
+  content: '+';
+}
+
+.node span.toggle:hover {
+  background: rgb(182, 197, 206); /* #c1c1ff; */
+  cursor: pointer;
 }
 
 .node .name {
@@ -88,8 +110,8 @@
   /* min-width (or a similar trick) is required to make the cursor show in Chrome when the element is empty */
   min-width: 20px;
   /* leaves space for the bullet since that is positioned absolute */
-  margin-left: 19px;
-  padding: 0 6px 0 6px;
+  margin-left: calc(1ch + 12px); /* bullet width + the padding */
+  padding: 0 6px 0 0;
 }
 
 /* This is a kludge for Firefox: when the name div has no content it has zero height, and then
@@ -116,24 +138,20 @@
 }
 
 /* ROOT node is special, we hide and only show the children */
-.node.root > a {
+.node.root > .nc {
   display: none;
 }
 
-.node.root > .name {
-  display: none;
-}
-
-.node.root > .children {
+.node.root > .nc .children {
   margin-left: 0;
 }
 
 /* The first node in a tree is special (when not root node), we show it really big, without the star */
-.node.first > .name {
+.node.first > .nc .name {
   font-size: 150%;
   margin: 0 0 6px 0;
 }
 
-.node.first > a {
+.node.first > .nc a, .node.first > .nc .toggle {
   display: none;
 }

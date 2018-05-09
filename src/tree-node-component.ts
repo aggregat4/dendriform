@@ -14,12 +14,13 @@ import {
   Filter,
   Highlight,
   getRequestedNodeId} from './tree-api'
-import { getNodeId, getParentNode, hasChildren } from './tree-dom-util'
+import { getNodeId, getParentNode, hasChildren, getNameElement, getChildrenElement } from './tree-dom-util'
 
 export class TreeNode {
   private el
-  private anchor
-  private name: string
+  private anchorEl
+  private nameEl
+  private collapseEl
   private nameHits: Highlight[]
   // Future extension: allow descriptions to be searched
   // private descHits: FilterHits
@@ -55,6 +56,7 @@ export class TreeNode {
     }
   }
 
+  // TODO: smaller class names to save bytes?
   private generateDom(treeNode: ResolvedRepositoryNode, first: boolean, children: TreeNode[]) {
     this.el = el(
       'div',
@@ -62,8 +64,13 @@ export class TreeNode {
         id: treeNode.node._id,
         class: this.genClass(treeNode, first),
       },
-      this.anchor = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
-      this.name = el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
+      el('div.nc',
+        (children && children.length > 0) ?
+          this.collapseEl = el(`span.toggle${treeNode.node.collapsed ? '.closed' : '.open'}`) :
+          undefined,
+        this.anchorEl = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
+        this.nameEl = el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
+      ),
       el('div.children', children))
   }
 
@@ -160,15 +167,15 @@ export class TreeNode {
     // 2. move all children of sourcenode to targetnode (actual move, just reparent)
     // 3. delete sourcenode
     // 4. focus the new node at the end of its old name
-    targetNode.children[1].textContent = targetNodeName + sourceNodeName
+    getNameElement(targetNode).textContent = targetNodeName + sourceNodeName
     // Only move source node children if it has any
     // TODO: make this childnodestuff safer with some utility methods
     if (sourceNode.children.length > 2) {
       if (targetNode.children.length <= 2) {
         targetNode.appendChild(el('div.children'))
       }
-      const targetChildrenNode = targetNode.children[2]
-      const sourceChildrenNode = sourceNode.children[2]
+      const targetChildrenNode = targetNode.children[0].children[2]
+      const sourceChildrenNode = sourceNode.children[0].children[2]
       sourceChildrenNode.childNodes.forEach((childNode, currentIndex, listObj) => {
         targetChildrenNode.appendChild(childNode)
       })
@@ -195,8 +202,7 @@ export class TreeNode {
   }
 
   static domRenameNode(node: Element, newName: string) {
-    const nameNode = node.children[1]
-    nameNode.textContent = newName
+    getNameElement(node).textContent = newName
   }
 
   static domReparentNode(node: Element, newParentNode: Element,
@@ -205,7 +211,7 @@ export class TreeNode {
     if (newParentNode.children.length <= 2) {
       newParentNode.appendChild(el('div.children'))
     }
-    const parentChildrenNode = newParentNode.children[2]
+    const parentChildrenNode = getChildrenElement(newParentNode)
     if (relativePosition === RelativeLinearPosition.BEGINNING) {
       parentChildrenNode.insertBefore(node, parentChildrenNode.firstChild)
     } else if (relativePosition === RelativeLinearPosition.END) {

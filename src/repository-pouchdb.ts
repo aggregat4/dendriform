@@ -105,7 +105,7 @@ export class PouchDbRepository implements Repository {
   }
 
   private loadParents(child: RepositoryNode, parents: RepositoryNode[]): Promise<RepositoryNode[]> {
-    console.log(`loading parents for `, child, ` with parents array `, parents)
+    // console.log(`loading parents for `, child, ` with parents array `, parents)
     if (child.parentref && child.parentref !== 'ROOT') {
       return this.cdbLoadNode(child.parentref, false)
         .then(parent => {
@@ -114,7 +114,7 @@ export class PouchDbRepository implements Repository {
         })
         .catch(reason => Promise.resolve(parents))
     } else {
-      console.log(`no more parentref, resolving promise with parents `, parents)
+      // console.log(`no more parentref, resolving promise with parents `, parents)
       return Promise.resolve(parents)
     }
   }

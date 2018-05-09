@@ -23,7 +23,8 @@ import {
   hasChildren,
   hasParentNode,
   isNameNode,
-  isNode } from './tree-dom-util'
+  isNode,
+  getNameElement } from './tree-dom-util'
 import { TreeNode } from './tree-node-component'
 import {
   generateUUID,
@@ -287,7 +288,7 @@ export class Tree {
       const treeDiv = (event.target as Element).closest('.tree')
       const firstNode = treeDiv.querySelector('div.node div.node')
       if (firstNode) {
-        (firstNode.children[1] as HTMLElement).focus()
+        (getNameElement(firstNode) as HTMLElement).focus()
       }
     } else if (event.key === 'End' && event.ctrlKey) {
       // Move to the bottom (last leaf node) of the current tree
@@ -296,7 +297,7 @@ export class Tree {
       if (rootNode) {
         const lastNode = findLastChildNode(rootNode)
         if (lastNode) {
-          (lastNode.children[1] as HTMLElement).focus()
+          (getNameElement(lastNode) as HTMLElement).focus()
         }
       }
     } else if (event.key === 's' && event.ctrlKey) {
@@ -411,7 +412,7 @@ export class Tree {
     // tslint:disable-next-line:no-console
     // console.log(`focusing on node ${nodeId} at ${charPos}, exists?`, element)
     if (element) {
-      const nameElement: HTMLElement = element.children[1] as HTMLElement
+      const nameElement: HTMLElement = getNameElement(element) as HTMLElement
       nameElement.focus()
       if (charPos > -1) {
         setCursorPos(nameElement, charPos)
