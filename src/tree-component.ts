@@ -24,7 +24,8 @@ import {
   hasParentNode,
   isNameNode,
   isNode,
-  getNameElement } from './tree-dom-util'
+  getNameElement,
+  getNodeForNameElement } from './tree-dom-util'
 import { TreeNode } from './tree-node-component'
 import {
   generateUUID,

@@ -31,6 +31,10 @@ export function getChildrenElement(node: Element): Element {
   return node.children[0].children[2]
 }
 
+export function getNodeForNameElement(nameEl: Element): Element {
+  return nameEl.parentElement.parentElement
+}
+
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
 export function getParentNode(node: Element): Element {
   // first parentElement is div.children, its parent is the real parent node

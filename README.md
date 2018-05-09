@@ -41,6 +41,7 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
+1. BUG with the refactoring of the dom structure with open and closed nodes I need to also refactor all the .parentElement access to retrieve the actual Node element since that currently assumes there is nothing between the name element and the node element (but there is)
 1. Implement open and closed nodes
 1. Implement redo
 1. Implement node descriptions! (in render, search, etc)
