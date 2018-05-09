@@ -52,6 +52,7 @@
 }
 
 .searchbox input {
+  /* By default input fields do not inherit font features */
   font-size: inherit;
   font-family: inherit;
 }
@@ -89,6 +90,16 @@
   /* leaves space for the bullet since that is positioned absolute */
   margin-left: 19px;
   padding: 0 6px 0 6px;
+}
+
+/* This is a kludge for Firefox: when the name div has no content it has zero height, and then
+   firefox collapses the element and messes up our layout. Here we just insert a bogus character
+   when the element is empty.
+
+   TODO: fix this in a better way. There is no relative height unit that represents "one line" so
+   we can't min-height it. This is also explained here: https://stackoverflow.com/a/23530317 */
+.node .name:empty:before {
+  content: ' ';
 }
 
 .node .name:focus {
