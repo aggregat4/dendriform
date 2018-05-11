@@ -14,7 +14,13 @@ import {
   Filter,
   Highlight,
   getRequestedNodeId} from './tree-api'
-import { getNodeId, getParentNode, hasChildren, getNameElement, getChildrenElement } from './tree-dom-util'
+import {
+  getNodeId,
+  getParentNode,
+  hasChildren,
+  getNameElement,
+  getChildrenElement,
+  getChildrenElementOrCreate} from './tree-dom-util'
 
 export class TreeNode {
   private el
@@ -65,11 +71,11 @@ export class TreeNode {
         class: this.genClass(treeNode, first),
       },
       el('div.nc',
+        this.anchorEl = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
+        this.nameEl = el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
         (children && children.length > 0) ?
           this.collapseEl = el(`span.toggle${treeNode.node.collapsed ? '.closed' : '.open'}`) :
           undefined,
-        this.anchorEl = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
-        this.nameEl = el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
       ),
       el('div.children', children))
   }
@@ -170,12 +176,9 @@ export class TreeNode {
     getNameElement(targetNode).textContent = targetNodeName + sourceNodeName
     // Only move source node children if it has any
     // TODO: make this childnodestuff safer with some utility methods
-    if (sourceNode.children.length > 2) {
-      if (targetNode.children.length <= 2) {
-        targetNode.appendChild(el('div.children'))
-      }
-      const targetChildrenNode = targetNode.children[0].children[2]
-      const sourceChildrenNode = sourceNode.children[0].children[2]
+    if (hasChildren(sourceNode)) {
+      const targetChildrenNode = getChildrenElementOrCreate(targetNode)
+      const sourceChildrenNode = getChildrenElement(sourceNode)
       sourceChildrenNode.childNodes.forEach((childNode, currentIndex, listObj) => {
         targetChildrenNode.appendChild(childNode)
       })
@@ -207,11 +210,7 @@ export class TreeNode {
 
   static domReparentNode(node: Element, newParentNode: Element,
                          relativeNode: Element, relativePosition: RelativeLinearPosition): void {
-    // Children of nodes are hung beneath a dedicated div.children node, so make sure that exists
-    if (newParentNode.children.length <= 2) {
-      newParentNode.appendChild(el('div.children'))
-    }
-    const parentChildrenNode = getChildrenElement(newParentNode)
+    const parentChildrenNode = getChildrenElementOrCreate(newParentNode)
     if (relativePosition === RelativeLinearPosition.BEGINNING) {
       parentChildrenNode.insertBefore(node, parentChildrenNode.firstChild)
     } else if (relativePosition === RelativeLinearPosition.END) {

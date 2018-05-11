@@ -156,3 +156,7 @@
 .node.first > .nc a, .node.first > .nc .toggle {
   display: none;
 }
+
+.hidden {
+  display: none;
+}

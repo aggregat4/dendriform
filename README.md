@@ -41,22 +41,22 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. BUG with the refactoring of the dom structure with open and closed nodes I need to also refactor all the .parentElement access to retrieve the actual Node element since that currently assumes there is nothing between the name element and the node element (but there is)
 1. Implement open and closed nodes
 1. Implement redo
 1. Implement node descriptions! (in render, search, etc)
 1. Implement export in some standard format
 1. Implement import in some standard format
-1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node) (what node though? config? hmm)
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, etc?
+1. Try to get it to work with a couchdb backend for only and sync use cases
 1. Check compatibility with Firefox
 1. Check if it works on iOS and Android
-1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
-1. Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
-1. Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
 1. i18n (also consider search, maybe other find mechanism? [regex?](https://stackoverflow.com/a/38151393/1996) )
+1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node) (what node though? config? hmm)
+1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
 1. Accessibility: is that even possible with this tree? How do I make the commands accessible? Do I need a menu per item anyway? How can I make moving a node in the tree accessible?
+1. MAYBE Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
+1. MAYBE Implement a data saving error handler so we can do a reasonable number of retries or recovery for any update on the repository, but in the end of penultimate failure, notify the caller of this and have the tree track the lost updates in a separate space
 1. MAYBE Implement moving up and down with arrow keys and maintaining approximate character position
 1. MAYBE Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 1. Consider adding unit tests with this approach [https://www.npmjs.com/package/mocha-webpack](https://www.npmjs.com/package/mocha-webpack)

@@ -15,8 +15,8 @@ import {
   getRequestedNodeId} from './tree-api'
 import {
   findLastChildNode,
-  findNextNameNode,
-  findPreviousNameNode,
+  findNextNode,
+  findPreviousNode,
   getNodeId,
   getNodeName,
   getParentNode,
@@ -65,9 +65,8 @@ document.addEventListener('selectionchange', selectionChangeHandler)
 
 function selectionChangeHandler(event: Event): void {
   if (document.activeElement &&
-    document.activeElement.parentNode &&
-    isNode(document.activeElement.parentElement)) {
-    const activeNode = document.activeElement.parentElement
+    isNameNode(document.activeElement)) {
+    const activeNode = getNodeForNameElement(document.activeElement)
     transientState.focusNodePreviousId = getNodeId(activeNode)
     transientState.focusNodePreviousName = getNodeName(activeNode)
     transientState.focusNodePreviousPos = getCursorPos()
@@ -152,7 +151,7 @@ export class Tree {
     if (!isNameNode(event.target as Element)) {
       return
     }
-    const targetNode = (event.target as Element).parentElement
+    const targetNode = getNodeForNameElement((event.target as Element))
     const nodeId = getNodeId(targetNode)
     const newName = getNodeName(targetNode)
     const oldName = transientState.focusNodePreviousName
@@ -177,7 +176,7 @@ export class Tree {
     }
     if (event.key === 'Enter') {
       event.preventDefault()
-      const targetNode = (event.target as Element).parentElement
+      const targetNode = getNodeForNameElement((event.target as Element))
       const nodeId = getNodeId(targetNode)
       const beforeSplitNamePart = getTextBeforeCursor(event) || ''
       const afterSplitNamePart = getTextAfterCursor(event) || ''
@@ -208,55 +207,55 @@ export class Tree {
     }
     if (event.key === 'ArrowUp') {
       event.preventDefault()
+      const nodeElement = getNodeForNameElement(event.target as Element)
       if (event.shiftKey && event.altKey) {
         // this is the combination for moving a node up in its siblings or its parent's previous siblings' children
         // if the current node has siblings before it, then just move it up
         // else if the parent has previous siblings, then move it as a child of the first previous sibling at the end
-        const nodeElement = (event.target as Element).parentElement
         this.moveNodeUp(nodeElement)
       } else {
-        const previousNameNode = findPreviousNameNode(event.target as Element) as HTMLElement
-        if (previousNameNode) {
-          this.saveTransientState(getNodeId(previousNameNode.parentElement), -1)
-          previousNameNode.focus()
+        const previousNode = findPreviousNode(nodeElement)
+        if (previousNode) {
+          this.saveTransientState(getNodeId(nodeElement), -1);
+          (getNameElement(previousNode) as HTMLElement).focus()
         }
       }
     } else if (event.key === 'ArrowDown') {
       event.preventDefault()
+      const nodeElement = getNodeForNameElement(event.target as Element)
       if (event.shiftKey && event.altKey) {
         // this is the combination for moving a node down in its siblings or its parent's next siblings' children
         // if the current node has siblings after it, then just move it down
         // else if the parent has next siblings, then move it as a child of the first next sibling at the end
-        const nodeElement = (event.target as Element).parentElement
         this.moveNodeDown(nodeElement)
       } else {
-        const nextNameNode = findNextNameNode(event.target as Element) as HTMLElement
-        if (nextNameNode) {
-          this.saveTransientState(getNodeId(nextNameNode.parentElement), -1)
-          nextNameNode.focus()
+        const nextNode = findNextNode(nodeElement)
+        if (nextNode) {
+          this.saveTransientState(getNodeId(nodeElement), -1);
+          (getNameElement(nextNode) as HTMLElement).focus()
         }
       }
     } else if (event.key === 'Backspace') {
       if (!isTextSelected() &&
           isCursorAtBeginning(event) &&
-          (event.target as Element).parentElement.previousElementSibling) {
+          getNodeForNameElement(event.target as Element).previousElementSibling) {
         event.preventDefault()
-        const sourceNode = (event.target as Element).parentElement
+        const sourceNode = getNodeForNameElement(event.target as Element)
         const targetNode = sourceNode.previousElementSibling
         this.mergeNodes(sourceNode, targetNode)
       }
     } else if (event.key === 'Delete') {
       if (!isTextSelected() &&
           isCursorAtEnd(event) &&
-          (event.target as Element).parentElement.nextElementSibling) {
+          getNodeForNameElement(event.target as Element).nextElementSibling) {
         event.preventDefault()
-        const targetNode = (event.target as Element).parentElement
+        const targetNode = getNodeForNameElement(event.target as Element)
         const sourceNode = targetNode.nextElementSibling
         this.mergeNodes(sourceNode, targetNode)
       }
     } else if (event.key === 'Tab' && !event.shiftKey) {
       // When tabbing you want to make the node the last child of the previous sibling (if it exists)
-      const node = (event.target as Element).parentElement
+      const node = getNodeForNameElement(event.target as Element)
       if (node.previousElementSibling) {
         event.preventDefault()
         // when a node is a child, it is inside a "children" container of its parent
@@ -268,7 +267,7 @@ export class Tree {
       // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
       // Caution: we only allow unindent if the current node has a parent and a grandparent node,
       // otherwise we can not unindent
-      const node = (event.target as Element).parentElement
+      const node = getNodeForNameElement(event.target as Element)
       if (hasParentNode(node)) {
         const oldParentNode = getParentNode(node)
         if (hasParentNode(oldParentNode)) {

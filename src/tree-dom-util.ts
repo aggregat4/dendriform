@@ -1,14 +1,12 @@
+import { el } from 'redom'
+
 // DOM Utilities for working with Node Elements and its structure
 
-// Checks whether the current node has a parent that is NOT ROOT
+// Checks whether the current node has a parent
 export function hasParentNode(node: Element): boolean {
-  if (node.parentElement &&
-      node.parentElement.classList.contains('children') &&
-      isNode(node.parentElement.parentElement)) {
-    return true
-  } else {
-    return false
-  }
+  return node.parentElement &&
+         node.parentElement.classList.contains('children') &&
+         isNode(getParentNode(node))
 }
 
 function isRootNode(node: Element): boolean {
@@ -19,8 +17,8 @@ export function isNode(element: Element): boolean {
   return element.classList.contains('node')
 }
 
-export function isNameNode(el: Element): boolean {
-  return el.classList.contains('name')
+export function isNameNode(element: Element): boolean {
+  return element.classList.contains('name')
 }
 
 export function getNameElement(node: Element): Element {
@@ -28,7 +26,17 @@ export function getNameElement(node: Element): Element {
 }
 
 export function getChildrenElement(node: Element): Element {
-  return node.children[0].children[2]
+  return node.children[1]
+}
+
+export function getChildrenElementOrCreate(node: Element): Element {
+  if (node.children.length <= 1) {
+    const newChildrenEl = el('div.children')
+    node.appendChild(newChildrenEl)
+    return newChildrenEl
+  } else {
+    return getChildrenElement(node)
+  }
 }
 
 export function getNodeForNameElement(nameEl: Element): Element {
@@ -43,23 +51,26 @@ export function getParentNode(node: Element): Element {
 
 export function hasChildren(node: Element): boolean {
   return (
-    node.children[0].children.length > 2 &&
-    node.children[0].children[2].classList.contains('children') &&
-    node.children[0].children[2].children.length > 0
+    node.children.length > 1 &&
+    node.children[1].classList.contains('children') &&
+    node.children[1].children.length > 0
   )
 }
 
-// TODO this is very fragile, it actually returns a name node? where is this used?
-export function findPreviousNameNode(nodeNameElement: Element): Element {
-  // TODO add search for OPEN nodes, not just any node
-  const node: Element = nodeNameElement.parentElement
+export function getNodeId(node: Element): string {
+  return node.getAttribute('id')
+}
+
+export function getNodeName(node: Element): string {
+  return getNameElement(node).textContent || ''
+}
+
+// TODO add search for OPEN nodes, not just any node
+export function findPreviousNode(node: Element): Element {
   if (node.previousSibling) {
-    const lastChildNode = findLastChildNode(node.previousElementSibling)
-    return getNameElement(lastChildNode)
-  } else if (node.parentElement && node.parentElement.classList.contains('children')) {
-    // parentElement = div.node, node.parentElement = div.children,
-    // node.parentElement.parentElement = the real parent div.node
-    return getNameElement(node.parentElement.parentElement)
+    return findLastChildNode(node.previousElementSibling)
+  } else if (hasParentNode(node)) {
+    return getParentNode(node)
   } else {
     return null
   }
@@ -75,17 +86,16 @@ export function findLastChildNode(node: Element): Element {
   }
 }
 
-export function findNextNameNode(node: Element): Element {
+export function findNextNode(node: Element): Element {
   // TODO: make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
-  const parentElement: Element = node.parentElement
-  if (hasChildren(parentElement)) {
-    return getNameElement(getChildrenElement(parentElement).children[0])
-  } else if (parentElement.nextElementSibling) {
-    return parentElement.nextElementSibling.children[1]
+  if (hasChildren(node)) {
+    return getChildrenElement(node).children[0]
+  } else if (node.nextElementSibling) {
+    return node.nextElementSibling
   } else {
-    const firstAncestorNextSibling = findFirstAncestorNextSibling(parentElement)
+    const firstAncestorNextSibling = findFirstAncestorNextSibling(node)
     if (firstAncestorNextSibling) {
-      return getNameElement(firstAncestorNextSibling)
+      return firstAncestorNextSibling
     } else {
       return null
     }
@@ -96,26 +106,18 @@ export function findNextNameNode(node: Element): Element {
 // next-sibling of an ancestor node and return it (div.node) or null if
 // none could be found
 function findFirstAncestorNextSibling(node: Element): Element {
-  if (node.parentElement && node.parentElement.classList.contains('children')) {
-    const parentElement: Element = node.parentElement.parentElement
-    if (isRootNode(parentElement)) {
+  if (hasParentNode(node)) {
+    const parentNode: Element = getParentNode(node)
+    if (isRootNode(parentNode)) {
       return null
     } else {
-      if (parentElement.nextElementSibling) {
-        return parentElement.nextElementSibling
+      if (parentNode.nextElementSibling) {
+        return parentNode.nextElementSibling
       } else {
-        return findFirstAncestorNextSibling(parentElement)
+        return findFirstAncestorNextSibling(parentNode)
       }
     }
   } else {
     return null
   }
-}
-
-export function getNodeId(node: Element): string {
-  return node.getAttribute('id')
-}
-
-export function getNodeName(node: Element): string {
-  return getNameElement(node).textContent || ''
 }
