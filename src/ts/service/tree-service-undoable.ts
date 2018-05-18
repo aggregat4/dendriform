@@ -1,20 +1,26 @@
-import {Command, CommandBuilder, TreeService} from './tree-api'
-import {RepositoryTreeService} from './tree-service-repository'
-import {PouchDbRepository} from './repository-pouchdb'
-import {State, ResolvedRepositoryNode, LoadedTree} from './repository'
-import {RepositoryService} from './repository-service'
+import {
+  Command,
+  CommandBuilder,
+  TreeService,
+} from './service'
+import {
+  State,
+  ResolvedRepositoryNode,
+  LoadedTree,
+} from '../domain/domain'
 
 export class UndoableTreeService implements TreeService {
   readonly undoBuffer: Array<Promise<Command>> = []
   readonly redoBuffer: Array<Promise<Command>> = []
-  readonly treeService = new RepositoryTreeService(new RepositoryService(new PouchDbRepository()))
+
+  constructor(readonly treeService: TreeService) {}
 
   popUndoCommand(): Promise<Command> {
     return this.undoBuffer.pop()
   }
 
   loadTree(nodeId: string): Promise<LoadedTree> {
-      return this.treeService.loadTree(nodeId)
+    return this.treeService.loadTree(nodeId)
   }
 
   // Store actual Promises of commands in the UNDO and REDO buffers.

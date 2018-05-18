@@ -2,11 +2,6 @@ export function isEmpty(str: string): boolean {
   return !str || str.trim() === ''
 }
 
-export function getHashValue(key: string): string {
-  const matches = window.location.hash.match(new RegExp(`${key}=([^&]*)?`))
-  return matches && matches.length >= 2 ? matches[1] : null
-}
-
 // from https://davidwalsh.name/javascript-debounce-function
 export function debounce(f: (...args: any[]) => void, wait: number, immediate?: boolean): (...args: any[]) => void {
   let timeout

@@ -81,7 +81,8 @@
 }
 
 .node span.toggle {
-  display: inline-block;
+  display: block;
+  top: 0;
   position: absolute;
   margin-left: -2ch;
   padding: 0 6px 0 6px;
@@ -89,11 +90,11 @@
   color: #aaa;
 }
 
-.node span.toggle.open:before {
+.node.open span.toggle:before {
   content: '−'; /* &#8722; */
 }
 
-.node span.toggle.closed:before {
+.node.closed span.toggle:before {
   content: '+';
 }
 
@@ -132,6 +133,10 @@
 
 .node .children {
   margin-left: 0px;
+}
+
+.node.closed .children {
+  display: none;
 }
 
 .node .children .children {

@@ -1,21 +1,8 @@
-import {ResolvedRepositoryNode, RelativeNodePosition, RelativeLinearPosition, LoadedTree} from './repository'
-// Re-exporting the RepositoryNode types because they need to be used by consumers of this API
-export {
-  Status,
-  State,
-  RepositoryNode,
+import {
   ResolvedRepositoryNode,
-  RelativeLinearPosition,
   RelativeNodePosition,
-  LoadedTree,
-  createNewRepositoryNode,
-  createNewResolvedRepositoryNode,
-} from './repository'
-import {getHashValue} from './util'
-
-export function getRequestedNodeId() {
-  return getHashValue('node') || 'ROOT'
-}
+  RelativeLinearPosition,
+  LoadedTree} from '../domain/domain'
 
 export interface Filter {
   query: string
@@ -211,5 +198,26 @@ export class ReparentNodesByIdCommandPayload implements CommandPayload {
       this.oldParentNodeId,
       { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: this.oldAfterNodeId},
     )
+  }
+
+}
+
+export class OpenNodeByIdCommandPayload implements CommandPayload {
+  readonly name = 'openNodeById'
+
+  constructor(readonly nodeId: string) {}
+
+  inverse() {
+    return new CloseNodeByIdCommandPayload(this.nodeId)
+  }
+}
+
+export class CloseNodeByIdCommandPayload implements CommandPayload {
+  readonly name = 'closeNodeById'
+
+  constructor(readonly nodeId: string) {}
+
+  inverse() {
+    return new OpenNodeByIdCommandPayload(this.nodeId)
   }
 }

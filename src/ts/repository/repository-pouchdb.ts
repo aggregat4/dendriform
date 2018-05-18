@@ -1,5 +1,6 @@
 import PouchDB from 'pouchdb-browser'
-import {Repository, RepositoryNode, ResolvedRepositoryNode, LoadedTree, State} from './repository'
+import {RepositoryNode, ResolvedRepositoryNode, LoadedTree, State} from '../domain/domain'
+import {Repository} from './repository'
 
 export class PouchDbRepository implements Repository {
   private readonly outlineDb: any = new PouchDB('outlineDB')

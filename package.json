@@ -8,7 +8,7 @@
   },
   "main": "main.js",
   "scripts": {
-    "build": "cp src/*.css dist && cp src/*.html dist && ./node_modules/.bin/webpack",
+    "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && ./node_modules/.bin/webpack",
     "serve": "http-server -p 9090 dist/",
     "watch": "onchange src/* -- npm run build -s",
     "livereload": "live-reload --port 9091 dist/"

@@ -1,18 +1,20 @@
 import { el, setChildren } from 'redom'
 import {
-  Command,
-  CommandBuilder,
   LoadedTree,
-  MergeNodesByIdCommandPayload,
   RelativeLinearPosition,
   RelativeNodePosition,
+  State,
+  createNewRepositoryNode,
+} from '../domain/domain'
+import {
+  Command,
+  CommandBuilder,
+  MergeNodesByIdCommandPayload,
   RenameNodeByIdCommandPayload,
   ReparentNodesByIdCommandPayload,
   SplitNodeByIdCommandPayload,
-  State,
   TreeService,
-  createNewRepositoryNode,
-  getRequestedNodeId} from './tree-api'
+} from '../service/service'
 import {
   findLastChildNode,
   findNextNode,
@@ -26,7 +28,7 @@ import {
   isNode,
   getNameElement,
   getNodeForNameElement } from './tree-dom-util'
-import { TreeNode } from './tree-node-component'
+import { TreeNode } from './node-component'
 import {
   generateUUID,
   getCursorPos,
@@ -37,7 +39,7 @@ import {
   setCursorPos,
   isEmpty,
   debounce,
-  isTextSelected} from './util'
+  isTextSelected} from '../util'
 
 interface TransientState {
   focusNodeId: string,
@@ -74,6 +76,7 @@ function selectionChangeHandler(event: Event): void {
 }
 
 export class Tree {
+  private currentRootNodeId: string
   private el
   private content
   private treeService
@@ -83,6 +86,9 @@ export class Tree {
   private searchButton
 
   constructor(tree: LoadedTree, treeService: TreeService) {
+    if (tree.tree) {
+      this.currentRootNodeId = tree.tree.node._id
+    }
     this.treeService = treeService
     this.el = el('div.tree',
       this.searchBox = this.generateSearchBox(),
@@ -102,6 +108,9 @@ export class Tree {
   }
 
   update(tree: LoadedTree) {
+    if (tree.tree) {
+      this.currentRootNodeId = tree.tree.node._id
+    }
     setChildren(this.el,
       // retain the searchbox as it was if we update and we already had one
       this.searchBox = this.searchBox || this.generateSearchBox(),
@@ -144,7 +153,7 @@ export class Tree {
   }
 
   private onQueryChange(event: Event) {
-    this.treeService.loadTree(getRequestedNodeId()).then(tree => this.update(tree))
+    this.treeService.loadTree(this.currentRootNodeId).then(tree => this.update(tree))
   }
 
   private onInput(event: Event) {

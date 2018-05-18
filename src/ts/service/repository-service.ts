@@ -1,14 +1,14 @@
-import {generateUUID} from './util'
+import {generateUUID} from '../util'
 import {
   RelativeLinearPosition,
   RepositoryNode,
   ResolvedRepositoryNode,
   RelativeNodePosition,
-  Repository,
   LoadedTree,
   State,
   Status,
-} from './repository'
+} from '../domain/domain'
+import {Repository} from '../repository/repository'
 
 export class RepositoryService {
   constructor(readonly repo: Repository) {}
@@ -180,6 +180,24 @@ export class RepositoryService {
             return this.repo.cdbPutNode(parent)
           }),
       )
+  }
+
+  openNode(nodeId: string): Promise<void> {
+    return this.repo.cdbLoadNode(nodeId, false)
+      .then(node => {
+        if (node.collapsed) {
+          delete node.collapsed
+        }
+        return this.repo.cdbPutNode(node)
+      })
+  }
+
+  closeNode(nodeId: string): Promise<void> {
+    return this.repo.cdbLoadNode(nodeId, false)
+      .then(node => {
+        node.collapsed = true
+        return this.repo.cdbPutNode(node)
+      })
   }
 
   private mergeNodeIds(originalChildIds: string[], newChildIds: string[], position: RelativeNodePosition): string[] {

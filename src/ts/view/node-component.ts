@@ -1,32 +1,41 @@
-import { el, text } from 'redom'
+import { el, text, setAttr } from 'redom'
+import {
+  RelativeLinearPosition,
+  RepositoryNode,
+  ResolvedRepositoryNode,
+  createNewResolvedRepositoryNode,
+} from '../domain/domain'
 import {
   Command,
   MergeNodesByIdCommandPayload,
-  RelativeLinearPosition,
   RenameNodeByIdCommandPayload,
   ReparentNodesByIdCommandPayload,
-  RepositoryNode,
-  ResolvedRepositoryNode,
   SplitNodeByIdCommandPayload,
   UnmergeNodesByIdCommandPayload,
   UnsplitNodeByIdCommandPayload,
-  createNewResolvedRepositoryNode,
   Filter,
   Highlight,
-  getRequestedNodeId} from './tree-api'
+  OpenNodeByIdCommandPayload,
+  CloseNodeByIdCommandPayload,
+} from '../service/service'
 import {
   getNodeId,
   getParentNode,
   hasChildren,
   getNameElement,
   getChildrenElement,
-  getChildrenElementOrCreate} from './tree-dom-util'
+  getChildrenElementOrCreate,
+  getNodeForNameElement,
+  isNode,
+} from './tree-dom-util'
 
 export class TreeNode {
   private el
   private anchorEl
   private nameEl
   private collapseEl
+  private ncEl
+  private childrenEl
   private nameHits: Highlight[]
   // Future extension: allow descriptions to be searched
   // private descHits: FilterHits
@@ -59,6 +68,9 @@ export class TreeNode {
     }
     if (!filter || this.includedInFilter) {
       this.generateDom(treeNode, first, children)
+      if (this.collapseEl) {
+        this.collapseEl.addEventListener('click', this.onCollapseClick.bind(this))
+      }
     }
   }
 
@@ -70,14 +82,23 @@ export class TreeNode {
         id: treeNode.node._id,
         class: this.genClass(treeNode, first),
       },
-      el('div.nc',
+      this.ncEl = el('div.nc',
         this.anchorEl = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
         this.nameEl = el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
         (children && children.length > 0) ?
-          this.collapseEl = el(`span.toggle${treeNode.node.collapsed ? '.closed' : '.open'}`) :
+          this.collapseEl = el(`span.toggle`) :
           undefined,
       ),
-      el('div.children', children))
+      this.childrenEl = el('div.children', children),
+    )
+  }
+
+  private onCollapseClick(event: Event): void {
+    // NOTE: we can use the getNodeForNameElement function even though this is the
+    // collapseElement because they are siblings
+    const node = getNodeForNameElement(event.target as Element)
+    TreeNode.domToggleNodeOpenClosed(node)
+    // TODO: generate the necessary command and send to exec (need to refactor exec first?)
   }
 
   isIncludedInFilter(): boolean {
@@ -117,7 +138,8 @@ export class TreeNode {
   }
 
   private genClass(node: ResolvedRepositoryNode, isFirst: boolean): string {
-    return 'node' + (this.isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '')
+    return 'node' + (this.isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '') +
+      (node.node.collapsed ? ' closed' : ' open')
   }
 
   static exec(command: Command) {
@@ -163,6 +185,12 @@ export class TreeNode {
         document.getElementById(reparentCommand.newParentNodeId),
         relativeNode,
         reparentCommand.position.beforeOrAfter)
+    } else if (command.payload instanceof OpenNodeByIdCommandPayload) {
+      const openCommand = command.payload as OpenNodeByIdCommandPayload
+      TreeNode.domOpenNode(document.getElementById(openCommand.nodeId))
+    } else if (command.payload instanceof CloseNodeByIdCommandPayload) {
+      const closeCommand = command.payload as CloseNodeByIdCommandPayload
+      TreeNode.domCloseNode(document.getElementById(closeCommand.nodeId))
     }
   }
 
@@ -221,6 +249,30 @@ export class TreeNode {
       relativeNode.insertAdjacentElement('afterend', node)
     } else {
       throw new Error(`Invalid RelativeLinearPosition: ${relativePosition}`)
+    }
+  }
+
+  static domToggleNodeOpenClosed(node: Element): void {
+    if (node.classList.contains('closed')) {
+      TreeNode.domOpenNode(node)
+    } else {
+      TreeNode.domCloseNode(node)
+    }
+  }
+
+  static domOpenNode(node: Element): void {
+    if (node.classList.contains('closed')) {
+      // sadly classList.replace is not widely implemented yet
+      node.classList.remove('closed')
+      node.classList.add('open')
+    }
+  }
+
+  static domCloseNode(node: Element): void {
+    if (node.classList.contains('open')) {
+      // sadly classList.replace is not widely implemented yet
+      node.classList.remove('open')
+      node.classList.add('closed')
     }
   }
 

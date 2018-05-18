@@ -1,3 +1,13 @@
+import PQueue from 'p-queue'
+import {
+  RelativeLinearPosition,
+  RepositoryNode,
+  ResolvedRepositoryNode,
+  RelativeNodePosition,
+  LoadedTree,
+  State,
+  Status,
+} from '../domain/domain'
 import {
   TreeService,
   Command,
@@ -8,18 +18,10 @@ import {
   UnmergeNodesByIdCommandPayload,
   RenameNodeByIdCommandPayload,
   ReparentNodesByIdCommandPayload,
-} from './tree-api'
-import {
-  RelativeLinearPosition,
-  RepositoryNode,
-  ResolvedRepositoryNode,
-  RelativeNodePosition,
-  LoadedTree,
-  State,
-  Status,
-} from './repository'
+  OpenNodeByIdCommandPayload,
+  CloseNodeByIdCommandPayload,
+} from './service'
 import {RepositoryService} from './repository-service'
-import PQueue from 'p-queue'
 
 export class RepositoryTreeService implements TreeService {
   // We are using a single threaded queue to serialize all updates to the repository,
@@ -52,6 +54,10 @@ export class RepositoryTreeService implements TreeService {
       return this.queue.add(() => this.renameNodeById(command.payload as RenameNodeByIdCommandPayload))
     } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
       return this.queue.add(() => this.reparentNodesById(command.payload as ReparentNodesByIdCommandPayload))
+    } else if (command.payload instanceof OpenNodeByIdCommandPayload) {
+      return this.queue.add(() => this.openNodeById(command.payload as OpenNodeByIdCommandPayload))
+    } else if (command.payload instanceof CloseNodeByIdCommandPayload) {
+      return this.queue.add(() => this.closeNodeById(command.payload as CloseNodeByIdCommandPayload))
     } else {
       throw new Error(`Received an unknown command with name ${command.payload}`)
     }
@@ -109,4 +115,13 @@ export class RepositoryTreeService implements TreeService {
     return this.repoService.getNode(cmd.nodeId)
       .then(node => this.repoService.reparentNodes([node], cmd.newParentNodeId, cmd.position))
   }
+
+  private openNodeById(cmd: OpenNodeByIdCommandPayload): Promise<any> {
+    return this.repoService.openNode(cmd.nodeId)
+  }
+
+  private closeNodeById(cmd: CloseNodeByIdCommandPayload): Promise<any> {
+    return this.repoService.closeNode(cmd.nodeId)
+  }
+
 }

@@ -2,10 +2,14 @@ var path = require('path')
 
 module.exports = {
   devtool: 'inline-source-map',
-  entry: './src/main.ts',
+  entry: {
+    example: './src/example/main.ts',
+    tree: './src/ts/tree.ts'
+  },  
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'main.bundle.js'
+    // name substitution so that the entrypoint name gets inserted here
+    filename: '[name].bundle.js'
   },
   resolve: {
     // Add `.ts` and `.tsx` as a resolvable extension.
