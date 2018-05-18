@@ -1,45 +1,15 @@
 import { el, setChildren } from 'redom'
-import {
-  LoadedTree,
-  RelativeLinearPosition,
-  RelativeNodePosition,
-  State,
-  createNewRepositoryNode,
-} from '../domain/domain'
-import {
-  Command,
-  CommandBuilder,
-  MergeNodesByIdCommandPayload,
-  RenameNodeByIdCommandPayload,
-  ReparentNodesByIdCommandPayload,
-  SplitNodeByIdCommandPayload,
-  TreeService,
-} from '../service/service'
-import {
-  findLastChildNode,
-  findNextNode,
-  findPreviousNode,
-  getNodeId,
-  getNodeName,
-  getParentNode,
-  hasChildren,
-  hasParentNode,
-  isNameNode,
-  isNode,
-  getNameElement,
-  getNodeForNameElement } from './tree-dom-util'
+// tslint:disable-next-line:max-line-length
+import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode } from '../domain/domain'
+// tslint:disable-next-line:max-line-length
+import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, TreeService } from '../service/service'
+// tslint:disable-next-line:max-line-length
+import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected } from '../util'
+import { DomCommandHandler } from './command-handler-dom'
+import { ServiceCommandHandler } from './command-handler-service'
 import { TreeNode } from './node-component'
-import {
-  generateUUID,
-  getCursorPos,
-  getTextAfterCursor,
-  getTextBeforeCursor,
-  isCursorAtBeginning,
-  isCursorAtEnd,
-  setCursorPos,
-  isEmpty,
-  debounce,
-  isTextSelected} from '../util'
+// tslint:disable-next-line:max-line-length
+import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode } from './tree-dom-util'
 
 interface TransientState {
   focusNodeId: string,
@@ -76,6 +46,8 @@ function selectionChangeHandler(event: Event): void {
 }
 
 export class Tree {
+  private serviceCommandHandler
+  private domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
   private el
   private content
@@ -86,6 +58,7 @@ export class Tree {
   private searchButton
 
   constructor(tree: LoadedTree, treeService: TreeService) {
+    this.serviceCommandHandler = new ServiceCommandHandler(treeService)
     if (tree.tree) {
       this.currentRootNodeId = tree.tree.node._id
     }
@@ -121,7 +94,7 @@ export class Tree {
   private generateSearchBox() {
     return el('div.searchbox',
       this.searchField = el('input', {type: 'search', placeholder: 'Filter'}))
-    /* Removing the search button because we don't really need it. Right?
+    /* Removing the search button because we don't really need it. Right? Accesibility?
       this.searchButton = el('button', 'Filter')) */
   }
 
@@ -171,7 +144,7 @@ export class Tree {
     transientState.focusNodePreviousName = newName
     transientState.focusNodePreviousPos = getCursorPos()
     // no dom operation needed since this is a rename
-    this.exec(
+    this.serviceCommandHandler.exec(
       new CommandBuilder(
         new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
         .isUndoable()
@@ -196,8 +169,8 @@ export class Tree {
       transientState.focusNodePreviousPos = 0
       // we need to save this position before we start manipulating the DOM
       const beforeFocusPos = getCursorPos()
-      TreeNode.domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
-      this.exec(
+      this.domCommandHandler.domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
+      this.serviceCommandHandler.exec(
         new CommandBuilder(
           new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart, afterSplitNamePart))
           .isUndoable()
@@ -370,8 +343,8 @@ export class Tree {
       beforeOrAfter: relativePosition,
       nodeId: relativeNode ? getNodeId(relativeNode) : null,
     }
-    TreeNode.domReparentNode(node, newParentNode, relativeNode, relativePosition)
-    this.exec(
+    this.domCommandHandler.domReparentNode(node, newParentNode, relativeNode, relativePosition)
+    this.serviceCommandHandler.exec(
       new CommandBuilder(
         new ReparentNodesByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
         .requiresRender()
@@ -392,8 +365,8 @@ export class Tree {
     const sourceNodeName = getNodeName(sourceNode)
     const targetNodeId = getNodeId(targetNode)
     const targetNodeName = getNodeName(targetNode)
-    TreeNode.domMergeNodes(sourceNode, sourceNodeName, targetNode, targetNodeName)
-    this.exec(
+    this.domCommandHandler.domMergeNodes(sourceNode, sourceNodeName, targetNode, targetNodeName)
+    this.serviceCommandHandler.exec(
       new CommandBuilder(
         new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
         .isUndoable()
@@ -402,31 +375,6 @@ export class Tree {
         .withAfterFocusPos(Math.max(0, targetNodeName.length))
         .build(),
     )
-  }
-
-  private exec(command: Command, performDomOperation?: boolean) {
-    if (performDomOperation) {
-      TreeNode.exec(command)
-    }
-    this.treeService.exec(command)
-      .then(() => {
-        if (command.afterFocusNodeId) {
-          this.focus(command.afterFocusNodeId, command.afterFocusPos)
-        }
-      })
-  }
-
-  private focus(nodeId: string, charPos: number) {
-    const element = document.getElementById(nodeId)
-    // tslint:disable-next-line:no-console
-    // console.log(`focusing on node ${nodeId} at ${charPos}, exists?`, element)
-    if (element) {
-      const nameElement: HTMLElement = getNameElement(element) as HTMLElement
-      nameElement.focus()
-      if (charPos > -1) {
-        setCursorPos(nameElement, charPos)
-      }
-    }
   }
 
   // charPos should be -1 to just request focus on the node
@@ -447,7 +395,8 @@ export class Tree {
     if (undoCommandPromise) {
       undoCommandPromise.then((command: Command) => {
         if (command) {
-          this.exec(command, true)
+          this.domCommandHandler.exec(command)
+          this.serviceCommandHandler.exec(command)
         }
       })
     } // TODO: REDO Handling!!

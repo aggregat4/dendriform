@@ -173,3 +173,9 @@ I changed the DOM structure for nodes by wrapping the actual node content itself
 ## 11.5.2018
 
 Changing the DOM structure in nodes broke way more things. I fixed a bunch of the hardcoded node children and parent access, but that uncovered even more trouble. Seems to be in a stable state now.
+
+## 18.5.2018
+
+Mostly refactoring of the file and directory structure: splitting out mixed dependencies, making a straight DAG, this looks a bit better.
+
+Still need to finish open/closed nodes by adding in the call to the commandhandler in tree-component onCollapseClick. But that should be trivial now.
