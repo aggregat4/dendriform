@@ -66,18 +66,23 @@
 .node a {
   display: inline-block;
   position: absolute;
-  padding: 0 6px 0 6px;
+  padding: 0 9px 0 9px;
   text-decoration: none;
   width: 1ch;
-  text-align: center;
+  text-align: center;  
 }
 
 .node a, .node a:hover, .node a:active, node a:visited {
-  color: black;
+  color: #666;
 }
 
-.node a:hover {
+.node a:hover, .node.closed a:hover {
   background: rgb(182, 197, 206); /* #c1c1ff; */
+}
+
+.node.closed a {
+  background: #ddd;
+  border-radius: 50%;
 }
 
 .node span.toggle {
@@ -85,7 +90,7 @@
   top: 0;
   position: absolute;
   margin-left: -2ch;
-  padding: 0 6px 0 6px;
+  padding: 0 9px 0 9px;
   width: 1ch;
   color: #aaa;
 }
@@ -100,6 +105,7 @@
 
 .node span.toggle:hover {
   background: rgb(182, 197, 206); /* #c1c1ff; */
+  color: white;
   cursor: pointer;
 }
 
@@ -112,7 +118,7 @@
   /* min-width (or a similar trick) is required to make the cursor show in Chrome when the element is empty */
   min-width: 20px;
   /* leaves space for the bullet since that is positioned absolute */
-  margin-left: calc(1ch + 12px); /* bullet width + the padding */
+  margin-left: calc(1ch + 18px); /* bullet width + the padding */
   padding: 0 6px 0 0;
 }
 
