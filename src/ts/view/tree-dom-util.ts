@@ -21,6 +21,14 @@ export function isNameNode(element: Element): boolean {
   return element.classList.contains('name')
 }
 
+export function isToggleElement(element: Element): boolean {
+  return element.classList.contains('toggle')
+}
+
+export function isNodeClosed(element: Element): boolean {
+  return element.classList.contains('closed')
+}
+
 export function getNameElement(node: Element): Element {
   return node.children[0].children[1]
 }

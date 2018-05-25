@@ -32,6 +32,7 @@ import { DomCommandHandler } from './command-handler-dom'
 
 export class TreeNode {
   private domCommandHandler = new DomCommandHandler()
+  private serviceCommandHandler
   private el
   private anchorEl
   private nameEl
@@ -39,7 +40,7 @@ export class TreeNode {
   private ncEl
   private childrenEl
   private nameHits: Highlight[]
-  // Future extension: allow descriptions to be searched
+  // TODO: future extension: allow descriptions to be searched
   // private descHits: FilterHits
   private includedInFilter: boolean = false
 
@@ -70,9 +71,6 @@ export class TreeNode {
     }
     if (!filter || this.includedInFilter) {
       this.generateDom(treeNode, first, children)
-      if (this.collapseEl) {
-        this.collapseEl.addEventListener('click', this.onCollapseClick.bind(this))
-      }
     }
   }
 
@@ -93,15 +91,6 @@ export class TreeNode {
       ),
       this.childrenEl = el('div.children', children),
     )
-  }
-
-  private onCollapseClick(event: Event): void {
-    // NOTE: we can use the getNodeForNameElement function even though this is the
-    // collapseElement because they are siblings
-    const node = getNodeForNameElement(event.target as Element)
-    this.domCommandHandler.domToggleNodeOpenClosed(node)
-    // TODO: generate the necessary command and send to exec (need to refactor exec first?)
-
   }
 
   isIncludedInFilter(): boolean {

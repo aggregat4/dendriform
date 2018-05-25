@@ -2,14 +2,14 @@ import { el, setChildren } from 'redom'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode } from '../domain/domain'
 // tslint:disable-next-line:max-line-length
-import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, TreeService } from '../service/service'
+import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, TreeService, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
 import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
 import { ServiceCommandHandler } from './command-handler-service'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode } from './tree-dom-util'
+import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed } from './tree-dom-util'
 
 interface TransientState {
   focusNodeId: string,
@@ -75,6 +75,7 @@ export class Tree {
     this.el.addEventListener('input', this.onInput.bind(this))
     this.el.addEventListener('keypress', this.onKeypress.bind(this))
     this.el.addEventListener('keydown', this.onKeydown.bind(this))
+    this.el.addEventListener('click', this.onToggle.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 250))
     // We need to support UNDO when activated anywhere in the document
     document.addEventListener('keydown', this.globalKeyDownHandler.bind(this))
@@ -122,6 +123,28 @@ export class Tree {
         tree.tree,
         true,
         doFilter ? {query: this.searchField.value} : undefined)
+    }
+  }
+
+  private onToggle(event: Event): void {
+    if (!isToggleElement(event.target as Element)) {
+      return
+    }
+    // NOTE: we can use the getNodeForNameElement function even though this is the
+    // collapseElement because they are siblings
+    const node = getNodeForNameElement(event.target as Element)
+    if (isNodeClosed(node)) {
+      this.domCommandHandler.domOpenNode(node)
+      this.serviceCommandHandler.exec(
+        new CommandBuilder(new OpenNodeByIdCommandPayload(getNodeId(node)))
+          .isUndoable()
+          .build())
+    } else {
+      this.domCommandHandler.domCloseNode(node)
+      this.serviceCommandHandler.exec(
+        new CommandBuilder(new CloseNodeByIdCommandPayload(getNodeId(node)))
+          .isUndoable()
+          .build())
     }
   }
 

@@ -39,9 +39,6 @@ import { TreeNode } from './node-component'
 export class DomCommandHandler implements CommandHandler {
 
   exec(command: Command) {
-    // TODO: consider moving this to the exec function, then redo is also handled
-    // I have not done this here since we currently optimise the actual initial
-    // dom operations by using the DOM elements directly, no need to getElementById them all...
     if (command.payload instanceof SplitNodeByIdCommandPayload) {
       const splitCommand = command.payload as SplitNodeByIdCommandPayload
       this.domSplitNode(
@@ -145,14 +142,6 @@ export class DomCommandHandler implements CommandHandler {
       relativeNode.insertAdjacentElement('afterend', node)
     } else {
       throw new Error(`Invalid RelativeLinearPosition: ${relativePosition}`)
-    }
-  }
-
-  domToggleNodeOpenClosed(node: Element): void {
-    if (node.classList.contains('closed')) {
-      this.domOpenNode(node)
-    } else {
-      this.domCloseNode(node)
     }
   }
 
