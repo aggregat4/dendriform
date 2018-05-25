@@ -41,11 +41,10 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. Implement open and closed nodes
 1. Implement redo
 1. Implement node descriptions! (in render, search, etc)
+1. Implement import of some standard format (opml?)
 1. Implement export in some standard format
-1. Implement import in some standard format
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, etc?
 1. Try to get it to work with a couchdb backend for only and sync use cases

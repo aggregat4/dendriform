@@ -179,3 +179,7 @@ Changing the DOM structure in nodes broke way more things. I fixed a bunch of th
 Mostly refactoring of the file and directory structure: splitting out mixed dependencies, making a straight DAG, this looks a bit better.
 
 Still need to finish open/closed nodes by adding in the call to the commandhandler in tree-component onCollapseClick. But that should be trivial now.
+
+## 25.5.2018
+
+Completed opening and closing of nodes with persistence. Note that this implementation still just sets display to none on the client side, it is still an open question whether this scales with large documents.
