@@ -1,6 +1,6 @@
 import { el, setChildren } from 'redom'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode } from '../domain/domain'
+import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode } from '../domain/domain'
 // tslint:disable-next-line:max-line-length
 import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, TreeService, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
@@ -10,6 +10,7 @@ import { ServiceCommandHandler } from './command-handler-service'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
 import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed } from './tree-dom-util'
+import { UndoableTreeService } from '../service/tree-service-undoable'
 
 interface TransientState {
   focusNodeId: string,
@@ -46,18 +47,18 @@ function selectionChangeHandler(event: Event): void {
 }
 
 export class Tree {
-  private serviceCommandHandler
+  private serviceCommandHandler: ServiceCommandHandler
   private domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
   private el
   private content
-  private treeService
+  private treeService: UndoableTreeService
   private breadcrumbs
   private searchBox
   private searchField
   private searchButton
 
-  constructor(tree: LoadedTree, treeService: TreeService) {
+  constructor(tree: LoadedTree, treeService: UndoableTreeService) {
     this.serviceCommandHandler = new ServiceCommandHandler(treeService)
     if (tree.tree) {
       this.currentRootNodeId = tree.tree.node._id
@@ -77,8 +78,8 @@ export class Tree {
     this.el.addEventListener('keydown', this.onKeydown.bind(this))
     this.el.addEventListener('click', this.onToggle.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 250))
-    // We need to support UNDO when activated anywhere in the document
-    document.addEventListener('keydown', this.globalKeyDownHandler.bind(this))
+    // NOTE: we had this trigger on document but that seemed to cause the event to be called twice!?
+    this.el.addEventListener('keydown', this.globalKeyDownHandler.bind(this))
   }
 
   update(tree: LoadedTree) {
@@ -171,6 +172,8 @@ export class Tree {
       new CommandBuilder(
         new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
         .isUndoable()
+        .withBeforeFocusNodeId(nodeId)
+        .withBeforeFocusPos(beforeFocusPos)
         .build(),
     )
   }
@@ -407,21 +410,21 @@ export class Tree {
   }
 
   private globalKeyDownHandler(event: KeyboardEvent): void {
-    if (event.keyCode === 90 && event.ctrlKey) { // CTRL+Z, so trigger UNDO
+    if (event.keyCode === 90 && event.ctrlKey && !event.shiftKey) { // CTRL+Z
       event.preventDefault()
-      this.undoLastCommand()
+      event.stopPropagation()
+      this.performUndoOrRedoCommand(this.treeService.popUndoCommand())
+    } else if (event.keyCode === 90 && event.ctrlKey && event.shiftKey) { // CTRL+SHIFT+Z
+      event.preventDefault()
+      event.stopPropagation()
+      this.performUndoOrRedoCommand(this.treeService.popRedoCommand())
     }
   }
 
-  private undoLastCommand(): void {
-    const undoCommandPromise = this.treeService.popUndoCommand()
-    if (undoCommandPromise) {
-      undoCommandPromise.then((command: Command) => {
-        if (command) {
-          this.domCommandHandler.exec(command)
-          this.serviceCommandHandler.exec(command)
-        }
-      })
-    } // TODO: REDO Handling!!
+  private performUndoOrRedoCommand(command: Command): void {
+    if (command) {
+      this.domCommandHandler.exec(command)
+      this.serviceCommandHandler.exec(command)
+    }
   }
 }

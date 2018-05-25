@@ -35,6 +35,7 @@ import {
   CloseNodeByIdCommandPayload,
 } from '../service/service'
 import { TreeNode } from './node-component'
+import { setCursorPos } from '../util'
 
 export class DomCommandHandler implements CommandHandler {
 
@@ -84,6 +85,22 @@ export class DomCommandHandler implements CommandHandler {
     } else if (command.payload instanceof CloseNodeByIdCommandPayload) {
       const closeCommand = command.payload as CloseNodeByIdCommandPayload
       this.domCloseNode(document.getElementById(closeCommand.nodeId))
+    }
+    if (command.afterFocusNodeId) {
+      this.focus(command.afterFocusNodeId, command.afterFocusPos)
+    }
+  }
+
+  private focus(nodeId: string, charPos: number) {
+    const element = document.getElementById(nodeId)
+    // tslint:disable-next-line:no-console
+    // console.log(`focusing on node ${nodeId} at ${charPos}, exists?`, element)
+    if (element) {
+      const nameElement: HTMLElement = getNameElement(element) as HTMLElement
+      nameElement.focus()
+      if (charPos > -1) {
+        setCursorPos(nameElement, charPos)
+      }
     }
   }
 

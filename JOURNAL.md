@@ -183,3 +183,7 @@ Still need to finish open/closed nodes by adding in the call to the commandhandl
 ## 25.5.2018
 
 Completed opening and closing of nodes with persistence. Note that this implementation still just sets display to none on the client side, it is still an open question whether this scales with large documents.
+
+Implemented most of REDO, had to refactor the undo command handling for that and we now have a more elegant method where only undo commands are tracked in a buffer and a pointer to the current undocommand. This way the redo command is just the inverse of the next undo command.
+
+What's missing is that cursor position is not tracked after a redo event, need to manage before and after positions better.
