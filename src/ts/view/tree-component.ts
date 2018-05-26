@@ -135,17 +135,15 @@ export class Tree {
     // collapseElement because they are siblings
     const node = getNodeForNameElement(event.target as Element)
     if (isNodeClosed(node)) {
-      this.domCommandHandler.domOpenNode(node)
-      this.serviceCommandHandler.exec(
-        new CommandBuilder(new OpenNodeByIdCommandPayload(getNodeId(node)))
-          .isUndoable()
-          .build())
+      const command = new CommandBuilder(new OpenNodeByIdCommandPayload(getNodeId(node)))
+        .isUndoable()
+        .build()
+      this.performCommand(command)
     } else {
-      this.domCommandHandler.domCloseNode(node)
-      this.serviceCommandHandler.exec(
-        new CommandBuilder(new CloseNodeByIdCommandPayload(getNodeId(node)))
-          .isUndoable()
-          .build())
+      const command = new CommandBuilder(new CloseNodeByIdCommandPayload(getNodeId(node)))
+        .isUndoable()
+        .build()
+      this.performCommand(command)
     }
   }
 
@@ -195,17 +193,16 @@ export class Tree {
       transientState.focusNodePreviousPos = 0
       // we need to save this position before we start manipulating the DOM
       const beforeFocusPos = getCursorPos()
-      this.domCommandHandler.domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
-      this.serviceCommandHandler.exec(
-        new CommandBuilder(
-          new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart, afterSplitNamePart))
+      // this.domCommandHandler.domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
+      const command = new CommandBuilder(
+        new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart, afterSplitNamePart))
           .isUndoable()
           .requiresRender()
           // The before position and node is used for the after position and node in undo
           .withBeforeFocusNodeId(nodeId)
           .withBeforeFocusPos(beforeFocusPos)
-          .build(),
-      )
+          .build()
+      this.performCommand(command)
     }
   }
 
@@ -369,16 +366,14 @@ export class Tree {
       beforeOrAfter: relativePosition,
       nodeId: relativeNode ? getNodeId(relativeNode) : null,
     }
-    this.domCommandHandler.domReparentNode(node, newParentNode, relativeNode, relativePosition)
-    this.serviceCommandHandler.exec(
-      new CommandBuilder(
-        new ReparentNodesByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
-        .requiresRender()
-        .withAfterFocusNodeId(nodeId)
-        .withAfterFocusPos(cursorPos)
-        .isUndoable()
-        .build(),
-    )
+    const command = new CommandBuilder(
+      new ReparentNodesByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
+      .requiresRender()
+      .withAfterFocusNodeId(nodeId)
+      .withAfterFocusPos(cursorPos)
+      .isUndoable()
+      .build()
+    this.performCommand(command)
   }
 
   // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
@@ -391,16 +386,15 @@ export class Tree {
     const sourceNodeName = getNodeName(sourceNode)
     const targetNodeId = getNodeId(targetNode)
     const targetNodeName = getNodeName(targetNode)
-    this.domCommandHandler.domMergeNodes(sourceNode, sourceNodeName, targetNode, targetNodeName)
-    this.serviceCommandHandler.exec(
-      new CommandBuilder(
-        new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
-        .isUndoable()
-        .requiresRender()
-        .withAfterFocusNodeId(targetNodeId)
-        .withAfterFocusPos(Math.max(0, targetNodeName.length))
-        .build(),
-    )
+    // this.domCommandHandler.domMergeNodes(sourceNode, sourceNodeName, targetNode, targetNodeName)
+    const command = new CommandBuilder(
+      new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
+      .isUndoable()
+      .requiresRender()
+      .withAfterFocusNodeId(targetNodeId)
+      .withAfterFocusPos(Math.max(0, targetNodeName.length))
+      .build()
+    this.performCommand(command)
   }
 
   // charPos should be -1 to just request focus on the node
@@ -413,15 +407,15 @@ export class Tree {
     if (event.keyCode === 90 && event.ctrlKey && !event.shiftKey) { // CTRL+Z
       event.preventDefault()
       event.stopPropagation()
-      this.performUndoOrRedoCommand(this.treeService.popUndoCommand())
+      this.performCommand(this.treeService.popUndoCommand())
     } else if (event.keyCode === 90 && event.ctrlKey && event.shiftKey) { // CTRL+SHIFT+Z
       event.preventDefault()
       event.stopPropagation()
-      this.performUndoOrRedoCommand(this.treeService.popRedoCommand())
+      this.performCommand(this.treeService.popRedoCommand())
     }
   }
 
-  private performUndoOrRedoCommand(command: Command): void {
+  private performCommand(command: Command): void {
     if (command) {
       this.domCommandHandler.exec(command)
       this.serviceCommandHandler.exec(command)

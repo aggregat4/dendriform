@@ -41,7 +41,7 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. BUG: new line then tab causes focus to go
+1. BUG: adding or removing children does not change the toggle capability of a noded
 1. BUG: redo does not work correctly with inserting new children
 1. Implement redo
 1. Implement node descriptions! (in render, search, etc)
