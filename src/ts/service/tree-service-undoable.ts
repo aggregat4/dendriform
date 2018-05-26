@@ -24,10 +24,10 @@ export class UndoableTreeService implements TreeService {
   }
 
   popRedoCommand(): Command {
-    if (this.undoCommandPointer <= this.undoBuffer.length && this.undoBuffer.length > 0) {
+    if (this.undoCommandPointer < this.undoBuffer.length - 1 && this.undoBuffer.length > 0) {
       this.undoCommandPointer++
       // A redo command is an inverted undo command
-      return new CommandBuilder(this.undoBuffer[this.undoCommandPointer - 1].payload.inverse())
+      return new CommandBuilder(this.undoBuffer[this.undoCommandPointer].payload.inverse())
         .requiresRender()
         .build()
     }

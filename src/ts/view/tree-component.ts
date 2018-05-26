@@ -79,7 +79,7 @@ export class Tree {
     this.el.addEventListener('click', this.onToggle.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 250))
     // NOTE: we had this trigger on document but that seemed to cause the event to be called twice!?
-    this.el.addEventListener('keydown', this.globalKeyDownHandler.bind(this))
+    this.el.addEventListener('keydown', this.treeKeyDownHandler.bind(this))
   }
 
   update(tree: LoadedTree) {
@@ -403,7 +403,7 @@ export class Tree {
     transientState.focusCharPos = charPos
   }
 
-  private globalKeyDownHandler(event: KeyboardEvent): void {
+  private treeKeyDownHandler(event: KeyboardEvent): void {
     if (event.keyCode === 90 && event.ctrlKey && !event.shiftKey) { // CTRL+Z
       event.preventDefault()
       event.stopPropagation()
