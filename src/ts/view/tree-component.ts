@@ -152,6 +152,8 @@ export class Tree {
 
   private onInput(event: Event) {
     if (!isNameNode(event.target as Element) ||
+        // apparently we can get some fancy newfangled input events we may want to ignore
+        // see https://www.w3.org/TR/input-events-1/
         (event as any).inputType === 'historyUndo' ||
         (event as any).inputType === 'historyRedo') {
       return
