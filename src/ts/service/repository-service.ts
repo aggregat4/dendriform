@@ -85,9 +85,9 @@ export class RepositoryService {
     return this.repo.cdbLoadNode(nodeId, false)
   }
 
-  findNode(nodeId: string, deleted: boolean): Promise<RepositoryNode> {
+  findNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode> {
     // console.log(`getNode for id '${nodeId}'`)
-    return this.repo.cdbLoadNode(nodeId, deleted)
+    return this.repo.cdbLoadNode(nodeId, includeDeleted)
   }
 
   getChildNodes(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode[]> {
