@@ -12,9 +12,7 @@ It is currently mostly a playground and personal project for learning client sid
 
 * [`package.json` spec](https://docs.npmjs.com/files/package.json)
 
-## Project Development
-
-### Development Tooling
+## Development
 
 This project uses npm and webpack to build. To get started, do the following:
 
@@ -22,28 +20,13 @@ This project uses npm and webpack to build. To get started, do the following:
 2. perform an `npm install`
 3. check out the `package.json` file for the few goals that are provided, for example `npm run watch' will start watching for changes in the files and rebuilds the project if necessary
 
-The application can be tested by loading the `dist/index.html` file in your browser.
-
-### Webpack
-
-install?
-
-### Build Tools
-
-Some tools needed for the various build goals:
-
-`npm install parallelshell --save-dev`
-`npm install onchange --save-dev`
-`npm install http-server --save-dev`
-`npm install typescript --save-dev`
-`npm install ts-loader --save-dev`
-`npm install tslint --save-dev`
+The sample application can be tested by loading the `dist/index.html` file in your browser.
 
 ## Next Steps
 
 1. BUG: adding or removing children does not change the toggle capability of a noded
 1. BUG: can't remove a node that has a previous sibling with children and is the last node in its parent's childlist. Workflowy allows backspace on that node when it has no children and no name (we could relax the no name part?)
-1. Implement node descriptions! (in render, search, etc)
+1. Implement node descriptions (in render, search, etc)
 1. Implement import of some standard format (opml?)
 1. Implement export in some standard format
 1. Implement multi-select and delete and move operations (at least with keyboard)
@@ -60,17 +43,3 @@ Some tools needed for the various build goals:
 1. MAYBE Implement moving up and down with arrow keys and maintaining approximate character position
 1. MAYBE Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 1. Consider adding unit tests with this approach [https://www.npmjs.com/package/mocha-webpack](https://www.npmjs.com/package/mocha-webpack)
-
-## Software Design
-
-### Behavioural
-
-TODO
-
-### Structural
-
-TODO
-
-### Runtime Errors
-
-When a runtime error or exception happens, an Error will be thrown. This is used for defensive programming for example.
