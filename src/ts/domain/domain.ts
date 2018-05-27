@@ -60,3 +60,8 @@ export interface RelativeNodePosition {
   nodeId: string,
   beforeOrAfter: RelativeLinearPosition
 }
+
+export enum MergeNameOrder {
+  SOURCE_TARGET,
+  TARGET_SOURCE,
+}

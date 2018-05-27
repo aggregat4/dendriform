@@ -41,9 +41,8 @@ Some tools needed for the various build goals:
 
 ## Next Steps
 
-1. BUG: redo does not work correctly with inserting new children
 1. BUG: adding or removing children does not change the toggle capability of a noded
-1. Implement redo
+1. BUG: can't remove a node that has a previous sibling with children and is the last node in its parent's childlist. Workflowy allows backspace on that node when it has no children and no name (we could relax the no name part?)
 1. Implement node descriptions! (in render, search, etc)
 1. Implement import of some standard format (opml?)
 1. Implement export in some standard format

@@ -2,7 +2,9 @@ import {
   ResolvedRepositoryNode,
   RelativeNodePosition,
   RelativeLinearPosition,
-  LoadedTree} from '../domain/domain'
+  LoadedTree,
+  MergeNameOrder,
+} from '../domain/domain'
 
 export interface Filter {
   query: string
@@ -27,8 +29,8 @@ export class Command {
   constructor(
     readonly payload: CommandPayload,
     readonly renderRequired: boolean = false,
-    readonly beforeFocusNodeId: string = null,
-    readonly beforeFocusPos: number = -1,
+    public beforeFocusNodeId: string = null,
+    public beforeFocusPos: number = -1,
     public afterFocusNodeId: string = null,
     public afterFocusPos: number = -1,
     readonly undoable: boolean = false,
@@ -107,26 +109,17 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
     readonly nodeId: string,
     readonly newNodeName: string,
     readonly remainingNodeName: string,
+    readonly mergeNameOrder: MergeNameOrder,
   ) {}
 
   inverse() {
-    return new UnsplitNodeByIdCommandPayload(
-      this.siblingId, this.nodeId, this.newNodeName + this.remainingNodeName)
-  }
-}
-
-// Private use only, for undo
-export class UnsplitNodeByIdCommandPayload implements CommandPayload {
-  readonly name = 'unsplitNodeById'
-
-  constructor(
-    readonly newNodeId: string,
-    readonly originalNodeId: string,
-    readonly originalName: string,
-  ) {}
-
-  inverse(): CommandPayload {
-    return null
+    return new MergeNodesByIdCommandPayload(
+      this.siblingId,
+      this.newNodeName,
+      this.nodeId,
+      this.remainingNodeName,
+      this.mergeNameOrder,
+    )
   }
 }
 
@@ -138,30 +131,17 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
     readonly sourceNodeName: string,
     readonly targetNodeId: string,
     readonly targetNodeName: string,
+    readonly mergeNameOrder: MergeNameOrder,
   ) {}
 
   inverse(): CommandPayload {
-    return new UnmergeNodesByIdCommandPayload(
+    return new SplitNodeByIdCommandPayload(
       this.sourceNodeId,
-      this.sourceNodeName,
       this.targetNodeId,
-      this.targetNodeName)
-  }
-}
-
-// Private use only, for undo
-export class UnmergeNodesByIdCommandPayload implements CommandPayload {
-  readonly name = 'unmergeNodesById'
-
-  constructor(
-    readonly sourceNodeId: string,
-    readonly sourceNodeName: string,
-    readonly targetNodeId: string,
-    readonly targetNodeName: string,
-  ) {}
-
-  inverse(): CommandPayload {
-    return null
+      this.sourceNodeName,
+      this.targetNodeName,
+      this.mergeNameOrder,
+    )
   }
 }
 

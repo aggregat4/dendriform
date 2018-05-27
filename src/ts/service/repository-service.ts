@@ -85,6 +85,11 @@ export class RepositoryService {
     return this.repo.cdbLoadNode(nodeId, false)
   }
 
+  findNode(nodeId: string, deleted: boolean): Promise<RepositoryNode> {
+    // console.log(`getNode for id '${nodeId}'`)
+    return this.repo.cdbLoadNode(nodeId, deleted)
+  }
+
   getChildNodes(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode[]> {
     return this.repo.cdbLoadNode(nodeId, includeDeleted).then(node => this.repo.cdbLoadChildren(node, includeDeleted))
   }
@@ -160,8 +165,12 @@ export class RepositoryService {
   undeleteNode(nodeId: string): Promise<any> {
     return this.repo.cdbLoadNode(nodeId, true)
       .then(node => {
-        delete node.deleted // removing this flag from the object since it is not required anymore
-        return this.repo.cdbPutNode(node)
+        if (node) {
+          delete node.deleted // removing this flag from the object since it is not required anymore
+          return this.repo.cdbPutNode(node)
+        } else {
+          throw new Error(`Node with id ${nodeId} does not exist`)
+        }
       })
   }
 

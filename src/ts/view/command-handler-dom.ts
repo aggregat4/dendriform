@@ -6,6 +6,7 @@ import {
   State,
   createNewRepositoryNode,
   createNewResolvedRepositoryNode,
+  MergeNameOrder,
 } from '../domain/domain'
 import {
   findLastChildNode,
@@ -29,8 +30,6 @@ import {
   RenameNodeByIdCommandPayload,
   ReparentNodesByIdCommandPayload,
   SplitNodeByIdCommandPayload,
-  UnsplitNodeByIdCommandPayload,
-  UnmergeNodesByIdCommandPayload,
   OpenNodeByIdCommandPayload,
   CloseNodeByIdCommandPayload,
 } from '../service/service'
@@ -47,26 +46,14 @@ export class DomCommandHandler implements CommandHandler {
         splitCommand.newNodeName,
         splitCommand.remainingNodeName,
         splitCommand.siblingId)
-    } else if (command.payload instanceof UnsplitNodeByIdCommandPayload) {
-      const unsplitCommand = command.payload as UnsplitNodeByIdCommandPayload
-      this.domUnsplitNode(
-        document.getElementById(unsplitCommand.originalNodeId),
-        document.getElementById(unsplitCommand.newNodeId),
-        unsplitCommand.originalName)
     } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
       const mergeNodesCommand = command.payload as MergeNodesByIdCommandPayload
       this.domMergeNodes(
         document.getElementById(mergeNodesCommand.sourceNodeId),
         mergeNodesCommand.sourceNodeName,
         document.getElementById(mergeNodesCommand.targetNodeId),
-        mergeNodesCommand.targetNodeName)
-    } else if (command.payload instanceof UnmergeNodesByIdCommandPayload) {
-      const unmergeCommand = command.payload as UnmergeNodesByIdCommandPayload
-      this.domUnmergeNode(
-        document.getElementById(unmergeCommand.sourceNodeId),
-        unmergeCommand.sourceNodeName,
-        unmergeCommand.targetNodeId,
-        unmergeCommand.targetNodeName)
+        mergeNodesCommand.targetNodeName,
+        mergeNodesCommand.mergeNameOrder)
     } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
       const renameCommand = command.payload as RenameNodeByIdCommandPayload
       this.domRenameNode(document.getElementById(renameCommand.nodeId), renameCommand.newName)
@@ -74,11 +61,13 @@ export class DomCommandHandler implements CommandHandler {
       const reparentCommand = command.payload as ReparentNodesByIdCommandPayload
       const relativeNode = reparentCommand.position.nodeId ?
         document.getElementById(reparentCommand.position.nodeId) : null
+      const position = relativeNode ?
+        reparentCommand.position.beforeOrAfter : RelativeLinearPosition.END
       this.domReparentNode(
         document.getElementById(reparentCommand.nodeId),
         document.getElementById(reparentCommand.newParentNodeId),
         relativeNode,
-        reparentCommand.position.beforeOrAfter)
+        position)
     } else if (command.payload instanceof OpenNodeByIdCommandPayload) {
       const openCommand = command.payload as OpenNodeByIdCommandPayload
       this.domOpenNode(document.getElementById(openCommand.nodeId))
@@ -105,13 +94,15 @@ export class DomCommandHandler implements CommandHandler {
   }
 
   domMergeNodes(sourceNode: Element, sourceNodeName: string,
-                targetNode: Element, targetNodeName: string): void {
+                targetNode: Element, targetNodeName: string,
+                mergeNameOrder: MergeNameOrder): void {
     // DOM Handling
     // 1. rename targetnode to be targetnode.name + sourcenode.name
     // 2. move all children of sourcenode to targetnode (actual move, just reparent)
     // 3. delete sourcenode
     // 4. focus the new node at the end of its old name
-    getNameElement(targetNode).textContent = targetNodeName + sourceNodeName
+    getNameElement(targetNode).textContent = mergeNameOrder === MergeNameOrder.SOURCE_TARGET ?
+      sourceNodeName + targetNodeName : targetNodeName + sourceNodeName
     // Only move source node children if it has any
     // TODO: make this childnodestuff safer with some utility methods
     if (hasChildren(sourceNode)) {
@@ -137,10 +128,10 @@ export class DomCommandHandler implements CommandHandler {
     node.insertAdjacentElement('beforebegin', newSibling.getElement())
   }
 
-  domUnsplitNode(originalNode: Element, newNode: Element, originalName: string): void {
-    newNode.remove()
-    this.domRenameNode(originalNode, originalName)
-  }
+  // domUnsplitNode(originalNode: Element, newNode: Element, originalName: string): void {
+  //   newNode.remove()
+  //   this.domRenameNode(originalNode, originalName)
+  // }
 
   domRenameNode(node: Element, newName: string) {
     getNameElement(node).textContent = newName

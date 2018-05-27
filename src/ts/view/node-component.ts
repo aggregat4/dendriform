@@ -7,16 +7,8 @@ import {
 } from '../domain/domain'
 import {
   Command,
-  MergeNodesByIdCommandPayload,
-  RenameNodeByIdCommandPayload,
-  ReparentNodesByIdCommandPayload,
-  SplitNodeByIdCommandPayload,
-  UnmergeNodesByIdCommandPayload,
-  UnsplitNodeByIdCommandPayload,
   Filter,
   Highlight,
-  OpenNodeByIdCommandPayload,
-  CloseNodeByIdCommandPayload,
 } from '../service/service'
 import {
   getNodeId,

@@ -1,6 +1,6 @@
 import { el, setChildren } from 'redom'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode } from '../domain/domain'
+import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode, MergeNameOrder } from '../domain/domain'
 // tslint:disable-next-line:max-line-length
 import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, TreeService, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
@@ -152,7 +152,9 @@ export class Tree {
   }
 
   private onInput(event: Event) {
-    if (!isNameNode(event.target as Element)) {
+    if (!isNameNode(event.target as Element) ||
+        (event as any).inputType === 'historyUndo' ||
+        (event as any).inputType === 'historyRedo') {
       return
     }
     const targetNode = getNodeForNameElement((event.target as Element))
@@ -161,17 +163,20 @@ export class Tree {
     const oldName = transientState.focusNodePreviousName
     const beforeFocusNodeId = nodeId
     const beforeFocusPos = transientState.focusNodePreviousPos
+    const afterFocusPos = getCursorPos()
     // TODO: clean up transient state mangement, what do I need still now that we do DOM
     transientState.focusNodePreviousId = nodeId
     transientState.focusNodePreviousName = newName
-    transientState.focusNodePreviousPos = getCursorPos()
+    transientState.focusNodePreviousPos = afterFocusPos
     // no dom operation needed since this is a rename
     this.serviceCommandHandler.exec(
       new CommandBuilder(
         new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
         .isUndoable()
-        .withBeforeFocusNodeId(nodeId)
+        .withBeforeFocusNodeId(beforeFocusNodeId)
         .withBeforeFocusPos(beforeFocusPos)
+        .withAfterFocusNodeId(nodeId)
+        .withAfterFocusPos(afterFocusPos)
         .build(),
     )
   }
@@ -191,16 +196,16 @@ export class Tree {
       transientState.focusNodePreviousId = nodeId
       transientState.focusNodePreviousName = afterSplitNamePart
       transientState.focusNodePreviousPos = 0
-      // we need to save this position before we start manipulating the DOM
-      const beforeFocusPos = getCursorPos()
-      // this.domCommandHandler.domSplitNode(targetNode, beforeSplitNamePart, afterSplitNamePart, newNodeId)
       const command = new CommandBuilder(
-        new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart, afterSplitNamePart))
+        new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart,
+                                        afterSplitNamePart, MergeNameOrder.SOURCE_TARGET))
           .isUndoable()
           .requiresRender()
           // The before position and node is used for the after position and node in undo
           .withBeforeFocusNodeId(nodeId)
-          .withBeforeFocusPos(beforeFocusPos)
+          .withBeforeFocusPos(getCursorPos())
+          .withAfterFocusNodeId(nodeId)
+          .withAfterFocusPos(0)
           .build()
       this.performCommand(command)
     }
@@ -245,18 +250,18 @@ export class Tree {
           isCursorAtBeginning(event) &&
           getNodeForNameElement(event.target as Element).previousElementSibling) {
         event.preventDefault()
-        const sourceNode = getNodeForNameElement(event.target as Element)
-        const targetNode = sourceNode.previousElementSibling
-        this.mergeNodes(sourceNode, targetNode)
+        const targetNode = getNodeForNameElement(event.target as Element)
+        const sourceNode = targetNode.previousElementSibling
+        this.mergeNodes(sourceNode, targetNode, getNodeId(sourceNode), 0, MergeNameOrder.SOURCE_TARGET)
       }
     } else if (event.key === 'Delete') {
       if (!isTextSelected() &&
           isCursorAtEnd(event) &&
           getNodeForNameElement(event.target as Element).nextElementSibling) {
         event.preventDefault()
-        const targetNode = getNodeForNameElement(event.target as Element)
-        const sourceNode = targetNode.nextElementSibling
-        this.mergeNodes(sourceNode, targetNode)
+        const sourceNode = getNodeForNameElement(event.target as Element)
+        const targetNode = sourceNode.nextElementSibling
+        this.mergeNodes(sourceNode, targetNode, getNodeId(targetNode), getCursorPos(), MergeNameOrder.SOURCE_TARGET)
       }
     } else if (event.key === 'Tab' && !event.shiftKey) {
       // When tabbing you want to make the node the last child of the previous sibling (if it exists)
@@ -276,9 +281,9 @@ export class Tree {
       if (hasParentNode(node)) {
         const oldParentNode = getParentNode(node)
         if (hasParentNode(oldParentNode)) {
+          event.preventDefault()
           const newParentNode = getParentNode(oldParentNode)
           const afterNode = oldParentNode
-          event.preventDefault()
           this.reparentNodeAt(
             node,
             getCursorPos(),
@@ -363,12 +368,14 @@ export class Tree {
     const oldParentNodeId = getNodeId(oldParentNode)
     const newParentNodeId = getNodeId(newParentNode)
     const position: RelativeNodePosition = {
-      beforeOrAfter: relativePosition,
       nodeId: relativeNode ? getNodeId(relativeNode) : null,
+      beforeOrAfter: relativeNode ? relativePosition : RelativeLinearPosition.END,
     }
     const command = new CommandBuilder(
       new ReparentNodesByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
       .requiresRender()
+      .withBeforeFocusNodeId(nodeId)
+      .withBeforeFocusPos(cursorPos)
       .withAfterFocusNodeId(nodeId)
       .withAfterFocusPos(cursorPos)
       .isUndoable()
@@ -378,7 +385,8 @@ export class Tree {
 
   // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
   // Merges are only allowed if the target node has no children
-  private mergeNodes(sourceNode: Element, targetNode: Element): void {
+  private mergeNodes(sourceNode: Element, targetNode: Element, beforeFocusNodeId: string,
+                     beforeFocusPos: number, mergeNameOrder: MergeNameOrder): void {
     if (hasChildren(targetNode)) {
       return
     }
@@ -386,11 +394,13 @@ export class Tree {
     const sourceNodeName = getNodeName(sourceNode)
     const targetNodeId = getNodeId(targetNode)
     const targetNodeName = getNodeName(targetNode)
-    // this.domCommandHandler.domMergeNodes(sourceNode, sourceNodeName, targetNode, targetNodeName)
     const command = new CommandBuilder(
-      new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId, targetNodeName))
+      new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId,
+                                       targetNodeName, mergeNameOrder))
       .isUndoable()
       .requiresRender()
+      .withBeforeFocusNodeId(beforeFocusNodeId)
+      .withBeforeFocusPos(beforeFocusPos)
       .withAfterFocusNodeId(targetNodeId)
       .withAfterFocusPos(Math.max(0, targetNodeName.length))
       .build()

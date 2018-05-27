@@ -17,19 +17,23 @@ export class UndoableTreeService implements TreeService {
   constructor(readonly treeService: TreeService) {}
 
   popUndoCommand(): Command {
+    // console.log(`about to pop undo command with pointer `, this.undoCommandPointer, ` in buffer `, this.undoBuffer)
     if (this.undoCommandPointer >= 0 && this.undoBuffer.length > 0) {
+      const undoCommand = this.undoBuffer[this.undoCommandPointer]
       this.undoCommandPointer--
-      return this.undoBuffer[this.undoCommandPointer + 1]
+      return undoCommand
     }
   }
 
   popRedoCommand(): Command {
-    if (this.undoCommandPointer < this.undoBuffer.length - 1 && this.undoBuffer.length > 0) {
-      this.undoCommandPointer++
+    // console.log(`about to pop redo command with pointer `, this.undoCommandPointer, ` in buffer `, this.undoBuffer)
+    if (this.undoCommandPointer < this.undoBuffer.length - 1 &&
+        this.undoCommandPointer >= -1 &&
+        this.undoBuffer.length > 0) {
       // A redo command is an inverted undo command
-      return new CommandBuilder(this.undoBuffer[this.undoCommandPointer].payload.inverse())
-        .requiresRender()
-        .build()
+      this.undoCommandPointer++
+      const nextUndoCommand = this.undoBuffer[this.undoCommandPointer]
+      return this.invert(nextUndoCommand)
     }
   }
 
@@ -46,26 +50,38 @@ export class UndoableTreeService implements TreeService {
     // console.log(`executing command: ${JSON.stringify(command)}`)
     const commandPromise = this.treeService.exec(command)
     if (command.undoable) {
-      const undoCommand = new CommandBuilder(command.payload.inverse()).requiresRender().build()
-      if (command.beforeFocusNodeId) {
-        undoCommand.afterFocusNodeId = command.beforeFocusNodeId
-        undoCommand.afterFocusPos = command.beforeFocusPos
-      }
-      this.addUndoCommandPromise(undoCommand)
+      const undoCommand = this.invert(command)
+      this.addUndoCommand(undoCommand)
     }
     return commandPromise
   }
 
-  // TODO: unclear if this system is cool, we are always growing the buffer and
-  // never resetting the undo stack, maybe this gets unintuitive sometimes?
-  private addUndoCommandPromise(undoCommand: Command): void {
+  private invert(command: Command): Command {
+    const inverted = new CommandBuilder(command.payload.inverse()).requiresRender().build()
+    if (command.beforeFocusNodeId) {
+      inverted.afterFocusNodeId = command.beforeFocusNodeId
+      inverted.afterFocusPos = command.beforeFocusPos
+    }
+    if (command.afterFocusNodeId) {
+      inverted.beforeFocusNodeId = command.afterFocusNodeId
+      inverted.beforeFocusPos = command.afterFocusPos
+    }
+    return inverted
+  }
+
+  private addUndoCommand(undoCommand: Command): void {
     if (this.undoBuffer.length === 0) {
       this.undoBuffer.push(undoCommand)
       this.undoCommandPointer = 0
     } else {
-      // splice the undocommandpromise into the undobuffer
+      // we add the command at the current location in the buffer
       this.undoBuffer.splice(this.undoCommandPointer + 1, 0, undoCommand)
       this.undoCommandPointer++
+      // if we add a command in the middle somewhere (and not at the end),
+      // remove all remaining commands, otherwise behaviour is weird for the user
+      if (this.undoCommandPointer < this.undoBuffer.length - 1) {
+        this.undoBuffer.splice(this.undoCommandPointer + 1)
+      }
     }
   }
 }
