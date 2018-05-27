@@ -15,13 +15,11 @@ export interface Highlight {
   length: number
 }
 
-export interface TreeService {
-  loadTree(nodeId: string): Promise<LoadedTree>,
-  exec(command: Command): Promise<any>,
+export interface CommandHandler {
+  exec(command: Command): void
 }
 
 interface CommandPayload {
-  name: string,
   inverse(): CommandPayload,
 }
 
@@ -34,14 +32,6 @@ export class Command {
     public afterFocusNodeId: string = null,
     public afterFocusPos: number = -1,
     readonly undoable: boolean = false,
-  ) {}
-}
-
-export class CommandResult {
-  constructor(
-    readonly focusNodeId: string = null,
-    readonly focusPos: number = -1,
-    readonly renderRequired: boolean = false,
   ) {}
 }
 
@@ -102,7 +92,6 @@ export class CommandBuilder {
 }
 
 export class SplitNodeByIdCommandPayload implements CommandPayload {
-  readonly name = 'splitNodeById'
   // uses parameter properties to have a sort of data class
   constructor(
     readonly siblingId: string,
@@ -124,8 +113,6 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class MergeNodesByIdCommandPayload implements CommandPayload {
-  readonly name = 'mergeNodesById'
-
   constructor(
     readonly sourceNodeId: string,
     readonly sourceNodeName: string,
@@ -146,8 +133,6 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
 }
 
 export class RenameNodeByIdCommandPayload implements CommandPayload {
-  readonly name = 'renameNodeById'
-
   constructor(
     readonly nodeId: string,
     readonly oldName: string,
@@ -160,8 +145,6 @@ export class RenameNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class ReparentNodesByIdCommandPayload implements CommandPayload {
-  readonly name = 'reparentNodesById'
-
   constructor(
     readonly nodeId: string,
     readonly oldParentNodeId: string,
@@ -183,8 +166,6 @@ export class ReparentNodesByIdCommandPayload implements CommandPayload {
 }
 
 export class OpenNodeByIdCommandPayload implements CommandPayload {
-  readonly name = 'openNodeById'
-
   constructor(readonly nodeId: string) {}
 
   inverse() {
@@ -193,8 +174,6 @@ export class OpenNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class CloseNodeByIdCommandPayload implements CommandPayload {
-  readonly name = 'closeNodeById'
-
   constructor(readonly nodeId: string) {}
 
   inverse() {

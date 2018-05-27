@@ -2,15 +2,15 @@ import { el, setChildren } from 'redom'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode, MergeNameOrder } from '../domain/domain'
 // tslint:disable-next-line:max-line-length
-import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, TreeService, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload } from '../service/service'
+import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
 import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
-import { ServiceCommandHandler } from './command-handler-service'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
 import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed } from './tree-dom-util'
-import { UndoableTreeService } from '../service/tree-service-undoable'
+import { UndoableCommandHandler } from '../service/command-handler-undoable'
+import { TreeService } from '../service/tree-service'
 
 interface TransientState {
   focusNodeId: string,
@@ -47,23 +47,22 @@ function selectionChangeHandler(event: Event): void {
 }
 
 export class Tree {
-  private serviceCommandHandler: ServiceCommandHandler
   private domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
   private el
   private content
-  private treeService: UndoableTreeService
   private breadcrumbs
   private searchBox
   private searchField
   private searchButton
 
-  constructor(tree: LoadedTree, treeService: UndoableTreeService) {
-    this.serviceCommandHandler = new ServiceCommandHandler(treeService)
+  constructor(
+    readonly tree: LoadedTree,
+    readonly commandHandler: UndoableCommandHandler,
+    readonly treeService: TreeService) {
     if (tree.tree) {
       this.currentRootNodeId = tree.tree.node._id
     }
-    this.treeService = treeService
     this.el = el('div.tree',
       this.searchBox = this.generateSearchBox(),
       this.breadcrumbs = this.generateBreadcrumbs(tree),
@@ -169,7 +168,7 @@ export class Tree {
     transientState.focusNodePreviousName = newName
     transientState.focusNodePreviousPos = afterFocusPos
     // no dom operation needed since this is a rename
-    this.serviceCommandHandler.exec(
+    this.commandHandler.exec(
       new CommandBuilder(
         new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
         .isUndoable()
@@ -252,7 +251,24 @@ export class Tree {
         event.preventDefault()
         const targetNode = getNodeForNameElement(event.target as Element)
         const sourceNode = targetNode.previousElementSibling
-        this.mergeNodes(sourceNode, targetNode, getNodeId(sourceNode), 0, MergeNameOrder.SOURCE_TARGET)
+        if (hasChildren(targetNode)) {
+          return
+        }
+        const sourceNodeId = getNodeId(sourceNode)
+        const sourceNodeName = getNodeName(sourceNode)
+        const targetNodeId = getNodeId(targetNode)
+        const targetNodeName = getNodeName(targetNode)
+        const command = new CommandBuilder(
+          new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName,
+                                           targetNodeId, targetNodeName, MergeNameOrder.SOURCE_TARGET))
+          .isUndoable()
+          .requiresRender()
+          .withBeforeFocusNodeId(targetNodeId)
+          .withBeforeFocusPos(0)
+          .withAfterFocusNodeId(targetNodeId)
+          .withAfterFocusPos(Math.max(0, sourceNodeName.length))
+          .build()
+        this.performCommand(command)
       }
     } else if (event.key === 'Delete') {
       if (!isTextSelected() &&
@@ -261,7 +277,24 @@ export class Tree {
         event.preventDefault()
         const sourceNode = getNodeForNameElement(event.target as Element)
         const targetNode = sourceNode.nextElementSibling
-        this.mergeNodes(sourceNode, targetNode, getNodeId(targetNode), getCursorPos(), MergeNameOrder.SOURCE_TARGET)
+        if (hasChildren(targetNode)) {
+          return
+        }
+        const sourceNodeId = getNodeId(sourceNode)
+        const sourceNodeName = getNodeName(sourceNode)
+        const targetNodeId = getNodeId(targetNode)
+        const targetNodeName = getNodeName(targetNode)
+        const command = new CommandBuilder(
+          new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName,
+                                           targetNodeId, targetNodeName, MergeNameOrder.SOURCE_TARGET))
+          .isUndoable()
+          .requiresRender()
+          .withBeforeFocusNodeId(sourceNodeId)
+          .withBeforeFocusPos(getCursorPos())
+          .withAfterFocusNodeId(targetNodeId)
+          .withAfterFocusPos(Math.max(0, sourceNodeName.length))
+          .build()
+        this.performCommand(command)
       }
     } else if (event.key === 'Tab' && !event.shiftKey) {
       // When tabbing you want to make the node the last child of the previous sibling (if it exists)
@@ -383,30 +416,6 @@ export class Tree {
     this.performCommand(command)
   }
 
-  // Helper function that works on Nodes, it extracts the ids and names, and then delegates to the other mergenodes
-  // Merges are only allowed if the target node has no children
-  private mergeNodes(sourceNode: Element, targetNode: Element, beforeFocusNodeId: string,
-                     beforeFocusPos: number, mergeNameOrder: MergeNameOrder): void {
-    if (hasChildren(targetNode)) {
-      return
-    }
-    const sourceNodeId = getNodeId(sourceNode)
-    const sourceNodeName = getNodeName(sourceNode)
-    const targetNodeId = getNodeId(targetNode)
-    const targetNodeName = getNodeName(targetNode)
-    const command = new CommandBuilder(
-      new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName, targetNodeId,
-                                       targetNodeName, mergeNameOrder))
-      .isUndoable()
-      .requiresRender()
-      .withBeforeFocusNodeId(beforeFocusNodeId)
-      .withBeforeFocusPos(beforeFocusPos)
-      .withAfterFocusNodeId(targetNodeId)
-      .withAfterFocusPos(Math.max(0, targetNodeName.length))
-      .build()
-    this.performCommand(command)
-  }
-
   // charPos should be -1 to just request focus on the node
   private saveTransientState(nodeId: string, charPos: number): void {
     transientState.focusNodeId = nodeId
@@ -417,18 +426,18 @@ export class Tree {
     if (event.keyCode === 90 && event.ctrlKey && !event.shiftKey) { // CTRL+Z
       event.preventDefault()
       event.stopPropagation()
-      this.performCommand(this.treeService.popUndoCommand())
+      this.performCommand(this.commandHandler.popUndoCommand())
     } else if (event.keyCode === 90 && event.ctrlKey && event.shiftKey) { // CTRL+SHIFT+Z
       event.preventDefault()
       event.stopPropagation()
-      this.performCommand(this.treeService.popRedoCommand())
+      this.performCommand(this.commandHandler.popRedoCommand())
     }
   }
 
   private performCommand(command: Command): void {
     if (command) {
       this.domCommandHandler.exec(command)
-      this.serviceCommandHandler.exec(command)
+      this.commandHandler.exec(command)
     }
   }
 }

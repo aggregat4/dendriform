@@ -1,4 +1,3 @@
-import {CommandHandler} from './command-handler'
 import {
   LoadedTree,
   RelativeLinearPosition,
@@ -26,6 +25,7 @@ import {
 import {
   Command,
   CommandBuilder,
+  CommandHandler,
   MergeNodesByIdCommandPayload,
   RenameNodeByIdCommandPayload,
   ReparentNodesByIdCommandPayload,
@@ -115,11 +115,6 @@ export class DomCommandHandler implements CommandHandler {
     sourceNode.remove()
   }
 
-  domUnmergeNode(mergedNode: Element, originalMergedNodeName: string,
-                 otherNodeId: string, otherNodeName: string): void {
-    this.domSplitNode(mergedNode, otherNodeName, originalMergedNodeName, otherNodeId)
-  }
-
   domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
                newNodeId: string): void {
     this.domRenameNode(node, originalNodeName)
@@ -127,11 +122,6 @@ export class DomCommandHandler implements CommandHandler {
     const newSibling = new TreeNode(newNode, false)
     node.insertAdjacentElement('beforebegin', newSibling.getElement())
   }
-
-  // domUnsplitNode(originalNode: Element, newNode: Element, originalName: string): void {
-  //   newNode.remove()
-  //   this.domRenameNode(originalNode, originalName)
-  // }
 
   domRenameNode(node: Element, newName: string) {
     getNameElement(node).textContent = newName

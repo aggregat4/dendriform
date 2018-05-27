@@ -10,7 +10,6 @@ import {
   MergeNameOrder,
 } from '../domain/domain'
 import {
-  TreeService,
   Command,
   CommandBuilder,
   SplitNodeByIdCommandPayload,
@@ -19,40 +18,31 @@ import {
   ReparentNodesByIdCommandPayload,
   OpenNodeByIdCommandPayload,
   CloseNodeByIdCommandPayload,
+  CommandHandler,
 } from './service'
-import {RepositoryService} from './repository-service'
+import {TreeService} from './tree-service'
 
-export class RepositoryTreeService implements TreeService {
+export class TreeServiceCommandHandler implements CommandHandler {
   // We are using a single threaded queue to serialize all updates to the repository,
   // this avoids concurrent updates that may overwhelm the persistent implementation
+  // and it avoids correctness problems by out of order updates
   private queue = new PQueue({concurrency: 1})
 
-  constructor(readonly repoService: RepositoryService) {}
+  constructor(readonly treeService: TreeService) {}
 
-  loadTree(nodeId: string): Promise<LoadedTree> {
-    return this.repoService.loadTreeByRootId(nodeId)
-      .then((tree) => {
-        if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
-          return this.repoService.initializeEmptyTree().then(() => this.repoService.loadTreeByRootId(nodeId))
-        } else {
-          return tree
-        }
-      })
-  }
-
-  exec(command: Command): Promise<any> {
+  exec(command: Command): void {
     if (command.payload instanceof SplitNodeByIdCommandPayload) {
-      return this.queue.add(() => this.splitNodeById(command.payload as SplitNodeByIdCommandPayload))
+      this.queue.add(() => this.splitNodeById(command.payload as SplitNodeByIdCommandPayload))
     } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
-      return this.queue.add(() => this.mergeNodesById(command.payload as MergeNodesByIdCommandPayload))
+      this.queue.add(() => this.mergeNodesById(command.payload as MergeNodesByIdCommandPayload))
     } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
-      return this.queue.add(() => this.renameNodeById(command.payload as RenameNodeByIdCommandPayload))
+      this.queue.add(() => this.renameNodeById(command.payload as RenameNodeByIdCommandPayload))
     } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
-      return this.queue.add(() => this.reparentNodesById(command.payload as ReparentNodesByIdCommandPayload))
+      this.queue.add(() => this.reparentNodesById(command.payload as ReparentNodesByIdCommandPayload))
     } else if (command.payload instanceof OpenNodeByIdCommandPayload) {
-      return this.queue.add(() => this.openNodeById(command.payload as OpenNodeByIdCommandPayload))
+      this.queue.add(() => this.openNodeById(command.payload as OpenNodeByIdCommandPayload))
     } else if (command.payload instanceof CloseNodeByIdCommandPayload) {
-      return this.queue.add(() => this.closeNodeById(command.payload as CloseNodeByIdCommandPayload))
+      this.queue.add(() => this.closeNodeById(command.payload as CloseNodeByIdCommandPayload))
     } else {
       throw new Error(`Received an unknown command with name ${command.payload}`)
     }
@@ -63,19 +53,19 @@ export class RepositoryTreeService implements TreeService {
   private splitNodeById(cmd: SplitNodeByIdCommandPayload): Promise<any> {
     // return this.repoService.renameNode(cmd.nodeId, cmd.remainingNodeName)
     // .then((result) => this.repoService.createSibling(cmd.siblingId, cmd.newNodeName, null, cmd.nodeId, true))
-    return this.repoService.findNode(cmd.siblingId, true)
+    return this.treeService.findNode(cmd.siblingId, true)
       .then(sibling => {
         if (sibling) {
-          this.repoService.undeleteNode(cmd.siblingId)
+          this.treeService.undeleteNode(cmd.siblingId)
         } else {
-          this.repoService.createSibling(cmd.siblingId, cmd.newNodeName, null, cmd.nodeId, true)
+          this.treeService.createSibling(cmd.siblingId, cmd.newNodeName, null, cmd.nodeId, true)
         }
       })
-      .then(() => this.repoService.getChildNodes(cmd.nodeId, true))
+      .then(() => this.treeService.getChildNodes(cmd.nodeId, true))
       .then(children =>
-        this.repoService.reparentNodes(
+        this.treeService.reparentNodes(
           children, cmd.siblingId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
-      .then(() => this.repoService.renameNode(cmd.nodeId, cmd.remainingNodeName))
+      .then(() => this.treeService.renameNode(cmd.nodeId, cmd.remainingNodeName))
   }
 
   // private unsplitNodeById(cmd: UnsplitNodeByIdCommandPayload): Promise<any> {
@@ -92,35 +82,35 @@ export class RepositoryTreeService implements TreeService {
   // This function will not undo the merging of the child collections (this mirrors workflowy
   // maybe we want to revisit this in the future)
   private mergeNodesById(cmd: MergeNodesByIdCommandPayload): Promise<any> {
-    return this.repoService.getChildNodes(cmd.sourceNodeId, true)
+    return this.treeService.getChildNodes(cmd.sourceNodeId, true)
       .then(children =>
-        this.repoService.reparentNodes(
+        this.treeService.reparentNodes(
           children, cmd.targetNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
-      .then(() => this.repoService.renameNode(
+      .then(() => this.treeService.renameNode(
         cmd.targetNodeId,
         cmd.mergeNameOrder === MergeNameOrder.SOURCE_TARGET ?
           cmd.sourceNodeName + cmd.targetNodeName : cmd.targetNodeName + cmd.sourceNodeName))
-      .then(() => this.repoService.deleteNode(cmd.sourceNodeId))
+      .then(() => this.treeService.deleteNode(cmd.sourceNodeId))
   }
 
   private renameNodeById(cmd: RenameNodeByIdCommandPayload): Promise<any> {
-    return this.repoService.renameNode(cmd.nodeId, cmd.newName)
+    return this.treeService.renameNode(cmd.nodeId, cmd.newName)
   }
 
   // 1. set the node's parent Id to the new id
   // 2. add the node to the new parent's children
   // 3. remove the node from the old parent's children
   private reparentNodesById(cmd: ReparentNodesByIdCommandPayload): Promise<any> {
-    return this.repoService.getNode(cmd.nodeId)
-      .then(node => this.repoService.reparentNodes([node], cmd.newParentNodeId, cmd.position))
+    return this.treeService.getNode(cmd.nodeId)
+      .then(node => this.treeService.reparentNodes([node], cmd.newParentNodeId, cmd.position))
   }
 
   private openNodeById(cmd: OpenNodeByIdCommandPayload): Promise<any> {
-    return this.repoService.openNode(cmd.nodeId)
+    return this.treeService.openNode(cmd.nodeId)
   }
 
   private closeNodeById(cmd: CloseNodeByIdCommandPayload): Promise<any> {
-    return this.repoService.closeNode(cmd.nodeId)
+    return this.treeService.closeNode(cmd.nodeId)
   }
 
 }

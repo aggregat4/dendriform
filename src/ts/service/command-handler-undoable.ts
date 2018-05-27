@@ -1,7 +1,7 @@
 import {
   Command,
   CommandBuilder,
-  TreeService,
+  CommandHandler,
 } from './service'
 import {
   State,
@@ -9,12 +9,12 @@ import {
   LoadedTree,
 } from '../domain/domain'
 
-export class UndoableTreeService implements TreeService {
+export class UndoableCommandHandler implements CommandHandler {
   readonly undoBuffer: Command[] = []
   // readonly redoBuffer: Array<Promise<Command>> = []
   private undoCommandPointer: number = -1
 
-  constructor(readonly treeService: TreeService) {}
+  constructor(readonly commandHandler: CommandHandler) {}
 
   popUndoCommand(): Command {
     // console.log(`about to pop undo command with pointer `, this.undoCommandPointer, ` in buffer `, this.undoBuffer)
@@ -37,23 +37,12 @@ export class UndoableTreeService implements TreeService {
     }
   }
 
-  loadTree(nodeId: string): Promise<LoadedTree> {
-    return this.treeService.loadTree(nodeId)
-  }
-
-  // Store actual Promises of commands in the UNDO and REDO buffers.
-  //    This allows us to immediately return and to have consistently ordered
-  //    UNDO and REDO buffers AND it allows us to nevertheless do things
-  //    asynchronously (like if pouchdb takes a long time to complete, we will
-  //    then defer waiting for that to the undo command handling)
-  exec(command: Command): Promise<any> {
-    // console.log(`executing command: ${JSON.stringify(command)}`)
-    const commandPromise = this.treeService.exec(command)
+  exec(command: Command): void {
+    this.commandHandler.exec(command)
     if (command.undoable) {
       const undoCommand = this.invert(command)
       this.addUndoCommand(undoCommand)
     }
-    return commandPromise
   }
 
   private invert(command: Command): Command {

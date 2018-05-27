@@ -10,10 +10,21 @@ import {
 } from '../domain/domain'
 import {Repository} from '../repository/repository'
 
-export class RepositoryService {
+export class TreeService {
   constructor(readonly repo: Repository) {}
 
-  loadTreeByRootId(rootId: string): Promise<LoadedTree> {
+  loadTree(nodeId: string): Promise<LoadedTree> {
+    return this.loadTreeByRootId(nodeId)
+      .then((tree) => {
+        if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
+          return this.initializeEmptyTree().then(() => this.loadTreeByRootId(nodeId))
+        } else {
+          return tree
+        }
+      })
+  }
+
+  private loadTreeByRootId(rootId: string): Promise<LoadedTree> {
     return this.repo.cdbLoadNode(rootId, false).then(root => {
       if (root) {
         return this.repo.cdbLoadTree(root)
@@ -23,7 +34,7 @@ export class RepositoryService {
     })
   }
 
-  initializeEmptyTree(): Promise<void> {
+  private initializeEmptyTree(): Promise<void> {
     return this.repo.cdbCreateNode('ROOT', 'ROOT', null)
       .then(() => this.repo.cdbCreateNode(generateUUID(), '', null))
       .then(child => this.addChildToParent(child._id, 'ROOT'))
