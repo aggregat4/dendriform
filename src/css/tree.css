@@ -61,6 +61,16 @@
 
 .node .nc {
   position: relative;
+  width: 100%;
+  /* We need a longer line to hover over to show the node controls, including the whitespace
+     to the left of the node so we add negative margin and fill it back up with padding so 
+     the element is wider. */
+  margin-left: -100px;
+  padding-left: 100px;
+}
+
+.node .nc:hover .toggle {
+  display: block;
 }
 
 .node a {
@@ -86,7 +96,7 @@
 }
 
 .node span.toggle {
-  display: block;
+  display: none;
   top: 0;
   position: absolute;
   margin-left: -3ch;
