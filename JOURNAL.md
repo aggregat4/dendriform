@@ -193,3 +193,15 @@ What's missing is that cursor position is not tracked after a redo event, need t
 Redo does not work correctly with splitting and merging nodes. this is due to the fact that we don't have an inverse command for unsplitting or unmerging a node yet. They are also not trivial to implement because they may entail reactivating deleted nodes?
 
 I fixed this by making sure that merging goes into a direction that is symmetrical with splitting: the latter causes a preceding sibling node to be created, in the case of mergin we order the source and the target so that the preceding sibling merges into its next sibling. This way the undo of the one action is the same as the other action.
+
+## 30.5.2018
+
+I feel the urge coming to write my own javascript DOM library, not sure whether to suppress or give in to it. The problem is that the undelete of a node means that at least the parent of that node should be reloaded so we can read that branch to the tree. This in turn means that reacting on the undelete command for the DOM means that we need to load that part of the tree, then trigger the necessary DOM updates.
+
+And there lies the rub: RE:DOM seems to assume that you have a handle on your TreeNode instances, and I don't, at least not for each individual node, and I also don't see it as sensible to reimplement the entire tree as a "proper" RE:DOM thing with nested lists and keys and maybe with that efficient updates.
+
+Either I do that, or I consider taking some of the basic concepts and write a library that doesn't have this "I encapsulate my components in their own classes and objects" approach, but we keep all the state in the DOM and have function that operate on that.
+
+So unimplemented in the domUndeleteNode in DomCommandHandler, and that one implies this whole thing.
+
+Maybe I need to prototype a proper RE:DOM component tree on a separate project with less baggage to see how it works.

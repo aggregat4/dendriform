@@ -2,7 +2,7 @@ import { el, setChildren } from 'redom'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode, MergeNameOrder } from '../domain/domain'
 // tslint:disable-next-line:max-line-length
-import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload } from '../service/service'
+import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
 import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
@@ -246,31 +246,38 @@ export class Tree {
           (getNameElement(nextNode) as HTMLElement).focus()
         }
       }
-    } else if (event.key === 'Backspace') {
-      if (!isTextSelected() &&
-          isCursorAtBeginning(event) &&
-          getNodeForNameElement(event.target as Element).previousElementSibling) {
-        event.preventDefault()
-        const targetNode = getNodeForNameElement(event.target as Element)
-        const sourceNode = targetNode.previousElementSibling
-        if (hasChildren(sourceNode)) {
-          return
+    } else if (event.key === 'Backspace' && event.shiftKey && event.ctrlKey) {
+      const eventNode = getNodeForNameElement(event.target as Element)
+      this.deleteNode(event.target as Element)
+    } else if (event.key === 'Backspace' && !event.shiftKey && !event.ctrlKey) {
+      if (!isTextSelected() && isCursorAtBeginning(event)) {
+        const eventNode = getNodeForNameElement(event.target as Element)
+        if (isEmpty(getNodeName(eventNode)) && !hasChildren(eventNode)) {
+          // this is a special casing for a normal backspace for convience:
+          // when a node is empty and has no children, we interpret backspace as a delete
+          this.deleteNode(event.target as Element)
+        } else if (getNodeForNameElement(event.target as Element).previousElementSibling) {
+          const targetNode = eventNode
+          const sourceNode = targetNode.previousElementSibling
+          if (hasChildren(sourceNode)) {
+            return
+          }
+          const sourceNodeId = getNodeId(sourceNode)
+          const sourceNodeName = getNodeName(sourceNode)
+          const targetNodeId = getNodeId(targetNode)
+          const targetNodeName = getNodeName(targetNode)
+          const command = new CommandBuilder(
+            new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName,
+                                             targetNodeId, targetNodeName, MergeNameOrder.SOURCE_TARGET))
+            .isUndoable()
+            .requiresRender()
+            .withBeforeFocusNodeId(targetNodeId)
+            .withBeforeFocusPos(0)
+            .withAfterFocusNodeId(targetNodeId)
+            .withAfterFocusPos(Math.max(0, sourceNodeName.length))
+            .build()
+          this.performCommand(command)
         }
-        const sourceNodeId = getNodeId(sourceNode)
-        const sourceNodeName = getNodeName(sourceNode)
-        const targetNodeId = getNodeId(targetNode)
-        const targetNodeName = getNodeName(targetNode)
-        const command = new CommandBuilder(
-          new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName,
-                                           targetNodeId, targetNodeName, MergeNameOrder.SOURCE_TARGET))
-          .isUndoable()
-          .requiresRender()
-          .withBeforeFocusNodeId(targetNodeId)
-          .withBeforeFocusPos(0)
-          .withAfterFocusNodeId(targetNodeId)
-          .withAfterFocusPos(Math.max(0, sourceNodeName.length))
-          .build()
-        this.performCommand(command)
       }
     } else if (event.key === 'Delete') {
       if (!isTextSelected() &&
@@ -351,6 +358,26 @@ export class Tree {
       // everything should be saved by now
       event.preventDefault()
     }
+  }
+
+  // TODO: currently we can delete anything, but we don't deal well with deleting the toplevel
+  // node, perhaps we should just prevent that? When you go to the root node you can delete all
+  // children anyway?
+  private deleteNode(node: Element): void {
+    const nodeId = getNodeId(node)
+    const builder = new CommandBuilder(new DeleteNodeByIdCommandPayload(nodeId))
+      .isUndoable()
+      .requiresRender()
+      .withBeforeFocusNodeId(nodeId)
+      .withBeforeFocusPos(getCursorPos())
+    const previousNode = findPreviousNode(node)
+    // when deleting a node we attempt to set focus afterwards to the previous node in the tree
+    // using the same algorithm for moving up and down
+    if (previousNode) {
+      builder.withAfterFocusNodeId(getNodeId(previousNode))
+        .withAfterFocusPos(getNodeName(previousNode).length)
+    }
+    this.performCommand(builder.build())
   }
 
   private moveNodeDown(nodeElement: Element): void {

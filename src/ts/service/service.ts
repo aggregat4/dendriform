@@ -180,3 +180,19 @@ export class CloseNodeByIdCommandPayload implements CommandPayload {
     return new OpenNodeByIdCommandPayload(this.nodeId)
   }
 }
+
+export class DeleteNodeByIdCommandPayload implements CommandPayload {
+  constructor(readonly nodeId: string) {}
+
+  inverse() {
+    return new UndeleteNodeByIdCommandPayload(this.nodeId)
+  }
+}
+
+export class UndeleteNodeByIdCommandPayload implements CommandPayload {
+  constructor(readonly nodeId: string) {}
+
+  inverse() {
+    return new DeleteNodeByIdCommandPayload(this.nodeId)
+  }
+}

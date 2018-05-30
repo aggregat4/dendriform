@@ -32,6 +32,8 @@ import {
   SplitNodeByIdCommandPayload,
   OpenNodeByIdCommandPayload,
   CloseNodeByIdCommandPayload,
+  DeleteNodeByIdCommandPayload,
+  UndeleteNodeByIdCommandPayload,
 } from '../service/service'
 import { TreeNode } from './node-component'
 import { setCursorPos } from '../util'
@@ -74,6 +76,14 @@ export class DomCommandHandler implements CommandHandler {
     } else if (command.payload instanceof CloseNodeByIdCommandPayload) {
       const closeCommand = command.payload as CloseNodeByIdCommandPayload
       this.domCloseNode(document.getElementById(closeCommand.nodeId))
+    } else if (command.payload instanceof DeleteNodeByIdCommandPayload) {
+      const deleteCommand = command.payload as DeleteNodeByIdCommandPayload
+      this.domDeleteNode(document.getElementById(deleteCommand.nodeId))
+    } else if (command.payload instanceof UndeleteNodeByIdCommandPayload) {
+      const undeleteCommand = command.payload as UndeleteNodeByIdCommandPayload
+      this.domUndeleteNode(document.getElementById(undeleteCommand.nodeId))
+    } else {
+      throw new Error(`Unknown Command for DomCommandHandler: ${typeof command.payload}}`)
     }
     if (command.afterFocusNodeId) {
       this.focus(command.afterFocusNodeId, command.afterFocusPos)
@@ -157,6 +167,14 @@ export class DomCommandHandler implements CommandHandler {
       node.classList.remove('open')
       node.classList.add('closed')
     }
+  }
+
+  domDeleteNode(node: Element): void {
+    node.remove()
+  }
+
+  domUndeleteNode(node: Element): void {
+    // TODO: this would basically mean to reload the parent node?
   }
 
 }

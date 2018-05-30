@@ -20,17 +20,11 @@ import {
   getNodeForNameElement,
   isNode,
 } from './tree-dom-util'
-import { DomCommandHandler } from './command-handler-dom'
 
 export class TreeNode {
-  private domCommandHandler = new DomCommandHandler()
-  private serviceCommandHandler
+  private first: boolean
+  private filter?: Filter
   private el
-  private anchorEl
-  private nameEl
-  private collapseEl
-  private ncEl
-  private childrenEl
   private nameHits: Highlight[]
   // TODO: future extension: allow descriptions to be searched
   // private descHits: FilterHits
@@ -43,27 +37,34 @@ export class TreeNode {
   // 4. if (filter and includedInFilter): render node and those children that are included
   // 5. if not filter: render node and all children
   constructor(treeNode: ResolvedRepositoryNode, first: boolean, filter?: Filter) {
+    this.first = first
+    this.filter = filter
+    const children = this.generateChildren(treeNode)
+    if (!filter || this.includedInFilter) {
+      this.generateDom(treeNode, first, children)
+    }
+  }
+
+  private generateChildren(treeNode: ResolvedRepositoryNode): TreeNode[] {
     // Process all the children
     let children = treeNode.children && treeNode.children.length > 0 ?
-      treeNode.children.map(c => new TreeNode(c, false, filter)) : []
-    if (filter) {
+      treeNode.children.map(c => new TreeNode(c, false, this.filter)) : []
+    if (this.filter) {
       // only include children that also are in the filter
       children = children.filter(c => c.isIncludedInFilter())
       // Check for own filterHits
       this.nameHits = []
-      let pos = 0 - filter.query.length
+      let pos = 0 - this.filter.query.length
       const lowerCaseName = treeNode.node.name.toLowerCase()
-      while ((pos = lowerCaseName.indexOf(filter.query, pos + filter.query.length)) > -1) {
-        this.nameHits.push({pos, length: filter.query.length})
+      while ((pos = lowerCaseName.indexOf(this.filter.query, pos + this.filter.query.length)) > -1) {
+        this.nameHits.push({pos, length: this.filter.query.length})
       }
       // When there are filtered children or we have a hit, then we should be included
       if (children.length > 0 || this.nameHits.length > 0) {
         this.includedInFilter = true
       }
     }
-    if (!filter || this.includedInFilter) {
-      this.generateDom(treeNode, first, children)
-    }
+    return children
   }
 
   // TODO: smaller class names to save bytes?
@@ -74,16 +75,19 @@ export class TreeNode {
         id: treeNode.node._id,
         class: this.genClass(treeNode, first),
       },
-      this.ncEl = el('div.nc',
-        this.anchorEl = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
-        this.nameEl = el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
-        this.collapseEl = el(`span.toggle`),
-        // (children && children.length > 0) ?
-        //   this.collapseEl = el(`span.toggle`) :
-        //   undefined,
-      ),
-      this.childrenEl = el('div.children', children),
+      this.generateChildrenDom(treeNode, children),
     )
+  }
+
+  private generateChildrenDom(treeNode: ResolvedRepositoryNode, children: TreeNode[]) {
+    return [
+      el('div.nc',
+        el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
+        el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
+        el(`span.toggle`),
+      ),
+      el('div.children', children),
+    ]
   }
 
   isIncludedInFilter(): boolean {
