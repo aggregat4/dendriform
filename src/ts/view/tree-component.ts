@@ -253,7 +253,7 @@ export class Tree {
         event.preventDefault()
         const targetNode = getNodeForNameElement(event.target as Element)
         const sourceNode = targetNode.previousElementSibling
-        if (hasChildren(targetNode)) {
+        if (hasChildren(sourceNode)) {
           return
         }
         const sourceNodeId = getNodeId(sourceNode)
@@ -279,7 +279,7 @@ export class Tree {
         event.preventDefault()
         const sourceNode = getNodeForNameElement(event.target as Element)
         const targetNode = sourceNode.nextElementSibling
-        if (hasChildren(targetNode)) {
+        if (hasChildren(sourceNode)) {
           return
         }
         const sourceNodeId = getNodeId(sourceNode)
