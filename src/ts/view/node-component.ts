@@ -77,9 +77,10 @@ export class TreeNode {
       this.ncEl = el('div.nc',
         this.anchorEl = el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
         this.nameEl = el('div.name', { contentEditable: true }, this.highlightName(treeNode.node.name)),
-        (children && children.length > 0) ?
-          this.collapseEl = el(`span.toggle`) :
-          undefined,
+        this.collapseEl = el(`span.toggle`),
+        // (children && children.length > 0) ?
+        //   this.collapseEl = el(`span.toggle`) :
+        //   undefined,
       ),
       this.childrenEl = el('div.children', children),
     )
