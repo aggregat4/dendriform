@@ -204,4 +204,8 @@ Either I do that, or I consider taking some of the basic concepts and write a li
 
 So unimplemented in the domUndeleteNode in DomCommandHandler, and that one implies this whole thing.
 
-Maybe I need to prototype a proper RE:DOM component tree on a separate project with less baggage to see how it works.
+Maybe I need to prototype a proper RE:DOM component tree on a separate project with less baggage to see how it works. Do this in JSFiddle.
+
+## 8.6.2018
+
+Implemented a [JSFiddle with an updating RE:DOM tree](http://jsfiddle.net/d1zwfbt6/35/) that seems to work fine. Will now try to port that pattern to the main project.
