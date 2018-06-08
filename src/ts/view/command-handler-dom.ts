@@ -6,6 +6,7 @@ import {
   createNewRepositoryNode,
   createNewResolvedRepositoryNode,
   MergeNameOrder,
+  filterNode,
 } from '../domain/domain'
 import {
   findLastChildNode,
@@ -40,7 +41,7 @@ import { setCursorPos } from '../util'
 
 export class DomCommandHandler implements CommandHandler {
 
-  exec(command: Command) {
+  exec(command: Command): Promise<any> {
     if (command.payload instanceof SplitNodeByIdCommandPayload) {
       const splitCommand = command.payload as SplitNodeByIdCommandPayload
       this.domSplitNode(
@@ -85,22 +86,7 @@ export class DomCommandHandler implements CommandHandler {
     } else {
       throw new Error(`Unknown Command for DomCommandHandler: ${typeof command.payload}}`)
     }
-    if (command.afterFocusNodeId) {
-      this.focus(command.afterFocusNodeId, command.afterFocusPos)
-    }
-  }
-
-  private focus(nodeId: string, charPos: number) {
-    const element = document.getElementById(nodeId)
-    // tslint:disable-next-line:no-console
-    // console.log(`focusing on node ${nodeId} at ${charPos}, exists?`, element)
-    if (element) {
-      const nameElement: HTMLElement = getNameElement(element) as HTMLElement
-      nameElement.focus()
-      if (charPos > -1) {
-        setCursorPos(nameElement, charPos)
-      }
-    }
+    return Promise.resolve()
   }
 
   domMergeNodes(sourceNode: Element, sourceNodeName: string,
@@ -129,7 +115,8 @@ export class DomCommandHandler implements CommandHandler {
                newNodeId: string): void {
     this.domRenameNode(node, originalNodeName)
     const newNode = createNewResolvedRepositoryNode(newNodeId, newNodeName, getNodeId(getParentNode(node)))
-    const newSibling = new TreeNode(newNode, false)
+    const newSibling = new TreeNode()
+    newSibling.update(filterNode(newNode))
     node.insertAdjacentElement('beforebegin', newSibling.getElement())
   }
 
@@ -174,7 +161,7 @@ export class DomCommandHandler implements CommandHandler {
   }
 
   domUndeleteNode(node: Element): void {
-    // TODO: this would basically mean to reload the parent node?
+    // nothing to do, the command triggers a rerender
   }
 
 }

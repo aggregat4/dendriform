@@ -1,10 +1,10 @@
 import { el, setChildren } from 'redom'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode, MergeNameOrder } from '../domain/domain'
+import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode, MergeNameOrder, filterNode, FilteredRepositoryNode} from '../domain/domain'
 // tslint:disable-next-line:max-line-length
 import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
-import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected } from '../util'
+import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected, setCursorPos } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
@@ -49,24 +49,21 @@ function selectionChangeHandler(event: Event): void {
 export class Tree {
   private domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
-  private el
-  private content
-  private breadcrumbs
-  private searchBox
+  private el: Element
+  private contentEl: Element
+  private breadcrumbsEl: Element
+  private content: TreeNode
   private searchField
   private searchButton
 
-  constructor(
-    readonly tree: LoadedTree,
-    readonly commandHandler: UndoableCommandHandler,
-    readonly treeService: TreeService) {
-    if (tree.tree) {
-      this.currentRootNodeId = tree.tree.node._id
-    }
+  constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService) {
     this.el = el('div.tree',
-      this.searchBox = this.generateSearchBox(),
-      this.breadcrumbs = this.generateBreadcrumbs(tree),
-      this.content = this.generateTreeNodes(tree))
+      el('div.searchbox',
+      /* Removing the search button because we don't really need it. Right? Accesibility?
+        this.searchButton = el('button', 'Filter')) */
+      this.searchField = el('input', {type: 'search', placeholder: 'Filter'})),
+      this.breadcrumbsEl = el('div.breadcrumbs'),
+      this.contentEl = el('div.content', el('div.error', `Loading tree... GOOGGGGG`)))
     // We need to bind the event handlers to the class otherwise the scope with the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
@@ -82,48 +79,35 @@ export class Tree {
   }
 
   update(tree: LoadedTree) {
-    if (tree.tree) {
+    setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
+    if (tree.status.state === State.ERROR) {
+      setChildren(this.contentEl,
+        el('div.error', `Can not load tree from backing store: ${tree.status.msg}`))
+    } else if (tree.status.state === State.LOADING) {
+      setChildren(this.contentEl, el('div.error', `Loading tree...`))
+    } else if (tree.status.state === State.LOADED) {
       this.currentRootNodeId = tree.tree.node._id
+      if (!this.content) {
+        this.content = new TreeNode(true)
+      }
+      setChildren(this.contentEl, this.content)
+      this.content.update(this.getFilteredTree(tree))
     }
-    setChildren(this.el,
-      // retain the searchbox as it was if we update and we already had one
-      this.searchBox = this.searchBox || this.generateSearchBox(),
-      this.breadcrumbs = this.generateBreadcrumbs(tree),
-      this.content = this.generateTreeNodes(tree))
   }
 
-  private generateSearchBox() {
-    return el('div.searchbox',
-      this.searchField = el('input', {type: 'search', placeholder: 'Filter'}))
-    /* Removing the search button because we don't really need it. Right? Accesibility?
-      this.searchButton = el('button', 'Filter')) */
-  }
-
-  private generateBreadcrumbs(tree: LoadedTree) {
+  private generateBreadcrumbs(tree: LoadedTree): Element[] {
     if (!tree.parents || tree.tree.node._id === 'ROOT') {
-      return
+      return []
     } else {
       // reverse because breadcrumbs need to start at ROOT and go down
       const fullParents = tree.parents.concat([createNewRepositoryNode('ROOT', 'ROOT')]).reverse()
-      return el('div.breadcrumbs',
-        fullParents.map(repoNode => el('span', el('a', { href: '#node=' + repoNode._id }, repoNode.name))))
+      return fullParents.map(repoNode => el('span', el('a', { href: '#node=' + repoNode._id }, repoNode.name)))
     }
   }
 
-  private generateTreeNodes(tree: LoadedTree) {
-    if (tree.status.state === State.ERROR) {
-      return el('div.error', `Can not load tree from backing store: ${tree.status.msg}`)
-    } else if (tree.status.state === State.LOADING) {
-      return el('div.error', `Loading tree...`)
-    } else if (tree.status.state === State.LOADED) {
-      const doFilter = !isEmpty(this.searchField.value)
-      // tslint:disable-next-line:no-console
-      console.log(`doFilter? `, doFilter)
-      return new TreeNode(
-        tree.tree,
-        true,
-        doFilter ? {query: this.searchField.value} : undefined)
-    }
+  private getFilteredTree(tree: LoadedTree): FilteredRepositoryNode {
+    const doFilter = !isEmpty(this.searchField.value)
+    return filterNode(tree.tree, doFilter ? {query: this.searchField.value} : undefined)
   }
 
   private onToggle(event: Event): void {
@@ -147,7 +131,11 @@ export class Tree {
   }
 
   private onQueryChange(event: Event) {
-    this.treeService.loadTree(this.currentRootNodeId).then(tree => this.update(tree))
+    this.rerenderTree()
+  }
+
+  private rerenderTree(): Promise<any> {
+    return this.treeService.loadTree(this.currentRootNodeId).then(tree => this.update(tree))
   }
 
   private onInput(event: Event) {
@@ -201,7 +189,6 @@ export class Tree {
         new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart,
                                         afterSplitNamePart, MergeNameOrder.SOURCE_TARGET))
           .isUndoable()
-          .requiresRender()
           // The before position and node is used for the after position and node in undo
           .withBeforeFocusNodeId(nodeId)
           .withBeforeFocusPos(getCursorPos())
@@ -270,7 +257,6 @@ export class Tree {
             new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName,
                                              targetNodeId, targetNodeName, MergeNameOrder.SOURCE_TARGET))
             .isUndoable()
-            .requiresRender()
             .withBeforeFocusNodeId(targetNodeId)
             .withBeforeFocusPos(0)
             .withAfterFocusNodeId(targetNodeId)
@@ -297,7 +283,6 @@ export class Tree {
           new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName,
                                            targetNodeId, targetNodeName, MergeNameOrder.SOURCE_TARGET))
           .isUndoable()
-          .requiresRender()
           .withBeforeFocusNodeId(sourceNodeId)
           .withBeforeFocusPos(getCursorPos())
           .withAfterFocusNodeId(targetNodeId)
@@ -367,7 +352,6 @@ export class Tree {
     const nodeId = getNodeId(node)
     const builder = new CommandBuilder(new DeleteNodeByIdCommandPayload(nodeId))
       .isUndoable()
-      .requiresRender()
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(getCursorPos())
     const previousNode = findPreviousNode(node)
@@ -435,7 +419,6 @@ export class Tree {
     }
     const command = new CommandBuilder(
       new ReparentNodesByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
-      .requiresRender()
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(cursorPos)
       .withAfterFocusNodeId(nodeId)
@@ -466,7 +449,32 @@ export class Tree {
   private performCommand(command: Command): void {
     if (command) {
       this.domCommandHandler.exec(command)
-      this.commandHandler.exec(command)
+      const commandPromise = this.commandHandler.exec(command)
+      if (command.renderRequired) {
+        commandPromise.then(this.rerenderTree).then(() => {
+          if (command.afterFocusNodeId) {
+            this.focus(command.afterFocusNodeId, command.afterFocusPos)
+          }
+        })
+      } else  {
+        if (command.afterFocusNodeId) {
+          this.focus(command.afterFocusNodeId, command.afterFocusPos)
+        }
+      }
     }
   }
+
+  private focus(nodeId: string, charPos: number) {
+    const element = document.getElementById(nodeId)
+    // tslint:disable-next-line:no-console
+    // console.log(`focusing on node ${nodeId} at ${charPos}, exists?`, element)
+    if (element) {
+      const nameElement: HTMLElement = getNameElement(element) as HTMLElement
+      nameElement.focus()
+      if (charPos > -1) {
+        setCursorPos(nameElement, charPos)
+      }
+    }
+  }
+
 }

@@ -37,12 +37,13 @@ export class UndoableCommandHandler implements CommandHandler {
     }
   }
 
-  exec(command: Command): void {
-    this.commandHandler.exec(command)
+  exec(command: Command): Promise<any> {
+    const commandPromise = this.commandHandler.exec(command)
     if (command.undoable) {
       const undoCommand = this.invert(command)
       this.addUndoCommand(undoCommand)
     }
+    return commandPromise
   }
 
   private invert(command: Command): Command {

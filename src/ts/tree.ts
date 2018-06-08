@@ -9,14 +9,13 @@ import {Tree} from './view/tree-component'
 const treeService = new TreeService(new PouchDbRepository())
 const commandHandler = new UndoableCommandHandler(new TreeServiceCommandHandler(treeService))
 
-const loadingTree = {status: {state: State.LOADING}}
-const treeComponent = new Tree(loadingTree, commandHandler, treeService)
+const treeComponent = new Tree(commandHandler, treeService)
 
 export function updateTree(nodeId: string) {
   treeService.loadTree(nodeId).then(tree => treeComponent.update(tree))
 }
 
-export function initTree(el: Element, nodeId: string): void {
+export function initTree(el: Element): void {
   document.addEventListener('DOMContentLoaded', () => {
     mount(el, treeComponent)
   })

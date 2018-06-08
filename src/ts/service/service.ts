@@ -6,17 +6,8 @@ import {
   MergeNameOrder,
 } from '../domain/domain'
 
-export interface Filter {
-  query: string
-}
-
-export interface Highlight {
-  pos: number,
-  length: number
-}
-
 export interface CommandHandler {
-  exec(command: Command): void
+  exec(command: Command): Promise<any>
 }
 
 interface CommandPayload {
