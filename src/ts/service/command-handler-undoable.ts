@@ -47,7 +47,7 @@ export class UndoableCommandHandler implements CommandHandler {
   }
 
   private invert(command: Command): Command {
-    const inverted = new CommandBuilder(command.payload.inverse()).requiresRender().build()
+    const inverted = new CommandBuilder(command.payload.inverse()).build()
     if (command.beforeFocusNodeId) {
       inverted.afterFocusNodeId = command.beforeFocusNodeId
       inverted.afterFocusPos = command.beforeFocusPos

@@ -12,12 +12,12 @@ export interface CommandHandler {
 
 interface CommandPayload {
   inverse(): CommandPayload,
+  requiresRender(): boolean
 }
 
 export class Command {
   constructor(
     readonly payload: CommandPayload,
-    readonly renderRequired: boolean = false,
     public beforeFocusNodeId: string = null,
     public beforeFocusPos: number = -1,
     public afterFocusNodeId: string = null,
@@ -28,7 +28,6 @@ export class Command {
 
 export class CommandBuilder {
   private payload: CommandPayload
-  private renderRequired: boolean = false
   private beforeFocusNodeId: string = null
   private beforeFocusPos: number = -1
   private afterFocusNodeId: string = null
@@ -37,11 +36,6 @@ export class CommandBuilder {
 
   constructor(payload: CommandPayload) {
     this.payload = payload
-  }
-
-  requiresRender(): CommandBuilder {
-    this.renderRequired = true
-    return this
   }
 
   withBeforeFocusNodeId(beforeFocusNodeId: string): CommandBuilder {
@@ -72,7 +66,6 @@ export class CommandBuilder {
   build(): Command {
     return new Command(
       this.payload,
-      this.renderRequired,
       this.beforeFocusNodeId,
       this.beforeFocusPos,
       this.afterFocusNodeId,
@@ -101,6 +94,8 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
       this.mergeNameOrder,
     )
   }
+
+  requiresRender() { return false }
 }
 
 export class MergeNodesByIdCommandPayload implements CommandPayload {
@@ -121,6 +116,8 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
       this.mergeNameOrder,
     )
   }
+
+  requiresRender() { return false }
 }
 
 export class RenameNodeByIdCommandPayload implements CommandPayload {
@@ -133,6 +130,8 @@ export class RenameNodeByIdCommandPayload implements CommandPayload {
   inverse() {
     return new RenameNodeByIdCommandPayload(this.nodeId, this.newName, this.oldName)
   }
+
+  requiresRender() { return false }
 }
 
 export class ReparentNodesByIdCommandPayload implements CommandPayload {
@@ -154,6 +153,7 @@ export class ReparentNodesByIdCommandPayload implements CommandPayload {
     )
   }
 
+  requiresRender() { return false }
 }
 
 export class OpenNodeByIdCommandPayload implements CommandPayload {
@@ -162,6 +162,8 @@ export class OpenNodeByIdCommandPayload implements CommandPayload {
   inverse() {
     return new CloseNodeByIdCommandPayload(this.nodeId)
   }
+
+  requiresRender() { return false }
 }
 
 export class CloseNodeByIdCommandPayload implements CommandPayload {
@@ -170,6 +172,8 @@ export class CloseNodeByIdCommandPayload implements CommandPayload {
   inverse() {
     return new OpenNodeByIdCommandPayload(this.nodeId)
   }
+
+  requiresRender() { return false }
 }
 
 export class DeleteNodeByIdCommandPayload implements CommandPayload {
@@ -178,6 +182,8 @@ export class DeleteNodeByIdCommandPayload implements CommandPayload {
   inverse() {
     return new UndeleteNodeByIdCommandPayload(this.nodeId)
   }
+
+  requiresRender() { return false }
 }
 
 export class UndeleteNodeByIdCommandPayload implements CommandPayload {
@@ -186,4 +192,6 @@ export class UndeleteNodeByIdCommandPayload implements CommandPayload {
   inverse() {
     return new DeleteNodeByIdCommandPayload(this.nodeId)
   }
+
+  requiresRender() { return true }
 }

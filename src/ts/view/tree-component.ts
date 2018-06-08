@@ -234,21 +234,24 @@ export class Tree {
         }
       }
     } else if (event.key === 'Backspace' && event.shiftKey && event.ctrlKey) {
+      event.preventDefault()
       const eventNode = getNodeForNameElement(event.target as Element)
-      this.deleteNode(event.target as Element)
+      this.deleteNode(eventNode)
     } else if (event.key === 'Backspace' && !event.shiftKey && !event.ctrlKey) {
       if (!isTextSelected() && isCursorAtBeginning(event)) {
         const eventNode = getNodeForNameElement(event.target as Element)
         if (isEmpty(getNodeName(eventNode)) && !hasChildren(eventNode)) {
-          // this is a special casing for a normal backspace for convience:
-          // when a node is empty and has no children, we interpret backspace as a delete
-          this.deleteNode(event.target as Element)
+          // this is a special case for convience: when a node is empty and has no
+          // children, we interpret backspace as deleting the complete node
+          event.preventDefault()
+          this.deleteNode(eventNode)
         } else if (getNodeForNameElement(event.target as Element).previousElementSibling) {
           const targetNode = eventNode
           const sourceNode = targetNode.previousElementSibling
           if (hasChildren(sourceNode)) {
             return
           }
+          event.preventDefault()
           const sourceNodeId = getNodeId(sourceNode)
           const sourceNodeName = getNodeName(sourceNode)
           const targetNodeId = getNodeId(targetNode)
@@ -358,7 +361,8 @@ export class Tree {
     // when deleting a node we attempt to set focus afterwards to the previous node in the tree
     // using the same algorithm for moving up and down
     if (previousNode) {
-      builder.withAfterFocusNodeId(getNodeId(previousNode))
+      builder
+        .withAfterFocusNodeId(getNodeId(previousNode))
         .withAfterFocusPos(getNodeName(previousNode).length)
     }
     this.performCommand(builder.build())
@@ -450,8 +454,12 @@ export class Tree {
     if (command) {
       this.domCommandHandler.exec(command)
       const commandPromise = this.commandHandler.exec(command)
-      if (command.renderRequired) {
-        commandPromise.then(this.rerenderTree).then(() => {
+      // If a command requires a rerender this means we need to reload the tree
+      // and then let Redom efficiently update all the nodes, however if we need
+      // to focus afterwards, we need to be careful to do this after having loaded
+      // the tree
+      if (command.payload.requiresRender()) {
+        commandPromise.then(this.rerenderTree.bind(this)).then(() => {
           if (command.afterFocusNodeId) {
             this.focus(command.afterFocusNodeId, command.afterFocusPos)
           }
