@@ -209,3 +209,7 @@ Maybe I need to prototype a proper RE:DOM component tree on a separate project w
 ## 8.6.2018
 
 Implemented a [JSFiddle with an updating RE:DOM tree](http://jsfiddle.net/d1zwfbt6/35/) that seems to work fine. Will now try to port that pattern to the main project.
+
+Refactored the rendering code for TreeNode and Tree to be more canonical RE:DOM and enable the possibilty to update the tree efficiently. I think I have the philosophy of the library now. An additional advantage is that the rendering code only does rendering, it looks much cleaner. Filtering has moved into domain, and is triggered by the places that actually trigger the update of the component.
+
+Also reintroduced Promises as return values from the CommandHandlers because we have our first case of having to rerender the entire tree. The Undelete command requires us to reload and then rerender the tree. In order to the focus position to be correct after this operation, we need to chain the focus handling after the promiseof the backend update resolves.
