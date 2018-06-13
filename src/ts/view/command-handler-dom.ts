@@ -20,6 +20,7 @@ import {
   getChildrenElementOrCreate,
   getNameElement,
   getParentNode,
+  getNodeId,
   hasChildren } from './tree-dom-util'
 
 export class DomCommandHandler implements CommandHandler {
