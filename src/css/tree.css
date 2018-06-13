@@ -147,6 +147,29 @@
   background-color: rgb(243, 235, 214); /* #f5f5aa; */
 }
 
+.node .note {
+  font-size: 80%;
+  color: #555;
+  /* pre-wrap makes whitespace show up at the beginning and end! required for merging/splitting of nodes */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  /* leaves space for the bullet since that is positioned absolute */
+  margin-left: calc(1ch + 18px); /* bullet width + the padding */
+  /* This is an attempt to make this note be "one line" high when not editing,
+     it tries to mimic the set line-height */
+  height: 1.4em;
+  overflow-y: hidden;
+}
+
+.node .note.editing {
+  height: auto;
+  overflow-y: auto;
+}
+
+.node .note:empty {
+  display: none;
+}
+
 .node .children {
   margin-left: 0px;
 }

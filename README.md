@@ -28,6 +28,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Implement export in some standard format
 1. Implement multi-select and delete and move operations (at least with keyboard)
+1. auto link urls in names and notes
 1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, make it easier to implement platform specific key combos, etc
 1. Try to get it to work with a real couchdb backend and see if sync actually works (2 clients)
 1. Check compatibility with Firefox

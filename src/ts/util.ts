@@ -25,10 +25,53 @@ export function debounce(f: (...args: any[]) => void, wait: number, immediate?: 
 export function getCursorPos(): number {
   const selection = window.getSelection()
   if (selection.rangeCount) {
-    const selectionRange = selection.getRangeAt(0)
-    return selectionRange.endOffset
+    return selection.getRangeAt(0).endOffset
   } else {
     return -1
+  }
+}
+
+// This function tries to determine whether the caret is at the actual beginning
+// of a contenteditable field. This is non trivial since the contenteditable can contain
+// multiple lines and we need to find the line boundary first
+export function isCursorAtContentEditableBeginning(outerElementClass: string): boolean {
+  const selection = window.getSelection()
+  if (selection.rangeCount && selection.focusNode) {
+    const focusNode = selection.focusNode
+    if ((focusNode as Element).classList && (focusNode as Element).classList.contains(outerElementClass)) {
+      return false // we are apparently already in the parent element
+    }
+    if (isCursorAtContentEditableFirstLine(focusNode as Element, outerElementClass)) {
+      return getCursorPos() === 0
+    }
+  }
+  return false
+}
+
+function isCursorAtContentEditableFirstLine(focusNode: Element, outerElementClass: string): boolean {
+  if (focusNode.nodeType === Node.TEXT_NODE && focusNode.parentElement.classList.contains(outerElementClass)) {
+    return true
+  } else {
+    // 1. find the first parent whose parent is the outerElementClass
+    // 2. if that parent has previoussiblings then we are not at the beginning
+    let lineNodeCandidate = focusNode
+    while (lineNodeCandidate.parentElement && !lineNodeCandidate.parentElement.classList.contains(outerElementClass)) {
+      lineNodeCandidate = lineNodeCandidate.parentElement
+    }
+    if (lineNodeCandidate.parentElement) {
+      // It is imperative that we check previousSibling instead of previousElementSibling
+      // since a contentEditable can have a textNode as the first element followed
+      // by a div containing a text node (generated with a newline). This means that
+      // the previous sibling of the second line is NOT an Element but a TextNode
+      if (lineNodeCandidate.previousSibling) {
+        return false
+      } else {
+        return true // our focusNode is apparently on the first line
+      }
+    } else {
+      throw new Error(`Can not determine whether we are at the beginning of a contenteditable ` +
+                      `since the provided node is not inside another node with the provided outerElementclass`)
+    }
   }
 }
 

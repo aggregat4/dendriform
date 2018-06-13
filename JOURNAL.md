@@ -213,3 +213,9 @@ Implemented a [JSFiddle with an updating RE:DOM tree](http://jsfiddle.net/d1zwfb
 Refactored the rendering code for TreeNode and Tree to be more canonical RE:DOM and enable the possibilty to update the tree efficiently. I think I have the philosophy of the library now. An additional advantage is that the rendering code only does rendering, it looks much cleaner. Filtering has moved into domain, and is triggered by the places that actually trigger the update of the component.
 
 Also reintroduced Promises as return values from the CommandHandlers because we have our first case of having to rerender the entire tree. The Undelete command requires us to reload and then rerender the tree. In order to the focus position to be correct after this operation, we need to chain the focus handling after the promise of the backend update resolves.
+
+## 13.6.2018
+
+Have implemented the rendering and editing code for the note content of a node. The trickiest bit is dealing with the contenteditable and determining where we are inside it. This will be "intersting" once we add some markups and link highlighting and such.
+
+Not done yet is the persistence of the changes (triggering a command).

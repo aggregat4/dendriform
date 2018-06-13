@@ -1,10 +1,10 @@
-import { el, setChildren } from 'redom'
+import { el, setChildren, setAttr, setStyle } from 'redom'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode, MergeNameOrder, filterNode, FilteredRepositoryNode} from '../domain/domain'
 // tslint:disable-next-line:max-line-length
 import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
-import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected, setCursorPos } from '../util'
+import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected, setCursorPos, isCursorAtContentEditableBeginning } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
@@ -59,11 +59,11 @@ export class Tree {
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService) {
     this.el = el('div.tree',
       el('div.searchbox',
-      /* Removing the search button because we don't really need it. Right? Accesibility?
-        this.searchButton = el('button', 'Filter')) */
-      this.searchField = el('input', {type: 'search', placeholder: 'Filter'})),
+        /* Removing the search button because we don't really need it. Right? Accesibility?
+          this.searchButton = el('button', 'Filter')) */
+        this.searchField = el('input', {type: 'search', placeholder: 'Filter'})),
       this.breadcrumbsEl = el('div.breadcrumbs'),
-      this.contentEl = el('div.content', el('div.error', `Loading tree... GOOGGGGG`)))
+      this.contentEl = el('div.content', el('div.error', `Loading tree...`)))
     // We need to bind the event handlers to the class otherwise the scope with the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
@@ -174,7 +174,7 @@ export class Tree {
     if (!isNameNode(event.target as Element)) {
       return
     }
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       const targetNode = getNodeForNameElement((event.target as Element))
       const nodeId = getNodeId(targetNode)
@@ -196,6 +196,50 @@ export class Tree {
           .withAfterFocusPos(0)
           .build()
       this.performCommand(command)
+    } else if (event.key === 'Enter' && event.shiftKey) { // trigger note editing
+      event.preventDefault()
+      const noteEl = (event.target as Element).nextElementSibling.nextElementSibling as HTMLElement
+      Tree.startEditingNote(noteEl)
+    }
+  }
+
+  // install event handler to listen for escape (or backspace in the beginning when empty,
+  //   or arrow up in beginning, etc)
+  // TODO: I would like to have this code on the node-component but then I would need to put the
+  // event handlers there and I prefer having them globally... what to do?
+  private static startEditingNote(noteEl: HTMLElement): void {
+    // hard assumption that we have two siblings and the last one is the note element
+    setAttr(noteEl, { contentEditable: true, class: 'note editing' })
+    setStyle(noteEl, { display: 'block' })
+    noteEl.addEventListener('input', Tree.onNoteInput)
+    noteEl.addEventListener('keydown', Tree.onNoteKeydown)
+    noteEl.focus()
+  }
+
+  private static stopEditingNote(noteEl: HTMLElement): void {
+    noteEl.removeEventListener('input', Tree.onNoteInput)
+    noteEl.removeEventListener('keydown', Tree.onNoteKeydown)
+    setAttr(noteEl, { contentEditable: false, class: 'note' })
+    noteEl.style.display = null
+    const nameEl = noteEl.previousElementSibling.previousElementSibling as HTMLElement
+    nameEl.focus()
+  }
+
+  private static onNoteInput(event: KeyboardEvent): void {
+    if (// apparently we can get some fancy newfangled input events we may want to ignore
+        // see https://www.w3.org/TR/input-events-1/
+        (event as any).inputType === 'historyUndo' ||
+        (event as any).inputType === 'historyRedo') {
+      return
+    }
+    // TODO: trigger noteUpdate command
+  }
+
+  private static onNoteKeydown(event: KeyboardEvent): void {
+    if ((event.key === 'Escape') ||
+        (event.key === 'ArrowUp' && isCursorAtContentEditableBeginning('note'))) {
+      event.preventDefault()
+      Tree.stopEditingNote(event.target as HTMLElement)
     }
   }
 

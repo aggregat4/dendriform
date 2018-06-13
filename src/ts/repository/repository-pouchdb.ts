@@ -14,7 +14,6 @@ export class PouchDbRepository implements Repository {
     }
     return this.outlineDb.post(node)
       .then(response => {
-        // console.log(`new node created with id ${response.id} and payload '${JSON.stringify(response)}'`)
         return {
           _id: response.id,
           _rev: response.rev,

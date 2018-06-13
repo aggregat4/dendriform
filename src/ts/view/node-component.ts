@@ -55,7 +55,8 @@ export class TreeNode {
         // Only attempt to mark up search hits when we are included in the filter
         // and we actually have any hits ourselves (could be only our children have hits)
         treeNode.filterApplied ? this.highlight(treeNode.node.name, treeNode.nameHits) : [text(treeNode.node.name)]),
-      el('span.toggle'))
+      el('span.toggle'),
+      el('div.note', treeNode.node.content))
     this.childList.update(treeNode.children.filter(c => c.isIncluded()))
   }
 
