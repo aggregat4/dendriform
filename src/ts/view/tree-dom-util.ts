@@ -85,8 +85,9 @@ export function findPreviousNode(node: Element): Element {
 }
 
 // Given a div.node it finds the LAST and deepest child (depth first) of that node, or the node itself
+// It will not recurse into child nodes when the node itself is closed
 export function findLastChildNode(node: Element): Element {
-  if (hasChildren(node)) {
+  if (hasChildren(node) && !isNodeClosed(node)) {
     const childrenNode: Element = getChildrenElement(node)
     return findLastChildNode(childrenNode.children[childrenNode.children.length - 1])
   } else {
@@ -96,7 +97,7 @@ export function findLastChildNode(node: Element): Element {
 
 export function findNextNode(node: Element): Element {
   // TODO: make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
-  if (hasChildren(node)) {
+  if (hasChildren(node) && !isNodeClosed(node)) {
     return getChildrenElement(node).children[0]
   } else if (node.nextElementSibling) {
     return node.nextElementSibling

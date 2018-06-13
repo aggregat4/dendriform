@@ -1,43 +1,26 @@
 import {
-  LoadedTree,
-  RelativeLinearPosition,
-  RelativeNodePosition,
-  State,
-  createNewRepositoryNode,
-  createNewResolvedRepositoryNode,
   MergeNameOrder,
-  filterNode,
-} from '../domain/domain'
+  RelativeLinearPosition,
+  createNewResolvedRepositoryNode,
+  filterNode } from '../domain/domain'
 import {
-  findLastChildNode,
-  findNextNode,
-  findPreviousNode,
-  getNodeId,
-  getNodeName,
-  getParentNode,
-  hasChildren,
-  hasParentNode,
-  isNameNode,
-  isNode,
-  getNameElement,
-  getNodeForNameElement,
-  getChildrenElementOrCreate,
-  getChildrenElement} from './tree-dom-util'
-import {
+  CloseNodeByIdCommandPayload,
   Command,
-  CommandBuilder,
   CommandHandler,
+  DeleteNodeByIdCommandPayload,
   MergeNodesByIdCommandPayload,
+  OpenNodeByIdCommandPayload,
   RenameNodeByIdCommandPayload,
   ReparentNodesByIdCommandPayload,
   SplitNodeByIdCommandPayload,
-  OpenNodeByIdCommandPayload,
-  CloseNodeByIdCommandPayload,
-  DeleteNodeByIdCommandPayload,
-  UndeleteNodeByIdCommandPayload,
-} from '../service/service'
+  UndeleteNodeByIdCommandPayload } from '../service/service'
 import { TreeNode } from './node-component'
-import { setCursorPos } from '../util'
+import {
+  getChildrenElement,
+  getChildrenElementOrCreate,
+  getNameElement,
+  getParentNode,
+  hasChildren } from './tree-dom-util'
 
 export class DomCommandHandler implements CommandHandler {
 
@@ -161,7 +144,7 @@ export class DomCommandHandler implements CommandHandler {
   }
 
   domUndeleteNode(node: Element): void {
-    // nothing to do, the command triggers a rerender
+    // nothing to do, the command should trigger a rerender
   }
 
 }
