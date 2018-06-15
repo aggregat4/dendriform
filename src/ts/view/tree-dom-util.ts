@@ -25,6 +25,10 @@ export function isToggleElement(element: Element): boolean {
   return element.classList.contains('toggle')
 }
 
+export function isNoteElement(element: Element): boolean {
+  return element.classList.contains('note')
+}
+
 export function isNodeClosed(element: Element): boolean {
   return element.classList.contains('closed')
 }

@@ -22,6 +22,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. BUG: pasting in contenteditable note div retains all the original formatting
 1. Implement node descriptions (in render, search, etc)
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Implement export in some standard format

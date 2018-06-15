@@ -8,7 +8,7 @@ import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBefore
 import { DomCommandHandler } from './command-handler-dom'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed } from './tree-dom-util'
+import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement } from './tree-dom-util'
 import { UndoableCommandHandler } from '../service/command-handler-undoable'
 import { TreeService } from '../service/tree-service'
 
@@ -72,7 +72,7 @@ export class Tree {
     this.el.addEventListener('input', this.onInput.bind(this))
     this.el.addEventListener('keypress', this.onKeypress.bind(this))
     this.el.addEventListener('keydown', this.onKeydown.bind(this))
-    this.el.addEventListener('click', this.onToggle.bind(this))
+    this.el.addEventListener('click', this.onClick.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 250))
     // NOTE: we had this trigger on document but that seemed to cause the event to be called twice!?
     this.el.addEventListener('keydown', this.treeKeyDownHandler.bind(this))
@@ -110,23 +110,26 @@ export class Tree {
     return filterNode(tree.tree, doFilter ? {query: this.searchField.value} : undefined)
   }
 
-  private onToggle(event: Event): void {
-    if (!isToggleElement(event.target as Element)) {
-      return
-    }
-    // NOTE: we can use the getNodeForNameElement function even though this is the
-    // collapseElement because they are siblings
-    const node = getNodeForNameElement(event.target as Element)
-    if (isNodeClosed(node)) {
-      const command = new CommandBuilder(new OpenNodeByIdCommandPayload(getNodeId(node)))
-        .isUndoable()
-        .build()
-      this.performCommand(command)
-    } else {
-      const command = new CommandBuilder(new CloseNodeByIdCommandPayload(getNodeId(node)))
-        .isUndoable()
-        .build()
-      this.performCommand(command)
+  private onClick(event: Event): void {
+    if (isToggleElement(event.target as Element)) {
+      event.preventDefault()
+      // NOTE: we can use the getNodeForNameElement function even though this is the
+      // collapseElement because they are siblings
+      const node = getNodeForNameElement(event.target as Element)
+      if (isNodeClosed(node)) {
+        const command = new CommandBuilder(new OpenNodeByIdCommandPayload(getNodeId(node)))
+          .isUndoable()
+          .build()
+        this.performCommand(command)
+      } else {
+        const command = new CommandBuilder(new CloseNodeByIdCommandPayload(getNodeId(node)))
+          .isUndoable()
+          .build()
+        this.performCommand(command)
+      }
+    } else if (isNoteElement(event.target as Element)) {
+      event.preventDefault()
+      Tree.startEditingNote(event.target as HTMLElement)
     }
   }
 
@@ -213,16 +216,22 @@ export class Tree {
     setStyle(noteEl, { display: 'block' })
     noteEl.addEventListener('input', Tree.onNoteInput)
     noteEl.addEventListener('keydown', Tree.onNoteKeydown)
+    noteEl.addEventListener('paste', Tree.onNotePaste)
+    noteEl.addEventListener('blur', Tree.onNoteBlur)
     noteEl.focus()
   }
 
-  private static stopEditingNote(noteEl: HTMLElement): void {
+  private static stopEditingNote(noteEl: HTMLElement, refocus: boolean): void {
+    noteEl.removeEventListener('paste', Tree.onNotePaste)
     noteEl.removeEventListener('input', Tree.onNoteInput)
     noteEl.removeEventListener('keydown', Tree.onNoteKeydown)
+    noteEl.removeEventListener('blur', Tree.onNoteBlur)
     setAttr(noteEl, { contentEditable: false, class: 'note' })
     noteEl.style.display = null
-    const nameEl = noteEl.previousElementSibling.previousElementSibling as HTMLElement
-    nameEl.focus()
+    if (refocus) {
+      const nameEl = noteEl.previousElementSibling.previousElementSibling as HTMLElement
+      nameEl.focus()
+    }
   }
 
   private static onNoteInput(event: KeyboardEvent): void {
@@ -239,8 +248,19 @@ export class Tree {
     if ((event.key === 'Escape') ||
         (event.key === 'ArrowUp' && isCursorAtContentEditableBeginning('note'))) {
       event.preventDefault()
-      Tree.stopEditingNote(event.target as HTMLElement)
+      Tree.stopEditingNote(event.target as HTMLElement, true)
     }
+  }
+
+  private static onNoteBlur(event: FocusEvent): void {
+    event.preventDefault()
+    Tree.stopEditingNote(event.target as HTMLElement, false)
+  }
+
+  private static onNotePaste(event: ClipboardEvent): void {
+    event.preventDefault()
+    const text = event.clipboardData.getData('text/plain')
+    document.execCommand('insertHTML', false, text)
   }
 
   private onKeydown(event: KeyboardEvent): void {
