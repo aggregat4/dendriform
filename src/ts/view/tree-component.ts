@@ -8,28 +8,24 @@ import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBefore
 import { DomCommandHandler } from './command-handler-dom'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement } from './tree-dom-util'
+import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement, getNodeNote } from './tree-dom-util'
 import { UndoableCommandHandler } from '../service/command-handler-undoable'
 import { TreeService } from '../service/tree-service'
 
-interface TransientState {
-  focusNodeId: string,
-  focusCharPos: number,
-  focusNodePreviousId: string,
-  focusNodePreviousName: string,
-  focusNodePreviousPos: number,
-  treeHasBeenNavigatedTo: boolean
-}
-
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
-const transientState: TransientState = {
-  focusNodeId: null,
-  focusCharPos: -1,
+const transientState = {
   // previous node state so we can undo correctly, this is separate from the actual focus and char pos we want
   focusNodePreviousId: null,
   focusNodePreviousName: null,
+  focusNodePreviousNote: null,
   focusNodePreviousPos: -1,
-  treeHasBeenNavigatedTo: false,
+}
+
+function savePreviousNodeState(nodeId: string, nodeName: string, nodeNote: string, focusPos: number): void {
+  transientState.focusNodePreviousId = nodeId
+  transientState.focusNodePreviousName = nodeName
+  transientState.focusNodePreviousNote = nodeNote
+  transientState.focusNodePreviousPos = focusPos
 }
 
 // We need to track when the selection changes so we can store the current
@@ -40,9 +36,11 @@ function selectionChangeHandler(event: Event): void {
   if (document.activeElement &&
     isNameNode(document.activeElement)) {
     const activeNode = getNodeForNameElement(document.activeElement)
-    transientState.focusNodePreviousId = getNodeId(activeNode)
-    transientState.focusNodePreviousName = getNodeName(activeNode)
-    transientState.focusNodePreviousPos = getCursorPos()
+    savePreviousNodeState(
+      getNodeId(activeNode),
+      getNodeName(activeNode),
+      getNodeNote(activeNode),
+      getCursorPos())
   }
 }
 
@@ -165,10 +163,7 @@ export class Tree {
     const beforeFocusNodeId = nodeId
     const beforeFocusPos = transientState.focusNodePreviousPos
     const afterFocusPos = getCursorPos()
-    // TODO: clean up transient state mangement, what do I need still now that we do DOM
-    transientState.focusNodePreviousId = nodeId
-    transientState.focusNodePreviousName = newName
-    transientState.focusNodePreviousPos = afterFocusPos
+    savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
     // no dom operation needed since this is a rename
     this.commandHandler.exec(
       new CommandBuilder(
@@ -194,9 +189,7 @@ export class Tree {
       const afterSplitNamePart = getTextAfterCursor(event) || ''
       const newNodeId = generateUUID()
       // make sure we save the transientstate so we can undo properly, especially when we split at the end of a node
-      transientState.focusNodePreviousId = nodeId
-      transientState.focusNodePreviousName = afterSplitNamePart
-      transientState.focusNodePreviousPos = 0
+      savePreviousNodeState(nodeId, afterSplitNamePart, getNodeNote(targetNode), 0)
       const command = new CommandBuilder(
         new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart,
                                         afterSplitNamePart, MergeNameOrder.SOURCE_TARGET))
@@ -249,6 +242,8 @@ export class Tree {
       return
     }
     // TODO: trigger noteUpdate command
+    // save transient state
+    // send off command
   }
 
   private static onNoteKeydown(event: KeyboardEvent): void {
@@ -279,7 +274,6 @@ export class Tree {
       } else {
         const previousNode = findPreviousNode(nodeElement)
         if (previousNode) {
-          this.saveTransientState(getNodeId(nodeElement), -1);
           (getNameElement(previousNode) as HTMLElement).focus()
         }
       }
@@ -294,7 +288,6 @@ export class Tree {
       } else {
         const nextNode = findNextNode(nodeElement)
         if (nextNode) {
-          this.saveTransientState(getNodeId(nodeElement), -1);
           (getNameElement(nextNode) as HTMLElement).focus()
         }
       }
@@ -495,12 +488,6 @@ export class Tree {
       .isUndoable()
       .build()
     this.performCommand(command)
-  }
-
-  // charPos should be -1 to just request focus on the node
-  private saveTransientState(nodeId: string, charPos: number): void {
-    transientState.focusNodeId = nodeId
-    transientState.focusCharPos = charPos
   }
 
   private treeKeyDownHandler(event: KeyboardEvent): void {

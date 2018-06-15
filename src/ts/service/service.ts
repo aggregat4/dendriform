@@ -195,3 +195,17 @@ export class UndeleteNodeByIdCommandPayload implements CommandPayload {
 
   requiresRender() { return true }
 }
+
+export class UpdateNoteByIdCommandPayload implements CommandPayload {
+  constructor(
+    readonly nodeId: string,
+    readonly oldNote: string,
+    readonly newNote: string,
+  ) {}
+
+  inverse() {
+    return new UpdateNoteByIdCommandPayload(this.nodeId, this.newNote, this.oldNote)
+  }
+
+  requiresRender() { return false }
+}

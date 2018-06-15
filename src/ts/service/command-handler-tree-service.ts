@@ -21,9 +21,12 @@ import {
   CommandHandler,
   UndeleteNodeByIdCommandPayload,
   DeleteNodeByIdCommandPayload,
+  UpdateNoteByIdCommandPayload,
 } from './service'
 import {TreeService} from './tree-service'
 
+// TODO: evaluate if it does not make sense to fold the actual implementations of the methods here
+// directly into the TreeService
 export class TreeServiceCommandHandler implements CommandHandler {
   // We are using a single threaded queue to serialize all updates to the repository,
   // this avoids concurrent updates that may overwhelm the persistent implementation
@@ -49,6 +52,8 @@ export class TreeServiceCommandHandler implements CommandHandler {
       return this.queue.add(() => this.deleteNodeById(command.payload as DeleteNodeByIdCommandPayload))
     } else if (command.payload instanceof UndeleteNodeByIdCommandPayload) {
       return this.queue.add(() => this.undeleteNodeById(command.payload as UndeleteNodeByIdCommandPayload))
+    } else if (command.payload instanceof UpdateNoteByIdCommandPayload) {
+      return this.queue.add(() => this.updateNoteById(command.payload as UpdateNoteByIdCommandPayload))
     } else {
       throw new Error(`Received an unknown command with name ${command.payload}`)
     }
@@ -118,6 +123,10 @@ export class TreeServiceCommandHandler implements CommandHandler {
 
   private undeleteNodeById(cmd: DeleteNodeByIdCommandPayload): Promise<any> {
     return this.treeService.undeleteNode(cmd.nodeId)
+  }
+
+  private updateNoteById(cmd: UpdateNoteByIdCommandPayload): Promise<any> {
+    return this.treeService.updateNote(cmd.nodeId, cmd.newNote)
   }
 
 }

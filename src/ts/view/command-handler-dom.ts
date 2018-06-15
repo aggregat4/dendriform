@@ -13,7 +13,8 @@ import {
   RenameNodeByIdCommandPayload,
   ReparentNodesByIdCommandPayload,
   SplitNodeByIdCommandPayload,
-  UndeleteNodeByIdCommandPayload } from '../service/service'
+  UndeleteNodeByIdCommandPayload,
+  UpdateNoteByIdCommandPayload} from '../service/service'
 import { TreeNode } from './node-component'
 import {
   getChildrenElement,
@@ -21,7 +22,8 @@ import {
   getNameElement,
   getParentNode,
   getNodeId,
-  hasChildren } from './tree-dom-util'
+  hasChildren,
+  getNoteElement} from './tree-dom-util'
 
 export class DomCommandHandler implements CommandHandler {
 
@@ -67,6 +69,9 @@ export class DomCommandHandler implements CommandHandler {
     } else if (command.payload instanceof UndeleteNodeByIdCommandPayload) {
       const undeleteCommand = command.payload as UndeleteNodeByIdCommandPayload
       this.domUndeleteNode(document.getElementById(undeleteCommand.nodeId))
+    } else if (command.payload instanceof UpdateNoteByIdCommandPayload) {
+      const updateNoteCommand = command.payload as UpdateNoteByIdCommandPayload
+      this.domUpdateNote(document.getElementById(updateNoteCommand.nodeId), updateNoteCommand.newNote)
     } else {
       throw new Error(`Unknown Command for DomCommandHandler: ${typeof command.payload}}`)
     }
@@ -148,4 +153,7 @@ export class DomCommandHandler implements CommandHandler {
     // nothing to do, the command should trigger a rerender
   }
 
+  domUpdateNote(node: Element, note: string): void {
+    getNoteElement(node).textContent = note
+  }
 }

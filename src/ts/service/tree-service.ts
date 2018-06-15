@@ -244,4 +244,12 @@ export class TreeService {
     }
   }
 
+  updateNote(nodeId: string, note: string): Promise<void> {
+    return this.repo.cdbLoadNode(nodeId, false)
+      .then(node => {
+        node.content = note
+        return this.repo.cdbPutNode(node)
+      })
+  }
+
 }

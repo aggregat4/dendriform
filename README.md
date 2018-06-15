@@ -22,6 +22,8 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. Implement saving of changes to notes
+1. Implement undo for note changes
 1. Implement node descriptions (in render, search, etc)
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Implement export in some standard format

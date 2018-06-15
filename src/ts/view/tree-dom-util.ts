@@ -51,6 +51,10 @@ export function getChildrenElementOrCreate(node: Element): Element {
   }
 }
 
+export function getNoteElement(node: Element): Element {
+  return node.children[0].children[3]
+}
+
 export function getNodeForNameElement(nameEl: Element): Element {
   return nameEl.parentElement.parentElement
 }
@@ -75,6 +79,10 @@ export function getNodeId(node: Element): string {
 
 export function getNodeName(node: Element): string {
   return getNameElement(node).textContent || ''
+}
+
+export function getNodeNote(node: Element): string {
+  return getNoteElement(node).textContent || ''
 }
 
 // TODO add search for OPEN nodes, not just any node
