@@ -4,7 +4,7 @@ import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, create
 // tslint:disable-next-line:max-line-length
 import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
-import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected, setCursorPos, isCursorAtContentEditableBeginning } from '../util'
+import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected, setCursorPos, isCursorAtContentEditableBeginning, pasteTextUnformatted } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
@@ -73,6 +73,7 @@ export class Tree {
     this.el.addEventListener('keypress', this.onKeypress.bind(this))
     this.el.addEventListener('keydown', this.onKeydown.bind(this))
     this.el.addEventListener('click', this.onClick.bind(this))
+    this.el.addEventListener('paste', this.onPaste.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 250))
     // NOTE: we had this trigger on document but that seemed to cause the event to be called twice!?
     this.el.addEventListener('keydown', this.treeKeyDownHandler.bind(this))
@@ -130,6 +131,14 @@ export class Tree {
     } else if (isNoteElement(event.target as Element)) {
       event.preventDefault()
       Tree.startEditingNote(event.target as HTMLElement)
+    }
+  }
+
+  private onPaste(event: ClipboardEvent): void {
+    // We don't want any formatted HTML pasted in our nodes
+    if (isNameNode(event.target as Element) || isNoteElement(event.target as Element)) {
+      event.preventDefault()
+      pasteTextUnformatted(event)
     }
   }
 
@@ -216,13 +225,11 @@ export class Tree {
     setStyle(noteEl, { display: 'block' })
     noteEl.addEventListener('input', Tree.onNoteInput)
     noteEl.addEventListener('keydown', Tree.onNoteKeydown)
-    noteEl.addEventListener('paste', Tree.onNotePaste)
     noteEl.addEventListener('blur', Tree.onNoteBlur)
     noteEl.focus()
   }
 
   private static stopEditingNote(noteEl: HTMLElement, refocus: boolean): void {
-    noteEl.removeEventListener('paste', Tree.onNotePaste)
     noteEl.removeEventListener('input', Tree.onNoteInput)
     noteEl.removeEventListener('keydown', Tree.onNoteKeydown)
     noteEl.removeEventListener('blur', Tree.onNoteBlur)
@@ -255,12 +262,6 @@ export class Tree {
   private static onNoteBlur(event: FocusEvent): void {
     event.preventDefault()
     Tree.stopEditingNote(event.target as HTMLElement, false)
-  }
-
-  private static onNotePaste(event: ClipboardEvent): void {
-    event.preventDefault()
-    const text = event.clipboardData.getData('text/plain')
-    document.execCommand('insertHTML', false, text)
   }
 
   private onKeydown(event: KeyboardEvent): void {

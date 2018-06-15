@@ -150,3 +150,9 @@ export function isTextSelected(): boolean {
   // is empty or not.
   return !!selection && selection.getRangeAt(0).startOffset !== selection.getRangeAt(0).endOffset
 }
+
+// a way to remove formatting from pasted content
+export function pasteTextUnformatted(event: ClipboardEvent): void {
+  const text = event.clipboardData.getData('text/plain')
+  document.execCommand('insertHTML', false, text)
+}
