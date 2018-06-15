@@ -219,3 +219,7 @@ Also reintroduced Promises as return values from the CommandHandlers because we 
 Have implemented the rendering and editing code for the note content of a node. The trickiest bit is dealing with the contenteditable and determining where we are inside it. This will be "intersting" once we add some markups and link highlighting and such.
 
 Not done yet is the persistence of the changes (triggering a command).
+
+## 15.6.2018
+
+Implemented most of the frontend note functionality including copy and paste and dealing with gaining and losing focus via mouse or keyboard. What remains is just to generate the update command at the right time and then to test whether it works. Including undo of course.
