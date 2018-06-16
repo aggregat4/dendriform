@@ -59,6 +59,10 @@ export function getNodeForNameElement(nameEl: Element): Element {
   return nameEl.parentElement.parentElement
 }
 
+export function getNodeForNoteElement(noteEl: Element): Element {
+  return noteEl.parentElement.parentElement
+}
+
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
 export function getParentNode(node: Element): Element {
   // first parentElement is div.children, its parent is the real parent node
@@ -82,7 +86,7 @@ export function getNodeName(node: Element): string {
 }
 
 export function getNodeNote(node: Element): string {
-  return getNoteElement(node).textContent || ''
+  return getNoteElement(node).innerHTML || ''
 }
 
 // TODO add search for OPEN nodes, not just any node

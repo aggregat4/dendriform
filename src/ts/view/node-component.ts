@@ -45,6 +45,7 @@ export class TreeNode {
   }
 
   update(treeNode: FilteredRepositoryNode) {
+    let noteEl: HTMLElement = null
     setAttr(this.el, {
       id: treeNode.node._id,
       class: this.genClass(treeNode, this.first),
@@ -56,7 +57,8 @@ export class TreeNode {
         // and we actually have any hits ourselves (could be only our children have hits)
         treeNode.filterApplied ? this.highlight(treeNode.node.name, treeNode.nameHits) : [text(treeNode.node.name)]),
       el('span.toggle'),
-      el('div.note', treeNode.node.content))
+      noteEl = el('div.note'))
+    noteEl.innerHTML = treeNode.node.content
     this.childList.update(treeNode.children.filter(c => c.isIncluded()))
   }
 

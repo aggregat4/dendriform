@@ -2,13 +2,13 @@ import { el, setChildren, setAttr, setStyle } from 'redom'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, createNewResolvedRepositoryNode, MergeNameOrder, filterNode, FilteredRepositoryNode} from '../domain/domain'
 // tslint:disable-next-line:max-line-length
-import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload } from '../service/service'
+import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodesByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, UpdateNoteByIdCommandPayload } from '../service/service'
 // tslint:disable-next-line:max-line-length
 import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected, setCursorPos, isCursorAtContentEditableBeginning, pasteTextUnformatted } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement, getNodeNote } from './tree-dom-util'
+import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement, getNodeNote, getNodeForNoteElement } from './tree-dom-util'
 import { UndoableCommandHandler } from '../service/command-handler-undoable'
 import { TreeService } from '../service/tree-service'
 
@@ -149,39 +149,59 @@ export class Tree {
   }
 
   private onInput(event: Event) {
-    if (!isNameNode(event.target as Element) ||
-        // apparently we can get some fancy newfangled input events we may want to ignore
-        // see https://www.w3.org/TR/input-events-1/
-        (event as any).inputType === 'historyUndo' ||
+    // apparently we can get some fancy newfangled input events we may want to ignore
+    // see https://www.w3.org/TR/input-events-1/
+    if ((event as any).inputType === 'historyUndo' ||
         (event as any).inputType === 'historyRedo') {
       return
     }
-    const targetNode = getNodeForNameElement((event.target as Element))
-    const nodeId = getNodeId(targetNode)
-    const newName = getNodeName(targetNode)
-    const oldName = transientState.focusNodePreviousName
-    const beforeFocusNodeId = nodeId
-    const beforeFocusPos = transientState.focusNodePreviousPos
-    const afterFocusPos = getCursorPos()
-    savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
-    // no dom operation needed since this is a rename
-    this.commandHandler.exec(
-      new CommandBuilder(
-        new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
-        .isUndoable()
-        .withBeforeFocusNodeId(beforeFocusNodeId)
-        .withBeforeFocusPos(beforeFocusPos)
-        .withAfterFocusNodeId(nodeId)
-        .withAfterFocusPos(afterFocusPos)
-        .build(),
-    )
+    if (isNameNode(event.target as Element)) {
+      const targetNode = getNodeForNameElement((event.target as Element))
+      const nodeId = getNodeId(targetNode)
+      const newName = getNodeName(targetNode)
+      const oldName = transientState.focusNodePreviousName
+      const beforeFocusNodeId = nodeId
+      const beforeFocusPos = transientState.focusNodePreviousPos
+      const afterFocusPos = getCursorPos()
+      savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
+      // no dom operation needed since this is an inline update
+      this.commandHandler.exec(
+        new CommandBuilder(
+          new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
+          .isUndoable()
+          .withBeforeFocusNodeId(beforeFocusNodeId)
+          .withBeforeFocusPos(beforeFocusPos)
+          .withAfterFocusNodeId(nodeId)
+          .withAfterFocusPos(afterFocusPos)
+          .build())
+    } else if (isNoteElement(event.target as Element)) {
+      const targetNode = getNodeForNoteElement((event.target as Element))
+      const nodeId = getNodeId(targetNode)
+      const name = getNodeName(targetNode)
+      const newNote = getNodeNote(targetNode)
+      const oldNote = transientState.focusNodePreviousNote
+      const beforeFocusNodeId = nodeId
+      const beforeFocusPos = transientState.focusNodePreviousPos
+      const afterFocusPos = getCursorPos()
+      savePreviousNodeState(nodeId, name, newNote, afterFocusPos)
+      // no dom operation needed since this is an inline update
+      this.commandHandler.exec(
+        new CommandBuilder(
+          new UpdateNoteByIdCommandPayload(nodeId, oldNote, newNote))
+          .isUndoable()
+          .withBeforeFocusNodeId(beforeFocusNodeId)
+          .withBeforeFocusPos(beforeFocusPos)
+          .withAfterFocusNodeId(nodeId)
+          .withAfterFocusPos(afterFocusPos)
+          .build())
+    }
   }
 
   private onKeypress(event: KeyboardEvent) {
     if (!isNameNode(event.target as Element)) {
       return
     }
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey) { // trigger node splitting
       event.preventDefault()
       const targetNode = getNodeForNameElement((event.target as Element))
       const nodeId = getNodeId(targetNode)
@@ -216,14 +236,12 @@ export class Tree {
     // hard assumption that we have two siblings and the last one is the note element
     setAttr(noteEl, { contentEditable: true, class: 'note editing' })
     setStyle(noteEl, { display: 'block' })
-    noteEl.addEventListener('input', Tree.onNoteInput)
     noteEl.addEventListener('keydown', Tree.onNoteKeydown)
     noteEl.addEventListener('blur', Tree.onNoteBlur)
     noteEl.focus()
   }
 
   private static stopEditingNote(noteEl: HTMLElement, refocus: boolean): void {
-    noteEl.removeEventListener('input', Tree.onNoteInput)
     noteEl.removeEventListener('keydown', Tree.onNoteKeydown)
     noteEl.removeEventListener('blur', Tree.onNoteBlur)
     setAttr(noteEl, { contentEditable: false, class: 'note' })
@@ -232,18 +250,6 @@ export class Tree {
       const nameEl = noteEl.previousElementSibling.previousElementSibling as HTMLElement
       nameEl.focus()
     }
-  }
-
-  private static onNoteInput(event: KeyboardEvent): void {
-    if (// apparently we can get some fancy newfangled input events we may want to ignore
-        // see https://www.w3.org/TR/input-events-1/
-        (event as any).inputType === 'historyUndo' ||
-        (event as any).inputType === 'historyRedo') {
-      return
-    }
-    // TODO: trigger noteUpdate command
-    // save transient state
-    // send off command
   }
 
   private static onNoteKeydown(event: KeyboardEvent): void {
