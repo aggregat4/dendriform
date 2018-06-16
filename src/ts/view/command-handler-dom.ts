@@ -154,6 +154,6 @@ export class DomCommandHandler implements CommandHandler {
   }
 
   domUpdateNote(node: Element, note: string): void {
-    getNoteElement(node).textContent = note
+    getNoteElement(node).innerHTML = note
   }
 }

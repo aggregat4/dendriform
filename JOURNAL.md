@@ -223,3 +223,7 @@ Not done yet is the persistence of the changes (triggering a command).
 ## 15.6.2018
 
 Implemented most of the frontend note functionality including copy and paste and dealing with gaining and losing focus via mouse or keyboard. What remains is just to generate the update command at the right time and then to test whether it works. Including undo of course.
+
+## 16.6.2018
+
+Implemented the remaining note functionality with undo and fixing all the event handler special casing we need to do becase the note is a contenteditable where we allow _some_ markup. All of a sudden we are not just in one element, but we may click inside of some markup that is a child of the contenteditable. Working with contenteditable is questionable, but necessary.

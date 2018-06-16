@@ -8,7 +8,7 @@ import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBefore
 import { DomCommandHandler } from './command-handler-dom'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement, getNodeNote, getNodeForNoteElement } from './tree-dom-util'
+import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement, getNodeNote, getNodeForNoteElement, isInNoteElement, findNoteElementAncestor } from './tree-dom-util'
 import { UndoableCommandHandler } from '../service/command-handler-undoable'
 import { TreeService } from '../service/tree-service'
 
@@ -115,26 +115,24 @@ export class Tree {
       // NOTE: we can use the getNodeForNameElement function even though this is the
       // collapseElement because they are siblings
       const node = getNodeForNameElement(event.target as Element)
-      if (isNodeClosed(node)) {
-        const command = new CommandBuilder(new OpenNodeByIdCommandPayload(getNodeId(node)))
-          .isUndoable()
-          .build()
-        this.performCommand(command)
-      } else {
-        const command = new CommandBuilder(new CloseNodeByIdCommandPayload(getNodeId(node)))
-          .isUndoable()
-          .build()
-        this.performCommand(command)
+      const payload = isNodeClosed(node)
+        ? new OpenNodeByIdCommandPayload(getNodeId(node))
+        : new CloseNodeByIdCommandPayload(getNodeId(node))
+      this.performCommand(new CommandBuilder(payload).isUndoable().build())
+    } else if (isInNoteElement(event.target as Element)) {
+      // for a note we need to take into account that a note may have its own markup (hence isInNoteElement)
+      const noteElement = findNoteElementAncestor(event.target as Element) as HTMLElement
+      if (! noteElement.isContentEditable) {
+        event.preventDefault()
+        Tree.startEditingNote(noteElement as HTMLElement)
       }
-    } else if (isNoteElement(event.target as Element)) {
-      event.preventDefault()
-      Tree.startEditingNote(event.target as HTMLElement)
     }
   }
 
   private onPaste(event: ClipboardEvent): void {
-    // We don't want any formatted HTML pasted in our nodes
-    if (isNameNode(event.target as Element) || isNoteElement(event.target as Element)) {
+    // We don't want any formatted HTML pasted in our nodes.
+    // Inside a note we can be inside some child HTML tags, so we need to to a more thorough check
+    if (isNameNode(event.target as Element) || isInNoteElement(event.target as Element)) {
       event.preventDefault()
       pasteTextUnformatted(event)
     }

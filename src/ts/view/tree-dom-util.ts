@@ -89,6 +89,16 @@ export function getNodeNote(node: Element): string {
   return getNoteElement(node).innerHTML || ''
 }
 
+export function isInNoteElement(element: Element): boolean {
+  return isNoteElement(element) || (element.parentElement && isInNoteElement(element.parentElement))
+}
+
+export function findNoteElementAncestor(element: Element): Element {
+  return isNoteElement(element)
+    ? element
+    : (element.parentElement ? findNoteElementAncestor(element.parentElement) : null)
+}
+
 // TODO add search for OPEN nodes, not just any node
 export function findPreviousNode(node: Element): Element {
   if (node.previousSibling) {

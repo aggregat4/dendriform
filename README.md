@@ -22,18 +22,17 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. Implement saving of changes to notes
-1. Implement undo for note changes
 1. Implement node descriptions (in render, search, etc)
 1. Implement import of some standard format (probably at least the workflowy opml?)
+1. Try to get it to work with a real couchdb backend and see if sync actually works (2 clients)
 1. Implement export in some standard format
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. auto link urls in names and notes
 1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, make it easier to implement platform specific key combos, etc
-1. Try to get it to work with a real couchdb backend and see if sync actually works (2 clients)
 1. Check compatibility with Firefox
 1. Check if it works on iOS and Android
 1. i18n (also consider search, maybe other find mechanism? [regex?](https://stackoverflow.com/a/38151393/1996) )
+1. Implement sanitisation of note content when saving? Only allow <div> <br>?
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node) (what node though? config? hmm)
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
 1. Accessibility: is that even possible with this tree? How do I make the commands accessible? Do I need a menu per item anyway? How can I make moving a node in the tree accessible?

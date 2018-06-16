@@ -129,7 +129,7 @@
   min-width: 20px;
   /* leaves space for the bullet since that is positioned absolute */
   margin-left: calc(1ch + 18px); /* bullet width + the padding */
-  padding: 0 6px 0 0;
+  padding: 0 6px 0 2px;
 }
 
 /* This is a kludge for Firefox: when the name div has no content it has zero height, and then
@@ -142,7 +142,7 @@
   content: ' ';
 }
 
-.node .name:focus {
+.node .name:focus, .node .note:focus {
   outline: none;
   background-color: rgb(243, 235, 214); /* #f5f5aa; */
 }
@@ -159,6 +159,7 @@
      it tries to mimic the set line-height */
   height: 1.4em;
   overflow-y: hidden;
+  padding: 0 0 0 2px;
 }
 
 .node .note.editing {
