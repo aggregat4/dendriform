@@ -227,3 +227,5 @@ Implemented most of the frontend note functionality including copy and paste and
 ## 16.6.2018
 
 Implemented the remaining note functionality with undo and fixing all the event handler special casing we need to do becase the note is a contenteditable where we allow _some_ markup. All of a sudden we are not just in one element, but we may click inside of some markup that is a child of the contenteditable. Working with contenteditable is questionable, but necessary.
+
+Highlighting the notes will be ... annoying. They are not plain text, I need to put more thought and effort into that.

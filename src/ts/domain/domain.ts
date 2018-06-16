@@ -41,24 +41,42 @@ export interface Highlight {
   length: number
 }
 
+function findFirst(array: any[], predicate: (any) => boolean): any {
+  for (let i = 0; i < array.length; i++) {
+    if (predicate(array[i])) {
+      return array[i]
+    }
+  }
+  return null
+}
+
 export class FilteredRepositoryNode {
+  private areAnyChildrenIncluded: boolean = undefined
+
   // TODO: future extension: allow descriptions to be searched
   constructor(
     readonly node: RepositoryNode,
     readonly children: FilteredRepositoryNode[],
     readonly filterApplied: boolean,
-    readonly nameHits: Highlight[]) {}
+    readonly nameHits: Highlight[],
+    readonly noteHits: Highlight[]) {}
 
   isIncluded(): boolean {
-    return !this.filterApplied || this.nameHits.length > 0
+    if (this.areAnyChildrenIncluded === undefined) {
+      this.areAnyChildrenIncluded = !!findFirst(this.children, (c) => c.isIncluded())
+    }
+    return !this.filterApplied
+      || this.nameHits.length > 0
+      || this.noteHits.length > 0
+      || this.areAnyChildrenIncluded
   }
 }
 
 function findHits(corpus: string, filter: Filter): Highlight[] {
   const highlights = []
   let pos = 0 - filter.query.length
-  const lowerCaseName = corpus.toLowerCase()
-  while ((pos = lowerCaseName.indexOf(filter.query, pos + filter.query.length)) > -1) {
+  const lowerCaseCorpus = corpus.toLowerCase()
+  while ((pos = lowerCaseCorpus.indexOf(filter.query, pos + filter.query.length)) > -1) {
     highlights.push({pos, length: filter.query.length})
   }
   return highlights
@@ -69,7 +87,8 @@ export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): Filte
     node.node,
     node.children.map(c => filterNode(c, filter)),
     !!filter,
-    filter ? findHits(node.node.name, filter) : [])
+    filter && node.node.name ? findHits(node.node.name, filter) : [],
+    filter && node.node.content ? findHits(node.node.content, filter) : [])
 }
 
 export enum State {
