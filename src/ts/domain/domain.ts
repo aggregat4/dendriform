@@ -58,8 +58,8 @@ function findHits(corpus: string, filter: Filter): Highlight[] {
   const highlights = []
   let pos = 0 - filter.query.length
   const lowerCaseName = corpus.toLowerCase()
-  while ((pos = lowerCaseName.indexOf(this.filter.query, pos + this.filter.query.length)) > -1) {
-    highlights.push({pos, length: this.filter.query.length})
+  while ((pos = lowerCaseName.indexOf(filter.query, pos + filter.query.length)) > -1) {
+    highlights.push({pos, length: filter.query.length})
   }
   return highlights
 }
