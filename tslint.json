@@ -15,6 +15,7 @@
     "variable-name": [true, "allow-leading-underscore"],
     "member-access": [true, "no-public"],
     "member-ordering": [false],
-    "no-conditional-assignment": false
+    "no-conditional-assignment": false,
+    "prefer-for-of": false
   }
 }
