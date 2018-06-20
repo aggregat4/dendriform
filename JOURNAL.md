@@ -229,3 +229,15 @@ Implemented most of the frontend note functionality including copy and paste and
 Implemented the remaining note functionality with undo and fixing all the event handler special casing we need to do becase the note is a contenteditable where we allow _some_ markup. All of a sudden we are not just in one element, but we may click inside of some markup that is a child of the contenteditable. Working with contenteditable is questionable, but necessary.
 
 Highlighting the notes will be ... annoying. They are not plain text, I need to put more thought and effort into that.
+
+## 20.6.2018
+
+Thinking about search highlighting for notes. Notes already can have some implicit markup (from the contenteditable) and once we highlight search hits they will have explicit markup. Additionally we want to at some point support some minimal markup in node content (names and notes), I think. This means that we need to be able to strip out spurious (accidental) markup when saving note content but retain the required markup.
+
+A [thirdparty library](https://github.com/gbirke/Sanitize.js) existed that seems to do exactly this sanitization. Saves some time and it is very straightforward and small.
+
+Now we have the highlighting question. Until now we have combined the searching for hits and the identification of highlights in one pass during the instantiation of the FilteredRepositoryNode. Then when we render the node name or note we assume its content is just text and generate a DOM fragment that is a combination of textNodes and highlighted spans.
+
+We have 2 ways to change this up. Either I just check for _a_ hit when filtering the content and don't actually look for the highlights and calculate the concrete highlights inside of the textNodes after converting the content to a DOM fragment. Or I continue as we do now and assume that search strings do not contain angle brackets (means search string must be sanitized), generate all the highlights, then mark up the node content as a string by inserting HTML strings and finally converting all that to a dom fragment with innerHTML.
+
+On reflection the latter approach has the problem that I may find hits inside tags and highlighting that would invalidate the html. The robust approach it is then.

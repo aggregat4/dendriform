@@ -53,21 +53,22 @@ function findFirst(array: any[], predicate: (any) => boolean): any {
 export class FilteredRepositoryNode {
   private areAnyChildrenIncluded: boolean = undefined
 
-  // TODO: future extension: allow descriptions to be searched
   constructor(
     readonly node: RepositoryNode,
     readonly children: FilteredRepositoryNode[],
     readonly filterApplied: boolean,
-    readonly nameHits: Highlight[],
-    readonly noteHits: Highlight[]) {}
+    readonly hasNameHit: boolean,
+    readonly nameFragment: DocumentFragment,
+    readonly hasNoteHit: boolean,
+    readonly noteFragment: DocumentFragment) {}
 
   isIncluded(): boolean {
     if (this.areAnyChildrenIncluded === undefined) {
       this.areAnyChildrenIncluded = !!findFirst(this.children, (c) => c.isIncluded())
     }
     return !this.filterApplied
-      || this.nameHits.length > 0
-      || this.noteHits.length > 0
+      || this.hasNameHit
+      || this.hasNoteHit
       || this.areAnyChildrenIncluded
   }
 }
@@ -80,6 +81,36 @@ function findHits(corpus: string, filter: Filter): Highlight[] {
     highlights.push({pos, length: filter.query.length})
   }
   return highlights
+}
+
+interface FilteredFragment {
+  fragment: DocumentFragment,
+  containsFilterHit: boolean
+}
+
+function filterElement(element: Element, filter: Filter): boolean {
+  const hitFound = false
+  if (element.nodeType === Node.TEXT_NODE) {
+    let searchEl = element
+    let pos = -1
+    while (searchEl && (pos = searchEl.nodeValue.indexOf(filter.query)) > -1) {
+      const newEl = searchEl.splitText(pos)
+      // TODO: Continue
+      searchEl = newEl.splitText(filter.query.length)
+    }
+  } else if (element.children) {
+    for (const child of element.children) {
+      filterElement(child, filter)
+    }
+  }
+  return hitFound
+}
+
+function filterHtml(rawHtml: string, filter: Filter): FilteredFragment {
+  // const fragment = document.createDocumentFragment()
+  const fragment = document.createRange().createContextualFragment(rawHtml)
+  // recursively go through all text nodes and find and annotate hits with a mark tag
+  filterElement(fragment, filter)
 }
 
 export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {

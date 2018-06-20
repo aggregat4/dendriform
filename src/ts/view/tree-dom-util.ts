@@ -1,4 +1,5 @@
 import { el } from 'redom'
+import * as sanitize from '../lib/sanitize'
 
 // DOM Utilities for working with Node Elements and its structure
 
@@ -86,7 +87,7 @@ export function getNodeName(node: Element): string {
 }
 
 export function getNodeNote(node: Element): string {
-  return getNoteElement(node).innerHTML || ''
+  return sanitizeContent(getNoteElement(node) as HTMLElement).innerHTML || null
 }
 
 export function isInNoteElement(element: Element): boolean {
@@ -155,4 +156,21 @@ function findFirstAncestorNextSibling(node: Element): Element {
   } else {
     return null
   }
+}
+
+const sanitizer = new sanitize.Sanitize({
+  elements: ['a', 'b', 'br', 'em', 'i', 'u', 'div'], // div and br are because of contenteditable linebreaks
+  attributes: {
+    'a': ['href'],
+  },
+  add_attributes: {
+    'a': {'rel': 'noreferrer'},
+  },
+  protocols: {
+    'a': {'href': ['ftp', 'http', 'https', 'mailto']},
+  },
+})
+
+export function sanitizeContent(element: HTMLElement): HTMLElement {
+  return sanitizer.clean_node(element)
 }
