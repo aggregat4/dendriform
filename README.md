@@ -23,7 +23,14 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 ## Next Steps
 
 1. Implement import of some standard format (probably at least the workflowy opml?)
-1. Try to get it to work with a real couchdb backend and see if sync actually works (2 clients)
+1. Implement sync (Hah!), possible approach:
+    1. branch
+    1. refactor repository.ts to be a real tree api (don't implicitly change prent child rels in updates)
+    1. implement new backend that persists a node set and an edge set in localstorage (builds necessary indices when loading) (what do we need to do to implement an LWW-Set?)
+    1. implement service that can store and forward events with lamport timestamps modelling tree changes
+    1. wire up that service in the client side code
+    1. implement notification callbacks for UI to react to changes
+    1. consider what cleanup strategies are needed for cleaning up inconsistencies
 1. Implement export in some standard format
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. auto link urls in names and notes
