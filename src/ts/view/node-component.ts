@@ -1,26 +1,10 @@
 import { el, text, setAttr, setChildren, list } from 'redom'
 import {
-  RelativeLinearPosition,
   RepositoryNode,
   ResolvedRepositoryNode,
-  createNewResolvedRepositoryNode,
   FilteredRepositoryNode,
-  Filter,
   Highlight,
 } from '../domain/domain'
-import {
-  Command,
-} from '../service/service'
-import {
-  getNodeId,
-  getParentNode,
-  hasChildren,
-  getNameElement,
-  getChildrenElement,
-  getChildrenElementOrCreate,
-  getNodeForNameElement,
-  isNode,
-} from './tree-dom-util'
 
 export class TreeNode {
   private first: boolean
@@ -45,20 +29,15 @@ export class TreeNode {
   }
 
   update(treeNode: FilteredRepositoryNode) {
-    let noteEl: HTMLElement = null
     setAttr(this.el, {
       id: treeNode.node._id,
       class: this.genClass(treeNode, this.first),
     })
     setChildren(this.ncEl,
       el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
-      el('div.name', { contentEditable: true },
-        // Only attempt to mark up search hits when we are included in the filter
-        // and we actually have any hits ourselves (could be only our children have hits)
-        treeNode.filterApplied ? this.highlight(treeNode.node.name, treeNode.nameHits) : [text(treeNode.node.name)]),
+      el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
       el('span.toggle'),
-      noteEl = el('div.note'))
-    noteEl.innerHTML = treeNode.node.content
+      el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null))
     this.childList.update(treeNode.children.filter(c => c.isIncluded()))
   }
 
@@ -66,7 +45,7 @@ export class TreeNode {
     return this.el
   }
 
-  private highlight(content: string, hits: Highlight[]): Element[] {
+/*  private highlight(content: string, hits: Highlight[]): Element[] {
     const segments = []
     let pos = 0
     // tslint:disable-next-line:prefer-for-of
@@ -83,6 +62,7 @@ export class TreeNode {
     }
     return segments
   }
+*/
 
   private isRoot(node: RepositoryNode): boolean {
     return node._id === 'ROOT'

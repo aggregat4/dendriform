@@ -50,6 +50,11 @@ function findFirst(array: any[], predicate: (any) => boolean): any {
   return null
 }
 
+export interface FilteredFragment {
+  fragment: DocumentFragment,
+  containsFilterHit: boolean
+}
+
 export class FilteredRepositoryNode {
   private areAnyChildrenIncluded: boolean = undefined
 
@@ -57,22 +62,21 @@ export class FilteredRepositoryNode {
     readonly node: RepositoryNode,
     readonly children: FilteredRepositoryNode[],
     readonly filterApplied: boolean,
-    readonly hasNameHit: boolean,
-    readonly nameFragment: DocumentFragment,
-    readonly hasNoteHit: boolean,
-    readonly noteFragment: DocumentFragment) {}
+    readonly filteredName: FilteredFragment,
+    readonly filteredNote: FilteredFragment) {}
 
   isIncluded(): boolean {
     if (this.areAnyChildrenIncluded === undefined) {
       this.areAnyChildrenIncluded = !!findFirst(this.children, (c) => c.isIncluded())
     }
     return !this.filterApplied
-      || this.hasNameHit
-      || this.hasNoteHit
+      || (this.filteredName && this.filteredName.containsFilterHit)
+      || (this.filteredNote && this.filteredNote.containsFilterHit)
       || this.areAnyChildrenIncluded
   }
 }
 
+/*
 function findHits(corpus: string, filter: Filter): Highlight[] {
   const highlights = []
   let pos = 0 - filter.query.length
@@ -82,35 +86,43 @@ function findHits(corpus: string, filter: Filter): Highlight[] {
   }
   return highlights
 }
+*/
 
-interface FilteredFragment {
-  fragment: DocumentFragment,
-  containsFilterHit: boolean
-}
-
-function filterElement(element: Element, filter: Filter): boolean {
-  const hitFound = false
+// element is of type any because I could not find a good way to abstract all
+// the interfaces and mixins
+// Assuming that query is lowercase
+function filterElement(element: any, query: string): boolean {
+  let hitFound = false
   if (element.nodeType === Node.TEXT_NODE) {
     let searchEl = element
     let pos = -1
-    while (searchEl && (pos = searchEl.nodeValue.indexOf(filter.query)) > -1) {
+    while (searchEl && (pos = searchEl.nodeValue.toLowerCase().indexOf(query)) > -1) {
       const newEl = searchEl.splitText(pos)
-      // TODO: Continue
-      searchEl = newEl.splitText(filter.query.length)
+      searchEl = newEl.splitText(query.length)
+      const markEl = document.createElement('mark')
+      element.parentNode.replaceChild(markEl, newEl)
+      markEl.appendChild(newEl)
+      hitFound = true
     }
-  } else if (element.children) {
-    for (const child of element.children) {
-      filterElement(child, filter)
+  } else if (element.childNodes) {
+    for (const child of element.childNodes) {
+      hitFound = hitFound || filterElement(child, query)
     }
   }
   return hitFound
 }
 
-function filterHtml(rawHtml: string, filter: Filter): FilteredFragment {
-  // const fragment = document.createDocumentFragment()
+function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
   const fragment = document.createRange().createContextualFragment(rawHtml)
-  // recursively go through all text nodes and find and annotate hits with a mark tag
-  filterElement(fragment, filter)
+  let containsFilterHit = false
+  if (filter) {
+    // recursively go through all text nodes and find and annotate hits with a mark tag
+    containsFilterHit = filterElement(fragment, filter.query.toLowerCase())
+  }
+  return {
+    fragment,
+    containsFilterHit,
+  }
 }
 
 export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
@@ -118,8 +130,8 @@ export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): Filte
     node.node,
     node.children.map(c => filterNode(c, filter)),
     !!filter,
-    filter && node.node.name ? findHits(node.node.name, filter) : [],
-    filter && node.node.content ? findHits(node.node.content, filter) : [])
+    node.node.name ? filterHtml(node.node.name, filter) : null,
+    node.node.content ? filterHtml(node.node.content, filter) : null)
 }
 
 export enum State {

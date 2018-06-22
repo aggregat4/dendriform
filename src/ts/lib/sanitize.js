@@ -245,7 +245,7 @@ Sanitize.prototype.clean_node = function(container) {
   
   
   
-  for(i=0;i<container.childNodes.length;i++) {
+  for(var i=0;i<container.childNodes.length;i++) {
     _clean.call(this, container.childNodes[i]);
   }
   
