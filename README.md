@@ -22,8 +22,6 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. Implement node descriptions (in render, search, etc)
-1. Implement sanitisation of note content when saving? Only allow div, br?
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Try to get it to work with a real couchdb backend and see if sync actually works (2 clients)
 1. Implement export in some standard format
@@ -36,7 +34,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node) (what node though? config? hmm)
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
 1. Accessibility: is that even possible with this tree? How do I make the commands accessible? Do I need a menu per item anyway? How can I make moving a node in the tree accessible?
-1. MAYBE: only have open close toggles appear when the node can really be closed and opened? This would involve only sometimes rendering the toggle and updating the actual DOM on a change to the node
+1. MAYBE BUG? Notes are not expanded when a search hit is found. Not sure this is actually a bug.
 1. MAYBE Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
 1. MAYBE Implement moving up and down with arrow keys and maintaining approximate character position
 1. MAYBE Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
