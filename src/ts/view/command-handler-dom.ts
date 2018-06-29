@@ -11,7 +11,7 @@ import {
   MergeNodesByIdCommandPayload,
   OpenNodeByIdCommandPayload,
   RenameNodeByIdCommandPayload,
-  ReparentNodesByIdCommandPayload,
+  ReparentNodeByIdCommandPayload,
   SplitNodeByIdCommandPayload,
   UndeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload} from '../service/service'
@@ -46,8 +46,8 @@ export class DomCommandHandler implements CommandHandler {
     } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
       const renameCommand = command.payload as RenameNodeByIdCommandPayload
       this.domRenameNode(document.getElementById(renameCommand.nodeId), renameCommand.newName)
-    } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
-      const reparentCommand = command.payload as ReparentNodesByIdCommandPayload
+    } else if (command.payload instanceof ReparentNodeByIdCommandPayload) {
+      const reparentCommand = command.payload as ReparentNodeByIdCommandPayload
       const relativeNode = reparentCommand.position.nodeId ?
         document.getElementById(reparentCommand.position.nodeId) : null
       const position = relativeNode ?

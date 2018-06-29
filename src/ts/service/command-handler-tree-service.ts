@@ -1,24 +1,17 @@
 import PQueue from 'p-queue'
 import {
   RelativeLinearPosition,
-  RepositoryNode,
-  ResolvedRepositoryNode,
-  RelativeNodePosition,
-  LoadedTree,
-  State,
-  Status,
   MergeNameOrder,
 } from '../domain/domain'
 import {
   Command,
-  CommandBuilder,
+  CommandHandler,
   SplitNodeByIdCommandPayload,
   MergeNodesByIdCommandPayload,
   RenameNodeByIdCommandPayload,
-  ReparentNodesByIdCommandPayload,
+  ReparentNodeByIdCommandPayload,
   OpenNodeByIdCommandPayload,
   CloseNodeByIdCommandPayload,
-  CommandHandler,
   UndeleteNodeByIdCommandPayload,
   DeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
@@ -42,8 +35,8 @@ export class TreeServiceCommandHandler implements CommandHandler {
       return this.queue.add(() => this.mergeNodesById(command.payload as MergeNodesByIdCommandPayload))
     } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
       return this.queue.add(() => this.renameNodeById(command.payload as RenameNodeByIdCommandPayload))
-    } else if (command.payload instanceof ReparentNodesByIdCommandPayload) {
-      return this.queue.add(() => this.reparentNodesById(command.payload as ReparentNodesByIdCommandPayload))
+    } else if (command.payload instanceof ReparentNodeByIdCommandPayload) {
+      return this.queue.add(() => this.reparentNodeById(command.payload as ReparentNodeByIdCommandPayload))
     } else if (command.payload instanceof OpenNodeByIdCommandPayload) {
       return this.queue.add(() => this.openNodeById(command.payload as OpenNodeByIdCommandPayload))
     } else if (command.payload instanceof CloseNodeByIdCommandPayload) {
@@ -104,7 +97,7 @@ export class TreeServiceCommandHandler implements CommandHandler {
   // 1. set the node's parent Id to the new id
   // 2. add the node to the new parent's children
   // 3. remove the node from the old parent's children
-  private reparentNodesById(cmd: ReparentNodesByIdCommandPayload): Promise<any> {
+  private reparentNodeById(cmd: ReparentNodeByIdCommandPayload): Promise<any> {
     return this.treeService.getNode(cmd.nodeId)
       .then(node => this.treeService.reparentNodes([node], cmd.newParentNodeId, cmd.position))
   }

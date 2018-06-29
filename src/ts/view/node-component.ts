@@ -3,7 +3,6 @@ import {
   RepositoryNode,
   ResolvedRepositoryNode,
   FilteredRepositoryNode,
-  Highlight,
 } from '../domain/domain'
 
 export class TreeNode {
@@ -44,25 +43,6 @@ export class TreeNode {
   getElement(): Element {
     return this.el
   }
-
-/*  private highlight(content: string, hits: Highlight[]): Element[] {
-    const segments = []
-    let pos = 0
-    // tslint:disable-next-line:prefer-for-of
-    for (let i = 0; i < hits.length; i++) {
-      const hit = hits[i]
-      if (pos !== hit.pos) {
-        segments.push(text(content.slice(pos, hit.pos)))
-      }
-      pos = hit.pos + hit.length
-      segments.push(el('mark', content.slice(hit.pos, pos)))
-    }
-    if (pos < content.length) {
-      segments.push(text(content.slice(pos, content.length)))
-    }
-    return segments
-  }
-*/
 
   private isRoot(node: RepositoryNode): boolean {
     return node._id === 'ROOT'

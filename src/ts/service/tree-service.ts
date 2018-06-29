@@ -2,11 +2,9 @@ import {generateUUID} from '../util'
 import {
   RelativeLinearPosition,
   RepositoryNode,
-  ResolvedRepositoryNode,
   RelativeNodePosition,
   LoadedTree,
   State,
-  Status,
 } from '../domain/domain'
 import {Repository} from '../repository/repository'
 
@@ -107,7 +105,7 @@ export class TreeService {
 
   // takes an array of _actual_ nodes and a new parent id, then it reparents those nodes by:
   // 1. removing them from their parent childrefs
-  // 2. updating their parentref to their parent's ref
+  // 2. updating their parentref to their new parent's ref
   // 3. adding the children to their new parents childrefs
   // If an afterNodeId is provided the nodes are inserted after that child of the new parent
   // TODO: this function gets used to jsut move nodes inside of the same parent as well,
@@ -186,7 +184,7 @@ export class TreeService {
   }
 
   // Returns a promise of the parent node
-  addChildToParent(childId: string, parentId: string): Promise<void> {
+  private addChildToParent(childId: string, parentId: string): Promise<void> {
     // console.log(`addChildToParent ${childId} -> ${parentId}`)
     return this.repo.cdbLoadNode(childId, false)
       .then(child => {

@@ -134,7 +134,7 @@ export class RenameNodeByIdCommandPayload implements CommandPayload {
   requiresRender() { return false }
 }
 
-export class ReparentNodesByIdCommandPayload implements CommandPayload {
+export class ReparentNodeByIdCommandPayload implements CommandPayload {
   constructor(
     readonly nodeId: string,
     readonly oldParentNodeId: string,
@@ -144,7 +144,7 @@ export class ReparentNodesByIdCommandPayload implements CommandPayload {
   ) {}
 
   inverse() {
-    return new ReparentNodesByIdCommandPayload(
+    return new ReparentNodeByIdCommandPayload(
       this.nodeId,
       this.newParentNodeId,
       null,
