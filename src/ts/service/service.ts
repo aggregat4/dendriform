@@ -1,8 +1,6 @@
 import {
-  ResolvedRepositoryNode,
   RelativeNodePosition,
   RelativeLinearPosition,
-  LoadedTree,
   MergeNameOrder,
 } from '../domain/domain'
 

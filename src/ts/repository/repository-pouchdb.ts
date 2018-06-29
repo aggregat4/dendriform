@@ -1,5 +1,5 @@
 import PouchDB from 'pouchdb-browser'
-import {RepositoryNode, ResolvedRepositoryNode, LoadedTree, State} from '../domain/domain'
+import {RepositoryNode, ResolvedRepositoryNode, LoadedTree, State, RelativeNodePosition, RelativeLinearPosition} from '../domain/domain'
 import {Repository} from './repository'
 
 export class PouchDbRepository implements Repository {
@@ -37,6 +37,62 @@ export class PouchDbRepository implements Repository {
           this.cdbPutNode(node, retries + 1)
         }
       })
+  }
+
+  /**
+   * if old parent exists:
+   *   load old parent
+   *     remove child from parent
+   *     save old parent
+   * set parentref in child to new parent id
+   *   save child
+   * load new parent
+   *   add child to childrefs at correct position
+   *   save new parent
+   */
+  cdbReparentNode(child: RepositoryNode, parentId: string, position: RelativeNodePosition): Promise<void> {
+    // remove child from old parent
+    const oldParentUpdatePromise = child.parentref
+      ? this.cdbLoadNode(child.parentref, false).then(oldParentNode => {
+        oldParentNode.childrefs = oldParentNode.childrefs.filter(c => c === child._id)
+        return this.cdbPutNode(oldParentNode)
+      })
+      : Promise.resolve()
+    // set new parent in child
+    return oldParentUpdatePromise.then(() => {
+        child.parentref = parentId
+        return this.cdbPutNode(child)
+      })
+    // add child to new parent
+      .then(() => this.cdbLoadNode(parentId, false))
+      .then(newParentNode => {
+        newParentNode.childrefs = this.mergeNodeIds(newParentNode.childrefs || [], [child._id], position)
+        return this.cdbPutNode(newParentNode)
+      })
+  }
+
+  private mergeNodeIds(originalChildIds: string[], newChildIds: string[], position: RelativeNodePosition): string[] {
+    if (position.beforeOrAfter === RelativeLinearPosition.END) {
+      return originalChildIds.concat(newChildIds)
+    } else if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
+      return newChildIds.concat(originalChildIds)
+    } else {
+      const pos = originalChildIds.indexOf(position.nodeId)
+      if (pos !== -1) {
+        if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
+          return originalChildIds.slice(0, pos).concat(newChildIds, originalChildIds.slice(pos))
+        } else {
+          return originalChildIds.slice(0, pos + 1).concat(newChildIds, originalChildIds.slice(pos + 1))
+        }
+      } else {
+        // this should really not happen
+        // tslint:disable-next-line:no-console
+        console.error(`Trying to put nodes at position ${position.beforeOrAfter} of a
+                       node '${position.nodeId}' that does not exist`)
+        // but just put them at the end (graceful degradation?)
+        return originalChildIds.concat(newChildIds)
+      }
+    }
   }
 
   cdbSaveAll(nodes: RepositoryNode[]): Promise<void> {

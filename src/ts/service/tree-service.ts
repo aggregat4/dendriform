@@ -132,7 +132,7 @@ export class TreeService {
       }
     })
     return this.repo.cdbLoadNode(oldParentId, false)
-      // 1. Remove the children to move from their parent
+      // 1. Remove the children from their old parent
       .then(oldParentNode => this.repo.cdbPutNode({
         _id: oldParentNode._id,
         _rev: oldParentNode._rev,
