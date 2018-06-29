@@ -1,4 +1,5 @@
 import PouchDB from 'pouchdb-browser'
+// tslint:disable-next-line:max-line-length
 import {RepositoryNode, ResolvedRepositoryNode, LoadedTree, State, RelativeNodePosition, RelativeLinearPosition} from '../domain/domain'
 import {Repository} from './repository'
 
