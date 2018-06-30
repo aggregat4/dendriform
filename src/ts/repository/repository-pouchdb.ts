@@ -55,7 +55,7 @@ export class PouchDbRepository implements Repository {
     // remove child from old parent
     const oldParentUpdatePromise = child.parentref
       ? this.loadNode(child.parentref, false).then(oldParentNode => {
-        oldParentNode.childrefs = oldParentNode.childrefs.filter(c => c === child._id)
+        oldParentNode.childrefs = oldParentNode.childrefs.filter(c => c !== child._id)
         return this.putNode(oldParentNode)
       })
       : Promise.resolve()

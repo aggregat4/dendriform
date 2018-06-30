@@ -87,7 +87,12 @@ export function getNodeName(node: Element): string {
 }
 
 export function getNodeNote(node: Element): string {
-  return sanitizeContent(getNoteElement(node) as HTMLElement).innerHTML || null
+  // sanitizeContent returns a documentFragment, apparently we can not get innerHTML on this
+  // therefore we create an artificial element, append the fragment and get its innerHTML
+  const noteEl = getNoteElement(node) as HTMLElement
+  const newEl = document.createElement('div') as HTMLElement
+  newEl.appendChild(sanitizeContent(noteEl))
+  return newEl.innerHTML
 }
 
 export function isInNoteElement(element: Element): boolean {

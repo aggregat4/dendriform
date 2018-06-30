@@ -162,7 +162,7 @@ export class TreeService {
               this.getNode(nodeId)
                 .then(originalNode =>
                   this.reparentNode(newSiblingId, originalNode.parentref,
-                    {nodeId: originalNode._id, beforeOrAfter: RelativeLinearPosition.BEFORE})))
+                    {nodeId, beforeOrAfter: RelativeLinearPosition.BEFORE})))
         }
       })
       .then(() => this.getChildNodes(nodeId, true))
