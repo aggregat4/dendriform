@@ -28,50 +28,40 @@ import {
 export class DomCommandHandler implements CommandHandler {
 
   exec(command: Command): Promise<any> {
-    if (command.payload instanceof SplitNodeByIdCommandPayload) {
-      const splitCommand = command.payload as SplitNodeByIdCommandPayload
+    const cmd = command.payload
+    if (cmd instanceof SplitNodeByIdCommandPayload) {
       this.domSplitNode(
-        document.getElementById(splitCommand.nodeId),
-        splitCommand.newNodeName,
-        splitCommand.remainingNodeName,
-        splitCommand.siblingId)
-    } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
-      const mergeNodesCommand = command.payload as MergeNodesByIdCommandPayload
+        document.getElementById(cmd.nodeId),
+        cmd.newNodeName,
+        cmd.remainingNodeName,
+        cmd.siblingId)
+    } else if (cmd instanceof MergeNodesByIdCommandPayload) {
       this.domMergeNodes(
-        document.getElementById(mergeNodesCommand.sourceNodeId),
-        mergeNodesCommand.sourceNodeName,
-        document.getElementById(mergeNodesCommand.targetNodeId),
-        mergeNodesCommand.targetNodeName,
-        mergeNodesCommand.mergeNameOrder)
-    } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
-      const renameCommand = command.payload as RenameNodeByIdCommandPayload
-      this.domRenameNode(document.getElementById(renameCommand.nodeId), renameCommand.newName)
-    } else if (command.payload instanceof ReparentNodeByIdCommandPayload) {
-      const reparentCommand = command.payload as ReparentNodeByIdCommandPayload
-      const relativeNode = reparentCommand.position.nodeId ?
-        document.getElementById(reparentCommand.position.nodeId) : null
-      const position = relativeNode ?
-        reparentCommand.position.beforeOrAfter : RelativeLinearPosition.END
+        document.getElementById(cmd.sourceNodeId),
+        cmd.sourceNodeName,
+        document.getElementById(cmd.targetNodeId),
+        cmd.targetNodeName,
+        cmd.mergeNameOrder)
+    } else if (cmd instanceof RenameNodeByIdCommandPayload) {
+      this.domRenameNode(document.getElementById(cmd.nodeId), cmd.newName)
+    } else if (cmd instanceof ReparentNodeByIdCommandPayload) {
+      const relativeNode = cmd.position.nodeId ? document.getElementById(cmd.position.nodeId) : null
+      const position = relativeNode ? cmd.position.beforeOrAfter : RelativeLinearPosition.END
       this.domReparentNode(
-        document.getElementById(reparentCommand.nodeId),
-        document.getElementById(reparentCommand.newParentNodeId),
+        document.getElementById(cmd.nodeId),
+        document.getElementById(cmd.newParentNodeId),
         relativeNode,
         position)
-    } else if (command.payload instanceof OpenNodeByIdCommandPayload) {
-      const openCommand = command.payload as OpenNodeByIdCommandPayload
-      this.domOpenNode(document.getElementById(openCommand.nodeId))
-    } else if (command.payload instanceof CloseNodeByIdCommandPayload) {
-      const closeCommand = command.payload as CloseNodeByIdCommandPayload
-      this.domCloseNode(document.getElementById(closeCommand.nodeId))
-    } else if (command.payload instanceof DeleteNodeByIdCommandPayload) {
-      const deleteCommand = command.payload as DeleteNodeByIdCommandPayload
-      this.domDeleteNode(document.getElementById(deleteCommand.nodeId))
-    } else if (command.payload instanceof UndeleteNodeByIdCommandPayload) {
-      const undeleteCommand = command.payload as UndeleteNodeByIdCommandPayload
-      this.domUndeleteNode(document.getElementById(undeleteCommand.nodeId))
-    } else if (command.payload instanceof UpdateNoteByIdCommandPayload) {
-      const updateNoteCommand = command.payload as UpdateNoteByIdCommandPayload
-      this.domUpdateNote(document.getElementById(updateNoteCommand.nodeId), updateNoteCommand.newNote)
+    } else if (cmd instanceof OpenNodeByIdCommandPayload) {
+      this.domOpenNode(document.getElementById(cmd.nodeId))
+    } else if (cmd instanceof CloseNodeByIdCommandPayload) {
+      this.domCloseNode(document.getElementById(cmd.nodeId))
+    } else if (cmd instanceof DeleteNodeByIdCommandPayload) {
+      this.domDeleteNode(document.getElementById(cmd.nodeId))
+    } else if (cmd instanceof UndeleteNodeByIdCommandPayload) {
+      // nothing to do, the command should trigger a rerender
+    } else if (cmd instanceof UpdateNoteByIdCommandPayload) {
+      this.domUpdateNote(document.getElementById(cmd.nodeId), cmd.newNote)
     } else {
       throw new Error(`Unknown Command for DomCommandHandler: ${typeof command.payload}}`)
     }
@@ -147,10 +137,6 @@ export class DomCommandHandler implements CommandHandler {
 
   domDeleteNode(node: Element): void {
     node.remove()
-  }
-
-  domUndeleteNode(node: Element): void {
-    // nothing to do, the command should trigger a rerender
   }
 
   domUpdateNote(node: Element, note: string): void {

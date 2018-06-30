@@ -1,9 +1,5 @@
 import PQueue from 'p-queue'
 import {
-  RelativeLinearPosition,
-  MergeNameOrder,
-} from '../domain/domain'
-import {
   Command,
   CommandHandler,
   SplitNodeByIdCommandPayload,
@@ -29,97 +25,30 @@ export class TreeServiceCommandHandler implements CommandHandler {
   constructor(readonly treeService: TreeService) {}
 
   exec(command: Command): Promise<any> {
-    if (command.payload instanceof SplitNodeByIdCommandPayload) {
-      return this.queue.add(() => this.splitNodeById(command.payload as SplitNodeByIdCommandPayload))
-    } else if (command.payload instanceof MergeNodesByIdCommandPayload) {
-      return this.queue.add(() => this.mergeNodesById(command.payload as MergeNodesByIdCommandPayload))
-    } else if (command.payload instanceof RenameNodeByIdCommandPayload) {
-      return this.queue.add(() => this.renameNodeById(command.payload as RenameNodeByIdCommandPayload))
-    } else if (command.payload instanceof ReparentNodeByIdCommandPayload) {
-      return this.queue.add(() => this.reparentNodeById(command.payload as ReparentNodeByIdCommandPayload))
-    } else if (command.payload instanceof OpenNodeByIdCommandPayload) {
-      return this.queue.add(() => this.openNodeById(command.payload as OpenNodeByIdCommandPayload))
-    } else if (command.payload instanceof CloseNodeByIdCommandPayload) {
-      return this.queue.add(() => this.closeNodeById(command.payload as CloseNodeByIdCommandPayload))
-    } else if (command.payload instanceof DeleteNodeByIdCommandPayload) {
-      return this.queue.add(() => this.deleteNodeById(command.payload as DeleteNodeByIdCommandPayload))
-    } else if (command.payload instanceof UndeleteNodeByIdCommandPayload) {
-      return this.queue.add(() => this.undeleteNodeById(command.payload as UndeleteNodeByIdCommandPayload))
-    } else if (command.payload instanceof UpdateNoteByIdCommandPayload) {
-      return this.queue.add(() => this.updateNoteById(command.payload as UpdateNoteByIdCommandPayload))
+    const cmd = command.payload
+    if (cmd instanceof SplitNodeByIdCommandPayload) {
+      return this.queue.add(() =>
+        this.treeService.splitNode(cmd.nodeId, cmd.remainingNodeName, cmd.siblingId, cmd.newNodeName))
+    } else if (cmd instanceof MergeNodesByIdCommandPayload) {
+      return this.queue.add(() => this.treeService.mergeNodes(cmd.sourceNodeId, cmd.sourceNodeName,
+        cmd.targetNodeId, cmd.targetNodeName, cmd.mergeNameOrder))
+    } else if (cmd instanceof RenameNodeByIdCommandPayload) {
+      return this.queue.add(() => this.treeService.renameNode(cmd.nodeId, cmd.newName))
+    } else if (cmd instanceof ReparentNodeByIdCommandPayload) {
+      return this.queue.add(() => this.treeService.reparentNode(cmd.nodeId, cmd.newParentNodeId, cmd.position))
+    } else if (cmd instanceof OpenNodeByIdCommandPayload) {
+      return this.queue.add(() => this.treeService.openNode(cmd.nodeId))
+    } else if (cmd instanceof CloseNodeByIdCommandPayload) {
+      return this.queue.add(() => this.treeService.closeNode(cmd.nodeId))
+    } else if (cmd instanceof DeleteNodeByIdCommandPayload) {
+      return this.queue.add(() => this.treeService.deleteNode(cmd.nodeId))
+    } else if (cmd instanceof UndeleteNodeByIdCommandPayload) {
+      return this.queue.add(() => this.treeService.undeleteNode(cmd.nodeId))
+    } else if (cmd instanceof UpdateNoteByIdCommandPayload) {
+      return this.queue.add(() => this.treeService.updateNote(cmd.nodeId, cmd.newNote))
     } else {
       throw new Error(`Received an unknown command with name ${command.payload}`)
     }
-  }
-
-  // 1. rename the current node to the right hand side of the split
-  // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
-  private splitNodeById(cmd: SplitNodeByIdCommandPayload): Promise<any> {
-    return this.treeService.findNode(cmd.siblingId, true)
-      .then(sibling => {
-        if (sibling) {
-          this.treeService.undeleteNode(cmd.siblingId)
-        } else {
-          this.treeService.createSibling(cmd.siblingId, cmd.newNodeName, null, cmd.nodeId, true)
-        }
-      })
-      .then(() => this.treeService.getChildNodes(cmd.nodeId, true))
-      .then(children =>
-        this.treeService.reparentNodes(
-          children, cmd.siblingId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
-      .then(() => this.treeService.renameNode(cmd.nodeId, cmd.remainingNodeName))
-  }
-
-  // 1. rename targetnode to be targetnode.name + sourcenode.name
-  // 2. move all children of sourcenode to targetnode (actual move, just reparent)
-  // 3. delete sourcenode
-  // 4. focus the new node at the end of its old name
-  //
-  // For undo it is assumed that a merge never happens to a target node with children
-  // This function will not undo the merging of the child collections (this mirrors workflowy
-  // maybe we want to revisit this in the future)
-  private mergeNodesById(cmd: MergeNodesByIdCommandPayload): Promise<any> {
-    return this.treeService.getChildNodes(cmd.sourceNodeId, true)
-      .then(children =>
-        this.treeService.reparentNodes(
-          children, cmd.targetNodeId, {beforeOrAfter: RelativeLinearPosition.END, nodeId: null}))
-      .then(() => this.treeService.renameNode(
-        cmd.targetNodeId,
-        cmd.mergeNameOrder === MergeNameOrder.SOURCE_TARGET ?
-          cmd.sourceNodeName + cmd.targetNodeName : cmd.targetNodeName + cmd.sourceNodeName))
-      .then(() => this.treeService.deleteNode(cmd.sourceNodeId))
-  }
-
-  private renameNodeById(cmd: RenameNodeByIdCommandPayload): Promise<any> {
-    return this.treeService.renameNode(cmd.nodeId, cmd.newName)
-  }
-
-  // 1. set the node's parent Id to the new id
-  // 2. add the node to the new parent's children
-  // 3. remove the node from the old parent's children
-  private reparentNodeById(cmd: ReparentNodeByIdCommandPayload): Promise<any> {
-    return this.treeService.getNode(cmd.nodeId)
-      .then(node => this.treeService.reparentNodes([node], cmd.newParentNodeId, cmd.position))
-  }
-
-  private openNodeById(cmd: OpenNodeByIdCommandPayload): Promise<any> {
-    return this.treeService.openNode(cmd.nodeId)
-  }
-
-  private closeNodeById(cmd: CloseNodeByIdCommandPayload): Promise<any> {
-    return this.treeService.closeNode(cmd.nodeId)
-  }
-
-  private deleteNodeById(cmd: DeleteNodeByIdCommandPayload): Promise<any> {
-    return this.treeService.deleteNode(cmd.nodeId)
-  }
-
-  private undeleteNodeById(cmd: DeleteNodeByIdCommandPayload): Promise<any> {
-    return this.treeService.undeleteNode(cmd.nodeId)
-  }
-
-  private updateNoteById(cmd: UpdateNoteByIdCommandPayload): Promise<any> {
-    return this.treeService.updateNote(cmd.nodeId, cmd.newNote)
   }
 
 }

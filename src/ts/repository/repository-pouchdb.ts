@@ -6,7 +6,7 @@ import {Repository} from './repository'
 export class PouchDbRepository implements Repository {
   private readonly outlineDb: any = new PouchDB('outlineDB')
 
-  cdbCreateNode(id: string, name: string, content: string): Promise<RepositoryNode> {
+  createNode(id: string, name: string, content: string): Promise<RepositoryNode> {
     const node = {
       _id: id,
       name,
@@ -25,7 +25,7 @@ export class PouchDbRepository implements Repository {
       })
   }
 
-  cdbPutNode(node: RepositoryNode, retryCount?: number): Promise<void> {
+  putNode(node: RepositoryNode, retryCount?: number): Promise<void> {
     // console.log(`Putting node: '${JSON.stringify(node)}'`)
     return this.outlineDb.put(node)
       .catch((err) => {
@@ -35,7 +35,7 @@ export class PouchDbRepository implements Repository {
         // TODO evaluate whether to use the upsert plugin for this? https://github.com/pouchdb/upsert
         const retries = retryCount || 0
         if (err.status === 409 && retries <= 25) {
-          this.cdbPutNode(node, retries + 1)
+          this.putNode(node, retries + 1)
         }
       })
   }
@@ -51,24 +51,24 @@ export class PouchDbRepository implements Repository {
    *   add child to childrefs at correct position
    *   save new parent
    */
-  cdbReparentNode(child: RepositoryNode, parentId: string, position: RelativeNodePosition): Promise<void> {
+  reparentNode(child: RepositoryNode, parentId: string, position: RelativeNodePosition): Promise<void> {
     // remove child from old parent
     const oldParentUpdatePromise = child.parentref
-      ? this.cdbLoadNode(child.parentref, false).then(oldParentNode => {
+      ? this.loadNode(child.parentref, false).then(oldParentNode => {
         oldParentNode.childrefs = oldParentNode.childrefs.filter(c => c === child._id)
-        return this.cdbPutNode(oldParentNode)
+        return this.putNode(oldParentNode)
       })
       : Promise.resolve()
     // set new parent in child
     return oldParentUpdatePromise.then(() => {
         child.parentref = parentId
-        return this.cdbPutNode(child)
+        return this.putNode(child)
       })
     // add child to new parent
-      .then(() => this.cdbLoadNode(parentId, false))
+      .then(() => this.loadNode(parentId, false))
       .then(newParentNode => {
         newParentNode.childrefs = this.mergeNodeIds(newParentNode.childrefs || [], [child._id], position)
-        return this.cdbPutNode(newParentNode)
+        return this.putNode(newParentNode)
       })
   }
 
@@ -96,12 +96,8 @@ export class PouchDbRepository implements Repository {
     }
   }
 
-  cdbSaveAll(nodes: RepositoryNode[]): Promise<void> {
-    return this.outlineDb.bulkDocs(nodes)
-  }
-
   // returns a promise of a node, you can determine whether to include deleted or not
-  cdbLoadNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode> {
+  loadNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode> {
     // console.log(`cdbLoadNode for id '${nodeId}'`)
     return this.outlineDb.get(nodeId).then(node => {
       if (node.deleted && node.deleted === true && !includeDeleted) {
@@ -120,7 +116,7 @@ export class PouchDbRepository implements Repository {
   }
 
   // returns a promise of an array of nodes that are NOT deleted
-  cdbLoadChildren(node: RepositoryNode, includeDeleted: boolean): Promise<RepositoryNode[]> {
+  loadChildren(node: RepositoryNode, includeDeleted: boolean): Promise<RepositoryNode[]> {
     // TODO: add sanity checking that we are really passing in nodes here and not some garbage
     // TODO: at some later point make sure we can also deal with different versions of the pouchdb data
     // console.log(`Call getChildren(${JSON.stringify(node)})`);
@@ -137,7 +133,7 @@ export class PouchDbRepository implements Repository {
 
   // returns a promise that recursively resolves this node and all its children
   loadTreeNodeRecursively(node: RepositoryNode): Promise<ResolvedRepositoryNode> {
-    return this.cdbLoadChildren(node, false)
+    return this.loadChildren(node, false)
       .then(children => Promise.all(children.map(child => this.loadTreeNodeRecursively(child))))
       .then(values => {
         return {
@@ -147,7 +143,7 @@ export class PouchDbRepository implements Repository {
       })
   }
 
-  cdbLoadTree(node: RepositoryNode): Promise<LoadedTree> {
+  loadTree(node: RepositoryNode): Promise<LoadedTree> {
     return Promise.all([
         this.loadTreeNodeRecursively(node),
         this.loadParents(node, [])])
@@ -164,7 +160,7 @@ export class PouchDbRepository implements Repository {
   private loadParents(child: RepositoryNode, parents: RepositoryNode[]): Promise<RepositoryNode[]> {
     // console.log(`loading parents for `, child, ` with parents array `, parents)
     if (child.parentref && child.parentref !== 'ROOT') {
-      return this.cdbLoadNode(child.parentref, false)
+      return this.loadNode(child.parentref, false)
         .then(parent => {
           parents.push(parent)
           return this.loadParents(parent, parents)
