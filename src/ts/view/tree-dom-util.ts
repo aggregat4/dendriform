@@ -176,6 +176,6 @@ const sanitizer = new sanitize.Sanitize({
   },
 })
 
-export function sanitizeContent(element: HTMLElement): HTMLElement {
+function sanitizeContent(element: HTMLElement): HTMLElement {
   return sanitizer.clean_node(element)
 }
