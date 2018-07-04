@@ -11,7 +11,7 @@ import {
   UndeleteNodeByIdCommandPayload,
   DeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
-} from 'commands'
+} from './commands'
 import {TreeService} from '../service/tree-service'
 
 // TODO: evaluate if it does not make sense to fold the actual implementations of the methods here

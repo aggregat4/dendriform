@@ -7,7 +7,7 @@ import {
   RelativeNodePosition,
 } from '../domain/domain'
 import {Repository} from '../repository/repository'
-import { MergeNameOrder } from 'service'
+import { MergeNameOrder } from './service'
 
 export class TreeService {
   constructor(readonly repo: Repository) {}

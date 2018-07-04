@@ -2,7 +2,7 @@ import {
   Command,
   CommandBuilder,
   CommandHandler,
-} from 'commands'
+} from './commands'
 
 export class UndoableCommandHandler implements CommandHandler {
   readonly undoBuffer: Command[] = []

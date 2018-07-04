@@ -53,7 +53,6 @@ export class Tree {
   private breadcrumbsEl: Element
   private content: TreeNode
   private searchField
-  private searchButton
 
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService) {
     this.el = el('div.tree',
@@ -73,7 +72,7 @@ export class Tree {
     this.el.addEventListener('keydown', this.onKeydown.bind(this))
     this.el.addEventListener('click', this.onClick.bind(this))
     this.el.addEventListener('paste', this.onPaste.bind(this))
-    this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 250))
+    this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
     // NOTE: we had this trigger on document but that seemed to cause the event to be called twice!?
     this.el.addEventListener('keydown', this.treeKeyDownHandler.bind(this))
   }
