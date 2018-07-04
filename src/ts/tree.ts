@@ -1,9 +1,8 @@
 import {mount} from 'redom'
-import {State, Status, LoadedTree} from './domain/domain'
 import {PouchDbRepository} from './repository/repository-pouchdb'
 import {TreeService} from './service/tree-service'
-import {TreeServiceCommandHandler} from './service/command-handler-tree-service'
-import {UndoableCommandHandler} from './service/command-handler-undoable'
+import {TreeServiceCommandHandler} from './commands/command-handler-tree-service'
+import {UndoableCommandHandler} from './commands/command-handler-undoable'
 import {Tree} from './view/tree-component'
 
 const treeService = new TreeService(new PouchDbRepository())

@@ -1,7 +1,6 @@
+// DOM Utilities for working with Node Elements and its structure
 import { el } from 'redom'
 import * as sanitize from '../lib/sanitize'
-
-// DOM Utilities for working with Node Elements and its structure
 
 // Checks whether the current node has a parent
 export function hasParentNode(node: Element): boolean {

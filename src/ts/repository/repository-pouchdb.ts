@@ -35,7 +35,7 @@ export class PouchDbRepository implements Repository {
       })
   }
 
-  putNode(node: RepositoryNode, retryCount?: number): Promise<void> {
+  updateNode(node: RepositoryNode, retryCount?: number): Promise<void> {
     // console.log(`Putting node: '${JSON.stringify(node)}'`)
     return this.outlineDb.put(node)
       .catch((err) => {
@@ -45,7 +45,7 @@ export class PouchDbRepository implements Repository {
         // TODO evaluate whether to use the upsert plugin for this? https://github.com/pouchdb/upsert
         const retries = retryCount || 0
         if (err.status === 409 && retries <= 25) {
-          this.putNode(node, retries + 1)
+          this.updateNode(node, retries + 1)
         }
       })
   }
@@ -68,19 +68,19 @@ export class PouchDbRepository implements Repository {
         ? this.loadNode(child.parentref, false).then(oldParentNode => {
           const pouchDbParent = oldParentNode as PouchDbRepositoryNode
           pouchDbParent.childrefs = pouchDbParent.childrefs.filter(c => c !== child._id)
-          return this.putNode(oldParentNode)
+          return this.updateNode(oldParentNode)
         })
         : Promise.resolve()
       // set new parent in child
       return oldParentUpdatePromise.then(() => {
           child.parentref = parentId
-          return this.putNode(child)
+          return this.updateNode(child)
         })
       // add child to new parent
         .then(() => this.pdbLoadNode(parentId, false))
         .then(newParentNode => {
           newParentNode.childrefs = this.mergeNodeIds(newParentNode.childrefs || [], [child._id], position)
-          return this.putNode(newParentNode)
+          return this.updateNode(newParentNode)
         })
     })
   }

@@ -35,7 +35,7 @@ export class TreeService {
       .then(node => {
         if (newName !== node.name) {
           node.name = newName
-          return this.repo.putNode(node)
+          return this.repo.updateNode(node)
         } else {
           return Promise.resolve()
         }
@@ -78,7 +78,7 @@ export class TreeService {
     return this.repo.loadNode(nodeId, false)
       .then(node => {
         node.deleted = true
-        return this.repo.putNode(node)
+        return this.repo.updateNode(node)
       })
   }
 
@@ -88,7 +88,7 @@ export class TreeService {
       .then(node => {
         if (node) {
           delete node.deleted // removing this flag from the object since it is not required anymore
-          return this.repo.putNode(node)
+          return this.repo.updateNode(node)
         } else {
           throw new Error(`Node with id ${nodeId} does not exist`)
         }
@@ -107,7 +107,7 @@ export class TreeService {
         if (node.collapsed) {
           delete node.collapsed
         }
-        return this.repo.putNode(node)
+        return this.repo.updateNode(node)
       })
   }
 
@@ -115,7 +115,7 @@ export class TreeService {
     return this.repo.loadNode(nodeId, false)
       .then(node => {
         node.collapsed = true
-        return this.repo.putNode(node)
+        return this.repo.updateNode(node)
       })
   }
 
@@ -123,7 +123,7 @@ export class TreeService {
     return this.repo.loadNode(nodeId, false)
       .then(node => {
         node.content = note
-        return this.repo.putNode(node)
+        return this.repo.updateNode(node)
       })
   }
 
