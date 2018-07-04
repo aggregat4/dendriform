@@ -1,3 +1,5 @@
+import {findFirst} from '../util'
+
 export interface RepositoryNode {
   _id: string,
   name: string,
@@ -33,15 +35,6 @@ export interface Filter {
 export interface Highlight {
   pos: number,
   length: number
-}
-
-function findFirst(array: any[], predicate: (any) => boolean): any {
-  for (let i = 0; i < array.length; i++) {
-    if (predicate(array[i])) {
-      return array[i]
-    }
-  }
-  return null
 }
 
 export interface FilteredFragment {

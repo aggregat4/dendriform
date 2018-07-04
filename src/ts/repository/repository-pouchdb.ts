@@ -1,6 +1,12 @@
 import PouchDB from 'pouchdb-browser'
-// tslint:disable-next-line:max-line-length
-import {RepositoryNode, ResolvedRepositoryNode, LoadedTree, State, RelativeNodePosition, RelativeLinearPosition} from '../domain/domain'
+import {
+  RepositoryNode,
+  ResolvedRepositoryNode,
+  LoadedTree,
+  State,
+  RelativeNodePosition,
+  RelativeLinearPosition,
+} from '../domain/domain'
 import {Repository} from './repository'
 
 interface PouchDbRepositoryNode extends RepositoryNode {
@@ -166,8 +172,6 @@ export class PouchDbRepository implements Repository {
 
   // returns a promise of an array of nodes that are NOT deleted
   private loadChildren(node: PouchDbRepositoryNode, includeDeleted: boolean): Promise<PouchDbRepositoryNode[]> {
-    // TODO: add sanity checking that we are really passing in nodes here and not some garbage
-    // TODO: at some later point make sure we can also deal with different versions of the pouchdb data
     // console.log(`Call getChildren(${JSON.stringify(node)})`);
     return this.outlineDb.allDocs({
       include_docs: true,

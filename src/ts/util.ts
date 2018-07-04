@@ -156,3 +156,12 @@ export function pasteTextUnformatted(event: ClipboardEvent): void {
   const text = event.clipboardData.getData('text/plain')
   document.execCommand('insertHTML', false, text)
 }
+
+export function findFirst(array: any[], predicate: (any) => boolean): any {
+  for (let i = 0; i < array.length; i++) {
+    if (predicate(array[i])) {
+      return array[i]
+    }
+  }
+  return null
+}
