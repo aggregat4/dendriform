@@ -22,15 +22,8 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. Refactor the repository and the tree service: the tree service can only call repository primitives and should not know about the internal structure of how the tree is constructed (i.e. parentref and childrefs), the repository should allow reparentNode and the only thing we need to refactor in a big way is reparentNodes which is called by merge and split. Here we need to linearize a reparentNode command for all the children, in order by specifying they go at the end of the child list. Treeservice should then be only convenience methods. Maybe at some point we can better structure this as a TreeRepositoryService and a TreeQueryService so we don't have this awkward two tier thing like now. Branch for this! This is preparation for having an eventually consistent syncing backend.
-1. Implement sync (Hah!), possible approach:
-    1. branch
-    1. refactor repository.ts to be a real tree api (don't implicitly change prent child rels in updates)
-    1. implement new backend that persists a node set and an edge set in localstorage (builds necessary indices when loading) (what do we need to do to implement an LWW-Set?)
-    1. implement service that can store and forward events with lamport timestamps modelling tree changes
-    1. wire up that service in the client side code
-    1. implement notification callbacks for UI to react to changes
-    1. consider what cleanup strategies are needed for cleaning up inconsistencies
+1. Implement sync (Hah!)
+1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Implement export in some standard format
 1. Implement multi-select and delete and move operations (at least with keyboard)
