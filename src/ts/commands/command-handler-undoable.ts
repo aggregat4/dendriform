@@ -2,12 +2,7 @@ import {
   Command,
   CommandBuilder,
   CommandHandler,
-} from './service'
-import {
-  State,
-  ResolvedRepositoryNode,
-  LoadedTree,
-} from '../domain/domain'
+} from 'commands'
 
 export class UndoableCommandHandler implements CommandHandler {
   readonly undoBuffer: Command[] = []

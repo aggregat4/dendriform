@@ -1,10 +1,7 @@
 export interface RepositoryNode {
   _id: string,
-  _rev?: string,
   name: string,
   content: string,
-  childrefs: string[],
-  parentref: string,
   deleted?: boolean,
   collapsed?: boolean,
 }
@@ -14,8 +11,6 @@ export function createNewRepositoryNode(id: string, name: string, parentref?: st
     _id: id,
     name,
     content: null,
-    childrefs: [],
-    parentref,
   }
 }
 
@@ -26,7 +21,6 @@ export function createNewResolvedRepositoryNode(id: string, name: string, parent
   }
 }
 
-// TODO: consider refactoring this to just extend the RepositoryNode interface
 export interface ResolvedRepositoryNode {
   node: RepositoryNode,
   children: ResolvedRepositoryNode[],
@@ -75,18 +69,6 @@ export class FilteredRepositoryNode {
       || this.areAnyChildrenIncluded
   }
 }
-
-/*
-function findHits(corpus: string, filter: Filter): Highlight[] {
-  const highlights = []
-  let pos = 0 - filter.query.length
-  const lowerCaseCorpus = corpus.toLowerCase()
-  while ((pos = lowerCaseCorpus.indexOf(filter.query, pos + filter.query.length)) > -1) {
-    highlights.push({pos, length: filter.query.length})
-  }
-  return highlights
-}
-*/
 
 // element is of type any because I could not find a good way to abstract all
 // the interfaces and mixins
@@ -160,11 +142,6 @@ export enum RelativeLinearPosition {
 }
 
 export interface RelativeNodePosition {
-  nodeId: string,
+  nodeId?: string,
   beforeOrAfter: RelativeLinearPosition
-}
-
-export enum MergeNameOrder {
-  SOURCE_TARGET,
-  TARGET_SOURCE,
 }

@@ -3,9 +3,11 @@ import {RepositoryNode, LoadedTree, RelativeNodePosition} from '../domain/domain
 export interface Repository {
   createNode(id: string, name: string, content: string): Promise<RepositoryNode>
   putNode(node: RepositoryNode): Promise<void>
-  reparentNode(child: RepositoryNode, parentId: string, position: RelativeNodePosition): Promise<void>
+  reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void>
+
+  getChildIds(nodeId: string): Promise<string[]>
+  getParentId(nodeId: string): Promise<string>
 
   loadNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode>
-  loadChildren(node: RepositoryNode, includeDeleted: boolean): Promise<RepositoryNode[]>
-  loadTree(node: RepositoryNode): Promise<LoadedTree>
+  loadTree(nodeId: string): Promise<LoadedTree>
 }

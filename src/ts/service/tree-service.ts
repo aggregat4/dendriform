@@ -5,31 +5,20 @@ import {
   LoadedTree,
   State,
   RelativeNodePosition,
-  MergeNameOrder,
 } from '../domain/domain'
 import {Repository} from '../repository/repository'
+import { MergeNameOrder } from 'service'
 
 export class TreeService {
   constructor(readonly repo: Repository) {}
 
   loadTree(nodeId: string): Promise<LoadedTree> {
-    return this.loadTreeByRootId(nodeId)
+    return this.repo.loadTree(nodeId)
       .then((tree) => {
         if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
-          return this.initializeEmptyTree().then(() => this.loadTreeByRootId(nodeId))
+          return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId))
         } else {
           return tree
-        }
-      })
-  }
-
-  private loadTreeByRootId(rootId: string): Promise<LoadedTree> {
-    return this.repo.loadNode(rootId, false)
-      .then(root => {
-        if (root) {
-          return this.repo.loadTree(root)
-        } else {
-          return {status: {state: State.NOT_FOUND}}
         }
       })
   }
@@ -68,17 +57,17 @@ export class TreeService {
   }
 
   reparentNode(nodeId: string, newParentId: string, position: RelativeNodePosition): Promise<any> {
-    return this.getNode(nodeId).then(node => this.repo.reparentNode(node, newParentId, position))
+    return this.repo.reparentNode(nodeId, newParentId, position)
   }
 
-  reparentNodes(children: RepositoryNode[], newParentId: string): Promise<any> {
-    if (!children || children.length === 0) {
+  reparentNodes(childIds: string[], newParentId: string): Promise<any> {
+    if (!childIds) {
       return Promise.resolve()
     }
     let sequentialPromise = Promise.resolve()
-    for (const child of children) {
+    for (const childId of childIds) {
       sequentialPromise = sequentialPromise
-        .then(() => this.repo.reparentNode(child, newParentId,
+        .then(() => this.repo.reparentNode(childId, newParentId,
           {nodeId: null, beforeOrAfter: RelativeLinearPosition.END}))
     }
     return sequentialPromise
@@ -109,18 +98,7 @@ export class TreeService {
   // Returns a promise of the parent node
   private addChildToParent(childId: string, parentId: string): Promise<void> {
     // console.log(`addChildToParent ${childId} -> ${parentId}`)
-    return this.repo.loadNode(childId, false)
-      .then(child => {
-        child.parentref = parentId
-        return this.repo.putNode(child)
-      })
-      .then(() =>
-        this.repo.loadNode(parentId, false)
-          .then(parent => {
-            parent.childrefs.push(childId)
-            return this.repo.putNode(parent)
-          }),
-      )
+    return this.repo.reparentNode(childId, parentId, {beforeOrAfter: RelativeLinearPosition.END})
   }
 
   openNode(nodeId: string): Promise<void> {
@@ -158,15 +136,13 @@ export class TreeService {
           return this.undeleteNode(newSiblingId)
         } else {
           return this.createNode(newSiblingId, newSiblingName, null)
-            .then(siblingNode =>
-              this.getNode(nodeId)
-                .then(originalNode =>
-                  this.reparentNode(newSiblingId, originalNode.parentref,
-                    {nodeId, beforeOrAfter: RelativeLinearPosition.BEFORE})))
+            .then(siblingNode => this.repo.getParentId(nodeId))
+            .then(parentId =>
+              this.reparentNode(newSiblingId, parentId, {nodeId, beforeOrAfter: RelativeLinearPosition.BEFORE}))
         }
       })
-      .then(() => this.getChildNodes(nodeId, true))
-      .then(children => this.reparentNodes(children, newSiblingId))
+      .then(() => this.repo.getChildIds(nodeId))
+      .then(childIds => this.reparentNodes(childIds, newSiblingId))
       .then(() => this.renameNode(nodeId, nodeName))
   }
 
@@ -180,17 +156,13 @@ export class TreeService {
   // maybe we want to revisit this in the future)
   mergeNodes(sourceNodeId: string, sourceNodeName: string,
              targetNodeId: string, targetNodeName: string, mergeNameOrder: MergeNameOrder): Promise<any> {
-    return this.getChildNodes(sourceNodeId, true)
-      .then(children => this.reparentNodes(children, targetNodeId))
+    return this.repo.getChildIds(sourceNodeId)
+      .then(childIds => this.reparentNodes(childIds, targetNodeId))
       .then(() => this.renameNode(
         targetNodeId,
         mergeNameOrder === MergeNameOrder.SOURCE_TARGET ?
           sourceNodeName + targetNodeName : targetNodeName + sourceNodeName))
       .then(() => this.deleteNode(sourceNodeId))
-  }
-
-  private getChildNodes(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode[]> {
-    return this.repo.loadNode(nodeId, includeDeleted).then(node => this.repo.loadChildren(node, includeDeleted))
   }
 
 }

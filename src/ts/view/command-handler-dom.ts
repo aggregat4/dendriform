@@ -1,8 +1,8 @@
 import {
-  MergeNameOrder,
   RelativeLinearPosition,
   createNewResolvedRepositoryNode,
-  filterNode } from '../domain/domain'
+  filterNode,
+} from '../domain/domain'
 import {
   CloseNodeByIdCommandPayload,
   Command,
@@ -14,8 +14,10 @@ import {
   ReparentNodeByIdCommandPayload,
   SplitNodeByIdCommandPayload,
   UndeleteNodeByIdCommandPayload,
-  UpdateNoteByIdCommandPayload} from '../service/service'
-import { TreeNode } from './node-component'
+  UpdateNoteByIdCommandPayload,
+} from '../commands/commands'
+import {MergeNameOrder} from '../service/service'
+import {TreeNode} from './node-component'
 import {
   getChildrenElement,
   getChildrenElementOrCreate,
@@ -23,7 +25,8 @@ import {
   getParentNode,
   getNodeId,
   hasChildren,
-  getNoteElement} from './tree-dom-util'
+  getNoteElement,
+} from './tree-dom-util'
 
 export class DomCommandHandler implements CommandHandler {
 

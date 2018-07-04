@@ -1,15 +1,16 @@
 import { el, setChildren, setAttr, setStyle } from 'redom'
+import {MergeNameOrder} from '../service/service'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, MergeNameOrder, filterNode, FilteredRepositoryNode} from '../domain/domain'
+import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, filterNode, FilteredRepositoryNode} from '../domain/domain'
 // tslint:disable-next-line:max-line-length
-import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodeByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, UpdateNoteByIdCommandPayload } from '../service/service'
+import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodeByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, UpdateNoteByIdCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
 import { debounce, generateUUID, getCursorPos, getTextAfterCursor, getTextBeforeCursor, isCursorAtBeginning, isCursorAtEnd, isEmpty, isTextSelected, setCursorPos, isCursorAtContentEditableBeginning, pasteTextUnformatted } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
 import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement, getNodeNote, getNodeForNoteElement, isInNoteElement, findNoteElementAncestor } from './tree-dom-util'
-import { UndoableCommandHandler } from '../service/command-handler-undoable'
+import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 import { TreeService } from '../service/tree-service'
 
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)

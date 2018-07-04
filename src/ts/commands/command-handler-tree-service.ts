@@ -11,8 +11,8 @@ import {
   UndeleteNodeByIdCommandPayload,
   DeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
-} from './service'
-import {TreeService} from './tree-service'
+} from 'commands'
+import {TreeService} from '../service/tree-service'
 
 // TODO: evaluate if it does not make sense to fold the actual implementations of the methods here
 // directly into the TreeService
