@@ -1,7 +1,7 @@
 {
   "name": "dendriform",
   "version": "1.0.0",
-  "description": "A web based outliner with offline capabilities",
+  "description": "A web based offline outliner with sync",
   "repository": {
     "type": "git",
     "url": "https://github.com/aggregat4/dendriform"

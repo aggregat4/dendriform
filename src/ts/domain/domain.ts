@@ -1,5 +1,8 @@
 import {findFirst} from '../util'
 
+export const BEGINNING_NODELIST_MARKER = '|-'
+export const END_NODELIST_MARKER = '-|'
+
 export interface RepositoryNode {
   _id: string,
   name: string,
