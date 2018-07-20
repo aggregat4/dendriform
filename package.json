@@ -36,6 +36,7 @@
   "dependencies": {
     "p-queue": "^2.3.1",
     "pouchdb-browser": "^6.4.3",
-    "redom": "^3.11.1"
+    "redom": "^3.11.1",
+    "dexie": "^2.0.4"
   }
 }
