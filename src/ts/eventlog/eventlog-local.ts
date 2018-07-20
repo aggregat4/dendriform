@@ -44,6 +44,30 @@ class LocalEventLog implements QueryableEventLog {
     })
   }
 
+  /**
+   * Builds the actual sorted in memory event log that is used to determine
+   * where to add new events and how to compact the log.
+   *
+   * It will contain: eventid,vectorclock,peerid,nodeid,eventtype
+   *
+   * The log is sorted by vectorclock and peerid, the latter to make sure that we
+   * have a stable ordering in case of concurrent events.
+   *
+   * Future optimisation: map peerids from their string UUIDs to a local integer
+   * map (could be built on load?).
+   *
+   * On insert: find the spot in the sorted array for the new event, then go
+   * backwards and remove all events (that are BEFORE) for the same nodeid in
+   * the array and on disk.
+   * 
+   * TODO: do I really keep the nodeid and eventtype in memory? Would it be better
+   * to load the events for a node from the store, then sort by vc and peerid and
+   * do the compaction on that? Otherwise we need to go down the entire in memory
+   * event log every time...
+   * 
+   * Of course the same is try for loading a node: also better to just load all
+   * relevant events from the persistent log?
+   */
   private loadEventLog(): void {
     // TODO: load all the events from the store and create the in memory 
   }
