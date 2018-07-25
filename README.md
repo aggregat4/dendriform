@@ -22,6 +22,10 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. Our current EventLog implementation stores 2 kinds of events and uses two tables for that since we have tree events and node events. We should probably change this and use more basic building blocks:
+    1. each event log is a generic EventLog<T> where T is the payload
+    1. each event log just has one event table, and the eventid is the counter
+    1. a higher level abstraction wraps around those basic event logs and implements the logic for getChildIds, getParentId, loadNode, loadTree. They maintain the caches, load all the events if necessary, etc. This could be the repository? Caches can be maintained based on subscriptions and initially constructed with a getEventsSince(0).
 1. Implement sync (Hah!)
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
 1. Implement import of some standard format (probably at least the workflowy opml?)
