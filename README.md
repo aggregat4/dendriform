@@ -22,16 +22,16 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. Our current EventLog implementation stores 2 kinds of events and uses two tables for that since we have tree events and node events. We should probably change this and use more basic building blocks:
-    1. each event log is a generic EventLog<T> where T is the payload
-    1. each event log just has one event table, and the eventid is the counter
-    1. a higher level abstraction wraps around those basic event logs and implements the logic for getChildIds, getParentId, loadNode, loadTree. They maintain the caches, load all the events if necessary, etc. This could be the repository? Caches can be maintained based on subscriptions and initially constructed with a getEventsSince(0).
 1. Implement sync (Hah!)
+    1. Implement repository-eventlog that wraps around the basic event logs and implements the logic for getChildIds, getParentId, loadNode, loadTree. They maintain the caches, load all the events if necessary, etc. This could be the repository? Caches can be maintained based on subscriptions and initially constructed with a getEventsSince(0).
+    1. implement server side eventlog in Kotlin
+    1. implement remote eventlog
+    1. implement eventpump and configure eventpumps
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Implement export in some standard format
 1. Implement multi-select and delete and move operations (at least with keyboard)
-1. auto link urls in names and notes
+1. Auto link urls in names and notes
 1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, make it easier to implement platform specific key combos, etc
 1. Check compatibility with Firefox
 1. Check if it works on iOS and Android

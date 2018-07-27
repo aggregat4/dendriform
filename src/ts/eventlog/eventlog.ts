@@ -1,5 +1,5 @@
-import { RepositoryNode, LoadedTree } from '../domain/domain'
 import { VectorClock } from '../lib/vectorclock'
+import { Predicate } from '../util'
 
 // At the moment we put add and update together and always transport
 // the full payload. This makes everything easier for now.
@@ -33,8 +33,6 @@ export class DEvent<T> {
     }
 
 }
-
-export type Predicate = (_: any) => boolean
 
 export class EventLogError extends Error {}
 export class CounterTooHighError extends EventLogError {}

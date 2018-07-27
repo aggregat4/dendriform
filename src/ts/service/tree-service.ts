@@ -1,10 +1,11 @@
-import {generateUUID} from '../util'
+import {generateUUID, ALWAYS_TRUE} from '../util'
 import {
   RelativeLinearPosition,
   RepositoryNode,
   LoadedTree,
   State,
   RelativeNodePosition,
+  nodeIsNotDeleted,
 } from '../domain/domain'
 import {Repository} from '../repository/repository'
 import { MergeNameOrder } from './service'
@@ -13,10 +14,10 @@ export class TreeService {
   constructor(readonly repo: Repository) {}
 
   loadTree(nodeId: string): Promise<LoadedTree> {
-    return this.repo.loadTree(nodeId)
+    return this.repo.loadTree(nodeId, ALWAYS_TRUE)
       .then((tree) => {
         if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
-          return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId))
+          return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId, ALWAYS_TRUE))
         } else {
           return tree
         }
@@ -31,7 +32,7 @@ export class TreeService {
 
   // loads the node by id, renames it and then returns a Promise of a response when done
   renameNode(nodeId: string, newName: string): Promise<any> {
-    return this.repo.loadNode(nodeId, false)
+    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
       .then(node => {
         if (newName !== node.name) {
           node.name = newName
@@ -48,12 +49,12 @@ export class TreeService {
 
   getNode(nodeId: string): Promise<RepositoryNode> {
     // console.log(`getNode for id '${nodeId}'`)
-    return this.repo.loadNode(nodeId, false)
+    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
   }
 
   findNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode> {
     // console.log(`getNode for id '${nodeId}'`)
-    return this.repo.loadNode(nodeId, includeDeleted)
+    return this.repo.loadNode(nodeId, ALWAYS_TRUE)
   }
 
   reparentNode(nodeId: string, newParentId: string, position: RelativeNodePosition): Promise<any> {
@@ -75,7 +76,7 @@ export class TreeService {
 
   // deletes a node, this just sets a deleted flag to true
   deleteNode(nodeId: string): Promise<any> {
-    return this.repo.loadNode(nodeId, false)
+    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
       .then(node => {
         node.deleted = true
         return this.repo.updateNode(node)
@@ -84,7 +85,7 @@ export class TreeService {
 
   // undeletes a node, just removing its deleted flag
   undeleteNode(nodeId: string): Promise<any> {
-    return this.repo.loadNode(nodeId, true)
+    return this.repo.loadNode(nodeId, ALWAYS_TRUE)
       .then(node => {
         if (node) {
           delete node.deleted // removing this flag from the object since it is not required anymore
@@ -102,7 +103,7 @@ export class TreeService {
   }
 
   openNode(nodeId: string): Promise<void> {
-    return this.repo.loadNode(nodeId, false)
+    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
       .then(node => {
         if (node.collapsed) {
           delete node.collapsed
@@ -112,7 +113,7 @@ export class TreeService {
   }
 
   closeNode(nodeId: string): Promise<void> {
-    return this.repo.loadNode(nodeId, false)
+    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
       .then(node => {
         node.collapsed = true
         return this.repo.updateNode(node)
@@ -120,7 +121,7 @@ export class TreeService {
   }
 
   updateNote(nodeId: string, note: string): Promise<void> {
-    return this.repo.loadNode(nodeId, false)
+    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
       .then(node => {
         node.content = note
         return this.repo.updateNode(node)

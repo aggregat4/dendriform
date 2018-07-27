@@ -1,3 +1,7 @@
+export type Predicate = (_: any) => boolean
+
+export function ALWAYS_TRUE(foo: any) { return true }
+
 export function isEmpty(str: string): boolean {
   return !str || str.trim() === ''
 }

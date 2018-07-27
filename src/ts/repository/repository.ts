@@ -1,4 +1,5 @@
 import {RepositoryNode, LoadedTree, RelativeNodePosition} from '../domain/domain'
+import { Predicate } from '../util'
 
 export interface Repository {
   createNode(id: string, name: string, content: string): Promise<RepositoryNode>
@@ -7,7 +8,6 @@ export interface Repository {
 
   getChildIds(nodeId: string): Promise<string[]>
   getParentId(nodeId: string): Promise<string>
-
-  loadNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode>
-  loadTree(nodeId: string): Promise<LoadedTree>
+  loadNode(nodeId: string, nodeFilter: Predicate): Promise<RepositoryNode>
+  loadTree(nodeId: string, nodeFilter: Predicate): Promise<LoadedTree>
 }

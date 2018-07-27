@@ -11,6 +11,10 @@ export interface RepositoryNode {
   collapsed?: boolean,
 }
 
+export function nodeIsDeleted(node: RepositoryNode): boolean { return node.deleted && node.deleted === true }
+
+export function nodeIsNotDeleted(node: RepositoryNode): boolean { return !node.deleted || node.deleted !== true }
+
 export function createNewRepositoryNode(id: string, name: string, parentref?: string): RepositoryNode {
   return {
     _id: id,

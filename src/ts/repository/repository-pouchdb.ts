@@ -6,8 +6,10 @@ import {
   State,
   RelativeNodePosition,
   RelativeLinearPosition,
+  nodeIsNotDeleted,
 } from '../domain/domain'
 import {Repository} from './repository'
+import { Predicate, ALWAYS_TRUE } from '../util'
 
 interface PouchDbRepositoryNode extends RepositoryNode {
   childrefs: string[],
@@ -62,10 +64,10 @@ export class PouchDbRepository implements Repository {
    *   save new parent
    */
   reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
-    return this.pdbLoadNode(childId, false).then(child => {
+    return this.pdbLoadNode(childId, nodeIsNotDeleted).then(child => {
       // remove child from old parent
       const oldParentUpdatePromise = child.parentref
-        ? this.loadNode(child.parentref, false).then(oldParentNode => {
+        ? this.loadNode(child.parentref, nodeIsNotDeleted).then(oldParentNode => {
           const pouchDbParent = oldParentNode as PouchDbRepositoryNode
           pouchDbParent.childrefs = pouchDbParent.childrefs.filter(c => c !== child._id)
           return this.updateNode(oldParentNode)
@@ -77,7 +79,7 @@ export class PouchDbRepository implements Repository {
           return this.updateNode(child)
         })
       // add child to new parent
-        .then(() => this.pdbLoadNode(parentId, false))
+        .then(() => this.pdbLoadNode(parentId, nodeIsNotDeleted))
         .then(newParentNode => {
           newParentNode.childrefs = this.mergeNodeIds(newParentNode.childrefs || [], [child._id], position)
           return this.updateNode(newParentNode)
@@ -110,23 +112,24 @@ export class PouchDbRepository implements Repository {
   }
 
   getChildIds(nodeId: string): Promise<string[]> {
-    return this.pdbLoadNode(nodeId, true).then(node => node.childrefs)
+    return this.pdbLoadNode(nodeId, ALWAYS_TRUE).then(node => node.childrefs)
   }
 
   getParentId(nodeId: string): Promise<string> {
-    return this.pdbLoadNode(nodeId, true).then(node => node.parentref)
+    return this.pdbLoadNode(nodeId, ALWAYS_TRUE).then(node => node.parentref)
   }
 
-  loadNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode> {
-    return this.pdbLoadNode(nodeId, includeDeleted)
+loadNode(nodeId: string, nodeFilter: Predicate): Promise<RepositoryNode> {
+    return this.pdbLoadNode(nodeId, nodeFilter)
   }
 
   // returns a promise of a node, you can determine whether to include deleted or not
-  private pdbLoadNode(nodeId: string, includeDeleted: boolean): Promise<PouchDbRepositoryNode> {
+  private pdbLoadNode(nodeId: string, nodeFilter: Predicate): Promise<PouchDbRepositoryNode> {
     // console.log(`cdbLoadNode for id '${nodeId}'`)
     return this.outlineDb.get(nodeId).then(node => {
-      if (node.deleted && node.deleted === true && !includeDeleted) {
-        throw new Error(`Node with id '${nodeId}' was deleted`)
+      // if (node.deleted && node.deleted === true && !includeDeleted) {
+      if (!nodeFilter(node)) {
+        throw new Error(`Node with id '${nodeId}' exists but did not fulfill the filter`)
       } else {
         return node
       }
@@ -140,8 +143,8 @@ export class PouchDbRepository implements Repository {
     })
   }
 
-  loadTree(nodeId: string): Promise<LoadedTree> {
-    return this.pdbLoadNode(nodeId, true)
+  loadTree(nodeId: string, nodeFilter: Predicate): Promise<LoadedTree> {
+    return this.pdbLoadNode(nodeId, nodeFilter)
       .then(node => {
         return Promise.all([
           this.loadTreeNodeRecursively(node),
@@ -188,7 +191,7 @@ export class PouchDbRepository implements Repository {
     Promise<PouchDbRepositoryNode[]> {
     // console.log(`loading parents for `, child, ` with parents array `, parents)
     if (child.parentref && child.parentref !== 'ROOT') {
-      return this.pdbLoadNode(child.parentref, false)
+      return this.pdbLoadNode(child.parentref, nodeIsNotDeleted)
         .then(parent => {
           parents.push(parent)
           return this.loadParents(parent, parents)
