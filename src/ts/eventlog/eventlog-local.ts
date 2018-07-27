@@ -1,15 +1,16 @@
 // tslint:disable-next-line:max-line-length
-import {EventLogCounter, DEvent, TreeQueryable, DEventLog, AddOrUpdateNodeEventPayload, ReparentNodeEventPayload, EventType, EventSubscriber, DEventSource} from './eventlog'
+import {EventLogCounter, DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events} from './eventlog'
 import {Dexie} from 'dexie'
 import {generateUUID} from '../util'
 import {VectorClock} from '../lib/vectorclock'
 
-interface StoredEvent {
+interface StoredEvent<T> {
   eventid?: number,
+  eventtype: number,
   treenodeid: string,
   peerid: string,
   vectorclock: VectorClock,
-  payload: AddOrUpdateNodeEventPayload | ReparentNodeEventPayload,
+  payload: T,
 }
 
 /**
@@ -18,13 +19,13 @@ interface StoredEvent {
  *
  * TODO: do we need to make this multi document capable? Currently assumes one log, one document
  */
-export class LocalEventLog implements DEventSource, DEventLog {
+export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
 
   readonly db = new Dexie('dendriform-localeventlog')
   private peerId: string
   private vectorClock: VectorClock
   private counter: EventLogCounter
-  private subscribers: EventSubscriber[] = []
+  private subscribers: Array<EventSubscriber<T>> = []
 
   constructor() {
     this.initDb()
@@ -34,21 +35,21 @@ export class LocalEventLog implements DEventSource, DEventLog {
   private initDb(): void {
     this.db.version(1).stores({
       peer: '', // columns: eventlogid, vectorclock, counter
-      nodeeventlog: '++eventid,treenodeid', // see StoredEvent for schema
-      treeeventlog: '++eventid,treenodeid', // see StoredEvent for schema
+      eventlog: '++eventid,treenodeid', // see StoredEvent for schema
+      // treeeventlog: '++eventid,treenodeid', // see StoredEvent for schema
     })
     this.db.open()
   }
 
-  private loadOrCreateMetadata(): void {
-    this.db.table('peer').toArray().then(metadata => {
+  private loadOrCreateMetadata(): Promise<any> {
+    return this.db.table('peer').toArray().then(metadata => {
       if (!metadata || metadata.length === 0) {
         this.peerId = generateUUID()
         this.vectorClock = new VectorClock()
         // always start a new vectorclock on 1 for the current peer
         this.vectorClock.increment(this.peerId)
-        this.counter = 1
-        this.db.table('peer').put({eventlogid: this.peerId, vectorclock: this.vectorClock, counter: this.counter})
+        this.counter = 0
+        this.saveMetadata()
       } else {
         const md = metadata[0]
         this.peerId = md.peerid
@@ -58,46 +59,71 @@ export class LocalEventLog implements DEventSource, DEventLog {
     })
   }
 
-  publish(type: EventType, nodeId: string,
-          payload: AddOrUpdateNodeEventPayload | ReparentNodeEventPayload): Promise<any> {
+  private saveMetadata(): Promise<any> {
+    return this.db.table('peer').put({
+      eventlogid: this.peerId,
+      vectorclock: this.vectorClock,
+      counter: this.counter,
+    })
+  }
+
+  publish(type: EventType, nodeId: string, payload: T): Promise<any> {
     this.vectorClock.increment(this.peerId)
-    const event = new DEvent(
+    return this.insert(new DEvent<T>(
       type,
       this.peerId,
       this.vectorClock,
       nodeId,
       payload,
-    )
-    return this.insert(event)
+    ))
   }
 
   /**
    * 1. persist the event in indexeddb
    * 2. compact the store by removing redundant events
    * 3. (later) update the in memory maps (parent map, child map)
-   * 5. notify any subscribers that are interested
+   * 4. async notify any subscribers that are interested
    *
    * @param events The events to persist and rebroadcast.
    */
-  insert(event: DEvent): Promise<EventLogCounter> {
-    const table = event.type === EventType.ADD_OR_UPDATE_NODE ?
-      this.db.table('nodeeventlog') :
-      this.db.table('treeeventlog')
-    return this.storeAndGarbageCollect(table, event)
-      .then(() => this.notifySubscribers(event))
-      .then(() => this.incrementCounter())
+  insert(event: DEvent<T>): Promise<EventLogCounter> {
+    try {
+      const result: Promise<EventLogCounter> = this.storeAndGarbageCollect(event)
+        .then(storedEvent => { this.counter = storedEvent.eventid })
+        .then(() => this.saveMetadata())
+      window.setTimeout(() => this.notifySubscribers(event), 1)
+      return result
+    } catch (err) {
+      // TODO: do something more clever with errors?
+      // tslint:disable-next-line:no-console
+      console.error(`ERROR occurred during nodeEvent storage: `, err)
+    }
   }
 
-  subscribe(subscriber: EventSubscriber): void {
+  // TODO: we need a bulk version of insert that splits by nodeId and does bulk insert per nodeId
+
+  subscribe(subscriber: EventSubscriber<T>): void {
     this.subscribers.push(subscriber)
   }
 
-  private incrementCounter(): EventLogCounter {
-    this.counter++
-    return this.counter
+  /**
+   * Loads all events that a counter that is higher than or equal to the provided number.
+   * Throws CounterTooHighError when the provided counter is higher than the max counter
+   * of the eventlog.
+   */
+  getEventsSince(counter: number): Promise<Events<T>> {
+    if (counter > this.counter) {
+      throw new CounterTooHighError(`The eventlog has a counter of ${this.counter}` +
+        ` but events were requested since ${counter}`)
+    }
+    const table = this.db.table('eventlog')
+    return table.where('eventid').aboveOrEqual(counter).toArray()
+      .then((events: Array<StoredEvent<T>>) => events.map(ev =>
+        new DEvent(ev.eventtype, ev.peerid, ev.vectorclock, ev.treenodeid, ev.payload)))
+      .then((events: Array<DEvent<T>>) => ({counter: this.counter, events}))
   }
 
-  private notifySubscribers(e: DEvent): void {
+  private notifySubscribers(e: DEvent<T>): void {
     for (const subscriber of this.subscribers) {
       if (subscriber.filter(e)) {
         subscriber.notify(e)
@@ -105,26 +131,33 @@ export class LocalEventLog implements DEventSource, DEventLog {
     }
   }
 
-  private storeAndGarbageCollect(table: any, event: DEvent): Promise<any> {
+  private async storeAndGarbageCollect(event: DEvent<T>): Promise<StoredEvent<T>> {
+    const storedEvent = await this.store(event)
+    await this.garbageCollect(event.nodeId)
+    return storedEvent
+  }
+
+  private store(event: DEvent<T>): Promise<StoredEvent<T>> {
+    const table = this.db.table('eventlog')
     return table.put({
+      eventtype: event.type,
       treenodeid: event.nodeId,
       peerid: event.originator,
       vectorclock: event.clock,
       payload: event.payload,
     })
-    .then(() => table.where('treenodeid').equals(event.nodeId).toArray())
-    .then((nodeEvents: StoredEvent[]) => {
-      this.sortAndPruneEvents(nodeEvents)
-      return table.bulkDelete(nodeEvents.map((e) => e.eventid))
-    })
-    .catch(err => {
-      // TODO: do something more clever with errors?
-      // tslint:disable-next-line:no-console
-      console.error(`ERROR occurred during nodeEvent storage: `, err)
-    })
   }
 
-  private sortAndPruneEvents(events: StoredEvent[]): void {
+  private garbageCollect(nodeId: string): Promise<any> {
+    const table = this.db.table('eventlog')
+    return table.where('treenodeid').equals(nodeId).toArray()
+      .then((nodeEvents: Array<StoredEvent<T>>) => {
+        this.sortAndPruneEvents(nodeEvents)
+        return table.bulkDelete(nodeEvents.map((e) => e.eventid))
+      })
+  }
+
+  private sortAndPruneEvents(events: Array<StoredEvent<T>>): void {
     if (events.length > 1) {
       // sort event array by vectorclock and peerid
       // remove all but the last event

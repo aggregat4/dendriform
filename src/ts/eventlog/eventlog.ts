@@ -20,15 +20,15 @@ export interface ReparentNodeEventPayload {
   afterNodeId: string, // whether to position the node, can be one of the NODELIST_MARKERS
 }
 
-export class DEvent {
+export class DEvent<T> {
   constructor(
     readonly type: EventType,
     readonly originator: string,
     readonly clock: VectorClock,
     readonly nodeId: string,
-    readonly payload: AddOrUpdateNodeEventPayload | ReparentNodeEventPayload) {}
+    readonly payload: T) {}
 
-    isIdentical(other: DEvent): boolean {
+    isIdentical(other: DEvent<T>): boolean {
       return this.type === other.type && this.clock.isIdentical(other.clock)
     }
 
@@ -39,9 +39,10 @@ export type Predicate = (_: any) => boolean
 export class EventLogError extends Error {}
 export class CounterTooHighError extends EventLogError {}
 
-export type EventListener = (_: DEvent) => void
-export interface EventSubscriber {
-  notify: EventListener,
+export type EventListener<T> = (_: DEvent<T>) => void
+
+export interface EventSubscriber<T> {
+  notify: EventListener<T>,
   filter: Predicate,
 }
 export type EventLogCounter = number
@@ -50,28 +51,18 @@ export interface EventLogState {
   counter: number
 }
 
-export interface Events extends EventLogState {
-  events: DEvent[],
+export interface Events<T> extends EventLogState {
+  events: Array<DEvent<T>>,
 }
 
-export interface DEventSource {
-  publish(type: EventType, nodeId: string,
-          payload: AddOrUpdateNodeEventPayload | ReparentNodeEventPayload): Promise<any>
+export interface DEventSource<T> {
+  publish(type: EventType, nodeId: string, payload: T): Promise<any>
 }
 
-export interface DEventLog {
-  insert(events: DEvent): Promise<EventLogCounter>
+export interface DEventLog<T> {
+  insert(events: DEvent<T>): Promise<EventLogCounter>
   // TODO: consider returning a subscription that can be cancelled
-  subscribe(subscriber: EventSubscriber): void
+  subscribe(subscriber: EventSubscriber<T>): void
   // throws CounterTooHighError when counter is larger than what the server knows
-  getEventsSince(counter: number): Promise<Events>
-}
-
-// ----- Tree specific query functionality ----
-
-export interface TreeQueryable {
-  getChildIds(nodeId: string): Promise<string[]>
-  getParentId(nodeId: string): Promise<string>
-  loadNode(nodeId: string, nodeFilter: Predicate): Promise<RepositoryNode>
-  loadTree(nodeId: string, nodeFilter: Predicate): Promise<LoadedTree>
+  getEventsSince(counter: number): Promise<Events<T>>
 }
