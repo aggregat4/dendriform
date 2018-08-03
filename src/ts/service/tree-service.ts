@@ -25,9 +25,10 @@ export class TreeService {
   }
 
   private initializeEmptyTree(): Promise<void> {
+    const newId = generateUUID()
     return this.repo.createNode('ROOT', 'ROOT', null)
-      .then(() => this.repo.createNode(generateUUID(), '', null))
-      .then(child => this.addChildToParent(child._id, 'ROOT'))
+      .then(() => this.repo.createNode(newId, '', null))
+      .then(() => this.addChildToParent(newId, 'ROOT'))
   }
 
   // loads the node by id, renames it and then returns a Promise of a response when done
@@ -43,7 +44,7 @@ export class TreeService {
       })
   }
 
-  createNode(id: string, name: string, content: string): Promise<RepositoryNode> {
+  createNode(id: string, name: string, content: string): Promise<void> {
     return this.repo.createNode(id, name, content)
   }
 
@@ -137,7 +138,7 @@ export class TreeService {
           return this.undeleteNode(newSiblingId)
         } else {
           return this.createNode(newSiblingId, newSiblingName, null)
-            .then(siblingNode => this.repo.getParentId(nodeId))
+            .then(() => this.repo.getParentId(nodeId))
             .then(parentId =>
               this.reparentNode(newSiblingId, parentId, {nodeId, beforeOrAfter: RelativeLinearPosition.BEFORE}))
         }

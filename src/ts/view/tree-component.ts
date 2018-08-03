@@ -1,7 +1,7 @@
 import { el, setChildren, setAttr, setStyle } from 'redom'
 import {MergeNameOrder} from '../service/service'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, filterNode, FilteredRepositoryNode} from '../domain/domain'
+import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, filterNode, FilteredRepositoryNode, BEGINNING_NODELIST_MARKER} from '../domain/domain'
 // tslint:disable-next-line:max-line-length
 import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodeByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, UpdateNoteByIdCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
@@ -454,13 +454,26 @@ export class Tree {
   private moveNodeUp(nodeElement: Element): void {
     const parentNodeElement = getParentNode(nodeElement)
     if (nodeElement.previousElementSibling) {
-      this.reparentNodeAt(
-        nodeElement,
-        getCursorPos(),
-        parentNodeElement,
-        parentNodeElement,
-        RelativeLinearPosition.BEFORE,
-        nodeElement.previousElementSibling)
+      // we only express relative node positions as being _after_ an existing node
+      // so we need to figure out whether there is another node as the previous node's
+      // previous sibling, or whether we just need to be at the start of the list
+      if (nodeElement.previousElementSibling.previousElementSibling) {
+        this.reparentNodeAt(
+          nodeElement,
+          getCursorPos(),
+          parentNodeElement,
+          parentNodeElement,
+          RelativeLinearPosition.AFTER,
+          nodeElement.previousElementSibling.previousElementSibling)
+      } else {
+        this.reparentNodeAt(
+          nodeElement,
+          getCursorPos(),
+          parentNodeElement,
+          parentNodeElement,
+          RelativeLinearPosition.BEGINNING,
+          null)
+      }
     } else if (parentNodeElement.previousElementSibling) {
       // the node itself has no previous siblings, but if its parent has one, we will move it there
       this.reparentNodeAt(

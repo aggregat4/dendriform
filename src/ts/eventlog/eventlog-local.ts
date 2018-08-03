@@ -21,13 +21,14 @@ interface StoredEvent<T> {
  */
 export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
 
-  readonly db = new Dexie('dendriform-localeventlog')
+  readonly db
   private peerId: string
   private vectorClock: VectorClock
   private counter: EventLogCounter
   private subscribers: Array<EventSubscriber<T>> = []
 
-  constructor() {
+  constructor(readonly dbName: string) {
+    this.db = new Dexie(dbName)
     this.initDb()
     this.loadOrCreateMetadata()
   }

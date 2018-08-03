@@ -19,7 +19,7 @@ interface PouchDbRepositoryNode extends RepositoryNode {
 export class PouchDbRepository implements Repository {
   private readonly outlineDb: any = new PouchDB('outlineDB')
 
-  createNode(id: string, name: string, content: string): Promise<RepositoryNode> {
+  createNode(id: string, name: string, content: string): Promise<void> {
     const node = {
       _id: id,
       name,
@@ -27,14 +27,6 @@ export class PouchDbRepository implements Repository {
       childrefs: [],
     }
     return this.outlineDb.post(node)
-      .then(response => {
-        return {
-          _id: response.id,
-          name,
-          content,
-          childrefs: [],
-        }
-      })
   }
 
   updateNode(node: RepositoryNode, retryCount?: number): Promise<void> {
@@ -92,14 +84,10 @@ export class PouchDbRepository implements Repository {
       return originalChildIds.concat(newChildIds)
     } else if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
       return newChildIds.concat(originalChildIds)
-    } else {
+    } else { // RelativeLinearPosition.AFTER
       const pos = originalChildIds.indexOf(position.nodeId)
       if (pos !== -1) {
-        if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
-          return originalChildIds.slice(0, pos).concat(newChildIds, originalChildIds.slice(pos))
-        } else {
-          return originalChildIds.slice(0, pos + 1).concat(newChildIds, originalChildIds.slice(pos + 1))
-        }
+        return originalChildIds.slice(0, pos + 1).concat(newChildIds, originalChildIds.slice(pos + 1))
       } else {
         // this should really not happen
         // tslint:disable-next-line:no-console

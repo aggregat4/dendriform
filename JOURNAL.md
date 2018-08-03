@@ -241,3 +241,13 @@ Now we have the highlighting question. Until now we have combined the searching 
 We have 2 ways to change this up. Either I just check for _a_ hit when filtering the content and don't actually look for the highlights and calculate the concrete highlights inside of the textNodes after converting the content to a DOM fragment. Or I continue as we do now and assume that search strings do not contain angle brackets (means search string must be sanitized), generate all the highlights, then mark up the node content as a string by inserting HTML strings and finally converting all that to a dom fragment with innerHTML.
 
 On reflection the latter approach has the problem that I may find hits inside tags and highlighting that would invalidate the html. The robust approach it is then.
+
+## 3.8.2018
+
+Hit another roadblock: when implementing the eventlog based repository I needed to support updates to the tree. This include not just the reparenting but also the position of the node in the list of its children. Sadly we have no way to represent this ordering anywhere.
+
+This came up when refactoring RelativeLinearPosition to only care about AFTER positions and not BEFORE. This is in itself probably hard/senseless because we need BEFORE for the split operation (see tree-service).
+
+But first we need to solve the ordering question: how and where do we track it? Is this another CRDT? Another Eventlog where the node concerned is the parent node and the events represent the sequence operations on its children? Is this an LSEQ?  Logoot? (https://hal.inria.fr/inria-00432368/document)
+
+We probably need another custom approach here, a separate eventlog, queryable by parent node id, containing events of the nature insert(nodeid, afternodeid). We need a similar strategy to resolve concurrent updates  (same afternodeid) by sorting by peerid. Can we have events that have the same afternodeid from the same peer that are concurrent? No, since we always increase the vector clock.
