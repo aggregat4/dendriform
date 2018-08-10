@@ -20,6 +20,11 @@ export interface ReparentNodeEventPayload {
   afterNodeId: string, // whether to position the node, can be one of the NODELIST_MARKERS
 }
 
+// export interface ReorderChildNodeEventPayload {
+//   childId: string,
+//   afterNodeId: string
+// }
+
 export class DEvent<T> {
   constructor(
     readonly type: EventType,
@@ -41,7 +46,7 @@ export type EventListener<T> = (_: DEvent<T>) => void
 
 export interface EventSubscriber<T> {
   notify: EventListener<T>,
-  filter: Predicate,
+  filter: Predicate<DEvent<T>>,
 }
 export type EventLogCounter = number
 
@@ -58,6 +63,7 @@ export interface DEventSource<T> {
 }
 
 export interface DEventLog<T> {
+  getId(): string,
   insert(events: DEvent<T>): Promise<EventLogCounter>
   // TODO: consider returning a subscription that can be cancelled
   subscribe(subscriber: EventSubscriber<T>): void

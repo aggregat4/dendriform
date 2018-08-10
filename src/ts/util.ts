@@ -1,4 +1,4 @@
-export type Predicate = (_: any) => boolean
+export type Predicate<T> = (_: T) => boolean
 
 export function ALWAYS_TRUE(foo: any) { return true }
 

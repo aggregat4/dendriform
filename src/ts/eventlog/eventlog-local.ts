@@ -68,6 +68,10 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     })
   }
 
+  getId(): string {
+    return this.peerId
+  }
+
   publish(type: EventType, nodeId: string, payload: T): Promise<any> {
     this.vectorClock.increment(this.peerId)
     return this.insert(new DEvent<T>(
@@ -101,8 +105,6 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     }
   }
 
-  // TODO: we need a bulk version of insert that splits by nodeId and does bulk insert per nodeId
-
   subscribe(subscriber: EventSubscriber<T>): void {
     this.subscribers.push(subscriber)
   }
@@ -111,6 +113,8 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
    * Loads all events that a counter that is higher than or equal to the provided number.
    * Throws CounterTooHighError when the provided counter is higher than the max counter
    * of the eventlog.
+   * TODO: if ever we do not just have one event per node in here, we need to make sure
+   * this list is sorted, or at the very least we have a sorted version of this
    */
   getEventsSince(counter: number): Promise<Events<T>> {
     if (counter > this.counter) {
@@ -174,12 +178,5 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
       events.splice(-1 , 1)
     }
   }
-
-  // // throws CounterTooHighError when counter is larger than what the server knows
-  // getEventsSince(counter: number): Promise<Events>
-  // getChildIds(nodeId: string): Promise<string[]>
-  // getParentId(nodeId: string): Promise<string>
-  // loadNode(nodeId: string, nodeFilter: Predicate): Promise<RepositoryNode>
-  // loadTree(nodeId: string, nodeFilter: Predicate): Promise<LoadedTree>
 
 }

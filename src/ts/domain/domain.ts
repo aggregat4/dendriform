@@ -135,6 +135,7 @@ export interface LoadedTree {
 }
 
 export enum RelativeLinearPosition {
+  BEFORE,
   AFTER,
   BEGINNING,
   END,
