@@ -135,6 +135,6 @@ export class EventlogRepository implements Repository {
 
   getChildIds(nodeId: string): Promise<string[]>
   getParentId(nodeId: string): Promise<string>
-  loadNode(nodeId: string, nodeFilter: Predicate): Promise<RepositoryNode>
-  loadTree(nodeId: string, nodeFilter: Predicate): Promise<LoadedTree>
+  loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode>
+  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree>
 }

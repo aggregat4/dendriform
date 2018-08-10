@@ -107,12 +107,12 @@ export class PouchDbRepository implements Repository {
     return this.pdbLoadNode(nodeId, ALWAYS_TRUE).then(node => node.parentref)
   }
 
-loadNode(nodeId: string, nodeFilter: Predicate): Promise<RepositoryNode> {
+loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode> {
     return this.pdbLoadNode(nodeId, nodeFilter)
   }
 
   // returns a promise of a node, you can determine whether to include deleted or not
-  private pdbLoadNode(nodeId: string, nodeFilter: Predicate): Promise<PouchDbRepositoryNode> {
+  private pdbLoadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<PouchDbRepositoryNode> {
     // console.log(`cdbLoadNode for id '${nodeId}'`)
     return this.outlineDb.get(nodeId).then(node => {
       // if (node.deleted && node.deleted === true && !includeDeleted) {
@@ -131,7 +131,7 @@ loadNode(nodeId: string, nodeFilter: Predicate): Promise<RepositoryNode> {
     })
   }
 
-  loadTree(nodeId: string, nodeFilter: Predicate): Promise<LoadedTree> {
+  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
     return this.pdbLoadNode(nodeId, nodeFilter)
       .then(node => {
         return Promise.all([
