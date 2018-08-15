@@ -69,4 +69,5 @@ export interface DEventLog<T> {
   subscribe(subscriber: EventSubscriber<T>): void
   // throws CounterTooHighError when counter is larger than what the server knows
   getEventsSince(counter: number): Promise<Events<T>>
+  getEventsForNode(nodeId: string): Promise<Array<DEvent<T>>>
 }

@@ -34,7 +34,17 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. Implement export in some standard format
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. Auto link urls in names and notes
-1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, make it easier to implement platform specific key combos, etc
+1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, make it easier to implement platform specific key combos, etc. Also consider how Visual Studio Code does this:
+
+```json
+{ "key": "ctrl+shift+alt+left",      "command": "cursorWordPartStartLeftSelect",
+                                       "when": "textInputFocus" },
+{ "key": "ctrl+alt+backspace",       "command": "deleteWordPartLeft",
+                                       "when": "textInputFocus && !editorReadonly" },
+{ "key": "ctrl+shift+alt+backspace", "command": "deleteWordPartRight",
+                                       "when": "textInputFocus && !editorReadonly" },
+```
+
 1. Check compatibility with Firefox
 1. Check if it works on iOS and Android
 1. i18n (also consider search, maybe other find mechanism? [regex?](https://stackoverflow.com/a/38151393/1996) )

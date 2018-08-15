@@ -37,7 +37,6 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     this.db.version(1).stores({
       peer: '', // columns: eventlogid, vectorclock, counter
       eventlog: '++eventid,treenodeid', // see StoredEvent for schema
-      // treeeventlog: '++eventid,treenodeid', // see StoredEvent for schema
     })
     this.db.open()
   }
@@ -109,6 +108,10 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     this.subscribers.push(subscriber)
   }
 
+  private storedEventToDEventMapper(ev: StoredEvent<T>): DEvent<T> {
+    return new DEvent(ev.eventtype, ev.peerid, ev.vectorclock, ev.treenodeid, ev.payload)
+  }
+
   /**
    * Loads all events that a counter that is higher than or equal to the provided number.
    * Throws CounterTooHighError when the provided counter is higher than the max counter
@@ -123,9 +126,14 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     }
     const table = this.db.table('eventlog')
     return table.where('eventid').aboveOrEqual(counter).toArray()
-      .then((events: Array<StoredEvent<T>>) => events.map(ev =>
-        new DEvent(ev.eventtype, ev.peerid, ev.vectorclock, ev.treenodeid, ev.payload)))
+      .then((events: Array<StoredEvent<T>>) => events.map(this.storedEventToDEventMapper))
       .then((events: Array<DEvent<T>>) => ({counter: this.counter, events}))
+  }
+
+  getEventsForNode(nodeId: string): Promise<Array<DEvent<T>>> {
+    const table = this.db.table('eventlog')
+    return table.where('treenodeid').equal(nodeId).toArray()
+      .then((events: Array<StoredEvent<T>>) => events.map(this.storedEventToDEventMapper))
   }
 
   private notifySubscribers(e: DEvent<T>): void {

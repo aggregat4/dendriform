@@ -5,9 +5,9 @@
 import {Repository} from './repository'
 // tslint:disable-next-line:max-line-length
 import { AddOrUpdateNodeEventPayload, DEventLog, DEventSource, EventType, ReparentNodeEventPayload, DEvent } from '../eventlog/eventlog'
-import { Predicate, debounce } from '../util'
+import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, BEGINNING_NODELIST_MARKER, END_NODELIST_MARKER } from '../domain/domain'
+import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, BEGINNING_NODELIST_MARKER, END_NODELIST_MARKER, State, ResolvedRepositoryNode } from '../domain/domain'
 
 export class EventlogRepository implements Repository {
 
@@ -28,7 +28,7 @@ export class EventlogRepository implements Repository {
         filter: (event) => event.originator !== this.nodeEventLog.getId() })
       treeEventLog.subscribe({
         notify: this.treeEventLogListener,
-        filter: (event) => event.originator !== this.nodeEventLog.getId() })
+        filter: (event) => event.originator !== this.treeEventLog.getId() })
     })
   }
 
@@ -126,15 +126,102 @@ export class EventlogRepository implements Repository {
     } else if (position.beforeOrAfter === RelativeLinearPosition.AFTER) {
       return position.nodeId
     } else if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
-      // TODO: use child parent cache to determine position
-      throw new Error(`Not implemented yet`)
+      const allChildren = this.parentChildMap[this.childParentMap[position.nodeId]]
+      for (let i = 0; i < allChildren.length; i++) {
+        if (allChildren[i] === position.nodeId) {
+          if (i === 0) {
+            return BEGINNING_NODELIST_MARKER
+          } else {
+            return allChildren[i - 1]
+          }
+        }
+      }
+      // fallback: if for some reason we can not find the relative node we just put it in front
+      // tslint:disable-next-line:no-console
+      console.warn(`Could not find the node ${position.nodeId} as the 'relative before' position ` +
+        `for parent ${this.childParentMap[position.nodeId]}`)
+      return BEGINNING_NODELIST_MARKER
     } else if (position.beforeOrAfter === RelativeLinearPosition.END) {
       return END_NODELIST_MARKER
     }
   }
 
-  getChildIds(nodeId: string): Promise<string[]>
-  getParentId(nodeId: string): Promise<string>
-  loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode>
-  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree>
+  getChildIds(nodeId: string): Promise<string[]> {
+    return Promise.resolve(this.parentChildMap[nodeId])
+  }
+
+  getParentId(nodeId: string): Promise<string> {
+    return Promise.resolve(this.childParentMap[nodeId])
+  }
+
+  async loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode> {
+    return this.nodeEventLog.getEventsForNode(nodeId).then(nodeEvents => {
+      if (nodeEvents.length > 1) {
+        throw new Error(`The code does not yet support more than one event per node`)
+      }
+      if (nodeEvents.length === 0) {
+        return Promise.resolve(null)
+      }
+      const node = this.mapEventToRepositoryNode(nodeEvents[0])
+      if (nodeFilter(node)) {
+        return Promise.resolve(node)
+      } else {
+        return Promise.resolve(null)
+      }
+    })
+  }
+
+  private mapEventToRepositoryNode(event: DEvent<AddOrUpdateNodeEventPayload>): RepositoryNode {
+    return {
+      _id: event.nodeId,
+      name: event.payload.name,
+      content: event.payload.note,
+      deleted: event.payload.deleted,
+      collapsed: event.payload.collapsed,
+    }
+  }
+
+  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
+    return Promise.all([
+      this.loadTreeNodeRecursively(nodeId, nodeFilter),
+      this.loadAncestors(nodeId, []) ])
+    .then(results => Promise.resolve({ status: { state: State.LOADED }, tree: results[0], parents: results[1] }) )
+    .catch((reason) => {
+      if (reason instanceof NodeNotFoundError) {
+        return Promise.resolve({ status: { state: State.NOT_FOUND } })
+      } else {
+        return Promise.resolve({ status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } })
+      }
+    })
+  }
+
+  private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>):
+      Promise<ResolvedRepositoryNode> {
+    const node = await this.loadNode(nodeId, nodeFilter)
+    if (! node) {
+      throw new NodeNotFoundError()
+    }
+    return Promise.all(this.parentChildMap[nodeId].map(
+        childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<ResolvedRepositoryNode>>)
+      .then(children => ({
+        node,
+        children,
+      }))
+  }
+
+  private loadAncestors(childId: string, ancestors: RepositoryNode[]): Promise<RepositoryNode[]> {
+    const parentId = this.childParentMap[childId]
+    if (parentId && parentId !== ' ROOT') {
+      return this.loadNode(parentId, ALWAYS_TRUE)
+        .then(parent => {
+          ancestors.push(parent)
+          return this.loadAncestors(parent._id, ancestors)
+        })
+    } else {
+      return Promise.resolve(ancestors)
+    }
+  }
+
 }
+
+class NodeNotFoundError extends Error {}

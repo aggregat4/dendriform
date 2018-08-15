@@ -95,11 +95,11 @@ export class Tree {
   }
 
   private generateBreadcrumbs(tree: LoadedTree): Element[] {
-    if (!tree.parents || tree.tree.node._id === 'ROOT') {
+    if (!tree.ancestors || tree.tree.node._id === 'ROOT') {
       return []
     } else {
       // reverse because breadcrumbs need to start at ROOT and go down
-      const fullParents = tree.parents.concat([createNewRepositoryNode('ROOT', 'ROOT')]).reverse()
+      const fullParents = tree.ancestors.concat([createNewRepositoryNode('ROOT', 'ROOT')]).reverse()
       return fullParents.map(repoNode => el('span', el('a', { href: '#node=' + repoNode._id }, repoNode.name)))
     }
   }

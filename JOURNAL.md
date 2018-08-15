@@ -254,8 +254,8 @@ We probably need another custom approach here, a separate eventlog, queryable by
 
 ## 10.8.2018
 
-Yes, we do need to track child ordering, but I'm going to try to cover it directly inside the ReparentNodeEventPaylod. That seems more robust (no divering updates?). On the other hand if the order just changes within the existing parent maybe this is redundant?
+Yes, we do need to track child ordering, but I'm going to try to cover it directly inside the ReparentNodeEventPaylod. That seems more robust (no diverging updates?). On the other hand if the order just changes within the existing parent maybe this is redundant?
 
 Implemented the caches for the parent child structure, and the subscriptions on the event log to react to new (remote) events. This made clear that we may have another inefficiency: when remote updates come in we need to update the parent/child caches. Since we don't really know whether these updates affect the current state (were they executed before or after our events?) we would really have to get all the relevant node events, sort them and only apply the final state.
 
-Instead the current naive implementation just debounces the rebuild function and rebuilds the complete cache with every event.
+Instead the current naive implementation just debounces the rebuild function and recreates the complete cache with every (external) event.
