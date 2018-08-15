@@ -54,6 +54,8 @@ export class Tree {
   private content: TreeNode
   private searchField
 
+  // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
+  // should we not only have the command handler?
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService) {
     this.el = el('div.tree',
       el('div.searchbox',

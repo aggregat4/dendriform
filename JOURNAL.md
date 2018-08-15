@@ -248,7 +248,7 @@ Hit another roadblock: when implementing the eventlog based repository I needed 
 
 This came up when refactoring RelativeLinearPosition to only care about AFTER positions and not BEFORE. This is in itself probably hard/senseless because we need BEFORE for the split operation (see tree-service).
 
-But first we need to solve the ordering question: how and where do we track it? Is this another CRDT? Another Eventlog where the node concerned is the parent node and the events represent the sequence operations on its children? Is this an LSEQ?  Logoot? (https://hal.inria.fr/inria-00432368/document)
+But first we need to solve the ordering question: how and where do we track it? Is this another CRDT? Another Eventlog where the node concerned is the parent node and the events represent the sequence operations on its children? Is this an LSEQ?  Logoot? (<https://hal.inria.fr/inria-00432368/document>)
 
 We probably need another custom approach here, a separate eventlog, queryable by parent node id, containing events of the nature insert(nodeid, afternodeid). We need a similar strategy to resolve concurrent updates  (same afternodeid) by sorting by peerid. Can we have events that have the same afternodeid from the same peer that are concurrent? No, since we always increase the vector clock.
 
