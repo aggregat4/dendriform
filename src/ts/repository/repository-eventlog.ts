@@ -109,7 +109,7 @@ export class EventlogRepository implements Repository {
     return this.nodeEventSource.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
-      {name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed})
+      {name: node.name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed})
   }
 
   reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
@@ -190,6 +190,8 @@ export class EventlogRepository implements Repository {
       if (reason instanceof NodeNotFoundError) {
         return Promise.resolve({ status: { state: State.NOT_FOUND } })
       } else {
+        // tslint:disable-next-line:no-console
+        console.error(`error while loading tree from eventlog: `, reason)
         return Promise.resolve({ status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } })
       }
     })
@@ -201,12 +203,16 @@ export class EventlogRepository implements Repository {
     if (! node) {
       throw new NodeNotFoundError()
     }
-    return Promise.all(this.parentChildMap[nodeId].map(
+    return Promise.all(this.getChildren(nodeId).map(
         childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<ResolvedRepositoryNode>>)
       .then(children => ({
         node,
         children,
       }))
+  }
+
+  private getChildren(nodeId: string): string[] {
+    return this.parentChildMap[nodeId] || []
   }
 
   private loadAncestors(childId: string, ancestors: RepositoryNode[]): Promise<RepositoryNode[]> {

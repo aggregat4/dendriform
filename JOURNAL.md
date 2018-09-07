@@ -263,3 +263,31 @@ Instead the current naive implementation just debounces the rebuild function and
 ## 15.8.2018
 
 The implementation of the local event log and the associated repository is "done", but without any synchronisation to remote logs. Now we need to try to run it and find all the bugs and performance problems. Oi vey.
+
+## 5.9.2018
+
+Strange error with:
+
+`__WEBPACK_IMPORTED_MODULE_1_dexie__.Dexie is not a constructor`
+
+turns out to be related to the way I import the Dexie module!? There is a difference between `import Dexie from 'dexie'` and `import {Dexie} from 'dexie'`?
+
+Weird. Solution from <https://github.com/dfahlander/Dexie.js/issues/658>.
+
+## 5.9.2018
+
+Dexie, or rather IndexedDB, does not like it when a table is defined without a primary key. I had to make sure the peer table has one or I would get strange `Error: Failed to execute 'put' on 'IDBObjectStore': The object store uses out-of-line keys and has no key generator and the key parameter` errors.
+
+My build is a bit fucked, watch no longer watches src/*.
+
+In our eventlog our counter is apparently not stored (undefined). Is the problem that it is 0? Google Dexie for that.
+
+## 7.9.2018
+
+Turns out `watch` now requires directories as parameters not glob patterns. That fixed the watch.
+
+We are able to edit a tree and it is sort of persisted! Yay!
+
+Sadly our child ordering is fucked. The current approach is to store in each tree event after what node a certain node comes in the order. This breaks down of course when we insert new nodes that come after node A and another node B was already after A. When reloading the tree events to construct the tree, it is more or less random what node comes first there. We probably have to fundamentally change how we store order. I don't know how yet.
+
+Oh and at some point I definitely need to optimize peerId storage, it is rediculous storing the UUIDs in each event.

@@ -1,6 +1,6 @@
 // tslint:disable-next-line:max-line-length
 import {EventLogCounter, DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events} from './eventlog'
-import {Dexie} from 'dexie'
+import Dexie from 'dexie'
 import {generateUUID} from '../util'
 import {VectorClock} from '../lib/vectorclock'
 
@@ -24,47 +24,47 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
   readonly db
   private peerId: string
   private vectorClock: VectorClock
-  private counter: EventLogCounter
+  private counter: number
   private subscribers: Array<EventSubscriber<T>> = []
 
   constructor(readonly dbName: string) {
     this.db = new Dexie(dbName)
-    this.initDb()
-    this.loadOrCreateMetadata()
   }
 
-  private initDb(): void {
+  init(): Promise<void> {
     this.db.version(1).stores({
-      peer: '', // columns: eventlogid, vectorclock, counter
+      peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
       eventlog: '++eventid,treenodeid', // see StoredEvent for schema
     })
-    this.db.open()
+    return this.db.open().then(() => this.loadOrCreateMetadata())
   }
 
-  private loadOrCreateMetadata(): Promise<any> {
+  private loadOrCreateMetadata(): Promise<void> {
     return this.db.table('peer').toArray().then(metadata => {
       if (!metadata || metadata.length === 0) {
         this.peerId = generateUUID()
         this.vectorClock = new VectorClock()
         // always start a new vectorclock on 1 for the current peer
         this.vectorClock.increment(this.peerId)
-        this.counter = 0
-        this.saveMetadata()
+        this.counter = 1
+        return this.saveMetadata()
       } else {
         const md = metadata[0]
-        this.peerId = md.peerid
-        this.vectorClock = md.vectorclock
+        this.peerId = md.eventlogid
+        this.vectorClock = new VectorClock(md.vectorClock)
         this.counter = md.counter
       }
     })
   }
 
   private saveMetadata(): Promise<any> {
-    return this.db.table('peer').put({
+    const metadata = {
       eventlogid: this.peerId,
-      vectorclock: this.vectorClock,
+      vectorclock: this.vectorClock.values,
       counter: this.counter,
-    })
+    }
+    return this.db.table('peer').put(metadata)
+      .catch(error => console.error(`saveMetadata error: `, error))
   }
 
   getId(): string {
@@ -90,18 +90,16 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
    *
    * @param events The events to persist and rebroadcast.
    */
-  insert(event: DEvent<T>): Promise<EventLogCounter> {
-    try {
-      const result: Promise<EventLogCounter> = this.storeAndGarbageCollect(event)
-        .then(storedEvent => { this.counter = storedEvent.eventid })
-        .then(() => this.saveMetadata())
-      window.setTimeout(() => this.notifySubscribers(event), 1)
-      return result
-    } catch (err) {
-      // TODO: do something more clever with errors?
-      // tslint:disable-next-line:no-console
-      console.error(`ERROR occurred during nodeEvent storage: `, err)
-    }
+  insert(event: DEvent<T>): Promise<any> {
+    return this.storeAndGarbageCollect(event)
+      .then(storedEvent => { this.counter = storedEvent.eventid })
+      .then(() => this.saveMetadata())
+      .then(() => window.setTimeout(() => this.notifySubscribers(event), 1))
+      .catch((err) => {
+        // TODO: do something more clever with errors?
+        // tslint:disable-next-line:no-console
+        console.error(`ERROR occurred during nodeEvent storage: `, err)
+      })
   }
 
   subscribe(subscriber: EventSubscriber<T>): void {
@@ -109,7 +107,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
   }
 
   private storedEventToDEventMapper(ev: StoredEvent<T>): DEvent<T> {
-    return new DEvent(ev.eventtype, ev.peerid, ev.vectorclock, ev.treenodeid, ev.payload)
+    return new DEvent(ev.eventtype, ev.peerid, new VectorClock(ev.vectorclock), ev.treenodeid, ev.payload)
   }
 
   /**
@@ -132,7 +130,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
 
   getEventsForNode(nodeId: string): Promise<Array<DEvent<T>>> {
     const table = this.db.table('eventlog')
-    return table.where('treenodeid').equal(nodeId).toArray()
+    return table.where('treenodeid').equals(nodeId).toArray()
       .then((events: Array<StoredEvent<T>>) => events.map(this.storedEventToDEventMapper))
   }
 
@@ -158,24 +156,27 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
       peerid: event.originator,
       vectorclock: event.clock,
       payload: event.payload,
-    })
+    }).catch(error => console.error(`store error: `, error))
   }
 
   private garbageCollect(nodeId: string): Promise<any> {
     const table = this.db.table('eventlog')
     return table.where('treenodeid').equals(nodeId).toArray()
       .then((nodeEvents: Array<StoredEvent<T>>) => {
-        this.sortAndPruneEvents(nodeEvents)
-        return table.bulkDelete(nodeEvents.map((e) => e.eventid))
+        const eventsToDelete = this.sortAndPruneEvents(nodeEvents)
+        if (eventsToDelete.length > 0) {
+          console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
+          return table.bulkDelete(eventsToDelete.map((e) => e.eventid))
+        }
       })
   }
 
-  private sortAndPruneEvents(events: Array<StoredEvent<T>>): void {
+  private sortAndPruneEvents(events: Array<StoredEvent<T>>): Array<StoredEvent<T>> {
     if (events.length > 1) {
       // sort event array by vectorclock and peerid
       // remove all but the last event
       events.sort((a, b) => {
-        const vcComp = a.vectorclock.compare(b.vectorclock)
+        const vcComp = VectorClock.compareValues(a, b)
         if (vcComp === 0) {
           return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
         } else {
@@ -184,6 +185,9 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
       })
       // remove the last element, which is the latest event which we want to retain
       events.splice(-1 , 1)
+      return events
+    } else {
+      return []
     }
   }
 
