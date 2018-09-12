@@ -10,7 +10,7 @@
   "scripts": {
     "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && ./node_modules/.bin/webpack",
     "serve": "http-server -p 9090 dist/",
-    "watch": "onchange './src/' './' -i -- npm run build -s",
+    "watch": "onchange './src/**/*.*' './*.*' -i -- npm run build -s",
     "livereload": "live-reload --port 9091 dist/",
     "sloc": "node_modules/.bin/sloc src",
     "test": "jest",
@@ -37,7 +37,6 @@
   "dependencies": {
     "dexie": "^2.0.4",
     "p-queue": "^3.0.0",
-    "pouchdb-browser": "^6.4.3",
     "redom": "^3.13.1"
   }
 }

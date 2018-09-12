@@ -23,10 +23,13 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 ## Next Steps
 
 1. Implement sync (Hah!)
-    1. Implement repository-eventlog that wraps around the basic event logs and implements the logic for getChildIds, getParentId, loadNode, loadTree. They maintain the caches, load all the events if necessary, etc. This could be the repository? Caches can be maintained based on subscriptions and initially constructed with a getEventsSince(0).
+    1. order for children is not preserved because we just store per node where it is relative to another node and we do not apply this information in the same order we stored it, we need to take into account the vector clocks here
     1. implement server side eventlog in Kotlin
     1. implement remote eventlog
     1. implement eventpump and configure eventpumps
+1. do a real dev/prod build separation as in https://webpack.js.org/guides/production/ especially so we can avoid inline sourcemaps when we do a prod build
+1. replace UUID peer ids in the event logs with locally resolved ints (persistent)
+1. replace dexie with raw indexeddb calls or something smaller (maybe, maybe not, the size is not that bad)
 1. I probably need some kind of forced garbage collect where on a peer a user confirms that this is the master copy and some sort of synchronous operation happens that forces a reset. What does that mean? Generate a snapshot on the server and have clients load this? This means putting data structure knowhow on the server. Or the client generates a snapshot and sends it to the server, but this means that all clients need to have the same software version.
 1. Fuck, we need API versioning: the above snapshotting makes this clear, but we already need it for differing event structures.... aaargh. Maybe just ignore this for now. We can host new versions on new endpoints (or SOMETHING).
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
