@@ -1,7 +1,3 @@
-/**
- * This is a repository implementation that uses an event log that synchronises with a remote eventlog
- * to provide an eventually consistent, multi-peer, storage backend.
- */
 import {Repository} from './repository'
 // tslint:disable-next-line:max-line-length
 import { AddOrUpdateNodeEventPayload, DEventLog, DEventSource, EventType, ReparentNodeEventPayload, DEvent } from '../eventlog/eventlog'
@@ -9,6 +5,10 @@ import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, BEGINNING_NODELIST_MARKER, END_NODELIST_MARKER, State, ResolvedRepositoryNode } from '../domain/domain'
 
+/**
+ * This is a repository implementation that uses an event log that synchronises with a remote eventlog
+ * to provide an eventually consistent, multi-peer, storage backend.
+ */
 export class EventlogRepository implements Repository {
 
   private parentChildMap = {}

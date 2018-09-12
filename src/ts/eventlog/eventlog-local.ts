@@ -1,5 +1,5 @@
 // tslint:disable-next-line:max-line-length
-import {EventLogCounter, DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events} from './eventlog'
+import {DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events} from './eventlog'
 import Dexie from 'dexie'
 import {generateUUID} from '../util'
 import {VectorClock} from '../lib/vectorclock'
@@ -113,9 +113,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
   /**
    * Loads all events that a counter that is higher than or equal to the provided number.
    * Throws CounterTooHighError when the provided counter is higher than the max counter
-   * of the eventlog.
-   * TODO: if ever we do not just have one event per node in here, we need to make sure
-   * this list is sorted, or at the very least we have a sorted version of this
+   * of the eventlog. The array is causally sorted by vectorclock and peerid.
    */
   getEventsSince(counter: number): Promise<Events<T>> {
     if (counter > this.counter) {
@@ -124,6 +122,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     }
     const table = this.db.table('eventlog')
     return table.where('eventid').aboveOrEqual(counter).toArray()
+      .then((events: Array<StoredEvent<T>>) => this.sortCausally(events))
       .then((events: Array<StoredEvent<T>>) => events.map(this.storedEventToDEventMapper))
       .then((events: Array<DEvent<T>>) => ({counter: this.counter, events}))
   }
@@ -173,22 +172,26 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
 
   private sortAndPruneEvents(events: Array<StoredEvent<T>>): Array<StoredEvent<T>> {
     if (events.length > 1) {
-      // sort event array by vectorclock and peerid
-      // remove all but the last event
-      events.sort((a, b) => {
-        const vcComp = VectorClock.compareValues(a, b)
-        if (vcComp === 0) {
-          return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
-        } else {
-          return vcComp
-        }
-      })
+      this.sortCausally(events)
       // remove the last element, which is the latest event which we want to retain
       events.splice(-1 , 1)
       return events
     } else {
       return []
     }
+  }
+
+  // sort event array by vectorclock and peerid
+  private sortCausally(events: Array<StoredEvent<T>>): Array<StoredEvent<T>> {
+    events.sort((a, b) => {
+      const vcComp = VectorClock.compareValues(a, b)
+      if (vcComp === 0) {
+        return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
+      } else {
+        return vcComp
+      }
+    })
+    return events
   }
 
 }
