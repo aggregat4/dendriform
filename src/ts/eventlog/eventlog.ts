@@ -1,5 +1,6 @@
 import { VectorClock } from '../lib/vectorclock'
 import { Predicate } from '../util'
+import {atomIdent} from '../lib/logootsequence.js'
 
 // At the moment we put add and update together and always transport
 // the full payload. This makes everything easier for now.
@@ -17,13 +18,18 @@ export interface AddOrUpdateNodeEventPayload {
 
 export interface ReparentNodeEventPayload {
   parentId: string,
-  afterNodeId: string, // whether to position the node, can be one of the NODELIST_MARKERS
 }
 
-// export interface ReorderChildNodeEventPayload {
-//   childId: string,
-//   afterNodeId: string
-// }
+export enum LOGOOT_REORDER_OPERATION {
+  INSERT,
+  DELETE,
+}
+
+export interface ReorderChildNodeEventPayload {
+  operation: LOGOOT_REORDER_OPERATION,
+  position: atomIdent, // this is a logoot position/sequence identifier, a bunch of nested arrays
+  childId: string,
+}
 
 export class DEvent<T> {
   constructor(

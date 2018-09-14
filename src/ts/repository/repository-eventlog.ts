@@ -4,6 +4,21 @@ import { AddOrUpdateNodeEventPayload, DEventLog, DEventSource, EventType, Repare
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, BEGINNING_NODELIST_MARKER, END_NODELIST_MARKER, State, ResolvedRepositoryNode } from '../domain/domain'
+import {atomIdent} from '../lib/logootsequence.js'
+
+class UniqueLogootSequence<T> {
+  insert(item: T, pos: atomIdent): void {
+    // TODO: implement, to be called for filling, the atomIdent should be in the payload
+  }
+
+  insertAfter(newItem: T, afterItem: T): void {
+    // TODO: implement, internally resolve the beforeItem, get their atomidents and then use the library function
+  }
+
+  toArray() {
+    // TODO: implement
+  }
+}
 
 /**
  * This is a repository implementation that uses an event log that synchronises with a remote eventlog
@@ -54,6 +69,7 @@ export class EventlogRepository implements Repository {
       eventsResult.events.forEach(event => {
         const nodeId = event.nodeId
         const parentId = event.payload.parentId
+        // TODO: child lists need to be logoot based
         const afterNodeId = event.payload.afterNodeId
         newChildParentMap[nodeId] = parentId
         this.insertNodeInParentChildMap(newParentChildMap, nodeId, parentId, afterNodeId)

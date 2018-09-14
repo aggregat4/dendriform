@@ -274,8 +274,6 @@ turns out to be related to the way I import the Dexie module!? There is a differ
 
 Weird. Solution from <https://github.com/dfahlander/Dexie.js/issues/658>.
 
-## 5.9.2018
-
 Dexie, or rather IndexedDB, does not like it when a table is defined without a primary key. I had to make sure the peer table has one or I would get strange `Error: Failed to execute 'put' on 'IDBObjectStore': The object store uses out-of-line keys and has no key generator and the key parameter` errors.
 
 My build is a bit fucked, watch no longer watches src/*.
@@ -291,3 +289,25 @@ We are able to edit a tree and it is sort of persisted! Yay!
 Sadly our child ordering is fucked. The current approach is to store in each tree event after what node a certain node comes in the order. This breaks down of course when we insert new nodes that come after node A and another node B was already after A. When reloading the tree events to construct the tree, it is more or less random what node comes first there. We probably have to fundamentally change how we store order. I don't know how yet.
 
 Oh and at some point I definitely need to optimize peerId storage, it is rediculous storing the UUIDs in each event.
+
+## 14.9.2018
+
+I had an idea for a solution for the child ordering problem: I could just keep nodes that move to another parent around in the original parent as a kind of tombstone. This would mean that the "afterNodeId" property of normal nodes is always correct since no node disappears from the child list. I could then just ignore those "deleted" nodes from when constructing the child list.
+
+The problem is that those tombstones would also have to exist when just moving a node around inside one parent's child list. It then no longer becomes ineffecient but also untenable.
+
+Do I have to do something like Logoot after all?
+
+Apparently the answer is yes.
+
+The [original LOGOOT paper](https://hal.inria.fr/inria-00432368/document) is more or less readably, I just had some trouble grasping the identifiers. This was a bit more practically explained in a [JavaScript logoot implementation](https://github.com/usecanvas/logoot-js).
+
+This means that we need a new eventlog that is also (like the others) segmented by treenodeid, the node references is the parent node. For each node the sum of its events represents a logoot list of its children.
+
+In the eventlog we store events with the payload (op, pos, nodeId): 'op' signifies whether this is an INSERT or DELETE operation, 'pos' is the logoot identifier denoting its position in the list and 'nodeId' is the child node in the list.
+
+Similar as to the other event logs we can garbage collect at insertion to only retain the last event. When converting these events into an array we can then remove deleted nodes.
+
+Since logoot identifiers contain the peer vector clock for uniqueness (not ordering) I'm not sure our current abstraction can deal with that well. It may also be sensible to put the actual logoot implementation in a separate class.
+
+Note: as I look at the logoot implementation linked above it seems to me that the vector clock that is mentioned as a necessary part of identifying a sequence item is not actually a full vector clock but rather a logical clock value for the particular site that inserted the item in the sequence so that together with the site identifier it makes the item unique.
