@@ -1,22 +1,91 @@
 import {Repository} from './repository'
 // tslint:disable-next-line:max-line-length
-import { AddOrUpdateNodeEventPayload, DEventLog, DEventSource, EventType, ReparentNodeEventPayload, DEvent } from '../eventlog/eventlog'
+import { AddOrUpdateNodeEventPayload, DEventLog, DEventSource, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, BEGINNING_NODELIST_MARKER, END_NODELIST_MARKER, State, ResolvedRepositoryNode } from '../domain/domain'
-import {atomIdent} from '../lib/logootsequence.js'
+import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode } from '../domain/domain'
+import {atomIdent, emptySequence, insertAtom, genAtomIdent, compareAtomIdents} from '../lib/logootsequence.js'
 
-class UniqueLogootSequence<T> {
-  insert(item: T, pos: atomIdent): void {
-    // TODO: implement, to be called for filling, the atomIdent should be in the payload
+function insertMut(sequence, index, atom) {
+  sequence.splice(index, 0, atom)
+  return sequence
+}
+
+/**
+ * A sequence of unique items, the uniqueness invariant is important since
+ * we may use it to cache locations of items in the sequence for fast insertion.
+ */
+class LogootSequence<T> {
+  private sequence = emptySequence()
+
+  constructor(readonly peerId: string) {}
+
+  insertAtAtomIdent(item: T, pos: atomIdent): void {
+    insertAtom(this.sequence, [pos, item], insertMut)
   }
 
-  insertAfter(newItem: T, afterItem: T): void {
-    // TODO: implement, internally resolve the beforeItem, get their atomidents and then use the library function
+  deleteAtAtomIdent(pos: atomIdent): void {
+    let deletePos = -1
+    for (let i = 1; i < this.sequence.length - 1; i++) {
+      if (compareAtomIdents(pos, this.sequence[i][0]) === 0) {
+        deletePos = i
+        break
+      }
+    }
+    if (deletePos >= 0 && deletePos < this.sequence.length) {
+      this.sequence.splice(deletePos, 1)
+    }
+    // TODO: throw error when index not found?
   }
 
-  toArray() {
-    // TODO: implement
+  getAtomIdent(pos: number): atomIdent {
+    if (pos < 0 || pos >= this.length()) {
+      throw new Error(`Invalid positionn ${pos}`)
+    }
+    return this.sequence[pos + 1][0]
+  }
+
+  /**
+   * Element will be inserted at pos and everything starting with pos will be shifted right.
+   * If pos is >= sequence.length then it will be appended.
+   * The position is relative to the the externalarray range for this sequence not its internal representation.
+   */
+  insertAtIndex(item: T, pos: number, peerClock): void {
+    const atomId = this.getAtomIdentForInsertionIndex(pos, peerClock)
+    this.insertAtAtomIdent(item, atomId)
+  }
+
+  getAtomIdentForInsertionIndex(pos: number, peerClock): atomIdent {
+    if (pos < 0) {
+      throw new Error(`Invalid positionn ${pos}`)
+    }
+    return pos >= this.length()
+      ? genAtomIdent(
+        this.peerId,
+        peerClock,
+        this.sequence[this.sequence.length - 2][0],
+        this.sequence[this.sequence.length - 1][0])
+      : genAtomIdent(
+        this.peerId,
+        peerClock,
+        this.sequence[pos][0],
+        this.sequence[pos + 1][0])
+  }
+
+  deleteAtIndex(pos: number): void {
+    if (pos < 0 || pos >= this.length()) {
+      throw new Error(`Trying to remove element at pos ${pos} which is out of bounds for this logootsequence`)
+    }
+    this.sequence.splice(pos + 1, 1)
+  }
+
+  length(): number {
+    return this.sequence.length - 2
+  }
+
+  toArray(): T[] {
+    // cut off the marker items at the beginning and the end
+    return this.sequence.slice(1, -1).map(atom => atom[1])
   }
 }
 
@@ -33,7 +102,9 @@ export class EventlogRepository implements Repository {
   constructor(readonly nodeEventLog: DEventLog<AddOrUpdateNodeEventPayload>,
               readonly nodeEventSource: DEventSource<AddOrUpdateNodeEventPayload>,
               readonly treeEventLog: DEventLog<ReparentNodeEventPayload>,
-              readonly treeEventSource: DEventSource<ReparentNodeEventPayload>) {
+              readonly treeEventSource: DEventSource<ReparentNodeEventPayload>,
+              readonly childOrderEventLog: DEventLog<ReorderChildNodeEventPayload>,
+              readonly childOrderEventSource: DEventSource<ReorderChildNodeEventPayload>) {
     this.rebuildTreeStructureMaps().then(() => {
       // TODO: this is not great: we rebuild the maps, then subscribe and theoretically we could get
       // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
@@ -63,54 +134,36 @@ export class EventlogRepository implements Repository {
   }
 
   private rebuildTreeStructureMaps(): Promise<any> {
-    return this.treeEventLog.getEventsSince(0).then(eventsResult => {
-      const newParentChildMap = {}
-      const newChildParentMap = {}
-      eventsResult.events.forEach(event => {
-        const nodeId = event.nodeId
-        const parentId = event.payload.parentId
-        // TODO: child lists need to be logoot based
-        const afterNodeId = event.payload.afterNodeId
-        newChildParentMap[nodeId] = parentId
-        this.insertNodeInParentChildMap(newParentChildMap, nodeId, parentId, afterNodeId)
+    return this.treeEventLog.getEventsSince(0)
+      .then(treeEvents => {
+        const newChildParentMap = {}
+        treeEvents.events.forEach(event => {
+          const nodeId = event.nodeId
+          const parentId = event.payload.parentId
+          newChildParentMap[nodeId] = parentId
+        })
+        // this is an attempt at an "atomic" update: we only replace the existing maps once we
+        // have the new ones, to avoid having intermediate request accessing some weird state
+        this.childParentMap = newChildParentMap
       })
-      // this is an attempt at an "atomic" update: we only replace the existing maps once we
-      // have the new ones, to avoid having intermediate request accessing some weird state
-      this.parentChildMap = newParentChildMap
-      this.childParentMap = newChildParentMap
-    })
+      .then(() => this.childOrderEventLog.getEventsSince(0))
+      .then(childOrderEvents => {
+        const newParentChildMap = {}
+        childOrderEvents.events.forEach(event => {
+          this.insertInParentChildMap(event.payload.childId, event.payload.parentId,
+            event.payload.operation, event.payload.position)
+        })
+        this.parentChildMap = newParentChildMap
+      })
   }
 
-  // TODO: this should probably be a method of a dedicated class that models this parent child cache
-  private insertNodeInParentChildMap(themap, nodeId: string, parentId: string, afterNodeId: string): void {
-    let children = themap[parentId]
-    if (!children) {
-      children = [nodeId]
-      themap[parentId] = children
+  private insertInParentChildMap(childId: string, parentId: string,
+                                 operation: LogootReorderOperation, position: atomIdent): void {
+    const seq: LogootSequence<string> = this.getOrCreateSeqForParent(parentId)
+    if (operation === LogootReorderOperation.DELETE) {
+      seq.deleteAtAtomIdent(position)
     } else {
-      let insertPos = 0
-      let existingPos = -1
-      for (let i = 0; i < children.length; i++) {
-        if (children[i] === afterNodeId) {
-          insertPos = i + 1
-        } else if (children[i] === nodeId) {
-          existingPos = i
-        }
-      }
-      if (afterNodeId === END_NODELIST_MARKER) {
-        insertPos = children.length
-      }
-      children.splice(insertPos, 0, nodeId)
-      if (existingPos >= 0) {
-        if (existingPos < insertPos) {
-          children.splice(existingPos, 1)
-        } else {
-          // if the node was already present, but that location is the same or behind
-          // the new position, then we need to make sure we also correct the existingPos
-          // to account for the newly inserted node
-          children.splice(existingPos + 1, 1)
-        }
-      }
+      seq.insertAtAtomIdent(childId, position)
     }
   }
 
@@ -128,37 +181,87 @@ export class EventlogRepository implements Repository {
       {name: node.name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed})
   }
 
-  reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
-    const afterNodeId = this.determineAfterNodeId(position)
+  // We ONLY publish an INSERT event when the parent hasn't changed, this DEPENDS on the fact that
+  // eventlogs will garbage collect older insert events in the same sequence, if this is not the
+  // case then we would need to publish a delete event before this
+  async reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
+    const oldParentId = this.childParentMap[childId]
     // if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
-    this.insertNodeInParentChildMap(this.parentChildMap, childId, parentId, afterNodeId)
-    this.childParentMap[childId] = parentId
-    return this.treeEventSource.publish(EventType.REPARENT_NODE, childId, {parentId, afterNodeId })
-  }
-
-  private determineAfterNodeId(position: RelativeNodePosition): string {
-    if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
-      return BEGINNING_NODELIST_MARKER
-    } else if (position.beforeOrAfter === RelativeLinearPosition.AFTER) {
-      return position.nodeId
-    } else if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
-      const allChildren = this.parentChildMap[this.childParentMap[position.nodeId]]
-      for (let i = 0; i < allChildren.length; i++) {
-        if (allChildren[i] === position.nodeId) {
-          if (i === 0) {
-            return BEGINNING_NODELIST_MARKER
-          } else {
-            return allChildren[i - 1]
-          }
+    this.updateTreeStructureMaps(childId, parentId, position)
+    const seq: LogootSequence<string> = this.getOrCreateSeqForParent(parentId)
+    const insertionIndex = this.getChildInsertionIndex(seq, position)
+    const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.childOrderEventLog.getCounter())
+    if (oldParentId && oldParentId !== parentId) {
+      // publish a delete event on the old parent if there was a different old parent
+      const oldSeq: LogootSequence<string> = this.parentChildMap[oldParentId]
+      if (oldSeq) {
+        const oldArray = oldSeq.toArray()
+        const indexOfChild = oldArray.indexOf(childId)
+        if (indexOfChild >= 0) {
+          const deletionAtomIdent = oldSeq.getAtomIdent(indexOfChild)
+          await this.childOrderEventSource.publish(
+            EventType.REORDER_CHILD,
+            parentId,
+            {
+              operation: LogootReorderOperation.DELETE,
+              position: deletionAtomIdent,
+              childId,
+              parentId,
+            })
         }
       }
-      // fallback: if for some reason we can not find the relative node we just put it in front
-      // tslint:disable-next-line:no-console
-      console.warn(`Could not find the node ${position.nodeId} as the 'relative before' position ` +
-        `for parent ${this.childParentMap[position.nodeId]}`)
-      return BEGINNING_NODELIST_MARKER
+    }
+    if (oldParentId !== parentId) {
+      // publish a reparent event when we have a new parent
+      await this.treeEventSource.publish(EventType.REPARENT_NODE, childId, { parentId })
+    }
+    // publish insert reorder event on new parent
+    return this.childOrderEventSource.publish(
+      EventType.REORDER_CHILD,
+      parentId,
+      {
+        operation: LogootReorderOperation.INSERT,
+        position: insertionAtomIdent,
+        childId,
+        parentId,
+      })
+  }
+
+  private updateTreeStructureMaps(childId: string, parentId: string, position: RelativeNodePosition): void {
+    const oldParentId = this.childParentMap[childId]
+    this.childParentMap[childId] = parentId
+    // delete the child at the old parent
+    const oldSeq: LogootSequence<string> = this.parentChildMap[oldParentId]
+    if (oldSeq) {
+      const oldArray = oldSeq.toArray()
+      const indexOfChild = oldArray.indexOf(childId)
+      if (indexOfChild >= 0) {
+        oldSeq.deleteAtIndex(indexOfChild)
+      }
+    }
+    // insert the child at the new parent
+    const newSeq: LogootSequence<string> = this.getOrCreateSeqForParent(parentId)
+    newSeq.insertAtIndex(childId, this.getChildInsertionIndex(newSeq, position), this.childOrderEventLog.getCounter())
+  }
+
+  private getOrCreateSeqForParent(parentId: string): LogootSequence<string> {
+    return this.parentChildMap[parentId] ||
+      (this.parentChildMap[parentId] = new LogootSequence<string>(this.childOrderEventLog.getId()))
+  }
+
+  private getChildInsertionIndex(seq: LogootSequence<string>, position: RelativeNodePosition): number {
+    if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
+      return 0
+    } else if (position.beforeOrAfter === RelativeLinearPosition.AFTER) {
+      // TODO: We default to insert at the beginning of the sequence when we can not find the after Node, is this right?
+      const afterNodeIndex = seq.toArray().indexOf(position.nodeId) || -1
+      return afterNodeIndex + 1
+    } else if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
+      // TODO: We default to insert at the beginning of the sequence when we can not find the after Node, is this right?
+      const beforeNodeIndex = seq.toArray().indexOf(position.nodeId) || 1
+      return beforeNodeIndex - 1
     } else if (position.beforeOrAfter === RelativeLinearPosition.END) {
-      return END_NODELIST_MARKER
+      return seq.length()
     }
   }
 

@@ -71,6 +71,10 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     return this.peerId
   }
 
+  getCounter(): number {
+    return this.counter
+  }
+
   publish(type: EventType, nodeId: string, payload: T): Promise<any> {
     this.vectorClock.increment(this.peerId)
     return this.insert(new DEvent<T>(

@@ -7,6 +7,7 @@ import {atomIdent} from '../lib/logootsequence.js'
 export enum EventType {
   ADD_OR_UPDATE_NODE,
   REPARENT_NODE,
+  REORDER_CHILD,
 }
 
 export interface AddOrUpdateNodeEventPayload {
@@ -20,15 +21,16 @@ export interface ReparentNodeEventPayload {
   parentId: string,
 }
 
-export enum LOGOOT_REORDER_OPERATION {
+export enum LogootReorderOperation {
   INSERT,
   DELETE,
 }
 
 export interface ReorderChildNodeEventPayload {
-  operation: LOGOOT_REORDER_OPERATION,
+  operation: LogootReorderOperation,
   position: atomIdent, // this is a logoot position/sequence identifier, a bunch of nested arrays
   childId: string,
+  parentId: string,
 }
 
 export class DEvent<T> {
@@ -70,6 +72,7 @@ export interface DEventSource<T> {
 
 export interface DEventLog<T> {
   getId(): string,
+  getCounter(): number,
   insert(events: DEvent<T>): Promise<EventLogCounter>
   // TODO: consider returning a subscription that can be cancelled
   subscribe(subscriber: EventSubscriber<T>): void

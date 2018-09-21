@@ -3,18 +3,23 @@ import {TreeService} from './service/tree-service'
 import {TreeServiceCommandHandler} from './commands/command-handler-tree-service'
 import {UndoableCommandHandler} from './commands/command-handler-undoable'
 import {Tree} from './view/tree-component'
-import { EventlogRepository } from './repository/repository-eventlog'
-import { LocalEventLog } from './eventlog/eventlog-local'
-import { AddOrUpdateNodeEventPayload, ReparentNodeEventPayload } from './eventlog/eventlog'
+import {EventlogRepository} from './repository/repository-eventlog'
+import {LocalEventLog} from './eventlog/eventlog-local'
+import {
+  AddOrUpdateNodeEventPayload,
+  ReparentNodeEventPayload,
+  ReorderChildNodeEventPayload,
+} from './eventlog/eventlog'
 
-// const repository = new PouchDbRepository()
 const nodeEventLog = new LocalEventLog<AddOrUpdateNodeEventPayload>('dendriform-node-eventlog')
 const treeEventLog = new LocalEventLog<ReparentNodeEventPayload>('dendriform-tree-eventlog')
+const childOrderEventLog = new LocalEventLog<ReorderChildNodeEventPayload>('dendriform-tree-childordereventlog')
 
 const treeComponentAndServicePromise: Promise<any[]> = nodeEventLog.init()
   .then(() => treeEventLog.init())
   .then(() => {
-    const repository = new EventlogRepository(nodeEventLog, nodeEventLog, treeEventLog, treeEventLog)
+    const repository = new EventlogRepository(nodeEventLog, nodeEventLog, treeEventLog, treeEventLog,
+      childOrderEventLog, childOrderEventLog)
     const treeService = new TreeService(repository)
     const commandHandler = new UndoableCommandHandler(new TreeServiceCommandHandler(treeService))
     return [new Tree(commandHandler, treeService), treeService]

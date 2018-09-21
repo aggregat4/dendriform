@@ -11,7 +11,7 @@
     "object-literal-sort-keys": [false],
     "arrow-parens": [false],
     "object-literal-key-quotes": [false],
-    "max-classes-per-file": [false],
+    "max-classes-per-file": [false, 1],
     "variable-name": [true, "allow-leading-underscore"],
     "member-access": [true, "no-public"],
     "member-ordering": [false],

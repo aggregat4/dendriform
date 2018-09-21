@@ -27,7 +27,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
     1. implement server side eventlog in Kotlin
     1. implement remote eventlog
     1. implement eventpump and configure eventpumps
-1. do a real dev/prod build separation as in https://webpack.js.org/guides/production/ especially so we can avoid inline sourcemaps when we do a prod build
+1. do a real dev/prod build separation as in [](https://webpack.js.org/guides/production/) especially so we can avoid inline sourcemaps when we do a prod build
 1. replace UUID peer ids in the event logs with locally resolved ints (persistent)
 1. replace dexie with raw indexeddb calls or something smaller (maybe, maybe not, the size is not that bad)
 1. I probably need some kind of forced garbage collect where on a peer a user confirms that this is the master copy and some sort of synchronous operation happens that forces a reset. What does that mean? Generate a snapshot on the server and have clients load this? This means putting data structure knowhow on the server. Or the client generates a snapshot and sends it to the server, but this means that all clients need to have the same software version.

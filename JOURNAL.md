@@ -302,7 +302,7 @@ Apparently the answer is yes.
 
 The [original LOGOOT paper](https://hal.inria.fr/inria-00432368/document) is more or less readably, I just had some trouble grasping the identifiers. This was a bit more practically explained in a [JavaScript logoot implementation](https://github.com/usecanvas/logoot-js).
 
-This means that we need a new eventlog that is also (like the others) segmented by treenodeid, the node references is the parent node. For each node the sum of its events represents a logoot list of its children.
+This means that we need a new eventlog that is also (like the others) segmented by treenodeid, the node reference is the parent node. For each node the sum of its events represents a logoot list of its children.
 
 In the eventlog we store events with the payload (op, pos, nodeId): 'op' signifies whether this is an INSERT or DELETE operation, 'pos' is the logoot identifier denoting its position in the list and 'nodeId' is the child node in the list.
 
@@ -311,3 +311,7 @@ Similar as to the other event logs we can garbage collect at insertion to only r
 Since logoot identifiers contain the peer vector clock for uniqueness (not ordering) I'm not sure our current abstraction can deal with that well. It may also be sensible to put the actual logoot implementation in a separate class.
 
 Note: as I look at the logoot implementation linked above it seems to me that the vector clock that is mentioned as a necessary part of identifying a sequence item is not actually a full vector clock but rather a logical clock value for the particular site that inserted the item in the sequence so that together with the site identifier it makes the item unique.
+
+## 21.9.2018
+
+The initial Logoot child ordering implementation is "done" but untested. There is a too much code in repository-eventlog, I need to figure out how to refactor that.
