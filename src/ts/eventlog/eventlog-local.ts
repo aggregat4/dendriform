@@ -31,12 +31,12 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     this.db = new Dexie(dbName)
   }
 
-  init(): Promise<void> {
+  init(): Promise<LocalEventLog<T>> {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
       eventlog: '++eventid,treenodeid', // see StoredEvent for schema
     })
-    return this.db.open().then(() => this.loadOrCreateMetadata())
+    return this.db.open().then(() => this.loadOrCreateMetadata()).then(() => this)
   }
 
   private loadOrCreateMetadata(): Promise<void> {

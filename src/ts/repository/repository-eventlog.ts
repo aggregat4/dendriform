@@ -4,90 +4,10 @@ import { AddOrUpdateNodeEventPayload, DEventLog, DEventSource, EventType, Repare
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode } from '../domain/domain'
-import {atomIdent, emptySequence, insertAtom, genAtomIdent, compareAtomIdents} from '../lib/logootsequence.js'
+import {atomIdent} from '../lib/logootsequence.js'
+import {LogootSequenceWrapper} from './logoot-sequence-wrapper'
 
-function insertMut(sequence, index, atom) {
-  sequence.splice(index, 0, atom)
-  return sequence
-}
-
-/**
- * A sequence of unique items, the uniqueness invariant is important since
- * we may use it to cache locations of items in the sequence for fast insertion.
- */
-class LogootSequence<T> {
-  private sequence = emptySequence()
-
-  constructor(readonly peerId: string) {}
-
-  insertAtAtomIdent(item: T, pos: atomIdent): void {
-    insertAtom(this.sequence, [pos, item], insertMut)
-  }
-
-  deleteAtAtomIdent(pos: atomIdent): void {
-    let deletePos = -1
-    for (let i = 1; i < this.sequence.length - 1; i++) {
-      if (compareAtomIdents(pos, this.sequence[i][0]) === 0) {
-        deletePos = i
-        break
-      }
-    }
-    if (deletePos >= 0 && deletePos < this.sequence.length) {
-      this.sequence.splice(deletePos, 1)
-    }
-    // TODO: throw error when index not found?
-  }
-
-  getAtomIdent(pos: number): atomIdent {
-    if (pos < 0 || pos >= this.length()) {
-      throw new Error(`Invalid positionn ${pos}`)
-    }
-    return this.sequence[pos + 1][0]
-  }
-
-  /**
-   * Element will be inserted at pos and everything starting with pos will be shifted right.
-   * If pos is >= sequence.length then it will be appended.
-   * The position is relative to the the externalarray range for this sequence not its internal representation.
-   */
-  insertAtIndex(item: T, pos: number, peerClock): void {
-    const atomId = this.getAtomIdentForInsertionIndex(pos, peerClock)
-    this.insertAtAtomIdent(item, atomId)
-  }
-
-  getAtomIdentForInsertionIndex(pos: number, peerClock): atomIdent {
-    if (pos < 0) {
-      throw new Error(`Invalid positionn ${pos}`)
-    }
-    return pos >= this.length()
-      ? genAtomIdent(
-        this.peerId,
-        peerClock,
-        this.sequence[this.sequence.length - 2][0],
-        this.sequence[this.sequence.length - 1][0])
-      : genAtomIdent(
-        this.peerId,
-        peerClock,
-        this.sequence[pos][0],
-        this.sequence[pos + 1][0])
-  }
-
-  deleteAtIndex(pos: number): void {
-    if (pos < 0 || pos >= this.length()) {
-      throw new Error(`Trying to remove element at pos ${pos} which is out of bounds for this logootsequence`)
-    }
-    this.sequence.splice(pos + 1, 1)
-  }
-
-  length(): number {
-    return this.sequence.length - 2
-  }
-
-  toArray(): T[] {
-    // cut off the marker items at the beginning and the end
-    return this.sequence.slice(1, -1).map(atom => atom[1])
-  }
-}
+class NodeNotFoundError extends Error {}
 
 /**
  * This is a repository implementation that uses an event log that synchronises with a remote eventlog
@@ -100,22 +20,21 @@ export class EventlogRepository implements Repository {
   private readonly debouncedTreeRebuild = debounce(this.rebuildTreeStructureMaps.bind(this), 5000)
 
   constructor(readonly nodeEventLog: DEventLog<AddOrUpdateNodeEventPayload>,
-              readonly nodeEventSource: DEventSource<AddOrUpdateNodeEventPayload>,
               readonly treeEventLog: DEventLog<ReparentNodeEventPayload>,
-              readonly treeEventSource: DEventSource<ReparentNodeEventPayload>,
-              readonly childOrderEventLog: DEventLog<ReorderChildNodeEventPayload>,
-              readonly childOrderEventSource: DEventSource<ReorderChildNodeEventPayload>) {
-    this.rebuildTreeStructureMaps().then(() => {
+              readonly childOrderEventLog: DEventLog<ReorderChildNodeEventPayload>) {}
+
+  init(): Promise<EventlogRepository> {
+    return this.rebuildTreeStructureMaps().then(() => {
       // TODO: this is not great: we rebuild the maps, then subscribe and theoretically we could get
       // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
       // would mean delaying the inital map construction for too long...
-      nodeEventLog.subscribe({
+      this.nodeEventLog.subscribe({
         notify: this.nodeEventLogListener,
         filter: (event) => event.originator !== this.nodeEventLog.getId() })
-      treeEventLog.subscribe({
+      this.treeEventLog.subscribe({
         notify: this.treeEventLogListener,
         filter: (event) => event.originator !== this.treeEventLog.getId() })
-    })
+    }).then(() => this)
   }
 
   private nodeEventLogListener(event: DEvent<AddOrUpdateNodeEventPayload>): void {
@@ -150,16 +69,17 @@ export class EventlogRepository implements Repository {
       .then(childOrderEvents => {
         const newParentChildMap = {}
         childOrderEvents.events.forEach(event => {
-          this.insertInParentChildMap(event.payload.childId, event.payload.parentId,
-            event.payload.operation, event.payload.position)
+          EventlogRepository.insertInParentChildMap(newParentChildMap, event.payload.childId, event.payload.parentId,
+            event.payload.operation, event.payload.position, this.childOrderEventLog.getId())
         })
         this.parentChildMap = newParentChildMap
       })
   }
 
-  private insertInParentChildMap(childId: string, parentId: string,
-                                 operation: LogootReorderOperation, position: atomIdent): void {
-    const seq: LogootSequence<string> = this.getOrCreateSeqForParent(parentId)
+  private static insertInParentChildMap(parentChildMap, childId: string, parentId: string,
+                                        operation: LogootReorderOperation, position: atomIdent, peerId: string): void {
+    const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
+      parentChildMap, parentId, peerId)
     if (operation === LogootReorderOperation.DELETE) {
       seq.deleteAtAtomIdent(position)
     } else {
@@ -168,14 +88,14 @@ export class EventlogRepository implements Repository {
   }
 
   createNode(id: string, name: string, content: string): Promise<void> {
-    return this.nodeEventSource.publish(
+    return this.nodeEventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       id,
       {name, note: content, deleted: false, collapsed: false})
   }
 
   updateNode(node: RepositoryNode): Promise<void> {
-    return this.nodeEventSource.publish(
+    return this.nodeEventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
       {name: node.name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed})
@@ -188,18 +108,19 @@ export class EventlogRepository implements Repository {
     const oldParentId = this.childParentMap[childId]
     // if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.updateTreeStructureMaps(childId, parentId, position)
-    const seq: LogootSequence<string> = this.getOrCreateSeqForParent(parentId)
+    const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
+      this.parentChildMap, parentId, this.childOrderEventLog.getId())
     const insertionIndex = this.getChildInsertionIndex(seq, position)
     const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.childOrderEventLog.getCounter())
     if (oldParentId && oldParentId !== parentId) {
       // publish a delete event on the old parent if there was a different old parent
-      const oldSeq: LogootSequence<string> = this.parentChildMap[oldParentId]
+      const oldSeq: LogootSequenceWrapper<string> = this.parentChildMap[oldParentId]
       if (oldSeq) {
         const oldArray = oldSeq.toArray()
         const indexOfChild = oldArray.indexOf(childId)
         if (indexOfChild >= 0) {
           const deletionAtomIdent = oldSeq.getAtomIdent(indexOfChild)
-          await this.childOrderEventSource.publish(
+          await this.childOrderEventLog.publish(
             EventType.REORDER_CHILD,
             parentId,
             {
@@ -213,10 +134,10 @@ export class EventlogRepository implements Repository {
     }
     if (oldParentId !== parentId) {
       // publish a reparent event when we have a new parent
-      await this.treeEventSource.publish(EventType.REPARENT_NODE, childId, { parentId })
+      await this.treeEventLog.publish(EventType.REPARENT_NODE, childId, { parentId })
     }
     // publish insert reorder event on new parent
-    return this.childOrderEventSource.publish(
+    return this.childOrderEventLog.publish(
       EventType.REORDER_CHILD,
       parentId,
       {
@@ -231,7 +152,7 @@ export class EventlogRepository implements Repository {
     const oldParentId = this.childParentMap[childId]
     this.childParentMap[childId] = parentId
     // delete the child at the old parent
-    const oldSeq: LogootSequence<string> = this.parentChildMap[oldParentId]
+    const oldSeq: LogootSequenceWrapper<string> = this.parentChildMap[oldParentId]
     if (oldSeq) {
       const oldArray = oldSeq.toArray()
       const indexOfChild = oldArray.indexOf(childId)
@@ -240,16 +161,17 @@ export class EventlogRepository implements Repository {
       }
     }
     // insert the child at the new parent
-    const newSeq: LogootSequence<string> = this.getOrCreateSeqForParent(parentId)
+    const newSeq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
+      this.parentChildMap, parentId, this.childOrderEventLog.getId())
     newSeq.insertAtIndex(childId, this.getChildInsertionIndex(newSeq, position), this.childOrderEventLog.getCounter())
   }
 
-  private getOrCreateSeqForParent(parentId: string): LogootSequence<string> {
-    return this.parentChildMap[parentId] ||
-      (this.parentChildMap[parentId] = new LogootSequence<string>(this.childOrderEventLog.getId()))
+  private static getOrCreateSeqForParent(
+      parentChildMap, parentId: string, peerId: string): LogootSequenceWrapper<string> {
+    return parentChildMap[parentId] || (parentChildMap[parentId] = new LogootSequenceWrapper<string>(peerId))
   }
 
-  private getChildInsertionIndex(seq: LogootSequence<string>, position: RelativeNodePosition): number {
+  private getChildInsertionIndex(seq: LogootSequenceWrapper<string>, position: RelativeNodePosition): number {
     if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
       return 0
     } else if (position.beforeOrAfter === RelativeLinearPosition.AFTER) {
@@ -331,7 +253,7 @@ export class EventlogRepository implements Repository {
   }
 
   private getChildren(nodeId: string): string[] {
-    return this.parentChildMap[nodeId] || []
+    return this.parentChildMap[nodeId] ? this.parentChildMap[nodeId].toArray() : []
   }
 
   private loadAncestors(childId: string, ancestors: RepositoryNode[]): Promise<RepositoryNode[]> {
@@ -348,5 +270,3 @@ export class EventlogRepository implements Repository {
   }
 
 }
-
-class NodeNotFoundError extends Error {}

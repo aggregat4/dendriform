@@ -315,3 +315,11 @@ Note: as I look at the logoot implementation linked above it seems to me that th
 ## 21.9.2018
 
 The initial Logoot child ordering implementation is "done" but untested. There is a too much code in repository-eventlog, I need to figure out how to refactor that.
+
+## 26.9.2018
+
+Having now debugged some implementation issues with the logoot based child ordering, I now notice that the general garbage collection policy used in the local event log implementation is wront for the logoot events.
+
+Until now only the "last" (by vectorclock and peerId) event for a treenodeid was kept. Since for the logout sequence we have delete and insert events, and we need to retain all events for unique children we need a better policy here.
+
+Would it suffice to enhance the eventlog api to take some sort of discriminator that says: consider the following fields as keys to segment the log? By deault it is treenodeid, but in the logoot case it needs to be treenodeid, childid and the operation type. That may be elegant and enough?

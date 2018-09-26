@@ -70,7 +70,7 @@ export interface DEventSource<T> {
   publish(type: EventType, nodeId: string, payload: T): Promise<any>
 }
 
-export interface DEventLog<T> {
+export interface DEventLog<T> extends DEventSource<T> {
   getId(): string,
   getCounter(): number,
   insert(events: DEvent<T>): Promise<EventLogCounter>

@@ -13,13 +13,13 @@ import {
 
 const nodeEventLog = new LocalEventLog<AddOrUpdateNodeEventPayload>('dendriform-node-eventlog')
 const treeEventLog = new LocalEventLog<ReparentNodeEventPayload>('dendriform-tree-eventlog')
-const childOrderEventLog = new LocalEventLog<ReorderChildNodeEventPayload>('dendriform-tree-childordereventlog')
+const childOrderEventLog = new LocalEventLog<ReorderChildNodeEventPayload>('dendriform-childorder-eventlog')
 
 const treeComponentAndServicePromise: Promise<any[]> = nodeEventLog.init()
   .then(() => treeEventLog.init())
-  .then(() => {
-    const repository = new EventlogRepository(nodeEventLog, nodeEventLog, treeEventLog, treeEventLog,
-      childOrderEventLog, childOrderEventLog)
+  .then(() => childOrderEventLog.init())
+  .then(() => new EventlogRepository(nodeEventLog, treeEventLog, childOrderEventLog).init())
+  .then(repository => {
     const treeService = new TreeService(repository)
     const commandHandler = new UndoableCommandHandler(new TreeServiceCommandHandler(treeService))
     return [new Tree(commandHandler, treeService), treeService]
