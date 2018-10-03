@@ -14,6 +14,7 @@
     "livereload": "live-reload --port 9091 dist/",
     "sloc": "node_modules/.bin/sloc src",
     "test": "jest",
+    "testcoverage": "jest --coverage",
     "test-watch": "npx jest --watch"
   },
   "author": "Boris Terzic <boris@terzic.be>",

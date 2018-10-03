@@ -120,6 +120,7 @@ export class EventlogRepository implements Repository {
       this.parentChildMap, parentId, this.childOrderEventLog.getId())
     const insertionIndex = this.getChildInsertionIndex(seq, position)
     const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.childOrderEventLog.getCounter())
+    console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.childParentMap[childId] = parentId
     seq.insertAtAtomIdent(childId, insertionAtomIdent)
@@ -184,8 +185,8 @@ export class EventlogRepository implements Repository {
       return afterNodeIndex + 1
     } else if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
       // TODO: We default to insert at the beginning of the sequence when we can not find the after Node, is this right?
-      const beforeNodeIndex = seq.toArray().indexOf(position.nodeId) || 1
-      return beforeNodeIndex - 1
+      const beforeNodeIndex = seq.toArray().indexOf(position.nodeId) || 0
+      return beforeNodeIndex
     } else if (position.beforeOrAfter === RelativeLinearPosition.END) {
       return seq.length()
     }
