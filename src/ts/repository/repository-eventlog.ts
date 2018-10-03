@@ -193,7 +193,8 @@ export class EventlogRepository implements Repository {
   }
 
   getChildIds(nodeId: string): Promise<string[]> {
-    return Promise.resolve(this.parentChildMap[nodeId])
+    const childIdsSeq = this.parentChildMap[nodeId]
+    return Promise.resolve(childIdsSeq ? childIdsSeq.toArray() : [])
   }
 
   getParentId(nodeId: string): Promise<string> {
