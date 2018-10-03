@@ -318,8 +318,18 @@ The initial Logoot child ordering implementation is "done" but untested. There i
 
 ## 26.9.2018
 
-Having now debugged some implementation issues with the logoot based child ordering, I now notice that the general garbage collection policy used in the local event log implementation is wront for the logoot events.
+Having now debugged some implementation issues with the logoot based child ordering, I now notice that the general garbage collection policy used in the local event log implementation is wrong for the logoot events.
 
 Until now only the "last" (by vectorclock and peerId) event for a treenodeid was kept. Since for the logout sequence we have delete and insert events, and we need to retain all events for unique children we need a better policy here.
 
 Would it suffice to enhance the eventlog api to take some sort of discriminator that says: consider the following fields as keys to segment the log? By deault it is treenodeid, but in the logoot case it needs to be treenodeid, childid and the operation type. That may be elegant and enough?
+
+## 28.9.2018
+
+I have the impression the logoot sequence is not working correctly, somehow it seems to contain wrong (and too many?) values for the positions. Need to debug this. Unit test?
+
+## 3.10.2018 Javascript tooling is crazy
+
+Had to dick around with my babel, webpack, jest and other configs to make jest work with Typescript files that import ES6 Javascript stuff from JS files. See the commit history. This is crazy.
+
+A really specific hint I want to mention: even if you already have `"@babel/core": "^7.1.2"` as a dependency, you still need `"babel-core": "^7.0.0-bridge.0"` as an additional dependency to make jest work with ES6 dependencies correctly.

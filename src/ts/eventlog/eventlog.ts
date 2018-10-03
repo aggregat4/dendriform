@@ -1,5 +1,5 @@
-import { VectorClock } from '../lib/vectorclock'
-import { Predicate } from '../util'
+import {VectorClock} from '../lib/vectorclock'
+import {Predicate} from '../util'
 import {atomIdent} from '../lib/logootsequence.js'
 
 // At the moment we put add and update together and always transport
@@ -70,13 +70,26 @@ export interface DEventSource<T> {
   publish(type: EventType, nodeId: string, payload: T): Promise<any>
 }
 
+export type EventGcInclusionFilter<T> = (newEventPayload: T, oldEventPayload: T) => boolean
+
+// For the child order event log we need a special garbage collection filter because
+// with logoot events for a sequence we don't just want to retain the newest event for each
+// parent, rather we need to retain the newest event for a particular child for that parent and
+// additionally take into account the operation type. We need to retain the newest DELETE as well
+// as INSERT operation so we can reliably rebuild the sequence
+export const LOGOOT_EVENT_GC_FILTER: EventGcInclusionFilter<ReorderChildNodeEventPayload> =
+  (newEventPayload: ReorderChildNodeEventPayload, oldEventPayload: ReorderChildNodeEventPayload) => {
+    return newEventPayload.childId === oldEventPayload.childId
+      && newEventPayload.operation === oldEventPayload.operation
+  }
+
 export interface DEventLog<T> extends DEventSource<T> {
   getId(): string,
   getCounter(): number,
   insert(events: DEvent<T>): Promise<EventLogCounter>
   // TODO: consider returning a subscription that can be cancelled
   subscribe(subscriber: EventSubscriber<T>): void
-  // throws CounterTooHighError when counter is larger than what the server knows
+  // throws CounterTooHighError when counter is larger than what the eventlog knows
   getEventsSince(counter: number): Promise<Events<T>>
   getEventsForNode(nodeId: string): Promise<Array<DEvent<T>>>
 }

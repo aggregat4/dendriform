@@ -9,12 +9,15 @@ import {
   AddOrUpdateNodeEventPayload,
   ReparentNodeEventPayload,
   ReorderChildNodeEventPayload,
+  LOGOOT_EVENT_GC_FILTER,
 } from './eventlog/eventlog'
 
 const nodeEventLog = new LocalEventLog<AddOrUpdateNodeEventPayload>('dendriform-node-eventlog')
 const treeEventLog = new LocalEventLog<ReparentNodeEventPayload>('dendriform-tree-eventlog')
-const childOrderEventLog = new LocalEventLog<ReorderChildNodeEventPayload>('dendriform-childorder-eventlog')
+const childOrderEventLog = new LocalEventLog<ReorderChildNodeEventPayload>(
+  'dendriform-childorder-eventlog', LOGOOT_EVENT_GC_FILTER)
 
+// TODO: refactor this use of arrays to use some object and assign with destructuring or something
 const treeComponentAndServicePromise: Promise<any[]> = nodeEventLog.init()
   .then(() => treeEventLog.init())
   .then(() => childOrderEventLog.init())

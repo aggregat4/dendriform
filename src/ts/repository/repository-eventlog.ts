@@ -1,6 +1,6 @@
 import {Repository} from './repository'
 // tslint:disable-next-line:max-line-length
-import { AddOrUpdateNodeEventPayload, DEventLog, DEventSource, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation } from '../eventlog/eventlog'
+import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode } from '../domain/domain'
@@ -95,6 +95,16 @@ export class EventlogRepository implements Repository {
   }
 
   updateNode(node: RepositoryNode): Promise<void> {
+    if (!!node.deleted) {
+      // here we assume the node just got deleted, this is not necessarily correct, one could
+      // also update a node that was already deleted but doing it twice doesn't hurt? And we
+      // have no good way to recognize if it was really deleted
+      const parentId = this.childParentMap[node._id]
+      if (! parentId) {
+        throw new Error(`Parent not known for node ${node._id} therefore can not delete this node`)
+      }
+      this.deleteNode(node._id, parentId)
+    }
     return this.nodeEventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
@@ -106,31 +116,17 @@ export class EventlogRepository implements Repository {
   // case then we would need to publish a delete event before this
   async reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
     const oldParentId = this.childParentMap[childId]
-    // if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
-    this.updateTreeStructureMaps(childId, parentId, position)
     const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
       this.parentChildMap, parentId, this.childOrderEventLog.getId())
     const insertionIndex = this.getChildInsertionIndex(seq, position)
     const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.childOrderEventLog.getCounter())
+    // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
+    this.childParentMap[childId] = parentId
+    seq.insertAtAtomIdent(childId, insertionAtomIdent)
+    // REMOTE: make the remote update
     if (oldParentId && oldParentId !== parentId) {
       // publish a delete event on the old parent if there was a different old parent
-      const oldSeq: LogootSequenceWrapper<string> = this.parentChildMap[oldParentId]
-      if (oldSeq) {
-        const oldArray = oldSeq.toArray()
-        const indexOfChild = oldArray.indexOf(childId)
-        if (indexOfChild >= 0) {
-          const deletionAtomIdent = oldSeq.getAtomIdent(indexOfChild)
-          await this.childOrderEventLog.publish(
-            EventType.REORDER_CHILD,
-            parentId,
-            {
-              operation: LogootReorderOperation.DELETE,
-              position: deletionAtomIdent,
-              childId,
-              parentId,
-            })
-        }
-      }
+      await this.deleteNode(childId, oldParentId)
     }
     if (oldParentId !== parentId) {
       // publish a reparent event when we have a new parent
@@ -148,22 +144,30 @@ export class EventlogRepository implements Repository {
       })
   }
 
-  private updateTreeStructureMaps(childId: string, parentId: string, position: RelativeNodePosition): void {
-    const oldParentId = this.childParentMap[childId]
-    this.childParentMap[childId] = parentId
+  private deleteNode(childId: string, parentId: string): Promise<void> {
     // delete the child at the old parent
-    const oldSeq: LogootSequenceWrapper<string> = this.parentChildMap[oldParentId]
-    if (oldSeq) {
-      const oldArray = oldSeq.toArray()
-      const indexOfChild = oldArray.indexOf(childId)
+    const seq: LogootSequenceWrapper<string> = this.parentChildMap[parentId]
+    if (seq) {
+      const indexOfChild = seq.toArray().indexOf(childId)
       if (indexOfChild >= 0) {
-        oldSeq.deleteAtIndex(indexOfChild)
+        console.log(`removing child from local sequence in cache`)
+        // ordering here is crucial: get the atom ident first, and THEN delete the item, otherwise
+        // it is the wrong value
+        const deletionAtomIdent = seq.getAtomIdent(indexOfChild)
+        seq.deleteAtIndex(indexOfChild)
+        console.log(`publishing child delete event`)
+        return this.childOrderEventLog.publish(
+          EventType.REORDER_CHILD,
+          parentId,
+          {
+            operation: LogootReorderOperation.DELETE,
+            position: deletionAtomIdent,
+            childId,
+            parentId,
+          })
       }
     }
-    // insert the child at the new parent
-    const newSeq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
-      this.parentChildMap, parentId, this.childOrderEventLog.getId())
-    newSeq.insertAtIndex(childId, this.getChildInsertionIndex(newSeq, position), this.childOrderEventLog.getCounter())
+    return Promise.resolve()
   }
 
   private static getOrCreateSeqForParent(

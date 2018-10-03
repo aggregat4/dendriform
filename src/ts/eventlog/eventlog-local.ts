@@ -1,5 +1,5 @@
 // tslint:disable-next-line:max-line-length
-import {DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events} from './eventlog'
+import {DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events, EventGcInclusionFilter} from './eventlog'
 import Dexie from 'dexie'
 import {generateUUID} from '../util'
 import {VectorClock} from '../lib/vectorclock'
@@ -27,7 +27,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
   private counter: number
   private subscribers: Array<EventSubscriber<T>> = []
 
-  constructor(readonly dbName: string) {
+  constructor(readonly dbName: string, readonly gcFilter?: EventGcInclusionFilter<T>) {
     this.db = new Dexie(dbName)
   }
 
@@ -147,7 +147,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
 
   private async storeAndGarbageCollect(event: DEvent<T>): Promise<StoredEvent<T>> {
     const storedEvent = await this.store(event)
-    await this.garbageCollect(event.nodeId)
+    await this.garbageCollect(event)
     return storedEvent
   }
 
@@ -162,22 +162,27 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     }).catch(error => console.error(`store error: `, error))
   }
 
-  private garbageCollect(nodeId: string): Promise<any> {
+  private garbageCollect(event: DEvent<T>): Promise<any> {
     const table = this.db.table('eventlog')
-    return table.where('treenodeid').equals(nodeId).toArray()
+    return table.where('treenodeid').equals(event.nodeId).toArray()
       .then((nodeEvents: Array<StoredEvent<T>>) => {
-        const eventsToDelete = this.sortAndPruneEvents(nodeEvents)
+        const eventsToDelete = this.sortAndPruneEvents(nodeEvents, event)
         if (eventsToDelete.length > 0) {
-          console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
+          // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
           return table.bulkDelete(eventsToDelete.map((e) => e.eventid))
         }
       })
   }
 
-  private sortAndPruneEvents(events: Array<StoredEvent<T>>): Array<StoredEvent<T>> {
+  private sortAndPruneEvents(events: Array<StoredEvent<T>>, newEvent: DEvent<T>): Array<StoredEvent<T>> {
     if (events.length > 1) {
+      // if we have a garbagecollectionfilter set we need to remove all stored events that are not
+      // included by it (this is needed when the treenode itself is not sufficient for filtering)
+      if (this.gcFilter) {
+        events = events.filter(ev => this.gcFilter(newEvent.payload, ev.payload))
+      }
       this.sortCausally(events)
-      // remove the last element, which is the latest event which we want to retain
+      // remove the last element, which is also the newest event which we want to retain
       events.splice(-1 , 1)
       return events
     } else {
