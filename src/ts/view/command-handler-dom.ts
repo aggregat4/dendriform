@@ -1,8 +1,8 @@
 import {
   RelativeLinearPosition,
   createNewResolvedRepositoryNode,
-  filterNode,
 } from '../domain/domain'
+import { filterNode } from '../domain/domain-search'
 import {
   CloseNodeByIdCommandPayload,
   Command,
@@ -22,8 +22,6 @@ import {
   getChildrenElement,
   getChildrenElementOrCreate,
   getNameElement,
-  getParentNode,
-  getNodeId,
   hasChildren,
   getNoteElement,
 } from './tree-dom-util'
@@ -86,7 +84,7 @@ export class DomCommandHandler implements CommandHandler {
     if (hasChildren(sourceNode)) {
       const targetChildrenNode = getChildrenElementOrCreate(targetNode)
       const sourceChildrenNode = getChildrenElement(sourceNode)
-      sourceChildrenNode.childNodes.forEach((childNode, currentIndex, listObj) => {
+      sourceChildrenNode.childNodes.forEach((childNode) => {
         targetChildrenNode.appendChild(childNode)
       })
     }
@@ -96,7 +94,7 @@ export class DomCommandHandler implements CommandHandler {
   domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
                newNodeId: string): void {
     this.domRenameNode(node, originalNodeName)
-    const newNode = createNewResolvedRepositoryNode(newNodeId, newNodeName, getNodeId(getParentNode(node)))
+    const newNode = createNewResolvedRepositoryNode(newNodeId, newNodeName)
     const newSibling = new TreeNode()
     newSibling.update(filterNode(newNode))
     node.insertAdjacentElement('beforebegin', newSibling.getElement())

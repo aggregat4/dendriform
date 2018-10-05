@@ -1,14 +1,10 @@
 # Dendriform
 
-A web based outliner that works offline by default.
+An outliner that runs in the browser and works offline by default.
 
-This application is heavily inspired by [Workflowy](http://workflowy.com), one of the most elegant outliners out there.
+CRDT-based peer synchronisation is under construction.
 
-It uses pouchdb for local persistence and renders directly to the dom using RE:DOM as a helper library.
-
-## Useful links
-
-* [`package.json` specification](https://docs.npmjs.com/files/package.json)
+This application is heavily inspired by [Workflowy](http://workflowy.com), the most elegant outliner out there.
 
 ## Development
 
@@ -20,11 +16,14 @@ This project uses npm and webpack to build. To get started, do the following:
 
 The sample application can be tested by loading the `dist/index.html` file in your browser.
 
+## Useful links
+
+* [`package.json` specification](https://docs.npmjs.com/files/package.json)
+
 ## Next Steps
 
 1. Implement sync (Hah!)
-    1. order for children is not preserved because we just store per node where it is relative to another node and we do not apply this information in the same order we stored it, we need to take into account the vector clocks here
-    1. implement server side eventlog in Kotlin
+    1. implement server side eventlog in Kotlin (?)
     1. implement remote eventlog
     1. implement eventpump and configure eventpumps
 1. do a real dev/prod build separation as in [](https://webpack.js.org/guides/production/) especially so we can avoid inline sourcemaps when we do a prod build
@@ -35,6 +34,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Implement export in some standard format
+1. Add creation timestamp and update timestamp
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. Auto link urls in names and notes
 1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, make it easier to implement platform specific key combos, etc. Also consider how Visual Studio Code does this:

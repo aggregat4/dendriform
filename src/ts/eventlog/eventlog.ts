@@ -2,8 +2,6 @@ import {VectorClock} from '../lib/vectorclock'
 import {Predicate} from '../util'
 import {atomIdent} from '../lib/logootsequence.js'
 
-// At the moment we put add and update together and always transport
-// the full payload. This makes everything easier for now.
 export enum EventType {
   ADD_OR_UPDATE_NODE,
   REPARENT_NODE,
@@ -41,10 +39,9 @@ export class DEvent<T> {
     readonly nodeId: string,
     readonly payload: T) {}
 
-    isIdentical(other: DEvent<T>): boolean {
-      return this.type === other.type && this.clock.isIdentical(other.clock)
-    }
-
+  isIdentical(other: DEvent<T>): boolean {
+    return this.type === other.type && this.clock.isIdentical(other.clock)
+  }
 }
 
 export class EventLogError extends Error {}

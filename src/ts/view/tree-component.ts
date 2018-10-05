@@ -1,7 +1,8 @@
 import { el, setChildren, setAttr, setStyle } from 'redom'
 import {MergeNameOrder} from '../service/service'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, filterNode, FilteredRepositoryNode, BEGINNING_NODELIST_MARKER} from '../domain/domain'
+import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, FilteredRepositoryNode} from '../domain/domain'
+import { filterNode } from '../domain/domain-search'
 // tslint:disable-next-line:max-line-length
 import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodeByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, UpdateNoteByIdCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
