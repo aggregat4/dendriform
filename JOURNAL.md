@@ -333,3 +333,27 @@ I have the impression the logoot sequence is not working correctly, somehow it s
 Had to dick around with my babel, webpack, jest and other configs to make jest work with Typescript files that import ES6 Javascript stuff from JS files. See the commit history. This is crazy.
 
 A really specific hint I want to mention: even if you already have `"@babel/core": "^7.1.2"` as a dependency, you still need `"babel-core": "^7.0.0-bridge.0"` as an additional dependency to make jest work with ES6 dependencies correctly.
+
+## 5.10.2018 Considering the server side
+
+Considering the server side eventlog we need for coordination between peers. The server should be as agnostic as possible and only concern itself with the technical necessities: managing users and eventlogs. It should be agnostic to the type of event.
+
+The client side question then becomes: do we have 3 server-side eventlogs for all three types of event or just one? This comes down to having a single remote eventlog proxy or three separate ones. The single implementation then needs to be able to deal with all three event types and dispatch to the correct local eventlog.
+
+Currently tending towards one server side log and therefore the dispatching local implementation. Makes one think that perhaps we should also consolidate the three local eventlogs? On the other hand that makes debugging harder and makes it all a bit less clear.
+
+Maybe there's a nice way to easily dispatch these different event types back and forth.
+
+## 10.10.2018 Server Side ReST API
+
+Implemented a tiny ReST API prototype that works and solves some niggling issues with Kotlin and JSON serialization.
+
+It became clear that we can try implementing the server so that it is totally agnostic to what an event is, it just stores strings.
+
+Looked at some Kotlin options for database access and was not really convinced yet. Want to try using HikariCP as a connection pool and then doing my own tiny tiny wrappers around JDBC. I do want to include schema versioning and autoupgrading the schema with migrations as well as being very careful about detecting issues with the existing schema.
+
+For now we need just one table for the events, but we will need some more for all the user and eventlog stuff. I need to think about how to approach authentication here.
+
+Do I want to model users in the API? This is the age old problem. But probably not since eventlogs are not a subresource of a user. Right? Let's not and treat user auth out of band somehow. I will, however need to model authorization: who has the right to access what logs. I will also need to create eventlogs on demand if the ID is not known yet.
+
+Do I map external eventlogids (which are strings) to internal ids?
