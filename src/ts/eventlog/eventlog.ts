@@ -50,9 +50,10 @@ export class CounterTooHighError extends EventLogError {}
 export type EventListener<T> = (_: DEvent<T>) => void
 
 export interface EventSubscriber<T> {
-  notify: EventListener<T>,
-  filter: Predicate<DEvent<T>>,
+  notify(e: DEvent<T>): void
+  filter: Predicate<DEvent<T>>
 }
+
 export type EventLogCounter = number
 
 export interface EventLogState {
