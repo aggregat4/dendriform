@@ -120,7 +120,7 @@ export class EventlogRepository implements Repository {
       this.parentChildMap, parentId, this.childOrderEventLog.getId())
     const insertionIndex = this.getChildInsertionIndex(seq, position)
     const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.childOrderEventLog.getCounter())
-    console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
+    // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.childParentMap[childId] = parentId
     seq.insertAtAtomIdent(childId, insertionAtomIdent)

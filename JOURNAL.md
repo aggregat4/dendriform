@@ -357,3 +357,15 @@ For now we need just one table for the events, but we will need some more for al
 Do I want to model users in the API? This is the age old problem. But probably not since eventlogs are not a subresource of a user. Right? Let's not and treat user auth out of band somehow. I will, however need to model authorization: who has the right to access what logs. I will also need to create eventlogs on demand if the ID is not known yet.
 
 Do I map external eventlogids (which are strings) to internal ids?
+
+## 26.10.2018
+
+Started the client side implementation of talking to our new dendriform-server to get events from other peers and ran into a design issue. The event pump on the client side needs the local max event counter and the server side max event counter so it can always query for the right new events in either direction. This seems a bit fragile at the moment since we should be able to just deal with whatever events come (see vector clocks) but on the other hand we need an optimisation like this for performance so it seems reasonable to set this as a prerequisite.
+
+Two design constraints, or assumptions for the following desing are:
+
+* A peer always knows all of his own events. This means that if a peers storage is ever reset, it needs to act like a new peer and start from scratch. This seems the cleanest way.
+
+* A peer always has a consistent state regarding the events from other peers he already saw from the server. Concreteley this means that we always have a valid counter from the server reflecting the current state of events that we have read. Again, if we reset the client somehow, we just become a new peer and fetch all of the events.
+
+Can we implement the client side event pump with pure polling or do we need Server Sent Events or something? polling won't be really immediate and maybe too much load? Is SSE too complicated? Do some digging.
