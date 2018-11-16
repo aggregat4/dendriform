@@ -362,10 +362,16 @@ Do I map external eventlogids (which are strings) to internal ids?
 
 Started the client side implementation of talking to our new dendriform-server to get events from other peers and ran into a design issue. The event pump on the client side needs the local max event counter and the server side max event counter so it can always query for the right new events in either direction. This seems a bit fragile at the moment since we should be able to just deal with whatever events come (see vector clocks) but on the other hand we need an optimisation like this for performance so it seems reasonable to set this as a prerequisite.
 
-Two design constraints, or assumptions for the following desing are:
+Two design constraints (or assumptions) for the design:
 
-* A peer always knows all of his own events. This means that if a peers storage is ever reset, it needs to act like a new peer and start from scratch. This seems the cleanest way.
+* A peer always knows all of his own events. This means that if a peer's storage is ever reset, it needs to act like a new peer and start from scratch.
 
 * A peer always has a consistent state regarding the events from other peers he already saw from the server. Concreteley this means that we always have a valid counter from the server reflecting the current state of events that we have read. Again, if we reset the client somehow, we just become a new peer and fetch all of the events.
 
 Can we implement the client side event pump with pure polling or do we need Server Sent Events or something? polling won't be really immediate and maybe too much load? Is SSE too complicated? Do some digging.
+
+## 16.11.2018
+
+SSE or Websockets would require the server to implement some event bus that keeps track of new events so that it can notify any subscribers. This seems like a more complicated design for a later stage. Let's go with polling for now.
+
+A skeleton for the event pump now exists: it still needs implementations for the local and the remote pump and some wrappers that do the actual scheduling of the calls and starts or stops pumping when requested.

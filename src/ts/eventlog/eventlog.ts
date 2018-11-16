@@ -82,7 +82,10 @@ export const LOGOOT_EVENT_GC_FILTER: EventGcInclusionFilter<ReorderChildNodeEven
   }
 
 export interface DEventLog<T> extends DEventSource<T> {
-  getId(): string,
+  // A globally unique ID identifying this peer in a multi-peer environment
+  getPeerId(): string,
+  // The logical name of the eventlog, for example 'dendriform-tree-structure-events'
+  getName(): string,
   getCounter(): number,
   insert(events: DEvent<T>): Promise<EventLogCounter>
   // TODO: consider returning a subscription that can be cancelled

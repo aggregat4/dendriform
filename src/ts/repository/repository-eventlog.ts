@@ -10,7 +10,7 @@ import {LogootSequenceWrapper} from './logoot-sequence-wrapper'
 class NodeNotFoundError extends Error {}
 
 /**
- * This is a repository implementation that uses an event log that synchronises with a remote eventlog
+ * This is a repository implementation that uses an event log. It can be synchronised with a remote eventlog
  * to provide an eventually consistent, multi-peer, storage backend.
  */
 export class EventlogRepository implements Repository {
@@ -30,10 +30,10 @@ export class EventlogRepository implements Repository {
       // would mean delaying the inital map construction for too long...
       this.nodeEventLog.subscribe({
         notify: this.nodeEventLogListener,
-        filter: (event) => event.originator !== this.nodeEventLog.getId() })
+        filter: (event) => event.originator !== this.nodeEventLog.getPeerId() })
       this.treeEventLog.subscribe({
         notify: this.treeEventLogListener,
-        filter: (event) => event.originator !== this.treeEventLog.getId() })
+        filter: (event) => event.originator !== this.treeEventLog.getPeerId() })
     }).then(() => this)
   }
 
@@ -70,7 +70,7 @@ export class EventlogRepository implements Repository {
         const newParentChildMap = {}
         childOrderEvents.events.forEach(event => {
           EventlogRepository.insertInParentChildMap(newParentChildMap, event.payload.childId, event.payload.parentId,
-            event.payload.operation, event.payload.position, this.childOrderEventLog.getId())
+            event.payload.operation, event.payload.position, this.childOrderEventLog.getPeerId())
         })
         this.parentChildMap = newParentChildMap
       })
@@ -117,7 +117,7 @@ export class EventlogRepository implements Repository {
   async reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
     const oldParentId = this.childParentMap[childId]
     const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
-      this.parentChildMap, parentId, this.childOrderEventLog.getId())
+      this.parentChildMap, parentId, this.childOrderEventLog.getPeerId())
     const insertionIndex = this.getChildInsertionIndex(seq, position)
     const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.childOrderEventLog.getCounter())
     // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)

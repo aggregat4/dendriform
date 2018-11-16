@@ -22,6 +22,7 @@ interface StoredEvent<T> {
 export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
 
   readonly db
+  readonly name
   private peerId: string
   private vectorClock: VectorClock
   private counter: number
@@ -29,6 +30,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
 
   constructor(readonly dbName: string, readonly gcFilter?: EventGcInclusionFilter<T>) {
     this.db = new Dexie(dbName)
+    this.name = dbName
   }
 
   init(): Promise<LocalEventLog<T>> {
@@ -70,8 +72,12 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
       .catch(error => console.error(`saveMetadata error: `, error))
   }
 
-  getId(): string {
+  getPeerId(): string {
     return this.peerId
+  }
+
+  getName(): string {
+    return this.name
   }
 
   getCounter(): number {
