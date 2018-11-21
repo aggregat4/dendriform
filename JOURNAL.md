@@ -375,3 +375,11 @@ Can we implement the client side event pump with pure polling or do we need Serv
 SSE or Websockets would require the server to implement some event bus that keeps track of new events so that it can notify any subscribers. This seems like a more complicated design for a later stage. Let's go with polling for now.
 
 A skeleton for the event pump now exists: it still needs implementations for the local and the remote pump and some wrappers that do the actual scheduling of the calls and starts or stops pumping when requested.
+
+## 21.11.2018
+
+Implemented the client side pumping of events from the local to the remote store and vice versa. Implemented a pumping class that continuously executes a function with a delay and some notion of backoff in case of failure.
+
+Realized that the current subscription mechanism for events is a bit wonky: it is only used by the local event log to invalidate the tree structure cache when new events come in. This subscriber is not interested in the contents. Do we need this in this form? At least it does want to know when certain events have arrived...
+
+Stubbed out a class that should implement the HTTP connection to the server, this needs to be implemented using fetch.

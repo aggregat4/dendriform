@@ -37,7 +37,7 @@ export class EventlogRepository implements Repository {
     }).then(() => this)
   }
 
-  private nodeEventLogListener(event: DEvent<AddOrUpdateNodeEventPayload>): void {
+  private nodeEventLogListener(events: Array<DEvent<AddOrUpdateNodeEventPayload>>): void {
     // DO NOTHING (?)
   }
 
@@ -48,12 +48,12 @@ export class EventlogRepository implements Repository {
    * a complete rebuild of the parent/child caches. we debounch the function so when
    * many events come in fast we don't do too much work.
    */
-  private treeEventLogListener(event: DEvent<ReparentNodeEventPayload>): void {
+  private treeEventLogListener(events: Array<DEvent<ReparentNodeEventPayload>>): void {
     this.debouncedTreeRebuild()
   }
 
   private rebuildTreeStructureMaps(): Promise<any> {
-    return this.treeEventLog.getEventsSince(0)
+    return this.treeEventLog.getEventsSince(-1)
       .then(treeEvents => {
         const newChildParentMap = {}
         treeEvents.events.forEach(event => {
@@ -65,7 +65,7 @@ export class EventlogRepository implements Repository {
         // have the new ones, to avoid having intermediate request accessing some weird state
         this.childParentMap = newChildParentMap
       })
-      .then(() => this.childOrderEventLog.getEventsSince(0))
+      .then(() => this.childOrderEventLog.getEventsSince(-1))
       .then(childOrderEvents => {
         const newParentChildMap = {}
         childOrderEvents.events.forEach(event => {

@@ -1,5 +1,7 @@
-import { DEventLog } from './eventlog'
+import { DEventLog, DEvent } from './eventlog'
+// Import without braces needed to make sure it exists under that name!
 import Dexie from 'dexie'
+import { RemoteEventLog } from './eventlog-remote'
 
 /**
  * An event pump connects an event log to a remote server and pumpts events back and
@@ -22,12 +24,15 @@ export class EventPump<T> {
 
   private readonly db
   private readonly dbName
+
   private initialised = false
-  private pumping = false
+  private pump = new Pump(1000)
+
   private maxServerCounter: number
   private maxLocalCounter: number
 
-  constructor(private readonly localEventLog: DEventLog<T>, private readonly serverEndpoint: string) {
+  constructor(private readonly localEventLog: DEventLog<T>,
+              private readonly remoteEventLog: RemoteEventLog<T>) {
     this.dbName = localEventLog.getName() + '-eventpump'
     this.db = new Dexie(this.dbName)
   }
@@ -39,6 +44,10 @@ export class EventPump<T> {
     return this.db.open()
       .then(() => this.loadOrCreateMetadata())
       .then(() => { this.initialised = true })
+      .then(() => {
+        this.pump.schedule(this.drainLocalEvents)
+        this.pump.schedule(this.drainRemoteEvents)
+      })
       .then(() => this)
   }
 
@@ -70,27 +79,65 @@ export class EventPump<T> {
     if (! this.initialised) {
       throw Error('EventPump was not initialised, can not start')
     }
-    this.pumping = true
-    // start polling the local log and storing to server
-    // start polling the server and inserting in the local log
-
-    // TODO: we can't use setInterval, we async fetch events and don't know when that returns,
-    // we need to start a fetch and on resolving the result start another one, unless not running
-  }
-
-  // Queries for new events since this.maxServerCounter from server and feeds them to the localEventLog
-  private pumpRemoteEvents(): Promise<void> {
-    // TODO: use fetch to query remote server
-  }
-
-  // Queries for new events locally since this.maxLocalCounter and feeds them to the server using fetch
-  private pumpLocalEvents(): Promise<void> {
-
+    this.pump.start()
   }
 
   stop() {
-    // stop polling
-    this.pumping = false
+    this.pump.stop()
   }
 
+  /**
+   * Gets all the events since maxLocalCounter, sends them to the server and
+   * when successfull, saves the new maxLocalCounter.
+   * @throws something on server contact failure
+   */
+  private async drainLocalEvents(): Promise<any> {
+    const events = await this.localEventLog.getEventsSince(this.maxLocalCounter, this.localEventLog.getPeerId())
+    await this.remoteEventLog.insertEvents(events.events)
+    this.maxLocalCounter = events.counter
+    return this.saveMetadata()
+  }
+
+  /**
+   * Gets all the events since maxServerCounter from the server, stores them
+   * locally and when successfull saves the new maxServerCounter.
+   * @throws something on server contact failure
+   */
+  private async drainRemoteEvents(): Promise<any> {
+    const events = await this.remoteEventLog.getEventsSince(this.maxServerCounter, this.localEventLog.getPeerId())
+    await this.localEventLog.insert(events.events)
+    this.maxServerCounter = events.counter
+    return this.saveMetadata()
+  }
+
+}
+
+class Pump {
+  private pumping = false
+  private retryDelayMs: number
+
+  constructor(private readonly defaultDelayInMs: number) {}
+
+  start() {
+    this.pumping = true
+  }
+
+  async schedule(fun: () => Promise<any>) {
+    try {
+      if (this.pumping) {
+        await fun()
+        // we successfully contacted the server, so we can reset the retry delay to the default
+        this.retryDelayMs = this.defaultDelayInMs
+      }
+      // schedule the next drain
+      window.setTimeout(() => this.schedule(fun), this.retryDelayMs)
+    } catch (e) {
+      // when we fail to contact the server do some backoff and retry later
+      this.retryDelayMs = this.retryDelayMs * 2
+    }
+  }
+
+  stop() {
+    this.pumping = false
+  }
 }

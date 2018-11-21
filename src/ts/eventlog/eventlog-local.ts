@@ -4,6 +4,9 @@ import Dexie from 'dexie'
 import {generateUUID} from '../util'
 import {VectorClock} from '../lib/vectorclock'
 
+/**
+ * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.
+ */
 interface StoredEvent<T> {
   eventid?: number,
   eventtype: number,
@@ -36,7 +39,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
   init(): Promise<LocalEventLog<T>> {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
-      eventlog: '++eventid,treenodeid', // see StoredEvent for schema
+      eventlog: '++eventid,treenodeid,peerid', // see StoredEvent for schema
     })
     return this.db.open().then(() => this.loadOrCreateMetadata()).then(() => this)
   }
@@ -86,13 +89,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
 
   publish(type: EventType, nodeId: string, payload: T): Promise<any> {
     this.vectorClock.increment(this.peerId)
-    return this.insert(new DEvent<T>(
-      type,
-      this.peerId,
-      this.vectorClock,
-      nodeId,
-      payload,
-    ))
+    return this.insert([new DEvent<T>(type, this.peerId, this.vectorClock, nodeId, payload)])
   }
 
   /**
@@ -103,18 +100,20 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
    *
    * @param events The events to persist and rebroadcast.
    */
-  insert(event: DEvent<T>): Promise<any> {
-    return this.storeAndGarbageCollect(event)
-      .then(primaryKey => {
-        this.counter = primaryKey
-      })
-      .then(() => this.saveMetadata())
-      .then(() => window.setTimeout(() => this.notifySubscribers(event), 1))
-      .catch((err) => {
-        // TODO: do something more clever with errors?
-        // tslint:disable-next-line:no-console
-        console.error(`ERROR occurred during nodeEvent storage: `, err)
-      })
+  async insert(events: Array<DEvent<T>>): Promise<any> {
+    try {
+      let eventCounter = -1
+      for (const event of events) {
+        eventCounter = await this.storeAndGarbageCollect(event)
+      }
+      this.counter = eventCounter
+      await this.saveMetadata()
+      window.setTimeout(() => this.notifySubscribers(events), 1)
+    } catch (err) {
+      // TODO: do something more clever with errors?
+      // tslint:disable-next-line:no-console
+      console.error(`ERROR occurred during nodeEvent storage: `, err)
+    }
   }
 
   subscribe(subscriber: EventSubscriber<T>): void {
@@ -125,18 +124,17 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     return new DEvent(ev.eventtype, ev.peerid, new VectorClock(ev.vectorclock), ev.treenodeid, ev.payload)
   }
 
-  /**
-   * Loads all events that a counter that is higher than or equal to the provided number.
-   * Throws CounterTooHighError when the provided counter is higher than the max counter
-   * of the eventlog. The array is causally sorted by vectorclock and peerid.
-   */
-  getEventsSince(counter: number): Promise<Events<T>> {
+  getEventsSince(counter: number, peerId?: string): Promise<Events<T>> {
     if (counter > this.counter) {
       throw new CounterTooHighError(`The eventlog has a counter of ${this.counter}` +
         ` but events were requested since ${counter}`)
     }
     const table = this.db.table('eventlog')
-    return table.where('eventid').aboveOrEqual(counter).toArray()
+    let query = table.where('eventid').above(counter)
+    if (peerId) {
+      query = query.where('peerid').equals(peerId)
+    }
+    return query.toArray()
       .then((events: Array<StoredEvent<T>>) => this.sortCausally(events))
       .then((events: Array<StoredEvent<T>>) => events.map(this.storedEventToDEventMapper))
       .then((events: Array<DEvent<T>>) => ({counter: this.counter, events}))
@@ -148,10 +146,11 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
       .then((events: Array<StoredEvent<T>>) => events.map(this.storedEventToDEventMapper))
   }
 
-  private notifySubscribers(e: DEvent<T>): void {
+  private notifySubscribers(events: Array<DEvent<T>>): void {
     for (const subscriber of this.subscribers) {
-      if (subscriber.filter(e)) {
-        subscriber.notify(e)
+      const filteredEvents = events.filter((e) => subscriber.filter(e))
+      if (filteredEvents.length > 0) {
+        subscriber.notify(filteredEvents)
       }
     }
   }

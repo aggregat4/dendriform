@@ -50,7 +50,7 @@ export class CounterTooHighError extends EventLogError {}
 export type EventListener<T> = (_: DEvent<T>) => void
 
 export interface EventSubscriber<T> {
-  notify(e: DEvent<T>): void
+  notify(events: Array<DEvent<T>>): void
   filter: Predicate<DEvent<T>>
 }
 
@@ -87,10 +87,15 @@ export interface DEventLog<T> extends DEventSource<T> {
   // The logical name of the eventlog, for example 'dendriform-tree-structure-events'
   getName(): string,
   getCounter(): number,
-  insert(events: DEvent<T>): Promise<EventLogCounter>
+  insert(events: Array<DEvent<T>>): Promise<EventLogCounter>
   // TODO: consider returning a subscription that can be cancelled
   subscribe(subscriber: EventSubscriber<T>): void
-  // throws CounterTooHighError when counter is larger than what the eventlog knows
-  getEventsSince(counter: number): Promise<Events<T>>
+  /**
+   * Loads all events that a counter that is higher than the provided number.
+   * @return An array that is causally sorted by vectorclock and peerid.
+   * @throws CounterTooHighError when the provided counter is higher than the max counter
+   * of the eventlog.
+   */
+  getEventsSince(counter: number, peerId?: string): Promise<Events<T>>
   getEventsForNode(nodeId: string): Promise<Array<DEvent<T>>>
 }

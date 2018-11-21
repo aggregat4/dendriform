@@ -33,6 +33,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Implement export in some standard format
+1. Convert promise based code to async functions?
 1. Add creation timestamp and update timestamp
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. Auto link urls in names and notes
