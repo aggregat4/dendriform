@@ -169,3 +169,15 @@ export function findFirst(array: any[], predicate: (any) => boolean): any {
   }
   return null
 }
+
+export function assert(condition, message: string): void {
+  if (!condition) {
+    throw new Error(message || 'Assertion failed')
+  }
+}
+
+export function assertNonEmptyString(str: string): void {
+  if (str === undefined || str === null || str === '' ) {
+    throw new Error('String must no be empty')
+  }
+}

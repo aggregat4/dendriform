@@ -1,17 +1,19 @@
-import { DEventLog, DEvent } from './eventlog'
+import { DEventLog, DEvent } from '../eventlog/eventlog'
 // Import without braces needed to make sure it exists under that name!
 import Dexie from 'dexie'
 import { RemoteEventLog } from './eventlog-remote'
 
 /**
- * An event pump connects an event log to a remote server and pumpts events back and
- * forth continuosly.
+ * An event pump connects an event log to a remote server and a local event log
+ * and pumpts events back and forth continuosly.
  *
  * It filters incoming events to be only those that are NOT
  * originated by the eventlog itself by using the event log's peerid as a filter.
+ * 
+ * It filters outgoing events to be only events from the local peer.
  *
  * It keeps track of the max event counter it has seen from the server for this
- * eventlog (identified by name) so far.
+ * eventlog (identified by name) so far. It does the same for the local event log.
  *
  * implNote: We can't easily subscribe for local events and persist them when they
  * occur because we also need to make sure that we persisted all previous events.
@@ -129,12 +131,12 @@ class Pump {
         // we successfully contacted the server, so we can reset the retry delay to the default
         this.retryDelayMs = this.defaultDelayInMs
       }
-      // schedule the next drain
-      window.setTimeout(() => this.schedule(fun), this.retryDelayMs)
     } catch (e) {
       // when we fail to contact the server do some backoff and retry later
       this.retryDelayMs = this.retryDelayMs * 2
     }
+    // schedule the next drain
+    window.setTimeout(() => this.schedule(fun), this.retryDelayMs)
   }
 
   stop() {

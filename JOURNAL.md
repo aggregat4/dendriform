@@ -383,3 +383,9 @@ Implemented the client side pumping of events from the local to the remote store
 Realized that the current subscription mechanism for events is a bit wonky: it is only used by the local event log to invalidate the tree structure cache when new events come in. This subscriber is not interested in the contents. Do we need this in this form? At least it does want to know when certain events have arrived...
 
 Stubbed out a class that should implement the HTTP connection to the server, this needs to be implemented using fetch.
+
+## 28.11.2018
+
+Implemented most of the getting events from the server in the RemoteEventlog. The extremely tedious bit is the serialization and deserialization of all the objects we can transport, especially event payloads.
+
+I have a bunch of deserialization logic written in serialization.ts, but it needs completion and especially unit testing before I start debugging fetches to and from the server with strange errors.

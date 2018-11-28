@@ -56,11 +56,8 @@ export interface EventSubscriber<T> {
 
 export type EventLogCounter = number
 
-export interface EventLogState {
-  counter: number
-}
-
-export interface Events<T> extends EventLogState {
+export interface Events<T> {
+  counter: EventLogCounter,
   events: Array<DEvent<T>>,
 }
 
