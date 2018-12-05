@@ -1,6 +1,5 @@
 import { DEvent, AddOrUpdateNodeEventPayload, ReparentNodeEventPayload, ReorderChildNodeEventPayload } from '../eventlog/eventlog'
 import { VectorClock } from '../lib/vectorclock'
-import {atomIdent} from '../lib/logootsequence.js'
 
 export function addOrUpdateNodeEventPayloadDeserializer(payload: any): AddOrUpdateNodeEventPayload {
   return {
@@ -11,7 +10,7 @@ export function addOrUpdateNodeEventPayloadDeserializer(payload: any): AddOrUpda
   }
 }
 
-export function rparentNodeEventPayloadDeserializer(payload: any): ReparentNodeEventPayload {
+export function reparentNodeEventPayloadDeserializer(payload: any): ReparentNodeEventPayload {
   return {
     parentId: payload.parentId,
   }
@@ -20,9 +19,24 @@ export function rparentNodeEventPayloadDeserializer(payload: any): ReparentNodeE
 export function reorderChildNodeEventPayloadDeserializer(payload: any): ReorderChildNodeEventPayload {
   return {
     operation: payload.operation,
-    position: deserializeAtomIdent(payload.position),
+    position: payload.position,
     childId: payload.childId,
     parentId: payload.parentId,
+  }
+}
+
+/**
+ * Server format for an event to publish:
+ * {
+ *    originator: string,
+ *    body: string,
+ * }
+ * @param event The event to serialize.
+ */
+export function serializeServerEvent<T>(event: DEvent<T>): any {
+  return {
+    originator: event.originator,
+    body: JSON.stringify(event),
   }
 }
 
@@ -72,8 +86,4 @@ export function deserializeVectorClock(clock: any): VectorClock {
   } else {
     throw new Error('Invalid vectorclock in server side event: ' + clock)
   }
-}
-
-export function deserializeAtomIdent(value: any): atomIdent {
-  // TODO: implement
 }

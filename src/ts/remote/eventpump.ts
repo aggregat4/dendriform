@@ -1,4 +1,4 @@
-import { DEventLog, DEvent } from '../eventlog/eventlog'
+import { DEventLog, DEvent, Events } from '../eventlog/eventlog'
 // Import without braces needed to make sure it exists under that name!
 import Dexie from 'dexie'
 import { RemoteEventLog } from './eventlog-remote'
@@ -9,7 +9,7 @@ import { RemoteEventLog } from './eventlog-remote'
  *
  * It filters incoming events to be only those that are NOT
  * originated by the eventlog itself by using the event log's peerid as a filter.
- * 
+ *
  * It filters outgoing events to be only events from the local peer.
  *
  * It keeps track of the max event counter it has seen from the server for this
@@ -94,8 +94,8 @@ export class EventPump<T> {
    * @throws something on server contact failure
    */
   private async drainLocalEvents(): Promise<any> {
-    const events = await this.localEventLog.getEventsSince(this.maxLocalCounter, this.localEventLog.getPeerId())
-    await this.remoteEventLog.insertEvents(events.events)
+    const events: Events<T> = await this.localEventLog.getEventsSince(this.maxLocalCounter, this.localEventLog.getPeerId())
+    await this.remoteEventLog.publishEvents(events.events)
     this.maxLocalCounter = events.counter
     return this.saveMetadata()
   }

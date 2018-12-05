@@ -389,3 +389,7 @@ Stubbed out a class that should implement the HTTP connection to the server, thi
 Implemented most of the getting events from the server in the RemoteEventlog. The extremely tedious bit is the serialization and deserialization of all the objects we can transport, especially event payloads.
 
 I have a bunch of deserialization logic written in serialization.ts, but it needs completion and especially unit testing before I start debugging fetches to and from the server with strange errors.
+
+## 5.12.2018
+
+Next step: Instantiate and wire event pumps in tree.ts.
