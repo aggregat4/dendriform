@@ -13,7 +13,7 @@ import {
 } from './eventlog/eventlog'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { addOrUpdateNodeEventPayloadDeserializer, reparentNodeEventPayloadDeserializer, reorderChildNodeEventPayloadDeserializer } from './remote/serialization'
-import { EventPump } from './remote/eventpump';
+import { EventPump } from './remote/eventpump'
 
 /*
  * This file wires everything together for the dendriform tree.
