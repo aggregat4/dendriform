@@ -80,6 +80,10 @@ export class Tree {
     this.el.addEventListener('keydown', this.treeKeyDownHandler.bind(this))
   }
 
+  loadNode(nodeId: string): Promise<any> {
+    return this.treeService.loadTree(nodeId).then(loadedTree => this.update(loadedTree))
+  }
+
   update(tree: LoadedTree) {
     setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
     if (tree.status.state === State.ERROR) {
@@ -146,7 +150,7 @@ export class Tree {
   }
 
   private rerenderTree(): Promise<any> {
-    return this.treeService.loadTree(this.currentRootNodeId).then(tree => this.update(tree))
+    return this.loadNode(this.currentRootNodeId)
   }
 
   private onInput(event: Event) {

@@ -13,45 +13,46 @@ import {
 } from './eventlog/eventlog'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { addOrUpdateNodeEventPayloadDeserializer, reparentNodeEventPayloadDeserializer, reorderChildNodeEventPayloadDeserializer } from './remote/serialization'
+import { EventPump } from './remote/eventpump';
 
 /*
  * This file wires everything together for the dendriform tree.
  */
 
-const nodeEventLog = new LocalEventLog<AddOrUpdateNodeEventPayload>('dendriform-node-eventlog')
+const localNodeEventLog = new LocalEventLog<AddOrUpdateNodeEventPayload>('dendriform-node-eventlog')
 const remoteNodeEventLog = new RemoteEventLog('/', 'dendriform-node-eventlog', addOrUpdateNodeEventPayloadDeserializer)
 
-const treeEventLog = new LocalEventLog<ReparentNodeEventPayload>('dendriform-tree-eventlog')
+const localTreeEventLog = new LocalEventLog<ReparentNodeEventPayload>('dendriform-tree-eventlog')
 const remoteTreeEventLog = new RemoteEventLog('/', 'dendriform-tree-eventlog', reparentNodeEventPayloadDeserializer)
 
-const childOrderEventLog = new LocalEventLog<ReorderChildNodeEventPayload>(
+const localChildOrderEventLog = new LocalEventLog<ReorderChildNodeEventPayload>(
   'dendriform-childorder-eventlog', LOGOOT_EVENT_GC_FILTER)
 const remoteChildOrderEventLog = new RemoteEventLog('/', 'dendriform-childorder-eventlog', reorderChildNodeEventPayloadDeserializer)
 
+const nodeEventPump = new EventPump(localNodeEventLog, remoteNodeEventLog)
+const treeEventPump = new EventPump(localTreeEventLog, remoteTreeEventLog)
+const childOrderEventPump = new EventPump(localChildOrderEventLog, remoteChildOrderEventLog)
+
 // TODO: refactor this use of arrays to use some object and assign with destructuring or something
-const treeComponentAndServicePromise: Promise<any[]> = nodeEventLog.init()
-  .then(() => treeEventLog.init())
-  .then(() => childOrderEventLog.init())
-  .then(() => new EventlogRepository(nodeEventLog, treeEventLog, childOrderEventLog).init())
+const treePromise = localNodeEventLog.init()
+  .then(() => localTreeEventLog.init())
+  .then(() => localChildOrderEventLog.init())
+  .then(() => nodeEventPump.init()).then(() => nodeEventPump.start())
+  .then(() => treeEventPump.init()).then(() => treeEventPump.start())
+  .then(() => childOrderEventPump.init()).then(() => childOrderEventPump.start())
+  .then(() => new EventlogRepository(localNodeEventLog, localTreeEventLog, localChildOrderEventLog).init())
   .then(repository => {
     const treeService = new TreeService(repository)
     const commandHandler = new UndoableCommandHandler(new TreeServiceCommandHandler(treeService))
-    return [new Tree(commandHandler, treeService), treeService]
+    return new Tree(commandHandler, treeService)
   })
-// TODO: instantiate and wire eventpumps
-
 
 export function updateTree(nodeId: string) {
-  console.log(`updateTree called`)
-  treeComponentAndServicePromise
-    .then(objects => (objects[1] as TreeService).loadTree(nodeId)
-      .then(tree => objects[0].update(tree)))
+  treePromise.then(tree => tree.loadNode(nodeId))
 }
 
 export function initTree(el: Element): void {
-  console.log(`initTree called`)
   document.addEventListener('DOMContentLoaded', () => {
-    treeComponentAndServicePromise.then(objects => mount(el, objects[0]))
+    treePromise.then(tree => mount(el, tree))
   })
 }
-

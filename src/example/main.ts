@@ -13,5 +13,4 @@ initTree(document.body)
 
 updateTree(getRequestedNodeId())
 
-// Trigger a reload when the URL changes (the hash part)
 window.addEventListener('hashchange', () => updateTree(getRequestedNodeId()))
