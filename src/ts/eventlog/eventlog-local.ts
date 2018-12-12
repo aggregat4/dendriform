@@ -101,6 +101,9 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
    * @param events The events to persist and rebroadcast.
    */
   async insert(events: Array<DEvent<T>>): Promise<any> {
+    if (events.length === 0) {
+      return Promise.resolve()
+    }
     try {
       let eventCounter = -1
       for (const event of events) {
@@ -132,7 +135,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     const table = this.db.table('eventlog')
     let query = table.where('eventid').above(counter)
     if (peerId) {
-      query = query.where('peerid').equals(peerId)
+      query = query.and(event => event.peerid === peerId)
     }
     return query.toArray()
       .then((events: Array<StoredEvent<T>>) => this.sortCausally(events))

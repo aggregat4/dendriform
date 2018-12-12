@@ -47,8 +47,8 @@ export class EventPump<T> {
       .then(() => this.loadOrCreateMetadata())
       .then(() => { this.initialised = true })
       .then(() => {
-        this.pump.schedule(this.drainLocalEvents)
-        this.pump.schedule(this.drainRemoteEvents)
+        this.pump.schedule(this.drainLocalEvents.bind(this))
+        this.pump.schedule(this.drainRemoteEvents.bind(this))
       })
       .then(() => this)
   }
@@ -95,9 +95,13 @@ export class EventPump<T> {
    */
   private async drainLocalEvents(): Promise<any> {
     const events: Events<T> = await this.localEventLog.getEventsSince(this.maxLocalCounter, this.localEventLog.getPeerId())
-    await this.remoteEventLog.publishEvents(events.events)
-    this.maxLocalCounter = events.counter
-    return this.saveMetadata()
+    if (events.events.length > 0) {
+      await this.remoteEventLog.publishEvents(events.events)
+      this.maxLocalCounter = events.counter
+      return this.saveMetadata()
+    } else {
+      return Promise.resolve()
+    }
   }
 
   /**
@@ -107,9 +111,13 @@ export class EventPump<T> {
    */
   private async drainRemoteEvents(): Promise<any> {
     const events = await this.remoteEventLog.getEventsSince(this.maxServerCounter, this.localEventLog.getPeerId())
-    await this.localEventLog.insert(events.events)
-    this.maxServerCounter = events.counter
-    return this.saveMetadata()
+    if (events.events.length > 0) {
+      await this.localEventLog.insert(events.events)
+      this.maxServerCounter = events.counter
+      return this.saveMetadata()
+    } else {
+      return Promise.resolve()
+    }
   }
 
 }
