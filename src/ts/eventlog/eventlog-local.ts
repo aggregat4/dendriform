@@ -180,7 +180,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     const table = this.db.table('eventlog')
     return table.where('treenodeid').equals(event.nodeId).toArray()
       .then((nodeEvents: Array<StoredEvent<T>>) => {
-        const eventsToDelete = this.sortAndPruneEvents(nodeEvents, event)
+        const eventsToDelete = this.findEventsToPrune(nodeEvents, event)
         if (eventsToDelete.length > 0) {
           // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
           return table.bulkDelete(eventsToDelete.map((e) => e.eventid))
@@ -188,7 +188,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
       })
   }
 
-  private sortAndPruneEvents(events: Array<StoredEvent<T>>, newEvent: DEvent<T>): Array<StoredEvent<T>> {
+  private findEventsToPrune(events: Array<StoredEvent<T>>, newEvent: DEvent<T>): Array<StoredEvent<T>> {
     if (events.length > 1) {
       // if we have a garbagecollectionfilter set we need to remove all stored events that are not
       // included by it (this is needed when the treenode itself is not sufficient for filtering)

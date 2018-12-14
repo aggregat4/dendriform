@@ -51,8 +51,10 @@ export function updateTree(nodeId: string) {
   treePromise.then(tree => tree.loadNode(nodeId))
 }
 
-export function initTree(el: Element): void {
-  document.addEventListener('DOMContentLoaded', () => {
-    treePromise.then(tree => mount(el, tree))
-  })
+/**
+ * Make sure to call mountTree only when DOMContentLoaded.
+ * @param el The element to mount the tree component to.
+ */
+export function mountTree(el: Element): void {
+  treePromise.then(tree => mount(el, tree))
 }

@@ -1,4 +1,4 @@
-import {initTree, updateTree} from '../ts/tree'
+import {updateTree, mountTree} from '../ts/tree'
 
 function getHashValue(key: string): string {
   const matches = window.location.hash.match(new RegExp(`${key}=([^&]*)?`))
@@ -9,8 +9,9 @@ function getRequestedNodeId() {
   return getHashValue('node') || 'ROOT'
 }
 
-initTree(document.body)
-
-updateTree(getRequestedNodeId())
+document.addEventListener('DOMContentLoaded', () => {
+  mountTree(document.body)
+  updateTree(getRequestedNodeId())
+})
 
 window.addEventListener('hashchange', () => updateTree(getRequestedNodeId()))

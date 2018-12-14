@@ -34,11 +34,18 @@ export class EventlogRepository implements Repository {
       this.treeEventLog.subscribe({
         notify: this.treeEventLogListener,
         filter: (event) => event.originator !== this.treeEventLog.getPeerId() })
-    }).then(() => this)
+      this.childOrderEventLog.subscribe({
+        notify: this.childOrderLogListener,
+        filter: (event) => event.originator !== this.childOrderEventLog.getPeerId() })
+      }).then(() => this)
   }
 
   private nodeEventLogListener(events: Array<DEvent<AddOrUpdateNodeEventPayload>>): void {
     // DO NOTHING (?)
+  }
+
+  private childOrderLogListener(events: Array<DEvent<ReorderChildNodeEventPayload>>): void {
+    this.debouncedTreeRebuild()
   }
 
   /**

@@ -393,3 +393,9 @@ I have a bunch of deserialization logic written in serialization.ts, but it need
 ## 5.12.2018
 
 Next step: Instantiate and wire event pumps in tree.ts.
+
+## 14.12.2018
+
+Backoff was not implemented correctly: had to add a max backoff delay so we don't get super slow and we needed separate pumps for the local events and the remote events. This makes EventPump have 2 almost identical paths in it which I don't really like. May be nicer to solve this generically, have the drainLocalEvents and drainRemoteEvents functions handed in, but then the storage also needs to be generic.
+
+We should now probably change the tree such that when the server has less data, we reset the local tree and take the server's word for it. In the future we should probably snapshot the tree client side and store it somewhere in localstorage as a backup?

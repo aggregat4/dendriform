@@ -28,7 +28,8 @@ export class EventPump<T> {
   private readonly dbName
 
   private initialised = false
-  private pump = new Pump(1000)
+  private localEventsPump = new Pump(5000)
+  private remoteEventsPump = new Pump(5000)
 
   private maxServerCounter: number
   private maxLocalCounter: number
@@ -47,8 +48,8 @@ export class EventPump<T> {
       .then(() => this.loadOrCreateMetadata())
       .then(() => { this.initialised = true })
       .then(() => {
-        this.pump.schedule(this.drainLocalEvents.bind(this))
-        this.pump.schedule(this.drainRemoteEvents.bind(this))
+        this.localEventsPump.schedule(`drainLocalEvents-${this.dbName}`, this.drainLocalEvents.bind(this))
+        this.remoteEventsPump.schedule(`drainRemoteEvents-${this.dbName}`, this.drainRemoteEvents.bind(this))
       })
       .then(() => this)
   }
@@ -81,11 +82,13 @@ export class EventPump<T> {
     if (! this.initialised) {
       throw Error('EventPump was not initialised, can not start')
     }
-    this.pump.start()
+    this.localEventsPump.start()
+    this.remoteEventsPump.start()
   }
 
   stop() {
-    this.pump.stop()
+    this.localEventsPump.stop()
+    this.remoteEventsPump.stop()
   }
 
   /**
@@ -125,6 +128,8 @@ export class EventPump<T> {
 class Pump {
   private pumping = false
   private retryDelayMs: number
+  // One minute is the maximum delay we want to have in case of backoff
+  private readonly MAX_DELAY_MS = 60 * 1000
 
   constructor(private readonly defaultDelayInMs: number) {}
 
@@ -132,19 +137,25 @@ class Pump {
     this.pumping = true
   }
 
-  async schedule(fun: () => Promise<any>) {
+  async schedule(name: string, fun: () => Promise<any>) {
     try {
       if (this.pumping) {
         await fun()
-        // we successfully contacted the server, so we can reset the retry delay to the default
+        // we successfully executed the function, so we can reset the retry delay to the default
         this.retryDelayMs = this.defaultDelayInMs
+        console.log(`Successful server request, resetting backoff delay to default for ${name}`)
       }
     } catch (e) {
-      // when we fail to contact the server do some backoff and retry later
-      this.retryDelayMs = this.retryDelayMs * 2
+      // when we fail do some backoff and retry later
+      if (this.retryDelayMs < this.MAX_DELAY_MS) {
+        this.retryDelayMs = this.retryDelayMs * 2
+      } else {
+        this.retryDelayMs = this.MAX_DELAY_MS
+      }
+      console.log(`Performing backoff because server not reached, delaying for ${this.retryDelayMs}ms for ${name}`)
     }
     // schedule the next drain
-    window.setTimeout(() => this.schedule(fun), this.retryDelayMs)
+    window.setTimeout(() => this.schedule(name, fun), this.retryDelayMs)
   }
 
   stop() {
