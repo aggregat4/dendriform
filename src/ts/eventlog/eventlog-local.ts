@@ -1,5 +1,5 @@
 // tslint:disable-next-line:max-line-length
-import {DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events, EventGcInclusionFilter} from './eventlog'
+import {DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events, EventGcInclusionFilter, EventPayloadType, ReorderChildNodeEventPayload} from './eventlog'
 import Dexie from 'dexie'
 import {generateUUID} from '../util'
 import {VectorClock} from '../lib/vectorclock'
@@ -7,13 +7,13 @@ import {VectorClock} from '../lib/vectorclock'
 /**
  * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.
  */
-interface StoredEvent<T> {
+interface StoredEvent {
   eventid?: number,
   eventtype: number,
   treenodeid: string,
   peerid: string,
   vectorclock: VectorClock,
-  payload: T,
+  payload: EventPayloadType,
 }
 
 /**
@@ -22,26 +22,42 @@ interface StoredEvent<T> {
  *
  * TODO: do we need to make this multi document capable? Currently assumes one log, one document
  */
-export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
+export class LocalEventLog implements DEventSource, DEventLog {
 
-  readonly db
-  readonly name
+  readonly db: Dexie
+  readonly name: string
   private peerId: string
   private vectorClock: VectorClock
   private counter: number
-  private subscribers: Array<EventSubscriber<T>> = []
+  private subscribers: EventSubscriber[] = []
 
-  constructor(readonly dbName: string, readonly gcFilter?: EventGcInclusionFilter<T>) {
+  // For the child order event log we need a special garbage collection filter because
+  // with logoot events for a sequence we don't just want to retain the newest event for each
+  // parent, rather we need to retain the newest event for a particular child for that parent and
+  // additionally take into account the operation type. We need to retain the newest DELETE as well
+  // as INSERT operation so we can reliably rebuild the sequence
+  // TODO: unsure whether it is "ok" to have this hardcoded knowledge about LOGOOT and the childorder
+  // event log in this class. Alternatively we can define this somewhere else and inject a
+  // Map<EventType, EventGcInclusionFilter> in this class
+  private readonly LOGOOT_EVENT_GC_FILTER: EventGcInclusionFilter =
+  (newEventPayload: ReorderChildNodeEventPayload, oldEventPayload: ReorderChildNodeEventPayload) => {
+    return newEventPayload.childId === oldEventPayload.childId
+      && newEventPayload.operation === oldEventPayload.operation
+  }
+
+  constructor(readonly dbName: string) {
     this.db = new Dexie(dbName)
     this.name = dbName
   }
 
-  init(): Promise<LocalEventLog<T>> {
+  async init(): Promise<LocalEventLog> {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
       eventlog: '++eventid,treenodeid,peerid', // see StoredEvent for schema
     })
-    return this.db.open().then(() => this.loadOrCreateMetadata()).then(() => this)
+    await this.db.open()
+    await this.loadOrCreateMetadata()
+    return this
   }
 
   private loadOrCreateMetadata(): Promise<void> {
@@ -87,9 +103,9 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     return this.counter
   }
 
-  publish(type: EventType, nodeId: string, payload: T): Promise<any> {
+  publish(type: EventType, nodeId: string, payload: EventPayloadType): Promise<any> {
     this.vectorClock.increment(this.peerId)
-    return this.insert([new DEvent<T>(type, this.peerId, this.vectorClock, nodeId, payload)])
+    return this.insert([new DEvent(type, this.peerId, this.vectorClock, nodeId, payload)])
   }
 
   /**
@@ -100,7 +116,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
    *
    * @param events The events to persist and rebroadcast.
    */
-  async insert(events: Array<DEvent<T>>): Promise<any> {
+  async insert(events: DEvent[]): Promise<any> {
     if (events.length === 0) {
       return Promise.resolve()
     }
@@ -119,37 +135,37 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     }
   }
 
-  subscribe(subscriber: EventSubscriber<T>): void {
+  subscribe(subscriber: EventSubscriber): void {
     this.subscribers.push(subscriber)
   }
 
-  private storedEventToDEventMapper(ev: StoredEvent<T>): DEvent<T> {
+  private storedEventToDEventMapper(ev: StoredEvent): DEvent {
     return new DEvent(ev.eventtype, ev.peerid, new VectorClock(ev.vectorclock), ev.treenodeid, ev.payload)
   }
 
-  getEventsSince(counter: number, peerId?: string): Promise<Events<T>> {
+  getEventsSince(eventTypes: EventType[], counter: number, peerId?: string): Promise<Events> {
     if (counter > this.counter) {
       throw new CounterTooHighError(`The eventlog has a counter of ${this.counter}` +
         ` but events were requested since ${counter}`)
     }
     const table = this.db.table('eventlog')
-    let query = table.where('eventid').above(counter)
+    let query = table.where('eventid').above(counter).and(event => eventTypes.indexOf(event.eventtype) !== -1)
     if (peerId) {
       query = query.and(event => event.peerid === peerId)
     }
     return query.toArray()
-      .then((events: Array<StoredEvent<T>>) => this.sortCausally(events))
-      .then((events: Array<StoredEvent<T>>) => events.map(this.storedEventToDEventMapper))
-      .then((events: Array<DEvent<T>>) => ({counter: this.counter, events}))
+      .then((events: StoredEvent[]) => this.sortCausally(events))
+      .then((events: StoredEvent[]) => events.map(this.storedEventToDEventMapper))
+      .then((events: DEvent[]) => ({counter: this.counter, events}))
   }
 
-  getEventsForNode(nodeId: string): Promise<Array<DEvent<T>>> {
+  getEventsForNode(eventTypes: EventType[], nodeId: string): Promise<DEvent[]> {
     const table = this.db.table('eventlog')
-    return table.where('treenodeid').equals(nodeId).toArray()
-      .then((events: Array<StoredEvent<T>>) => events.map(this.storedEventToDEventMapper))
+    return table.where('treenodeid').equals(nodeId).and(event => eventTypes.indexOf(event.eventtype) !== -1).toArray()
+      .then((events: StoredEvent[]) => events.map(this.storedEventToDEventMapper))
   }
 
-  private notifySubscribers(events: Array<DEvent<T>>): void {
+  private notifySubscribers(events: DEvent[]): void {
     for (const subscriber of this.subscribers) {
       const filteredEvents = events.filter((e) => subscriber.filter(e))
       if (filteredEvents.length > 0) {
@@ -158,14 +174,14 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     }
   }
 
-  private async storeAndGarbageCollect(event: DEvent<T>): Promise<number> {
+  private async storeAndGarbageCollect(event: DEvent): Promise<number> {
     const primaryKey = await this.store(event)
     await this.garbageCollect(event)
     return primaryKey
   }
 
   // TODO: react to errors better!
-  private store(event: DEvent<T>): Promise<number> {
+  private store(event: DEvent): Promise<number> {
     const table = this.db.table('eventlog')
     return table.put({
       eventtype: event.type,
@@ -176,10 +192,10 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
     }).catch(error => console.error(`store error: `, error))
   }
 
-  private garbageCollect(event: DEvent<T>): Promise<any> {
+  private garbageCollect(event: DEvent): Promise<any> {
     const table = this.db.table('eventlog')
     return table.where('treenodeid').equals(event.nodeId).toArray()
-      .then((nodeEvents: Array<StoredEvent<T>>) => {
+      .then((nodeEvents: StoredEvent[]) => {
         const eventsToDelete = this.findEventsToPrune(nodeEvents, event)
         if (eventsToDelete.length > 0) {
           // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
@@ -188,12 +204,12 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
       })
   }
 
-  private findEventsToPrune(events: Array<StoredEvent<T>>, newEvent: DEvent<T>): Array<StoredEvent<T>> {
+  private findEventsToPrune(events: StoredEvent[], newEvent: DEvent): StoredEvent[] {
     if (events.length > 1) {
       // if we have a garbagecollectionfilter set we need to remove all stored events that are not
       // included by it (this is needed when the treenode itself is not sufficient for filtering)
-      if (this.gcFilter) {
-        events = events.filter(ev => this.gcFilter(newEvent.payload, ev.payload))
+      if (newEvent.type === EventType.REORDER_CHILD) {
+        events = events.filter(ev => this.LOGOOT_EVENT_GC_FILTER(newEvent.payload, ev.payload))
       }
       this.sortCausally(events)
       // remove the last element, which is also the newest event which we want to retain
@@ -205,7 +221,7 @@ export class LocalEventLog<T> implements DEventSource<T>, DEventLog<T> {
   }
 
   // sort event array by vectorclock and peerid
-  private sortCausally(events: Array<StoredEvent<T>>): Array<StoredEvent<T>> {
+  private sortCausally(events: StoredEvent[]): StoredEvent[] {
     events.sort((a, b) => {
       const vcComp = VectorClock.compareValues(a, b)
       if (vcComp === 0) {

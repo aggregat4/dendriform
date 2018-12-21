@@ -2,15 +2,13 @@ import { DEvent, Events } from '../eventlog/eventlog'
 import { assertNonEmptyString } from '../util'
 import { deserializeServerEvents, serializeServerEvent } from './serialization'
 
-export class RemoteEventLog<T> {
+export class RemoteEventLog {
 
   readonly serverEndpoint: string
 
   constructor(
       serverEndpoint: string,
-      private readonly eventlogId: string,
-      // private readonly payloadSerializer: (T) => any,
-      private readonly payloadDeserializer: (any) => T) {
+      private readonly eventlogId: string) {
     this.serverEndpoint = this.normalizeUrl(serverEndpoint)
   }
 
@@ -22,7 +20,7 @@ export class RemoteEventLog<T> {
     }
   }
 
-  async publishEvents(events: Array<DEvent<T>>): Promise<any> {
+  async publishEvents(events: DEvent[]): Promise<any> {
     return fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/`,
       {
         method: 'POST',
@@ -38,7 +36,7 @@ export class RemoteEventLog<T> {
   /**
    * TODO: error handling!
    */
-  async getEventsSince(counter: number, peerIdExclusionFilter: string): Promise<Events<T>> {
+  async getAllEventsSince(counter: number, peerIdExclusionFilter: string): Promise<Events> {
     assertNonEmptyString(peerIdExclusionFilter)
     return fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/?since=${counter}&notForOriginator=${peerIdExclusionFilter}`)
       .then((response) => {
@@ -47,7 +45,7 @@ export class RemoteEventLog<T> {
       .then((serverEvents) => {
         return {
           counter: serverEvents.counter,
-          events: deserializeServerEvents<T>(serverEvents.events, this.payloadDeserializer),
+          events: deserializeServerEvents(serverEvents.events),
         }
       })
   }

@@ -1,7 +1,17 @@
-import { DEvent, AddOrUpdateNodeEventPayload, ReparentNodeEventPayload, ReorderChildNodeEventPayload } from '../eventlog/eventlog'
+import { DEvent, AddOrUpdateNodeEventPayload, ReparentNodeEventPayload, ReorderChildNodeEventPayload, EventPayloadType, EventType } from '../eventlog/eventlog'
 import { VectorClock } from '../lib/vectorclock'
 
-export function addOrUpdateNodeEventPayloadDeserializer(payload: any): AddOrUpdateNodeEventPayload {
+export function deserializeEventPayload(event: any): EventPayloadType {
+  if (event.type === EventType.ADD_OR_UPDATE_NODE) {
+    return deserializeAddOrUpdateNodeEventPayload(event.payload)
+  } else if (event.type === EventType.REPARENT_NODE) {
+    return deserializeReparentNodeEventPayload(event.payload)
+  } else if (event.type === EventType.REORDER_CHILD) {
+    return deserializeReorderChildNodeEventPayload(event.payload)
+  }
+}
+
+function deserializeAddOrUpdateNodeEventPayload(payload: any): AddOrUpdateNodeEventPayload {
   return {
     name: payload.name,
     note: payload.note,
@@ -10,13 +20,13 @@ export function addOrUpdateNodeEventPayloadDeserializer(payload: any): AddOrUpda
   }
 }
 
-export function reparentNodeEventPayloadDeserializer(payload: any): ReparentNodeEventPayload {
+function deserializeReparentNodeEventPayload(payload: any): ReparentNodeEventPayload {
   return {
     parentId: payload.parentId,
   }
 }
 
-export function reorderChildNodeEventPayloadDeserializer(payload: any): ReorderChildNodeEventPayload {
+function deserializeReorderChildNodeEventPayload(payload: any): ReorderChildNodeEventPayload {
   return {
     operation: payload.operation,
     position: payload.position,
@@ -33,7 +43,7 @@ export function reorderChildNodeEventPayloadDeserializer(payload: any): ReorderC
  * }
  * @param event The event to serialize.
  */
-export function serializeServerEvent<T>(event: DEvent<T>): any {
+export function serializeServerEvent(event: DEvent): any {
   return {
     originator: event.originator,
     body: JSON.stringify(event),
@@ -54,9 +64,9 @@ export function serializeServerEvent<T>(event: DEvent<T>): any {
  * TODO: versioning!?
  * @param events in the format provided by the dendriform server
  */
-export function deserializeServerEvents<T>(events: any[], payloadDeserializer: (any) => T): Array<DEvent<T>> {
+export function deserializeServerEvents(events: any[]): DEvent[] {
   return events.map((se) => {
-    return deserializeServerEvent(JSON.parse(se.body), payloadDeserializer)
+    return deserializeServerEvent(JSON.parse(se.body))
   })
 }
 
@@ -64,13 +74,13 @@ export function deserializeServerEvents<T>(events: any[], payloadDeserializer: (
  * Mapping of server events is dependent on the generic type of this
  * remote event log since that determine the payload of the concrete event.
  */
-export function deserializeServerEvent<T>(serverEvent: any, payloadDeserializer: (any) => T): DEvent<T> {
-  return new DEvent<T>(
+export function deserializeServerEvent(serverEvent: any): DEvent {
+  return new DEvent(
     serverEvent.type,
     serverEvent.originator,
     deserializeVectorClock(serverEvent.clock),
     serverEvent.nodeId,
-    payloadDeserializer(serverEvent.payload))
+    deserializeEventPayload(serverEvent))
 }
 
 /**

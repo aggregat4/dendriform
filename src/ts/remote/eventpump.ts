@@ -1,4 +1,4 @@
-import { DEventLog, DEvent, Events } from '../eventlog/eventlog'
+import { DEventLog, DEvent, Events, EventType, ALL_EVENT_TYPES } from '../eventlog/eventlog'
 // Import without braces needed to make sure it exists under that name!
 import Dexie from 'dexie'
 import { RemoteEventLog } from './eventlog-remote'
@@ -22,10 +22,10 @@ import { RemoteEventLog } from './eventlog-remote'
  * the fetch of all local events and the start of our subscription. That seems too
  * hard for now. Instead this implementation polls the client and it polls the server.
  */
-export class EventPump<T> {
+export class EventPump {
 
-  private readonly db
-  private readonly dbName
+  private readonly db: Dexie
+  private readonly dbName: string
 
   private initialised = false
   private localEventsPump = new Pump(5000)
@@ -34,48 +34,48 @@ export class EventPump<T> {
   private maxServerCounter: number
   private maxLocalCounter: number
 
-  constructor(private readonly localEventLog: DEventLog<T>,
-              private readonly remoteEventLog: RemoteEventLog<T>) {
+  constructor(private readonly localEventLog: DEventLog,
+              private readonly remoteEventLog: RemoteEventLog) {
     this.dbName = localEventLog.getName() + '-eventpump'
     this.db = new Dexie(this.dbName)
   }
 
-  init(): Promise<void> {
+  async init(): Promise<any> {
     this.db.version(1).stores({
       metadata: 'id', // columns: id, maxlocalcounter, maxservercounter (the id is synthetic, we just need it to identify the rows)
     })
-    return this.db.open()
-      .then(() => this.loadOrCreateMetadata())
-      .then(() => { this.initialised = true })
-      .then(() => {
-        this.localEventsPump.schedule(`drainLocalEvents-${this.dbName}`, this.drainLocalEvents.bind(this))
-        this.remoteEventsPump.schedule(`drainRemoteEvents-${this.dbName}`, this.drainRemoteEvents.bind(this))
-      })
-      .then(() => this)
+    await this.db.open()
+    await this.loadOrCreateMetadata()
+    this.initialised = true
+    this.localEventsPump.schedule(`drainLocalEvents-${this.dbName}`, this.drainLocalEvents.bind(this))
+    this.remoteEventsPump.schedule(`drainRemoteEvents-${this.dbName}`, this.drainRemoteEvents.bind(this))
+    return this
   }
 
-  private loadOrCreateMetadata(): Promise<void> {
-    return this.db.table('metadata').toArray().then(metadata => {
-      if (!metadata || metadata.length === 0) {
-        this.maxServerCounter = -1
-        this.maxLocalCounter = -1
-        return this.saveMetadata()
-      } else {
-        const md = metadata[0]
-        this.maxServerCounter = md.maxservercounter
-        this.maxLocalCounter = md.maxlocalcounter
-      }
-    })
+  private async loadOrCreateMetadata(): Promise<void> {
+    const metadata = await this.db.table('metadata').toArray()
+    if (!metadata || metadata.length === 0) {
+      this.maxServerCounter = -1
+      this.maxLocalCounter = -1
+      return this.saveMetadata()
+    } else {
+      const md = metadata[0]
+      this.maxServerCounter = md.maxservercounter
+      this.maxLocalCounter = md.maxlocalcounter
+    }
   }
 
-  private saveMetadata(): Promise<void> {
+  private async saveMetadata(): Promise<void> {
     const metadata = {
       id: this.dbName,
       maxservercounter: this.maxServerCounter,
       maxlocalcounter: this.maxLocalCounter,
     }
-    return this.db.table('metadata').put(metadata)
-      .catch(error => console.error(`saveMetadata error: `, error))
+    try {
+      return this.db.table('metadata').put(metadata)
+    } catch (error) {
+      throw Error(`Error saving metadata: ${error}`)
+    }
   }
 
   start() {
@@ -97,7 +97,7 @@ export class EventPump<T> {
    * @throws something on server contact failure
    */
   private async drainLocalEvents(): Promise<any> {
-    const events: Events<T> = await this.localEventLog.getEventsSince(this.maxLocalCounter, this.localEventLog.getPeerId())
+    const events: Events = await this.localEventLog.getEventsSince(ALL_EVENT_TYPES, this.maxLocalCounter, this.localEventLog.getPeerId())
     if (events.events.length > 0) {
       await this.remoteEventLog.publishEvents(events.events)
       this.maxLocalCounter = events.counter
@@ -113,7 +113,7 @@ export class EventPump<T> {
    * @throws something on server contact failure
    */
   private async drainRemoteEvents(): Promise<any> {
-    const events = await this.remoteEventLog.getEventsSince(this.maxServerCounter, this.localEventLog.getPeerId())
+    const events = await this.remoteEventLog.getAllEventsSince(this.maxServerCounter, this.localEventLog.getPeerId())
     if (events.events.length > 0) {
       await this.localEventLog.insert(events.events)
       this.maxServerCounter = events.counter

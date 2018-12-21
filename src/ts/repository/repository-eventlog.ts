@@ -11,7 +11,7 @@ class NodeNotFoundError extends Error {}
 
 /**
  * This is a repository implementation that uses an event log. It can be synchronised with a remote eventlog
- * to provide an eventually consistent, multi-peer, storage backend.
+ * to provide an offline capable, eventually consistent, multi-peer storage backend.
  */
 export class EventlogRepository implements Repository {
 
@@ -19,33 +19,17 @@ export class EventlogRepository implements Repository {
   private childParentMap = {}
   private readonly debouncedTreeRebuild = debounce(this.rebuildTreeStructureMaps.bind(this), 5000)
 
-  constructor(readonly nodeEventLog: DEventLog<AddOrUpdateNodeEventPayload>,
-              readonly treeEventLog: DEventLog<ReparentNodeEventPayload>,
-              readonly childOrderEventLog: DEventLog<ReorderChildNodeEventPayload>) {}
+  constructor(readonly eventLog: DEventLog) {}
 
   init(): Promise<EventlogRepository> {
     return this.rebuildTreeStructureMaps().then(() => {
       // TODO: this is not great: we rebuild the maps, then subscribe and theoretically we could get
       // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
       // would mean delaying the inital map construction for too long...
-      this.nodeEventLog.subscribe({
-        notify: this.nodeEventLogListener,
-        filter: (event) => event.originator !== this.nodeEventLog.getPeerId() })
-      this.treeEventLog.subscribe({
-        notify: this.treeEventLogListener,
-        filter: (event) => event.originator !== this.treeEventLog.getPeerId() })
-      this.childOrderEventLog.subscribe({
-        notify: this.childOrderLogListener,
-        filter: (event) => event.originator !== this.childOrderEventLog.getPeerId() })
+      this.eventLog.subscribe({
+        notify: this.eventLogListener,
+        filter: (event) => event.originator !== this.eventLog.getPeerId() })
       }).then(() => this)
-  }
-
-  private nodeEventLogListener(events: Array<DEvent<AddOrUpdateNodeEventPayload>>): void {
-    // DO NOTHING (?)
-  }
-
-  private childOrderLogListener(events: Array<DEvent<ReorderChildNodeEventPayload>>): void {
-    this.debouncedTreeRebuild()
   }
 
   /**
@@ -55,32 +39,44 @@ export class EventlogRepository implements Repository {
    * a complete rebuild of the parent/child caches. we debounch the function so when
    * many events come in fast we don't do too much work.
    */
-  private treeEventLogListener(events: Array<DEvent<ReparentNodeEventPayload>>): void {
-    this.debouncedTreeRebuild()
+  private eventLogListener(events: DEvent[]): void {
+    let rebuildStructure = false
+    for (const event of events) {
+      if (event.type === EventType.REORDER_CHILD || event.type === EventType.REPARENT_NODE) {
+        rebuildStructure = true
+        break
+      }
+    }
+    if (rebuildStructure) {
+      this.debouncedTreeRebuild()
+    }
   }
 
-  private rebuildTreeStructureMaps(): Promise<any> {
-    return this.treeEventLog.getEventsSince(-1)
-      .then(treeEvents => {
-        const newChildParentMap = {}
-        treeEvents.events.forEach(event => {
-          const nodeId = event.nodeId
-          const parentId = event.payload.parentId
-          newChildParentMap[nodeId] = parentId
-        })
-        // this is an attempt at an "atomic" update: we only replace the existing maps once we
-        // have the new ones, to avoid having intermediate request accessing some weird state
-        this.childParentMap = newChildParentMap
-      })
-      .then(() => this.childOrderEventLog.getEventsSince(-1))
-      .then(childOrderEvents => {
-        const newParentChildMap = {}
-        childOrderEvents.events.forEach(event => {
-          EventlogRepository.insertInParentChildMap(newParentChildMap, event.payload.childId, event.payload.parentId,
-            event.payload.operation, event.payload.position, this.childOrderEventLog.getPeerId())
-        })
-        this.parentChildMap = newParentChildMap
-      })
+  private async rebuildTreeStructureMaps(): Promise<any> {
+    const newChildParentMap = {}
+    const newParentChildMap = {}
+    const events = await this.eventLog.getEventsSince([EventType.REPARENT_NODE, EventType.REORDER_CHILD], -1)
+    events.events.forEach(event => {
+      if (event.type === EventType.REPARENT_NODE) {
+        const treeEventPayload = event.payload as ReparentNodeEventPayload
+        const nodeId = event.nodeId
+        const parentId = treeEventPayload.parentId
+        newChildParentMap[nodeId] = parentId
+      } else if (event.type === EventType.REORDER_CHILD) {
+        const childOrderEventPayload = event.payload as ReorderChildNodeEventPayload
+        EventlogRepository.insertInParentChildMap(
+          newParentChildMap,
+          childOrderEventPayload.childId,
+          childOrderEventPayload.parentId,
+          childOrderEventPayload.operation,
+          childOrderEventPayload.position,
+          this.eventLog.getPeerId())
+      }
+    })
+    // this is an attempt at an "atomic" update: we only replace the existing maps once we
+    // have the new ones, to avoid having intermediate request accessing some weird state
+    this.childParentMap = newChildParentMap
+    this.parentChildMap = newParentChildMap
   }
 
   private static insertInParentChildMap(parentChildMap, childId: string, parentId: string,
@@ -95,7 +91,7 @@ export class EventlogRepository implements Repository {
   }
 
   createNode(id: string, name: string, content: string): Promise<void> {
-    return this.nodeEventLog.publish(
+    return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       id,
       {name, note: content, deleted: false, collapsed: false})
@@ -112,7 +108,7 @@ export class EventlogRepository implements Repository {
       }
       this.deleteNode(node._id, parentId)
     }
-    return this.nodeEventLog.publish(
+    return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
       {name: node.name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed})
@@ -124,9 +120,9 @@ export class EventlogRepository implements Repository {
   async reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
     const oldParentId = this.childParentMap[childId]
     const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
-      this.parentChildMap, parentId, this.childOrderEventLog.getPeerId())
+      this.parentChildMap, parentId, this.eventLog.getPeerId())
     const insertionIndex = this.getChildInsertionIndex(seq, position)
-    const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.childOrderEventLog.getCounter())
+    const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.eventLog.getCounter())
     // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.childParentMap[childId] = parentId
@@ -138,10 +134,10 @@ export class EventlogRepository implements Repository {
     }
     if (oldParentId !== parentId) {
       // publish a reparent event when we have a new parent
-      await this.treeEventLog.publish(EventType.REPARENT_NODE, childId, { parentId })
+      await this.eventLog.publish(EventType.REPARENT_NODE, childId, { parentId })
     }
     // publish insert reorder event on new parent
-    return this.childOrderEventLog.publish(
+    return this.eventLog.publish(
       EventType.REORDER_CHILD,
       parentId,
       {
@@ -164,7 +160,7 @@ export class EventlogRepository implements Repository {
         const deletionAtomIdent = seq.getAtomIdent(indexOfChild)
         seq.deleteAtIndex(indexOfChild)
         console.log(`publishing child delete event`)
-        return this.childOrderEventLog.publish(
+        return this.eventLog.publish(
           EventType.REORDER_CHILD,
           parentId,
           {
@@ -209,14 +205,14 @@ export class EventlogRepository implements Repository {
   }
 
   async loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode> {
-    return this.nodeEventLog.getEventsForNode(nodeId).then(nodeEvents => {
+    return this.eventLog.getEventsForNode([EventType.ADD_OR_UPDATE_NODE], nodeId).then(nodeEvents => {
       if (nodeEvents.length > 1) {
         throw new Error(`The code does not yet support more than one event per node`)
       }
       if (nodeEvents.length === 0) {
         return Promise.resolve(null)
       }
-      const node = this.mapEventToRepositoryNode(nodeEvents[0])
+      const node = this.mapEventToRepositoryNode(nodeId, nodeEvents[0].payload as AddOrUpdateNodeEventPayload)
       if (nodeFilter(node)) {
         return Promise.resolve(node)
       } else {
@@ -225,22 +221,24 @@ export class EventlogRepository implements Repository {
     })
   }
 
-  private mapEventToRepositoryNode(event: DEvent<AddOrUpdateNodeEventPayload>): RepositoryNode {
+  private mapEventToRepositoryNode(nodeId: string, eventPayload: AddOrUpdateNodeEventPayload): RepositoryNode {
     return {
-      _id: event.nodeId,
-      name: event.payload.name,
-      content: event.payload.note,
-      deleted: event.payload.deleted,
-      collapsed: event.payload.collapsed,
+      _id: nodeId,
+      name: eventPayload.name,
+      content: eventPayload.note,
+      deleted: eventPayload.deleted,
+      collapsed: eventPayload.collapsed,
     }
   }
 
-  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
-    return Promise.all([
-      this.loadTreeNodeRecursively(nodeId, nodeFilter),
-      this.loadAncestors(nodeId, []) ])
-    .then(results => Promise.resolve({ status: { state: State.LOADED }, tree: results[0], parents: results[1] }) )
-    .catch((reason) => {
+  async loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
+    try {
+      return Promise.all([
+          this.loadTreeNodeRecursively(nodeId, nodeFilter),
+          this.loadAncestors(nodeId, []),
+        ])
+        .then(results => Promise.resolve({ status: { state: State.LOADED }, tree: results[0], parents: results[1] }) )
+    } catch (reason) {
       if (reason instanceof NodeNotFoundError) {
         return Promise.resolve({ status: { state: State.NOT_FOUND } })
       } else {
@@ -248,7 +246,7 @@ export class EventlogRepository implements Repository {
         console.error(`error while loading tree from eventlog: `, reason)
         return Promise.resolve({ status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } })
       }
-    })
+    }
   }
 
   private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>):
@@ -269,14 +267,12 @@ export class EventlogRepository implements Repository {
     return this.parentChildMap[nodeId] ? this.parentChildMap[nodeId].toArray() : []
   }
 
-  private loadAncestors(childId: string, ancestors: RepositoryNode[]): Promise<RepositoryNode[]> {
+  private async loadAncestors(childId: string, ancestors: RepositoryNode[]): Promise<RepositoryNode[]> {
     const parentId = this.childParentMap[childId]
     if (parentId && parentId !== ' ROOT') {
-      return this.loadNode(parentId, ALWAYS_TRUE)
-        .then(parent => {
-          ancestors.push(parent)
-          return this.loadAncestors(parent._id, ancestors)
-        })
+      const parent = await this.loadNode(parentId, ALWAYS_TRUE)
+      ancestors.push(parent)
+      return this.loadAncestors(parent._id, ancestors)
     } else {
       return Promise.resolve(ancestors)
     }
