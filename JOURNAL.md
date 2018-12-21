@@ -405,3 +405,7 @@ When considering the current architecture it seems like a mistake to have 3 even
 This change has some far reaching consequences: I need to start by refactoring all the types in eventlog.ts to no longer have the generic T type, and I would change DEvent to have a payload that is a union type of our concrete three event payloads.
 
 Further the DEventLog interface needs to have the eventType added as a discriminating parameter on the get methods (getEventsSince and getEventsForNode). Finally in our storage implementation of eventlog-local we need to have a composite (or multiple composite) key for eventtype+treenodeid or maybe also eventtype+eventid so we can query for specific kinds of events in our repository implementation.
+
+## 21.12.2018
+
+The eventlog was refactored to store all events, independent of type. This makes management easier, but in the process of refactoring we did some async await refactoring as well and we have a problem now. Possibly in repository-eventlog in loadTreeNodeRecursively.

@@ -27,7 +27,7 @@ export class EventlogRepository implements Repository {
       // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
       // would mean delaying the inital map construction for too long...
       this.eventLog.subscribe({
-        notify: this.eventLogListener,
+        notify: this.eventLogListener.bind(this),
         filter: (event) => event.originator !== this.eventLog.getPeerId() })
       }).then(() => this)
   }
@@ -52,7 +52,7 @@ export class EventlogRepository implements Repository {
     }
   }
 
-  private async rebuildTreeStructureMaps(): Promise<any> {
+  private async rebuildTreeStructureMaps(): Promise<void> {
     const newChildParentMap = {}
     const newParentChildMap = {}
     const events = await this.eventLog.getEventsSince([EventType.REPARENT_NODE, EventType.REORDER_CHILD], -1)
@@ -233,18 +233,16 @@ export class EventlogRepository implements Repository {
 
   async loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
     try {
-      return Promise.all([
-          this.loadTreeNodeRecursively(nodeId, nodeFilter),
-          this.loadAncestors(nodeId, []),
-        ])
-        .then(results => Promise.resolve({ status: { state: State.LOADED }, tree: results[0], parents: results[1] }) )
+      const tree = await this.loadTreeNodeRecursively(nodeId, nodeFilter)
+      const ancestors = await this.loadAncestors(nodeId, [])
+      return { status: { state: State.LOADED }, tree, ancestors }
     } catch (reason) {
       if (reason instanceof NodeNotFoundError) {
-        return Promise.resolve({ status: { state: State.NOT_FOUND } })
+        return { status: { state: State.NOT_FOUND } }
       } else {
         // tslint:disable-next-line:no-console
         console.error(`error while loading tree from eventlog: `, reason)
-        return Promise.resolve({ status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } })
+        return { status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } }
       }
     }
   }
@@ -255,12 +253,10 @@ export class EventlogRepository implements Repository {
     if (! node) {
       throw new NodeNotFoundError()
     }
-    return Promise.all(this.getChildren(nodeId).map(
-        childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<ResolvedRepositoryNode>>)
-      .then(children => ({
-        node,
-        children,
-      }))
+    // explicitly doing a Promise.all here to allow for parallel execution
+    // TODO: do we have an error here? Does not work?
+    const children = await Promise.all(this.getChildren(nodeId).map(childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<ResolvedRepositoryNode>>)
+    return {node, children}
   }
 
   private getChildren(nodeId: string): string[] {
