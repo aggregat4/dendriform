@@ -47,12 +47,11 @@ export class DomCommandHandler implements CommandHandler {
       this.domRenameNode(document.getElementById(cmd.nodeId), cmd.newName)
     } else if (cmd instanceof ReparentNodeByIdCommandPayload) {
       const relativeNode = cmd.position.nodeId ? document.getElementById(cmd.position.nodeId) : null
-      const position = relativeNode ? cmd.position.beforeOrAfter : RelativeLinearPosition.END
       this.domReparentNode(
         document.getElementById(cmd.nodeId),
         document.getElementById(cmd.newParentNodeId),
         relativeNode,
-        position)
+        cmd.position.beforeOrAfter)
     } else if (cmd instanceof OpenNodeByIdCommandPayload) {
       this.domOpenNode(document.getElementById(cmd.nodeId))
     } else if (cmd instanceof CloseNodeByIdCommandPayload) {

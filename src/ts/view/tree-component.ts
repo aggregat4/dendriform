@@ -501,7 +501,7 @@ export class Tree {
     const newParentNodeId = getNodeId(newParentNode)
     const position: RelativeNodePosition = {
       nodeId: relativeNode ? getNodeId(relativeNode) : null,
-      beforeOrAfter: relativeNode ? relativePosition : RelativeLinearPosition.END,
+      beforeOrAfter: relativePosition,
     }
     const command = new CommandBuilder(
       new ReparentNodeByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
