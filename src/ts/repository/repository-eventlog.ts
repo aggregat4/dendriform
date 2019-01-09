@@ -114,7 +114,7 @@ export class EventlogRepository implements Repository {
       {name: node.name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed})
   }
 
-  // We ONLY publish an INSERT event when the parent hasn't changed, this DEPENDS on the fact that
+  // implNote: We ONLY publish an INSERT event when the parent hasn't changed, this DEPENDS on the fact that
   // eventlogs will garbage collect older insert events in the same sequence, if this is not the
   // case then we would need to publish a delete event before this
   async reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {

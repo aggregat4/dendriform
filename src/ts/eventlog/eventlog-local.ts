@@ -53,7 +53,7 @@ export class LocalEventLog implements DEventSource, DEventLog {
   async init(): Promise<LocalEventLog> {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
-      eventlog: '++eventid,treenodeid,peerid', // see StoredEvent for schema
+      eventlog: '++eventid,treenodeid', // see StoredEvent for schema
     })
     await this.db.open()
     await this.loadOrCreateMetadata()
@@ -126,8 +126,8 @@ export class LocalEventLog implements DEventSource, DEventLog {
         eventCounter = await this.storeAndGarbageCollect(event)
       }
       this.counter = eventCounter
-      await this.saveMetadata()
       window.setTimeout(() => this.notifySubscribers(events), 1)
+      return await this.saveMetadata()
     } catch (err) {
       // TODO: do something more clever with errors?
       // tslint:disable-next-line:no-console
@@ -194,7 +194,9 @@ export class LocalEventLog implements DEventSource, DEventLog {
 
   private garbageCollect(event: DEvent): Promise<any> {
     const table = this.db.table('eventlog')
-    return table.where('treenodeid').equals(event.nodeId).toArray()
+    return table.where('treenodeid').equals(event.nodeId)
+      // TODO: (perf) make a compound key for treenodeid and eventtype so we can query directly for them
+      .and(storedEvent => storedEvent.eventtype === event.type).toArray()
       .then((nodeEvents: StoredEvent[]) => {
         const eventsToDelete = this.findEventsToPrune(nodeEvents, event)
         if (eventsToDelete.length > 0) {
