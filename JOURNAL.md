@@ -409,3 +409,15 @@ Further the DEventLog interface needs to have the eventType added as a discrimin
 ## 21.12.2018
 
 The eventlog was refactored to store all events, independent of type. This makes management easier, but in the process of refactoring we did some async await refactoring as well and we have a problem now. Possibly in repository-eventlog in loadTreeNodeRecursively.
+
+## 9.1.2019
+
+Fixed two bugs. One was introduced with merging the eventlogs to one: I was not querying the eventlog by nodeid AND by type when collecting events to garbage collect, which led to deleting events that should not be deleted. The other was older and related to moving nodes in the tree to the top position being impossible.
+
+Next steps are to test the eventlog implementation a bit more to make sure it really works for the single user use case and then to test it from multiple clients.
+
+I just did a quick test with firefox as a second client and it does eventually show all the nodes that exist on the server, but it does that only after a refresh. Before that it creates a new document and after the second refresh it merges the trees and we have a spurious empty node. Is this at all solvable? Should we load the tree and wait a bit until we at least tried to get to the server? Merging the one empty node is not that bad, it is in fact desired behaviour from a certain point of view. But some tiny best effort in the beginning to try to get to a server may be useful. On the other hand that will impact performance. Perhaps the better solution is to not create an empty node by default?
+
+BTW we also need a way to notify the user of new server side events and the need to refresh the tree. Refresh it automatically? Is that too disruptive? Just notify on the page?
+
+BTW2 merge this branch back into master.
