@@ -421,3 +421,20 @@ I just did a quick test with firefox as a second client and it does eventually s
 BTW we also need a way to notify the user of new server side events and the need to refresh the tree. Refresh it automatically? Is that too disruptive? Just notify on the page? I think workflowy forces the refresh?
 
 BTW2 merge this branch back into master.
+
+## 16.1.2019
+
+`npm audit` would not run because of a POST request failing with a 400 against the registry. Solved by deleting the node_modules directory and the package-lock.json file and rerunning `npm i` and `npm audit`.
+
+Going to ignore the empty workfloy concurrent edit thing since that only happens in the beginning, need to fix this a bit in the future but want to focus on updating a tree with remote changes.
+
+Design idea for automatic updates when remote changes are detected:
+
+* The client subscribes to the repository for events concerning nodes that are children of the current root node. This should be fast since we have an in memory map of the tree. This subscription must be remade every time the client loads a different root node.
+* When a change was detected, the client rerenders the subtree of each node that was involved, a best effort is made to restore cursor position.
+
+Maybe experiment with just updating the root node and see if that is sufficient?
+
+I've also started a prototype for a keyboard shortcut registry. So far I have an abstraction to represent a shortcut. The question remaining is where to implement the shortcuts and where to register them.
+
+In the place where we have a Tree component instance? Call some utility "registerStandardKeyboardShortcuts" function that then just registers all our default handlers?

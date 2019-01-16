@@ -35,8 +35,7 @@ function savePreviousNodeState(nodeId: string, nodeName: string, nodeNote: strin
 document.addEventListener('selectionchange', selectionChangeHandler)
 
 function selectionChangeHandler(event: Event): void {
-  if (document.activeElement &&
-    isNameNode(document.activeElement)) {
+  if (document.activeElement && isNameNode(document.activeElement)) {
     const activeNode = getNodeForNameElement(document.activeElement)
     savePreviousNodeState(
       getNodeId(activeNode),
@@ -65,7 +64,7 @@ export class Tree {
         this.searchField = el('input', {type: 'search', placeholder: 'Filter'})),
       this.breadcrumbsEl = el('div.breadcrumbs'),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)))
-    // We need to bind the event handlers to the class otherwise the scope with the element
+    // We need to bind the event handlers to the class otherwise the scope is the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
     // This means that all event listeners here need to check whether they are triggered on
@@ -131,7 +130,7 @@ export class Tree {
       const noteElement = findNoteElementAncestor(event.target as Element) as HTMLElement
       if (! noteElement.isContentEditable) {
         event.preventDefault()
-        Tree.startEditingNote(noteElement as HTMLElement)
+        TreeNode.startEditingNote(noteElement as HTMLElement)
       }
     }
   }
@@ -229,45 +228,8 @@ export class Tree {
     } else if (event.key === 'Enter' && event.shiftKey) { // trigger note editing
       event.preventDefault()
       const noteEl = (event.target as Element).nextElementSibling.nextElementSibling as HTMLElement
-      Tree.startEditingNote(noteEl)
+      TreeNode.startEditingNote(noteEl)
     }
-  }
-
-  // install event handler to listen for escape (or backspace in the beginning when empty,
-  //   or arrow up in beginning, etc)
-  // TODO: I would like to have this code on the node-component but then I would need to put the
-  // event handlers there and I prefer having them globally... what to do?
-  private static startEditingNote(noteEl: HTMLElement): void {
-    // hard assumption that we have two siblings and the last one is the note element
-    setAttr(noteEl, { contentEditable: true, class: 'note editing' })
-    setStyle(noteEl, { display: 'block' })
-    noteEl.addEventListener('keydown', Tree.onNoteKeydown)
-    noteEl.addEventListener('blur', Tree.onNoteBlur)
-    noteEl.focus()
-  }
-
-  private static stopEditingNote(noteEl: HTMLElement, refocus: boolean): void {
-    noteEl.removeEventListener('keydown', Tree.onNoteKeydown)
-    noteEl.removeEventListener('blur', Tree.onNoteBlur)
-    setAttr(noteEl, { contentEditable: false, class: 'note' })
-    noteEl.style.display = null
-    if (refocus) {
-      const nameEl = noteEl.previousElementSibling.previousElementSibling as HTMLElement
-      nameEl.focus()
-    }
-  }
-
-  private static onNoteKeydown(event: KeyboardEvent): void {
-    if ((event.key === 'Escape') ||
-        (event.key === 'ArrowUp' && isCursorAtContentEditableBeginning('note'))) {
-      event.preventDefault()
-      Tree.stopEditingNote(event.target as HTMLElement, true)
-    }
-  }
-
-  private static onNoteBlur(event: FocusEvent): void {
-    event.preventDefault()
-    Tree.stopEditingNote(event.target as HTMLElement, false)
   }
 
   private onKeydown(event: KeyboardEvent): void {

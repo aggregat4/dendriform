@@ -1,9 +1,6 @@
-import { el, text, setAttr, setChildren, list } from 'redom'
-import {
-  RepositoryNode,
-  ResolvedRepositoryNode,
-  FilteredRepositoryNode,
-} from '../domain/domain'
+import { el, setAttr, setChildren, list, setStyle } from 'redom'
+import { RepositoryNode, ResolvedRepositoryNode, FilteredRepositoryNode } from '../domain/domain'
+import { isCursorAtContentEditableBeginning } from '../util'
 
 export class TreeNode {
   private first: boolean
@@ -51,6 +48,43 @@ export class TreeNode {
   private genClass(node: ResolvedRepositoryNode, isFirst: boolean): string {
     return 'node' + (this.isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '') +
       (node.node.collapsed ? ' closed' : ' open')
+  }
+
+  // install event handler to listen for escape (or backspace in the beginning when empty,
+  //   or arrow up in beginning, etc)
+  // TODO: I would like to have this code on the node-component but then I would need to put the
+  // event handlers there and I prefer having them globally... what to do?
+  static startEditingNote(noteEl: HTMLElement): void {
+    // hard assumption that we have two siblings and the last one is the note element
+    setAttr(noteEl, { contentEditable: true, class: 'note editing' })
+    setStyle(noteEl, { display: 'block' })
+    noteEl.addEventListener('keydown', TreeNode.onNoteKeydown)
+    noteEl.addEventListener('blur', TreeNode.onNoteBlur)
+    noteEl.focus()
+  }
+
+  static stopEditingNote(noteEl: HTMLElement, refocus: boolean): void {
+    noteEl.removeEventListener('keydown', TreeNode.onNoteKeydown)
+    noteEl.removeEventListener('blur', TreeNode.onNoteBlur)
+    setAttr(noteEl, { contentEditable: false, class: 'note' })
+    noteEl.style.display = null
+    if (refocus) {
+      const nameEl = noteEl.previousElementSibling.previousElementSibling as HTMLElement
+      nameEl.focus()
+    }
+  }
+
+  private static onNoteKeydown(event: KeyboardEvent): void {
+    if ((event.key === 'Escape') ||
+        (event.key === 'ArrowUp' && isCursorAtContentEditableBeginning('note'))) {
+      event.preventDefault()
+      TreeNode.stopEditingNote(event.target as HTMLElement, true)
+    }
+  }
+
+  private static onNoteBlur(event: FocusEvent): void {
+    event.preventDefault()
+    TreeNode.stopEditingNote(event.target as HTMLElement, false)
   }
 
 }
