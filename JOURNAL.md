@@ -418,6 +418,6 @@ Next steps are to test the eventlog implementation a bit more to make sure it re
 
 I just did a quick test with firefox as a second client and it does eventually show all the nodes that exist on the server, but it does that only after a refresh. Before that it creates a new document and after the second refresh it merges the trees and we have a spurious empty node. Is this at all solvable? Should we load the tree and wait a bit until we at least tried to get to the server? Merging the one empty node is not that bad, it is in fact desired behaviour from a certain point of view. But some tiny best effort in the beginning to try to get to a server may be useful. On the other hand that will impact performance. Perhaps the better solution is to not create an empty node by default?
 
-BTW we also need a way to notify the user of new server side events and the need to refresh the tree. Refresh it automatically? Is that too disruptive? Just notify on the page?
+BTW we also need a way to notify the user of new server side events and the need to refresh the tree. Refresh it automatically? Is that too disruptive? Just notify on the page? I think workflowy forces the refresh?
 
 BTW2 merge this branch back into master.

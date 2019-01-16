@@ -25,6 +25,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. At some point we probably need paging for getting server side events, just to prevent us from crashing when the list of events becomes too large. Maybe one parameter suffices? pageSize=100 maybe?
 1. replace UUID peer ids in the event logs with locally resolved ints (persistent), maybe also do this for the vector clocks
 1. replace dexie with raw indexeddb calls or something smaller (maybe, maybe not, the size is not that bad)
+1. Think through the performance of deleting a root node of a huge subtree: what does that mean for client storage? Do we keep any of those events?
 1. I probably need some kind of forced garbage collect where on a peer a user confirms that this is the master copy and some sort of synchronous operation happens that forces a reset. What does that mean? Generate a snapshot on the server and have clients load this? This means putting data structure knowhow on the server. Or the client generates a snapshot and sends it to the server, but this means that all clients need to have the same software version.
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
 1. Implement import of some standard format (probably at least the workflowy opml?)
