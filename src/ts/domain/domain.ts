@@ -99,3 +99,7 @@ export interface RelativeNodePosition {
   nodeId?: string,
   beforeOrAfter: RelativeLinearPosition
 }
+
+export interface Subscription {
+  cancel(): void
+}

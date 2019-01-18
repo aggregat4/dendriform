@@ -17,7 +17,6 @@ const remoteEventLog = new RemoteEventLog('/', 'dendriform-eventlog')
 
 const eventPump = new EventPump(localEventLog, remoteEventLog)
 
-// TODO: refactor this use of arrays to use some object and assign with destructuring or something
 const treePromise = localEventLog.init()
   .then(() => eventPump.init()).then(() => eventPump.start())
   .then(() => new EventlogRepository(localEventLog).init())

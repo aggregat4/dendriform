@@ -3,11 +3,26 @@ import {Repository} from './repository'
 import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode } from '../domain/domain'
-import {atomIdent} from '../lib/logootsequence.js'
-import {LogootSequenceWrapper} from './logoot-sequence-wrapper'
+import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode, Subscription } from '../domain/domain'
+import { atomIdent } from '../lib/logootsequence.js'
+import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 
 class NodeNotFoundError extends Error {}
+
+class NodeChangedSubscription implements Subscription {
+  constructor(
+    readonly parentNode: string,
+    readonly listener: (nodeId: string) => void,
+    readonly cancelCallback: (subToCancel: Subscription) => void) {}
+
+  notify(nodeId: string): void {
+    this.listener(nodeId)
+  }
+
+  cancel(): void {
+    this.cancelCallback(this)
+  }
+}
 
 /**
  * This is a repository implementation that uses an event log. It can be synchronised with a remote eventlog
@@ -17,7 +32,10 @@ export class EventlogRepository implements Repository {
 
   private parentChildMap = {}
   private childParentMap = {}
-  private readonly debouncedTreeRebuild = debounce(this.rebuildTreeStructureMaps.bind(this), 5000)
+  private changeSubscriptions: NodeChangedSubscription[] = []
+
+  private readonly debouncedNotifyNodeChangeSubscribers = debounce(this.notifyNodeChangeSubscribers.bind(this), 5000)
+  private readonly debouncedRebuildAndNotify = debounce(this.rebuildAndNotify.bind(this), 5000)
 
   constructor(readonly eventLog: DEventLog) {}
 
@@ -36,19 +54,42 @@ export class EventlogRepository implements Repository {
    * Tree structure changes that do not originate from the current peer means that
    * some other peer has made changes to the tree and we just got one or more events
    * about it. To be safe, and to avoid having to do something clever, we just trigger
-   * a complete rebuild of the parent/child caches. we debounch the function so when
+   * a complete rebuild of the parent/child caches. we debounce the function so when
    * many events come in fast we don't do too much work.
    */
   private eventLogListener(events: DEvent[]): void {
-    let rebuildStructure = false
     for (const event of events) {
       if (event.type === EventType.REORDER_CHILD || event.type === EventType.REPARENT_NODE) {
-        rebuildStructure = true
-        break
+        // in case of structural tree changes we need to rebuild the maps first, then notify,
+        // otherwise we would miss new nodes being added (as they would not be in the tree structure maps)
+        this.debouncedRebuildAndNotify(event.nodeId)
+      } else {
+        this.debouncedNotifyNodeChangeSubscribers(event.nodeId)
       }
     }
-    if (rebuildStructure) {
-      this.debouncedTreeRebuild()
+  }
+
+  private rebuildAndNotify(nodeId: string): void {
+    this.rebuildTreeStructureMaps().then(() => this.notifyNodeChangeSubscribers(nodeId))
+  }
+
+  private notifyNodeChangeSubscribers(nodeId: string): void {
+    for (const sub of this.changeSubscriptions) {
+      if (this.isNodeChildOf(nodeId, sub.parentNode)) {
+        sub.notify(nodeId)
+      }
+    }
+  }
+
+  private isNodeChildOf(childNode: string, parentNode: string): boolean {
+    if (childNode === parentNode) {
+      return true
+    }
+    const actualParent = this.childParentMap[childNode]
+    if (actualParent) {
+      return this.isNodeChildOf(actualParent, parentNode)
+    } else {
+      return false
     }
   }
 
@@ -274,4 +315,17 @@ export class EventlogRepository implements Repository {
     }
   }
 
+  subscribeToChanges(parentNodeId: string, nodeChangeListener: (nodeId: string) => void): Subscription {
+    const subscription = new NodeChangedSubscription(
+      parentNodeId,
+      nodeChangeListener,
+      // this is a bit strange: the subscription object has a cancel method for the subscriber to call
+      // unsubscribing means we need to remove the subscription from our list, to do that we need to find
+      // its index first, we do that by checking object equality on the subscription object
+      (subToCancel) => {
+        this.changeSubscriptions.splice(this.changeSubscriptions.findIndex((sub) => sub === subToCancel), 1)
+      })
+    this.changeSubscriptions.push(subscription)
+    return subscription
+  }
 }

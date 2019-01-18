@@ -6,7 +6,7 @@ export class TreeNode {
   private first: boolean
   private el
   private ncEl
-  private childrenEl
+  // private childrenEl
   private childList
 
   // 1. check for own filterhits
@@ -19,9 +19,8 @@ export class TreeNode {
     this.first = first
     this.el = el('div',
       this.ncEl = el('div.nc'),
-      this.childrenEl = el('div.children'))
-    // key can be a lookup function (thanks finnish dude!)
-    this.childList = list(this.childrenEl, TreeNode, n => n.node._id)
+      // this.childrenEl = el('div.children'))
+      this.childList = list('div.children', TreeNode, n => n.node._id)) // key can be a lookup function (thanks finnish dude!)
   }
 
   update(treeNode: FilteredRepositoryNode) {

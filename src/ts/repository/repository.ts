@@ -1,4 +1,4 @@
-import {RepositoryNode, LoadedTree, RelativeNodePosition} from '../domain/domain'
+import {RepositoryNode, LoadedTree, RelativeNodePosition, Subscription} from '../domain/domain'
 import { Predicate } from '../util'
 
 export interface Repository {
@@ -10,4 +10,6 @@ export interface Repository {
   getParentId(nodeId: string): Promise<string>
   loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode>
   loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree>
+
+  subscribeToChanges(parentNodeId: string, nodeChangeListener: (nodeId: string) => void): Subscription
 }

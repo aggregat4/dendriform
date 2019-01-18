@@ -438,3 +438,11 @@ Maybe experiment with just updating the root node and see if that is sufficient?
 I've also started a prototype for a keyboard shortcut registry. So far I have an abstraction to represent a shortcut. The question remaining is where to implement the shortcuts and where to register them.
 
 In the place where we have a Tree component instance? Call some utility "registerStandardKeyboardShortcuts" function that then just registers all our default handlers?
+
+## 19.1.2019
+
+Added subcription to change notifications in the repository interface and eventlog implementation. Added functionality to the tree to subscribe to that and to reload the tree on changes.
+
+First simple tests with an incognito window and a normal window show that changes are synced, the trees are updated and they seem to converge on the same state!
+
+Testing was not thorough and will need to be more extensive. I saw one case where during parallel updates (changes on one tree, switch to other and make changes there) caused a "can not deal with more than one event per node" exception in one of the trees. The good news is that it fixed itself afterwards. This could be a race condition in the eventlog or perhaps more likely just a normal situation when updates come in from two sides and garbage collection has not run yet?

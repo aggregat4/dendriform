@@ -6,6 +6,7 @@ import {
   State,
   RelativeNodePosition,
   nodeIsNotDeleted,
+  Subscription,
 } from '../domain/domain'
 import {Repository} from '../repository/repository'
 import { MergeNameOrder } from './service'
@@ -167,4 +168,7 @@ export class TreeService {
       .then(() => this.deleteNode(sourceNodeId))
   }
 
+  subscribeToChanges(parentNodeId: string, nodeChangeListener: (nodeId: string) => void): Subscription {
+    return this.repo.subscribeToChanges(parentNodeId, nodeChangeListener)
+  }
 }

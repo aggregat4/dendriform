@@ -1,7 +1,7 @@
 import { el, setChildren, setAttr, setStyle } from 'redom'
 import {MergeNameOrder} from '../service/service'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, FilteredRepositoryNode} from '../domain/domain'
+import { LoadedTree, RelativeLinearPosition, RelativeNodePosition, State, createNewRepositoryNode, FilteredRepositoryNode, Subscription} from '../domain/domain'
 import { filterNode } from '../domain/domain-search'
 // tslint:disable-next-line:max-line-length
 import { Command, CommandBuilder, MergeNodesByIdCommandPayload, RenameNodeByIdCommandPayload, ReparentNodeByIdCommandPayload, SplitNodeByIdCommandPayload, OpenNodeByIdCommandPayload, CloseNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, UpdateNoteByIdCommandPayload } from '../commands/commands'
@@ -53,6 +53,7 @@ export class Tree {
   private breadcrumbsEl: Element
   private content: TreeNode
   private searchField
+  private treeChangeSubscription: Subscription
 
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
@@ -80,7 +81,21 @@ export class Tree {
   }
 
   loadNode(nodeId: string): Promise<any> {
-    return this.treeService.loadTree(nodeId).then(loadedTree => this.update(loadedTree))
+    if (this.treeChangeSubscription) {
+      this.treeChangeSubscription.cancel()
+      this.treeChangeSubscription = null
+    }
+    return this.reloadTree(nodeId)
+      .then(() => this.treeChangeSubscription = this.treeService.subscribeToChanges(nodeId, this.onBackgroundTreeChange.bind(this)))
+  }
+
+  private reloadTree(nodeId: string): Promise<any> {
+    return this.treeService.loadTree(nodeId)
+      .then(loadedTree => this.update(loadedTree))
+  }
+
+  private onBackgroundTreeChange(nodeId: string): void {
+    this.reloadTree(this.currentRootNodeId)
   }
 
   update(tree: LoadedTree) {
