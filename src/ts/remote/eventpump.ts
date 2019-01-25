@@ -28,8 +28,8 @@ export class EventPump {
   private readonly dbName: string
 
   private initialised = false
-  private localEventsPump = new Pump(5000)
-  private remoteEventsPump = new Pump(5000)
+  private localEventPump = new Pump(5000)
+  private remoteEventPump = new Pump(5000)
 
   private maxServerCounter: number
   private maxLocalCounter: number
@@ -47,8 +47,8 @@ export class EventPump {
     await this.db.open()
     await this.loadOrCreateMetadata()
     this.initialised = true
-    this.localEventsPump.schedule(`drainLocalEvents-${this.dbName}`, this.drainLocalEvents.bind(this))
-    this.remoteEventsPump.schedule(`drainRemoteEvents-${this.dbName}`, this.drainRemoteEvents.bind(this))
+    this.localEventPump.schedule(`drainLocalEvents-${this.dbName}`, this.drainLocalEvents.bind(this))
+    this.remoteEventPump.schedule(`drainRemoteEvents-${this.dbName}`, this.drainRemoteEvents.bind(this))
     return this
   }
 
@@ -82,13 +82,17 @@ export class EventPump {
     if (! this.initialised) {
       throw Error('EventPump was not initialised, can not start')
     }
-    this.localEventsPump.start()
-    this.remoteEventsPump.start()
+    this.localEventPump.start()
+    this.remoteEventPump.start()
   }
 
   stop() {
-    this.localEventsPump.stop()
-    this.remoteEventsPump.stop()
+    this.localEventPump.stop()
+    this.remoteEventPump.stop()
+  }
+
+  hasTriedToContactServerOnce(): boolean {
+    return this.remoteEventPump.isScheduledFunctionExecuted()
   }
 
   /**
@@ -128,8 +132,12 @@ export class EventPump {
 class Pump {
   private pumping = false
   private retryDelayMs: number
+  // when not actually pumping we want to be able to react to changes in our state quickly so we set a low delay in that case
+  private readonly INACTIVE_DELAY = 50
   // One minute is the maximum delay we want to have in case of backoff
   private readonly MAX_DELAY_MS = 60 * 1000
+
+  private scheduledFunctionExecuted: boolean = false
 
   constructor(private readonly defaultDelayInMs: number) {}
 
@@ -141,11 +149,13 @@ class Pump {
     try {
       if (this.pumping) {
         await fun()
+        this.scheduledFunctionExecuted = true
         // we successfully executed the function, so we can reset the retry delay to the default
         this.retryDelayMs = this.defaultDelayInMs
         console.log(`Successful server request, resetting backoff delay to default for ${name}`)
       }
     } catch (e) {
+      this.scheduledFunctionExecuted = true
       // when we fail do some backoff and retry later
       if (this.retryDelayMs < this.MAX_DELAY_MS) {
         this.retryDelayMs = this.retryDelayMs * 2
@@ -155,10 +165,15 @@ class Pump {
       console.log(`Performing backoff because server not reached, delaying for ${this.retryDelayMs}ms for ${name}`)
     }
     // schedule the next drain
-    window.setTimeout(() => this.schedule(name, fun), this.retryDelayMs)
+    const delay = this.pumping ? this.retryDelayMs : this.INACTIVE_DELAY
+    window.setTimeout(() => this.schedule(name, fun), delay)
   }
 
   stop() {
     this.pumping = false
+  }
+
+  isScheduledFunctionExecuted(): boolean {
+    return this.scheduledFunctionExecuted
   }
 }

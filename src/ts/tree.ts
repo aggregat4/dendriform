@@ -26,8 +26,19 @@ const treePromise = localEventLog.init()
     return new Tree(commandHandler, treeService)
   })
 
+function waitForThen(condition: () => boolean, action: () => void, delay: number) {
+  if (condition()) {
+    action()
+  } else {
+    window.setTimeout(() => { waitForThen(condition, action, delay) }, delay)
+  }
+}
+
 export function updateTree(nodeId: string) {
-  treePromise.then(tree => tree.loadNode(nodeId))
+  waitForThen(
+    () => eventPump.hasTriedToContactServerOnce(),
+    () => treePromise.then(tree => tree.loadNode(nodeId)),
+    20)
 }
 
 /**

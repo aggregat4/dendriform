@@ -446,3 +446,9 @@ Added subcription to change notifications in the repository interface and eventl
 First simple tests with an incognito window and a normal window show that changes are synced, the trees are updated and they seem to converge on the same state!
 
 Testing was not thorough and will need to be more extensive. I saw one case where during parallel updates (changes on one tree, switch to other and make changes there) caused a "can not deal with more than one event per node" exception in one of the trees. The good news is that it fixed itself afterwards. This could be a race condition in the eventlog or perhaps more likely just a normal situation when updates come in from two sides and garbage collection has not run yet?
+
+## 25.1.2019
+
+I have a somewhat unsatisfactory way in tree.ts to wait for an initial server pull before actually loading and mounting the tree. This still feels too slow on initial load, but it prevents the spurious empty nodes.
+
+However, with concurrent updates I have observed both the "more than one node" error as well as a REDOM issue where in the `TreeNode.update` function when updating the `childList` function it tries to remove a grandchild from a child of ROOT and it actually tries to remove the grandchild from ROOT directly and this fails. I don't understand yet what is going on there.
