@@ -152,7 +152,7 @@ class Pump {
         this.scheduledFunctionExecuted = true
         // we successfully executed the function, so we can reset the retry delay to the default
         this.retryDelayMs = this.defaultDelayInMs
-        console.log(`Successful server request, resetting backoff delay to default for ${name}`)
+        console.debug(`Successful server request, resetting backoff delay to default for ${name}`)
       }
     } catch (e) {
       this.scheduledFunctionExecuted = true
@@ -162,7 +162,7 @@ class Pump {
       } else {
         this.retryDelayMs = this.MAX_DELAY_MS
       }
-      console.log(`Performing backoff because server not reached, delaying for ${this.retryDelayMs}ms for ${name}`)
+      console.debug(`Performing backoff because server not reached, delaying for ${this.retryDelayMs}ms for ${name}`)
     }
     // schedule the next drain
     const delay = this.pumping ? this.retryDelayMs : this.INACTIVE_DELAY

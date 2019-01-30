@@ -246,14 +246,11 @@ export class EventlogRepository implements Repository {
   }
 
   async loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode> {
-    return this.eventLog.getEventsForNode([EventType.ADD_OR_UPDATE_NODE], nodeId).then(nodeEvents => {
-      if (nodeEvents.length > 1) {
-        throw new Error(`The code does not yet support more than one event per node`)
-      }
-      if (nodeEvents.length === 0) {
+    return this.eventLog.getNodeEvent(nodeId).then(nodeEvent => {
+      if (!nodeEvent) {
         return Promise.resolve(null)
       }
-      const node = this.mapEventToRepositoryNode(nodeId, nodeEvents[0].payload as AddOrUpdateNodeEventPayload)
+      const node = this.mapEventToRepositoryNode(nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload)
       if (nodeFilter(node)) {
         return Promise.resolve(node)
       } else {

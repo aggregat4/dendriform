@@ -452,3 +452,13 @@ Testing was not thorough and will need to be more extensive. I saw one case wher
 I have a somewhat unsatisfactory way in tree.ts to wait for an initial server pull before actually loading and mounting the tree. This still feels too slow on initial load, but it prevents the spurious empty nodes.
 
 However, with concurrent updates I have observed both the "more than one node" error as well as a REDOM issue where in the `TreeNode.update` function when updating the `childList` function it tries to remove a grandchild from a child of ROOT and it actually tries to remove the grandchild from ROOT directly and this fails. I don't understand yet what is going on there.
+
+## 30.1.2019
+
+Made the code more robust in several ways.
+
+We can now deal with multiple node structure events in getEventsForNode (now getNodeEvents) in eventlog-local. We basically perform an ad hoc garbage collection if we receive more than one node event from the db. This can theoretically happen because all the DB operations are async and someone may request a node that is currently being updated.
+
+In addition I fixed a potential race condition where when inserting nodes in the local database, we were tracking what the current highest eventid is as the local maxCounter but where due to concurrent updates to the database we might have saved a wrong counter (not the highest one but just the last one that was done updating). We actually observed this behaviour in testing. Impossible to prove that it is now gone of course. In addition I added some logging and some extra code to recover from this should it still occur by always checking when getting events whether our counter is really the latest one.
+
+Finally I investigated the REDOM error where it was trying to update the childlist of the root node and was running into errors because it was trying to update a GRANDCHILD instead of a direct child. I figured out that is due to the fact that when you indent a direct child of the root, this change is made directly in the DOM and not with redom, therefore the redom tree structure is out of sync with the real DOM. This is a problem. I will probably have to redo a lot of the dom handling stuff. I actually did it directly in DOM since I didn't see a way to get from a DOM node to a REDOM object and have it do the update. Must investigate further.

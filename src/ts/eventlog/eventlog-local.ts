@@ -121,13 +121,25 @@ export class LocalEventLog implements DEventSource, DEventLog {
       return Promise.resolve()
     }
     try {
+      console.debug(`Inserting events into local log`)
       let eventCounter = -1
       for (const event of events) {
         eventCounter = await this.storeAndGarbageCollect(event)
       }
-      this.counter = eventCounter
-      window.setTimeout(() => this.notifySubscribers(events), 1)
-      return await this.saveMetadata()
+      // We only store the latest eventid as the new max counter if it is really
+      // higher than the current state. In case of concurrent updates to the db
+      // (for example a local insert and some remote server events) it may happen
+      // that the updates are interleaved and we need to check here whether we
+      // really do have the largest counter.
+      if (eventCounter > this.counter) {
+        this.counter = eventCounter
+      }
+      await this.saveMetadata()
+      window.setTimeout(() => {
+        console.debug(`Notifying subscribers`)
+        this.notifySubscribers(events)
+      }, 1)
+      return Promise.resolve()
     } catch (err) {
       // TODO: do something more clever with errors?
       // tslint:disable-next-line:no-console
@@ -154,15 +166,45 @@ export class LocalEventLog implements DEventSource, DEventLog {
       query = query.and(event => event.peerid === peerId)
     }
     return query.toArray()
-      .then((events: StoredEvent[]) => this.sortCausally(events))
-      .then((events: StoredEvent[]) => events.map(this.storedEventToDEventMapper))
+      .then((events: StoredEvent[]) => {
+        this.sortCausally(events)
+        // This code is a bit of a cop out: we should not need this since this.counter is always
+        // set to the highest stored event id when we insert() it into the database.
+        // However we observed a counter being one off (and lower) than the real max event
+        // and this causes a endless loop of claiming to have new events and pushing it to the
+        // server. This is a sort of sanity check to correct the counter should it be off.
+        // I have no idea why the code in insert() should not suffice.
+        let wasMaxCounterUpdated = false
+        for (const event of events) {
+          if (event.eventid > this.counter) {
+            console.warn(`Unexpected state: local counter is not the max event id in the db, this should not happen (see insert())`)
+            this.counter = event.eventid
+            wasMaxCounterUpdated = true
+          }
+        }
+        if (wasMaxCounterUpdated) {
+          this.saveMetadata()
+        }
+        return events.map(this.storedEventToDEventMapper)
+      })
       .then((events: DEvent[]) => ({counter: this.counter, events}))
   }
 
-  getEventsForNode(eventTypes: EventType[], nodeId: string): Promise<DEvent[]> {
+  getNodeEvent(nodeId: string): Promise<DEvent> {
     const table = this.db.table('eventlog')
-    return table.where('treenodeid').equals(nodeId).and(event => eventTypes.indexOf(event.eventtype) !== -1).toArray()
-      .then((events: StoredEvent[]) => events.map(this.storedEventToDEventMapper))
+    return table.where('treenodeid').equals(nodeId).and(event => event.eventtype === EventType.ADD_OR_UPDATE_NODE).toArray()
+      .then((events: StoredEvent[]) => {
+        if (events.length === 0) {
+          return null
+        }
+        // It can happen that we get multiple events for one node, depending on whether
+        // the garbage collection has already run or not for this event. So we may need
+        // to do some ad hoc garbage collection here.
+        if (events.length > 1) {
+          this.sortCausally(events)
+        }
+        return this.storedEventToDEventMapper(events[events.length - 1])
+      })
   }
 
   private notifySubscribers(events: DEvent[]): void {
@@ -177,6 +219,7 @@ export class LocalEventLog implements DEventSource, DEventLog {
   private async storeAndGarbageCollect(event: DEvent): Promise<number> {
     const primaryKey = await this.store(event)
     await this.garbageCollect(event)
+    console.debug(`Finished storeAndGarbageCollect`)
     return primaryKey
   }
 
