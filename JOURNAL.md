@@ -472,3 +472,8 @@ The only ways I currently see are:
 Is there some middle way? Could I somehow get to the REDOM component from some random DOM node and trigger a local update? I don't even have the information for a local update.
 
 Local events are not the problem, basically remote updates are what kills me. If I go DOM only, do I react specifically to the three possible remote events? But they have a different granularity as the local events! Bollocks.
+
+Here is an idea: in `tree-component.ts` in `update()` I currently check whether we already have content, and if so it just calls update on that redom component. If not (at primary load for example) I just instantiate a new empty TreeNode and then let REDOM do its thing. I could just always do a new TreeNode() at update so it would completely rerender. I would probably lose efficient updates since I assume that REDOM can not diff its components against some existing DOM.
+This would then be the part that I could replace at some point in the future with my own thing.
+
+Another thought: replace the REDOM code with something using [incremental DOM](https://github.com/google/incremental-dom).
