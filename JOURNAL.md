@@ -462,3 +462,13 @@ We can now deal with multiple node structure events in getEventsForNode (now get
 In addition I fixed a potential race condition where when inserting nodes in the local database, we were tracking what the current highest eventid is as the local maxCounter but where due to concurrent updates to the database we might have saved a wrong counter (not the highest one but just the last one that was done updating). We actually observed this behaviour in testing. Impossible to prove that it is now gone of course. In addition I added some logging and some extra code to recover from this should it still occur by always checking when getting events whether our counter is really the latest one.
 
 Finally I investigated the REDOM error where it was trying to update the childlist of the root node and was running into errors because it was trying to update a GRANDCHILD instead of a direct child. I figured out that is due to the fact that when you indent a direct child of the root, this change is made directly in the DOM and not with redom, therefore the redom tree structure is out of sync with the real DOM. This is a problem. I will probably have to redo a lot of the dom handling stuff. I actually did it directly in DOM since I didn't see a way to get from a DOM node to a REDOM object and have it do the update. Must investigate further.
+
+The only ways I currently see are:
+
+* Do it the REDOM way as I understand it: this means that an change event on the dom results in a change in the complete tree and then I just trigger a tree.update. The problem with that is that I would need to reconstruct the entire tree every time a change happens or I need to keep the tree around. And then I am almost in the same place I was with maquette, right?
+
+* Remove REDOM entirely and do the renders and node updates based on remote events completely myself.
+
+Is there some middle way? Could I somehow get to the REDOM component from some random DOM node and trigger a local update? I don't even have the information for a local update.
+
+Local events are not the problem, basically remote updates are what kills me. If I go DOM only, do I react specifically to the three possible remote events? But they have a different granularity as the local events! Bollocks.
