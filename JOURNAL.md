@@ -477,3 +477,7 @@ Here is an idea: in `tree-component.ts` in `update()` I currently check whether 
 This would then be the part that I could replace at some point in the future with my own thing.
 
 Another thought: replace the REDOM code with something using [incremental DOM](https://github.com/google/incremental-dom).
+
+## 1.2.2019
+
+Postponing the previous issue, just rerendering the tree entirely at this point and documented the alternative solution with incremental-dom.

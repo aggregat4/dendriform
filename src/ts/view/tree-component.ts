@@ -107,9 +107,13 @@ export class Tree {
       setChildren(this.contentEl, el('div.error', `Loading tree...`))
     } else if (tree.status.state === State.LOADED) {
       this.currentRootNodeId = tree.tree.node._id
-      if (!this.content) {
-        this.content = new TreeNode(true)
-      }
+      // TODO: this is currently redoing the complete tree component for each update
+      // from another peer. We need this because our RE:DOM components were getting out
+      // of sync with the DOM when we do local direct DOM manipulation.
+      // The nicer solution is probably to replace RE:DOM with something like
+      // incremental DOM and have a complete update of the tree but really incrementally
+      // and with patches
+      this.content = new TreeNode(true)
       setChildren(this.contentEl, this.content)
       this.content.update(this.getFilteredTree(tree))
     }
