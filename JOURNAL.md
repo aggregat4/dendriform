@@ -483,3 +483,9 @@ Another thought: replace the REDOM code with something using [incremental DOM](h
 Postponing the previous issue, just rerendering the tree entirely at this point and documented the alternative solution with incremental-dom.
 
 I have a keyboard event trigger and keyboard event action abstraction, I just need to implement the matching function for the trigger and register the keyboard shortcuts and then see how I deal with the tree specific operations in the tree.
+
+## 6.2.2019
+
+Stalled on the keyboard event stuff while defining some interfaces that the various actions would require to interact with the tree because I observed some bugs in our node moving. When moving a node over a child and then across that child to a different parent, then a duplicate node would appear on the original parent when reloading the tree. This was due to the reparenting logic in the repository-eventlog not actually deleting the moved node from the sequence of the original parent when moving it down.
+
+Fixed a further bug where moving in the same parent was causing the position to be wrong, we were not calculating our logoot offsets correctly.

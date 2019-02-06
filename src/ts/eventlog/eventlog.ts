@@ -88,7 +88,7 @@ export interface DEventLog extends DEventSource {
    */
   getEventsSince(eventTypes: EventType[], counter: number, peerId?: string): Promise<Events>
   /**
-   * Gets the current, latest (after GC) structural event for a node, with type 
+   * Gets the current, latest (after GC) structural event for a node, with type
    * EventType.ADD_OR_UPDATE_NODE.
    */
   getNodeEvent(nodeId: string): Promise<DEvent>

@@ -147,7 +147,7 @@ export class EventlogRepository implements Repository {
       if (! parentId) {
         throw new Error(`Parent not known for node ${node._id} therefore can not delete this node`)
       }
-      this.deleteNode(node._id, parentId)
+      this.deleteNode(node._id, parentId, true)
     }
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
@@ -160,6 +160,15 @@ export class EventlogRepository implements Repository {
   // case then we would need to publish a delete event before this
   async reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
     const oldParentId = this.childParentMap[childId]
+    if (oldParentId) {
+      if (oldParentId !== parentId) {
+        // publish a delete event on the old parent if there was a different old parent
+        await this.deleteNode(childId, oldParentId, true)
+      } else {
+        // don't publish the delete event when just moving an element under the same parent
+        await this.deleteNode(childId, oldParentId, false)
+      }
+    }
     const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
       this.parentChildMap, parentId, this.eventLog.getPeerId())
     const insertionIndex = this.getChildInsertionIndex(seq, position)
@@ -168,11 +177,6 @@ export class EventlogRepository implements Repository {
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.childParentMap[childId] = parentId
     seq.insertAtAtomIdent(childId, insertionAtomIdent)
-    // REMOTE: make the remote update
-    if (oldParentId && oldParentId !== parentId) {
-      // publish a delete event on the old parent if there was a different old parent
-      await this.deleteNode(childId, oldParentId)
-    }
     if (oldParentId !== parentId) {
       // publish a reparent event when we have a new parent
       await this.eventLog.publish(EventType.REPARENT_NODE, childId, { parentId })
@@ -189,7 +193,7 @@ export class EventlogRepository implements Repository {
       })
   }
 
-  private deleteNode(childId: string, parentId: string): Promise<void> {
+  private deleteNode(childId: string, parentId: string, publishEvent: boolean): Promise<void> {
     // delete the child at the old parent
     const seq: LogootSequenceWrapper<string> = this.parentChildMap[parentId]
     if (seq) {
@@ -200,16 +204,20 @@ export class EventlogRepository implements Repository {
         // it is the wrong value
         const deletionAtomIdent = seq.getAtomIdent(indexOfChild)
         seq.deleteAtIndex(indexOfChild)
-        console.log(`publishing child delete event`)
-        return this.eventLog.publish(
-          EventType.REORDER_CHILD,
-          parentId,
-          {
-            operation: LogootReorderOperation.DELETE,
-            position: deletionAtomIdent,
-            childId,
+        if (publishEvent) {
+          console.log(`publishing child delete event`)
+          return this.eventLog.publish(
+            EventType.REORDER_CHILD,
             parentId,
-          })
+            {
+              operation: LogootReorderOperation.DELETE,
+              position: deletionAtomIdent,
+              childId,
+              parentId,
+            })
+        } else {
+          return Promise.resolve()
+        }
       }
     }
     return Promise.resolve()
@@ -225,12 +233,20 @@ export class EventlogRepository implements Repository {
       return 0
     } else if (position.beforeOrAfter === RelativeLinearPosition.AFTER) {
       // TODO: We default to insert at the beginning of the sequence when we can not find the after Node, is this right?
-      const afterNodeIndex = seq.toArray().indexOf(position.nodeId) || -1
-      return afterNodeIndex + 1
+      const afterNodeIndex = seq.toArray().indexOf(position.nodeId)
+      if (afterNodeIndex === -1) {
+        return 0
+      } else {
+        return afterNodeIndex + 1
+      }
     } else if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
-      // TODO: We default to insert at the beginning of the sequence when we can not find the after Node, is this right?
-      const beforeNodeIndex = seq.toArray().indexOf(position.nodeId) || 0
-      return beforeNodeIndex
+      // TODO: We default to insert at the beginning of the sequence when we can not find the before Node, is this right?
+      const beforeNodeIndex = seq.toArray().indexOf(position.nodeId)
+      if (beforeNodeIndex === -1) {
+        return 0
+      } else {
+        return beforeNodeIndex
+      }
     } else if (position.beforeOrAfter === RelativeLinearPosition.END) {
       return seq.length()
     }

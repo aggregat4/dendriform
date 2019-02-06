@@ -15,43 +15,56 @@ import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 import { TreeService } from '../service/tree-service'
 import { KbdEventType, KeyboardEventTrigger } from './keyboardshortcut'
 
+interface CommandExecutor {
+  performWithDom(command: Command): void,
+  performWithoutDom(command: Command)
+}
+
+class TransientStateManager {
+  // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
+  readonly transientState = {
+    // previous node state so we can undo correctly, this is separate from the actual focus and char pos we want
+    focusNodePreviousId: null,
+    focusNodePreviousName: null,
+    focusNodePreviousNote: null,
+    focusNodePreviousPos: -1,
+  }
+
+  savePreviousNodeState(nodeId: string, nodeName: string, nodeNote: string, focusPos: number): void {
+    this.transientState.focusNodePreviousId = nodeId
+    this.transientState.focusNodePreviousName = nodeName
+    this.transientState.focusNodePreviousNote = nodeNote
+    this.transientState.focusNodePreviousPos = focusPos
+  }
+
+  registerSelectionChangeHandler() {
+    // We need to track when the selection changes so we can store the current
+    // cursor position (needed for UNDO)
+    document.addEventListener('selectionchange', this.selectionChangeHandler.bind(this))
+  }
+
+  private selectionChangeHandler(event: Event): void {
+    if (document.activeElement && isNameNode(document.activeElement)) {
+      const activeNode = getNodeForNameElement(document.activeElement)
+      this.savePreviousNodeState(
+        getNodeId(activeNode),
+        getNodeName(activeNode),
+        getNodeNote(activeNode),
+        getCursorPos())
+    }
+  }
+
+  getState() {
+    return this.transientState
+  }
+}
+
 class KeyboardAction {
   constructor(readonly trigger: KeyboardEventTrigger, readonly handler: (event: Event) => void) {}
 }
 
-// Holds transient view state that we need to manage somehow (focus, cursor position, etc)
-const transientState = {
-  // previous node state so we can undo correctly, this is separate from the actual focus and char pos we want
-  focusNodePreviousId: null,
-  focusNodePreviousName: null,
-  focusNodePreviousNote: null,
-  focusNodePreviousPos: -1,
-}
-
-function savePreviousNodeState(nodeId: string, nodeName: string, nodeNote: string, focusPos: number): void {
-  transientState.focusNodePreviousId = nodeId
-  transientState.focusNodePreviousName = nodeName
-  transientState.focusNodePreviousNote = nodeNote
-  transientState.focusNodePreviousPos = focusPos
-}
-
-// We need to track when the selection changes so we can store the current
-// cursor position (needed for UNDO)
-document.addEventListener('selectionchange', selectionChangeHandler)
-
-function selectionChangeHandler(event: Event): void {
-  if (document.activeElement && isNameNode(document.activeElement)) {
-    const activeNode = getNodeForNameElement(document.activeElement)
-    savePreviousNodeState(
-      getNodeId(activeNode),
-      getNodeName(activeNode),
-      getNodeNote(activeNode),
-      getCursorPos())
-  }
-}
-
-export class Tree {
-  private domCommandHandler = new DomCommandHandler()
+export class Tree implements CommandExecutor {
+  private readonly domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
   private el: Element
   private contentEl: Element
@@ -59,7 +72,8 @@ export class Tree {
   private content: TreeNode
   private searchField
   private treeChangeSubscription: Subscription
-  private keyboardActions: Map<KbdEventType, KeyboardAction[]> = new Map()
+  private readonly keyboardActions: Map<KbdEventType, KeyboardAction[]> = new Map()
+  private readonly transientStateManager = new TransientStateManager()
 
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
@@ -84,6 +98,7 @@ export class Tree {
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
     // NOTE: we had this trigger on document but that seemed to cause the event to be called twice!?
     this.el.addEventListener('keydown', this.treeKeyDownHandler.bind(this))
+    this.transientStateManager.registerSelectionChangeHandler()
   }
 
   loadNode(nodeId: string): Promise<any> {
@@ -166,7 +181,7 @@ export class Tree {
       const payload = isNodeClosed(node)
         ? new OpenNodeByIdCommandPayload(getNodeId(node))
         : new CloseNodeByIdCommandPayload(getNodeId(node))
-      this.performCommand(new CommandBuilder(payload).isUndoable().build())
+      this.performWithDom(new CommandBuilder(payload).isUndoable().build())
     } else if (isInNoteElement(event.target as Element)) {
       // for a note we need to take into account that a note may have its own markup (hence isInNoteElement)
       const noteElement = findNoteElementAncestor(event.target as Element) as HTMLElement
@@ -207,13 +222,13 @@ export class Tree {
       const targetNode = getNodeForNameElement((event.target as Element))
       const nodeId = getNodeId(targetNode)
       const newName = getNodeName(targetNode)
-      const oldName = transientState.focusNodePreviousName
+      const oldName = this.transientStateManager.getState().focusNodePreviousName
       const beforeFocusNodeId = nodeId
-      const beforeFocusPos = transientState.focusNodePreviousPos
+      const beforeFocusPos = this.transientStateManager.getState().focusNodePreviousPos
       const afterFocusPos = getCursorPos()
-      savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
+      this.transientStateManager.savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
       // no dom operation or refresh needed since this is an inline update
-      this.commandHandler.exec(
+      this.performWithoutDom(
         new CommandBuilder(
           new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
           .isUndoable()
@@ -227,13 +242,13 @@ export class Tree {
       const nodeId = getNodeId(targetNode)
       const name = getNodeName(targetNode)
       const newNote = getNodeNote(targetNode)
-      const oldNote = transientState.focusNodePreviousNote
+      const oldNote = this.transientStateManager.getState().focusNodePreviousNote
       const beforeFocusNodeId = nodeId
-      const beforeFocusPos = transientState.focusNodePreviousPos
+      const beforeFocusPos = this.transientStateManager.getState().focusNodePreviousPos
       const afterFocusPos = getCursorPos()
-      savePreviousNodeState(nodeId, name, newNote, afterFocusPos)
+      this.transientStateManager.savePreviousNodeState(nodeId, name, newNote, afterFocusPos)
       // no dom operation or refresh needed since this is an inline update
-      this.commandHandler.exec(
+      this.performWithoutDom(
         new CommandBuilder(
           new UpdateNoteByIdCommandPayload(nodeId, oldNote, newNote))
           .isUndoable()
@@ -257,7 +272,7 @@ export class Tree {
       const afterSplitNamePart = getTextAfterCursor(event) || ''
       const newNodeId = generateUUID()
       // make sure we save the transientstate so we can undo properly, especially when we split at the end of a node
-      savePreviousNodeState(nodeId, afterSplitNamePart, getNodeNote(targetNode), 0)
+      this.transientStateManager.savePreviousNodeState(nodeId, afterSplitNamePart, getNodeNote(targetNode), 0)
       const command = new CommandBuilder(
         new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart,
                                         afterSplitNamePart, MergeNameOrder.SOURCE_TARGET))
@@ -268,7 +283,7 @@ export class Tree {
           .withAfterFocusNodeId(nodeId)
           .withAfterFocusPos(0)
           .build()
-      this.performCommand(command)
+      this.performWithDom(command)
     } else if (event.key === 'Enter' && event.shiftKey) { // trigger note editing
       event.preventDefault()
       const noteEl = (event.target as Element).nextElementSibling.nextElementSibling as HTMLElement
@@ -287,7 +302,7 @@ export class Tree {
         // this is the combination for moving a node up in its siblings or its parent's previous siblings' children
         // if the current node has siblings before it, then just move it up
         // else if the parent has previous siblings, then move it as a child of the first previous sibling at the end
-        this.moveNodeUp(nodeElement)
+        this.performWithDom(this.createMoveNodeUpCommand(nodeElement))
       } else {
         const previousNode = findPreviousNode(nodeElement)
         if (previousNode) {
@@ -301,7 +316,7 @@ export class Tree {
         // this is the combination for moving a node down in its siblings or its parent's next siblings' children
         // if the current node has siblings after it, then just move it down
         // else if the parent has next siblings, then move it as a child of the first next sibling at the end
-        this.moveNodeDown(nodeElement)
+        this.performWithDom(this.createMoveNodeDownCommand(nodeElement))
       } else {
         const nextNode = findNextNode(nodeElement)
         if (nextNode) {
@@ -340,7 +355,7 @@ export class Tree {
             .withAfterFocusNodeId(targetNodeId)
             .withAfterFocusPos(Math.max(0, sourceNodeName.length))
             .build()
-          this.performCommand(command)
+          this.performWithDom(command)
         }
       }
     } else if (event.key === 'Delete') {
@@ -366,7 +381,7 @@ export class Tree {
           .withAfterFocusNodeId(targetNodeId)
           .withAfterFocusPos(Math.max(0, sourceNodeName.length))
           .build()
-        this.performCommand(command)
+        this.performWithDom(command)
       }
     } else if (event.key === 'Tab' && !event.shiftKey) {
       // When tabbing you want to make the node the last child of the previous sibling (if it exists)
@@ -376,7 +391,7 @@ export class Tree {
         // when a node is a child, it is inside a "children" container of its parent
         const oldParentNode = getParentNode(node)
         const newParentNode = node.previousElementSibling
-        this.reparentNodeAt(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.END, null)
+        this.performWithDom(this.createReparentingCommand(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.END, null))
       }
     } else if (event.key === 'Tab' && event.shiftKey) {
       // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
@@ -389,13 +404,13 @@ export class Tree {
           event.preventDefault()
           const newParentNode = getParentNode(oldParentNode)
           const afterNode = oldParentNode
-          this.reparentNodeAt(
+          this.performWithDom(this.createReparentingCommand(
             node,
             getCursorPos(),
             oldParentNode,
             newParentNode,
             RelativeLinearPosition.AFTER,
-            afterNode)
+            afterNode))
         }
       }
     } else if (event.key === 'Home' && event.ctrlKey) {
@@ -440,13 +455,13 @@ export class Tree {
         .withAfterFocusNodeId(getNodeId(previousNode))
         .withAfterFocusPos(getNodeName(previousNode).length)
     }
-    this.performCommand(builder.build())
+    this.performWithDom(builder.build())
   }
 
-  private moveNodeDown(nodeElement: Element): void {
+  private createMoveNodeDownCommand(nodeElement: Element): Command {
     const parentNodeElement = getParentNode(nodeElement)
     if (nodeElement.nextElementSibling) {
-      this.reparentNodeAt(
+      return this.createReparentingCommand(
         nodeElement,
         getCursorPos(),
         parentNodeElement,
@@ -455,7 +470,7 @@ export class Tree {
         nodeElement.nextElementSibling)
     } else if (parentNodeElement.nextElementSibling) {
       // the node itself has no next siblings, but if its parent has one, we will move it there
-      this.reparentNodeAt(nodeElement,
+      return this.createReparentingCommand(nodeElement,
         getCursorPos(),
         parentNodeElement,
         parentNodeElement.nextElementSibling,
@@ -464,14 +479,14 @@ export class Tree {
     }
   }
 
-  private moveNodeUp(nodeElement: Element): void {
+  private createMoveNodeUpCommand(nodeElement: Element): Command {
     const parentNodeElement = getParentNode(nodeElement)
     if (nodeElement.previousElementSibling) {
       // we only express relative node positions as being _after_ an existing node
       // so we need to figure out whether there is another node as the previous node's
       // previous sibling, or whether we just need to be at the start of the list
       if (nodeElement.previousElementSibling.previousElementSibling) {
-        this.reparentNodeAt(
+        return this.createReparentingCommand(
           nodeElement,
           getCursorPos(),
           parentNodeElement,
@@ -479,7 +494,7 @@ export class Tree {
           RelativeLinearPosition.AFTER,
           nodeElement.previousElementSibling.previousElementSibling)
       } else {
-        this.reparentNodeAt(
+        return this.createReparentingCommand(
           nodeElement,
           getCursorPos(),
           parentNodeElement,
@@ -489,7 +504,7 @@ export class Tree {
       }
     } else if (parentNodeElement.previousElementSibling) {
       // the node itself has no previous siblings, but if its parent has one, we will move it there
-      this.reparentNodeAt(
+      return this.createReparentingCommand(
         nodeElement,
         getCursorPos(),
         parentNodeElement,
@@ -499,8 +514,8 @@ export class Tree {
     }
   }
 
-  private reparentNodeAt(node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element,
-                         relativePosition: RelativeLinearPosition, relativeNode: Element): void {
+  private createReparentingCommand(node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element,
+                                   relativePosition: RelativeLinearPosition, relativeNode: Element): Command {
     const nodeId = getNodeId(node)
     const oldAfterNodeId = node.previousElementSibling ? getNodeId(node.previousElementSibling) : null
     const oldParentNodeId = getNodeId(oldParentNode)
@@ -509,7 +524,7 @@ export class Tree {
       nodeId: relativeNode ? getNodeId(relativeNode) : null,
       beforeOrAfter: relativePosition,
     }
-    const command = new CommandBuilder(
+    return new CommandBuilder(
       new ReparentNodeByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(cursorPos)
@@ -517,22 +532,25 @@ export class Tree {
       .withAfterFocusPos(cursorPos)
       .isUndoable()
       .build()
-    this.performCommand(command)
   }
 
   private treeKeyDownHandler(event: KeyboardEvent): void {
     if (event.keyCode === 90 && event.ctrlKey && !event.shiftKey) { // CTRL+Z
       event.preventDefault()
       event.stopPropagation()
-      this.performCommand(this.commandHandler.popUndoCommand())
+      this.performWithDom(this.commandHandler.popUndoCommand())
     } else if (event.keyCode === 90 && event.ctrlKey && event.shiftKey) { // CTRL+SHIFT+Z
       event.preventDefault()
       event.stopPropagation()
-      this.performCommand(this.commandHandler.popRedoCommand())
+      this.performWithDom(this.commandHandler.popRedoCommand())
     }
   }
 
-  private performCommand(command: Command): void {
+  performWithoutDom(command: Command): void {
+    this.commandHandler.exec(command)
+  }
+
+  performWithDom(command: Command): void {
     if (command) {
       this.domCommandHandler.exec(command)
       const commandPromise = this.commandHandler.exec(command)

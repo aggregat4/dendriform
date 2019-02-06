@@ -22,6 +22,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. BUG: I observed a state where a second client was not seeing the same tree as the "original", only after reloading the second client was the state the same. Can not yet reproduce but seems to be related to certain editing operations, perhaps inserting new nodes above another? (NOTE maybe fixed because of fix to child reparenting in eventlog-repository reparentNode())
 1. Implement import of some standard format (probably at least the workflowy opml?)
 1. Implement export in some standard format
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
