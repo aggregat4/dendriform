@@ -15,7 +15,7 @@ import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 import { TreeService } from '../service/tree-service'
 import { KbdEventType, KeyboardEventTrigger } from './keyboardshortcut'
 
-export class KeyboardAction {
+class KeyboardAction {
   constructor(readonly trigger: KeyboardEventTrigger, readonly handler: (event: Event) => void) {}
 }
 
@@ -148,7 +148,7 @@ export class Tree {
     existingActions.push(action)
   }
 
-  private executeActions(eventType: KbdEventType, event: Event): void {
+  private executeKeyboardActions(eventType: KbdEventType, event: Event): void {
     const actions = this.keyboardActions.get(eventType) || []
     for (const action of actions) {
       if (action.trigger.isTriggered(eventType, event)) {
@@ -201,7 +201,8 @@ export class Tree {
         (event as any).inputType === 'historyRedo') {
       return
     }
-    // TODO: I can start refactoring these blocks 
+    this.executeKeyboardActions(KbdEventType.Input, event)
+    // TODO: I can start refactoring these blocks
     if (isNameNode(event.target as Element)) {
       const targetNode = getNodeForNameElement((event.target as Element))
       const nodeId = getNodeId(targetNode)
@@ -211,7 +212,7 @@ export class Tree {
       const beforeFocusPos = transientState.focusNodePreviousPos
       const afterFocusPos = getCursorPos()
       savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
-      // no dom operation needed since this is an inline update
+      // no dom operation or refresh needed since this is an inline update
       this.commandHandler.exec(
         new CommandBuilder(
           new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
@@ -231,7 +232,7 @@ export class Tree {
       const beforeFocusPos = transientState.focusNodePreviousPos
       const afterFocusPos = getCursorPos()
       savePreviousNodeState(nodeId, name, newNote, afterFocusPos)
-      // no dom operation needed since this is an inline update
+      // no dom operation or refresh needed since this is an inline update
       this.commandHandler.exec(
         new CommandBuilder(
           new UpdateNoteByIdCommandPayload(nodeId, oldNote, newNote))
