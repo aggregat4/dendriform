@@ -13,6 +13,11 @@ import { TreeNode } from './node-component'
 import { findLastChildNode, findNextNode, findPreviousNode, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getParentNode, hasChildren, hasParentNode, isNameNode, isToggleElement, isNodeClosed, isNoteElement, getNodeNote, getNodeForNoteElement, isInNoteElement, findNoteElementAncestor } from './tree-dom-util'
 import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 import { TreeService } from '../service/tree-service'
+import { KbdEventType, KeyboardEventTrigger } from './keyboardshortcut'
+
+export class KeyboardAction {
+  constructor(readonly trigger: KeyboardEventTrigger, readonly handler: (event: Event) => void) {}
+}
 
 // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
 const transientState = {
@@ -54,6 +59,7 @@ export class Tree {
   private content: TreeNode
   private searchField
   private treeChangeSubscription: Subscription
+  private keyboardActions: Map<KbdEventType, KeyboardAction[]> = new Map()
 
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
@@ -134,6 +140,23 @@ export class Tree {
     return filterNode(tree.tree, doFilter ? {query: this.searchField.value} : undefined)
   }
 
+  registerKeyboardAction(action: KeyboardAction): void {
+    if (!this.keyboardActions.get(action.trigger.eventType)) {
+      this.keyboardActions.set(action.trigger.eventType, [])
+    }
+    const existingActions = this.keyboardActions.get(action.trigger.eventType)
+    existingActions.push(action)
+  }
+
+  private executeActions(eventType: KbdEventType, event: Event): void {
+    const actions = this.keyboardActions.get(eventType) || []
+    for (const action of actions) {
+      if (action.trigger.isTriggered(eventType, event)) {
+        action.handler(event)
+      }
+    }
+  }
+
   private onClick(event: Event): void {
     if (isToggleElement(event.target as Element)) {
       event.preventDefault()
@@ -178,6 +201,7 @@ export class Tree {
         (event as any).inputType === 'historyRedo') {
       return
     }
+    // TODO: I can start refactoring these blocks 
     if (isNameNode(event.target as Element)) {
       const targetNode = getNodeForNameElement((event.target as Element))
       const nodeId = getNodeId(targetNode)

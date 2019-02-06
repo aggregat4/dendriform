@@ -481,3 +481,5 @@ Another thought: replace the REDOM code with something using [incremental DOM](h
 ## 1.2.2019
 
 Postponing the previous issue, just rerendering the tree entirely at this point and documented the alternative solution with incremental-dom.
+
+I have a keyboard event trigger and keyboard event action abstraction, I just need to implement the matching function for the trigger and register the keyboard shortcuts and then see how I deal with the tree specific operations in the tree.

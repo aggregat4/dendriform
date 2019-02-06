@@ -181,3 +181,27 @@ export function assertNonEmptyString(str: string): void {
     throw new Error('String must no be empty')
   }
 }
+
+const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K']
+const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE']
+const iosPlatforms = ['iPhone', 'iPad', 'iPod']
+
+export enum OperatingSystem { MacOs = 'MacOs', Linux = 'Linux', Windows = 'Windows', Android = 'Android', Ios = 'Ios' }
+
+export function guessOperatingSystem(): OperatingSystem {
+  const userAgent = window.navigator.userAgent
+  const platform = window.navigator.platform
+  if (macosPlatforms.indexOf(platform) !== -1) {
+    return OperatingSystem.MacOs
+  } else if (iosPlatforms.indexOf(platform) !== -1) {
+    return OperatingSystem.Ios
+  } else if (windowsPlatforms.indexOf(platform) !== -1) {
+    return OperatingSystem.Windows
+  } else if (/Android/.test(userAgent)) {
+    return OperatingSystem.Android
+  } else if (/Linux/.test(platform)) {
+    return OperatingSystem.Linux
+  } else {
+    return OperatingSystem.Windows
+  }
+}
