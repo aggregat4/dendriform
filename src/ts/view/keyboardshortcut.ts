@@ -21,10 +21,14 @@ export enum KbdKey {
   y = 'y',
   z = 'z',
 }
+export class KbdCode {
+  constructor(readonly code: number) {}
+}
 export enum KbdModifierType {
   Shift,
   Ctrl,
   Command,
+  Alt,
 }
 
 export interface TreeNodeSelector {
@@ -59,7 +63,7 @@ export class KbdModifier {
   constructor(readonly type: KbdModifierType, readonly pressed: boolean) {}
 }
 export class RawKbdShortcut {
-  constructor(readonly key: KbdKey, readonly modifiers: KbdModifier[] = []) {}
+  constructor(readonly key: KbdKey | KbdCode, readonly modifiers: KbdModifier[] = []) {}
 }
 
 /**
@@ -73,12 +77,13 @@ const macOsMap: Map<SemanticShortcutType, RawKbdShortcut[]> = new Map()
 macOsMap.set(
   SemanticShortcutType.Undo,
   // Command+z
-  [new RawKbdShortcut(KbdKey.z, [
-    new KbdModifier(KbdModifierType.Command, true)])])
+  [new RawKbdShortcut(new KbdCode(90), [
+    new KbdModifier(KbdModifierType.Command, true),
+    new KbdModifier(KbdModifierType.Shift, false)])])
 macOsMap.set(
   SemanticShortcutType.Redo,
   // Command+Shift+z
-  [new RawKbdShortcut(KbdKey.z, [
+  [new RawKbdShortcut(new KbdCode(90), [
     new KbdModifier(KbdModifierType.Command, true),
     new KbdModifier(KbdModifierType.Shift, true)])])
 macOsMap.set(
@@ -100,13 +105,14 @@ const windowsMap: Map<SemanticShortcutType, RawKbdShortcut[]> = new Map()
 windowsMap.set(
   SemanticShortcutType.Undo,
   // Ctrl+z
-  [new RawKbdShortcut(KbdKey.z, [
-    new KbdModifier(KbdModifierType.Ctrl, true)])])
+  [new RawKbdShortcut(new KbdCode(90), [
+    new KbdModifier(KbdModifierType.Ctrl, true),
+    new KbdModifier(KbdModifierType.Shift, false)])])
 windowsMap.set(
   SemanticShortcutType.Redo,
   [
     // Shift+Ctrl+z
-    new RawKbdShortcut(KbdKey.z, [
+    new RawKbdShortcut(new KbdCode(90), [
       new KbdModifier(KbdModifierType.Ctrl, true),
       new KbdModifier(KbdModifierType.Shift, true)]),
     // Ctrl+y
@@ -142,7 +148,7 @@ export class KeyboardEventTrigger {
     // simplified selector like ".class" or "#id"
     readonly targetFilter: TreeNodeSelector,
     // a list of keyboardshortcuts that trigger this, this is evaluated as an OR
-    readonly shortcuts: RawKbdShortcut[]) {}
+    readonly shortcuts: RawKbdShortcut[] = []) {}
 
   isTriggered(eventType: KbdEventType, event: Event): boolean {
     // TODO: implement

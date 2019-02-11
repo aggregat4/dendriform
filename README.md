@@ -24,30 +24,20 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 1. BUG: I observed a state where a second client was not seeing the same tree as the "original", only after reloading the second client was the state the same. Can not yet reproduce but seems to be related to certain editing operations, perhaps inserting new nodes above another? (NOTE maybe fixed because of fix to child reparenting in eventlog-repository reparentNode())
 1. Implement import of some standard format (probably at least the workflowy opml?)
+1. Auto link urls in names and notes
 1. Implement export in some standard format
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
 1. Make this work on touch: what interactions would be good? How can we do better than Workflowy?
 1. replace UUID peer ids in the event logs with locally resolved ints (persistent), maybe also do this for the vector clocks
 1. Add creation timestamp and update timestamp
 1. Implement multi-select and delete and move operations (at least with keyboard)
-1. Auto link urls in names and notes
+
 1. replace dexie with raw indexeddb calls or something smaller (maybe, maybe not, the size is not that bad)
 1. Think through the performance of deleting a root node of a huge subtree: what does that mean for client storage? Do we keep any of those events?
 1. At some point we probably need paging for getting server side events, just to prevent us from crashing when the list of events becomes too large. Maybe one parameter suffices? pageSize=100 maybe?
 1. RE:DOM is used but not really how it is meant to be be used. For initial rendering it is fine, but since we do our local DOM operations directly by hand, RE:DOM components get out of sync and doing an incremental update when we get updates from other peers does not work. The current workaround is to redo the entire tree when we get such events (see `tree-component.ts` in `update(tree)`). A better solution would be to also have incremental updates there, perhaps with something like incremental-dom?
 1. I probably need some kind of forced garbage collect where on a peer a user confirms that this is the master copy and some sort of synchronous operation happens that forces a reset. What does that mean? Generate a snapshot on the server and have clients load this? This means putting data structure knowhow on the server. Or the client generates a snapshot and sends it to the server, but this means that all clients need to have the same software version.
 1. Convert promise based code to async functions?
-1. Extract the event handling code in tree-component in a kind of client side command registry that defines its trigger (event + key) and a description so we can enumerate it for help, find action, make it easier to implement platform specific key combos, etc. Also consider how Visual Studio Code does this:
-
-```json
-{ "key": "ctrl+shift+alt+left",      "command": "cursorWordPartStartLeftSelect",
-                                       "when": "textInputFocus" },
-{ "key": "ctrl+alt+backspace",       "command": "deleteWordPartLeft",
-                                       "when": "textInputFocus && !editorReadonly" },
-{ "key": "ctrl+shift+alt+backspace", "command": "deleteWordPartRight",
-                                       "when": "textInputFocus && !editorReadonly" },
-```
-
 1. We need some sort of versioning support: when the software evolves and it is running "in production" we need a way to gracefully upgrade. Our two external interfaces are the remote events and the local indexeddb storage of events. The local store can theoretically be recreated completely but we need to identify the version change, remote events we could maybe transform?
 1. do a real dev/prod build separation as in [](https://webpack.js.org/guides/production/) especially so we can avoid inline sourcemaps when we do a prod build
 1. Check compatibility with Firefox
