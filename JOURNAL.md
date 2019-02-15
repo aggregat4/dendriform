@@ -496,3 +496,4 @@ Over the weekend I moved all the keyboard triggered actions out of `tree-compone
 
 Still not quite entirely happy with the system: registering the trigger is extremely verbose, we could benefit from a mini syntax to define the triggers and the individual handlers need too many dependencies. Many of them don't need all the tree bits and command handlers. Not sure if that is a problem or not.
 
+Did mostly bugfixing and completing the keyboard trigger work. Started investigating OPML import with some test data from Workflowy and Dynalist and checking out how to handle file uploads client-side. Additionally investigating ways to trigger and show a menu for these kinds of actions since we need a way to do that. Alternatively I could bind import to a shortcut and workaround it like that. Not sure what to pursue first.
