@@ -489,3 +489,10 @@ I have a keyboard event trigger and keyboard event action abstraction, I just ne
 Stalled on the keyboard event stuff while defining some interfaces that the various actions would require to interact with the tree because I observed some bugs in our node moving. When moving a node over a child and then across that child to a different parent, then a duplicate node would appear on the original parent when reloading the tree. This was due to the reparenting logic in the repository-eventlog not actually deleting the moved node from the sequence of the original parent when moving it down.
 
 Fixed a further bug where moving in the same parent was causing the position to be wrong, we were not calculating our logoot offsets correctly.
+
+## 15.2.2019
+
+Over the weekend I moved all the keyboard triggered actions out of `tree-component.ts` in to `tree-actions.ts` where they now have declarative and sometimes semantic triggers which should improve cross platform compatibility and reduce maintenance efforts.
+
+Still not quite entirely happy with the system: registering the trigger is extremely verbose, we could benefit from a mini syntax to define the triggers and the individual handlers need too many dependencies. Many of them don't need all the tree bits and command handlers. Not sure if that is a problem or not.
+
