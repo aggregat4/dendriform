@@ -412,7 +412,7 @@ function onIndentNode(event: Event, commandExecutor: CommandExecutor, transientS
     // when a node is a child, it is inside a "children" container of its parent
     const oldParentNode = getParentNode(node)
     const newParentNode = node.previousElementSibling
-    commandExecutor.performWithDom(this.createReparentingCommand(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.END, null))
+    commandExecutor.performWithDom(createReparentingCommand(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.END, null))
   }
 }
 
@@ -427,7 +427,7 @@ function onUnIndentNode(event: Event, commandExecutor: CommandExecutor, transien
       event.preventDefault()
       const newParentNode = getParentNode(oldParentNode)
       const afterNode = oldParentNode
-      commandExecutor.performWithDom(this.createReparentingCommand(
+      commandExecutor.performWithDom(createReparentingCommand(
         node,
         getCursorPos(),
         oldParentNode,

@@ -147,11 +147,52 @@ export class KeyboardEventTrigger {
     readonly eventType: KbdEventType,
     // simplified selector like ".class" or "#id"
     readonly targetFilter: TreeNodeSelector,
-    // a list of keyboardshortcuts that trigger this, this is evaluated as an OR
+    // a list of keyboardshortcuts that trigger this, evaluated as an OR
     readonly shortcuts: RawKbdShortcut[] = []) {}
 
-  isTriggered(eventType: KbdEventType, event: Event): boolean {
-    // TODO: implement
+  isTriggered(type: KbdEventType, event: Event): boolean {
+    if (type !== this.eventType) {
+      return false
+    }
+    if (this.targetFilter && !this.targetFilter.matches(event.target as Element)) {
+      return false
+    }
+    const kbdEvent = event as KeyboardEvent
+    for (const shortcut of this.shortcuts) {
+      if (this.doesKeyMatch(shortcut.key, kbdEvent) && this.doModifiersMatch(shortcut.modifiers, kbdEvent)) {
+        return true
+      }
+    }
     return false
   }
+
+  private doesKeyMatch(key: KbdKey | KbdCode, event: KeyboardEvent): boolean {
+    if (key instanceof KbdCode) {
+      return key.code === event.keyCode
+    } else {
+      return key === event.key
+    }
+  }
+
+  private doModifiersMatch(modifiers: KbdModifier[], event: KeyboardEvent): boolean {
+    for (const modifier of modifiers) {
+      const modifierPresent = this.isModifierPresent(modifier, event)
+      if ((modifier.pressed && !modifierPresent) || (!modifier.pressed && modifierPresent)) {
+        return false
+      }
+    }
+    return true
+  }
+
+  private isModifierPresent(modifier: KbdModifier, event: KeyboardEvent): boolean {
+    switch (modifier.type) {
+      case KbdModifierType.Alt: return !!event.altKey
+      // TODO: this is tricky, according to https://stackoverflow.com/a/5500536/1996 this may or may not work in chrome, need to test
+      case KbdModifierType.Command: return !!event.metaKey
+      case KbdModifierType.Ctrl: return !!event.ctrlKey
+      case KbdModifierType.Shift: return !!event.shiftKey
+      default: throw Error(`Unexpected keyboard modifier type ${modifier.type} in a keyboard trigger`)
+    }
+  }
+
 }

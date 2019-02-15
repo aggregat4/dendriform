@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<opml version="2.0">
+  <head>
+    <title></title>
+    <flavor>dynalist</flavor>
+    <source>https://dynalist.io</source>
+    <ownerName>Boris Terzic</ownerName>
+    <ownerEmail>aggregat4@gmail.com</ownerEmail>
+  </head>
+  <body>
+    <outline text="Getting started with Dynalist">
+      <outline text="Hello there, thanks for using Dynalist! This document contains the essentials to get you started. Keep it as a reference, and you can also add your own notes on how to use Dynalist."/>
+      <outline text="The Essentials List" checklist="true">
+        <outline text="Dynalist is all about nested lists. `Tab` to go a level deeper, and `Shift+Tab` to come back" _note="asd asd asd asd asd dasf asdf&#10;asd&#10;f asd&#10;f asdf asdf asdfas dfasdf asdf asd&#10;f asd&#10;fa sdfas dfasdf asdf asdf asdfasdf asd f&#10;asdf a&#10;sdf asdf asdf asdf asdf asdf asd&#10;f asdf asdf asd f"/>
+        <outline text="When you put your mouse on a list item, a hamburger menu icon and a magnifying glass icon will show up">
+          <outline text="Click on the magnifying glass to &quot;zoom in&quot; on that item" complete="true"/>
+          <outline text="Click on the menu for a number of other options (this menu is called the item menu)"/>
+        </outline>
+        <outline text="Convert lists to checklists by choosing &quot;Make checklist&quot; in the item menu or `Ctrl+Alt+C`" checklist="true">
+          <outline text="This is a test" complete="true"/>
+        </outline>
+        <outline text="You can sort list items by dragging their bullet points (works for multiple items too!)"/>
+        <outline text="Right click on a document for a list of things you can do with it" colorLabel="2"/>
+        <outline text="You can select multiple items as well! Simply drag the mouse to select"/>
+        <outline text="Create a new document by clicking on the &quot;+&quot; icon in the header of the left sidebar"/>
+        <outline text="Add a note to an item by pressing `Shift+Enter`" _note="You can go back to the item using the same shortcut&#10;"/>
+        <outline text="Use the `!` trigger to open the date picker and add dates !(2017-09-30) " _note="Make sure to type it after a space"/>
+        <outline text="(Optional) If you previously use WorkFlowy, you can import from WorkFlowy by choosing the option in the main menu in the top right corner !(2017-03-29) "/>
+      </outline>
+      <outline text="The Max Efficiency List" _note="Check things off after you have tried them!" checklist="true">
+        <outline text="Use #tags to group things"/>
+        <outline text="Use `Ctrl+O` to quickly jump between documents" complete="true"/>
+        <outline text="Bookmark a place by clicking on the star, you can go back to it later very quickly in the bookmark pane" _note="Access the bookmark with the shortcut `Ctrl+Shift+B`"/>
+        <outline text="To insert a link to another item, type `[[` and start searching for items to add" complete="true"/>
+        <outline text="There are keyboard shortcuts for almost everything, use `Ctrl+?` to bring up the cheatsheet!" complete="true"/>
+        <outline text="In the master menu (the one on the top right of this page), choose &quot;Feedback&quot; and we&apos;ll reply asap" complete="true"/>
+      </outline>
+      <outline text="Need help?">
+        <outline text="You can also check out [our help center](http://help.dynalist.io/)"/>
+      </outline>
+      <outline text="I need to talk to marcus about a thing where we wanted to do another thing, with things and concepts and talking to others. Basically it is a long line where I want to see what happens and whether it is readable.">
+        <outline text="#linux #ubuntu When files are always opened in Nautilus instead of directly it may be that the &quot;exo-utils&quot; package is installed (needed by XFCE) and that will mess up your file associations. Remove the package and the problem is solved. But XFCE won&apos;t work anymore of course.">
+          <outline text="asdf ASD ASDFASDF ASDF ASDFAS"/>
+          <outline text="DF ASD"/>
+        </outline>
+      </outline>
+      <outline text="gfdgdfgasdasd">
+        <outline text="sasdasd"/>
+        <outline text="asdasd"/>
+      </outline>
+    </outline>
+  </body>
+</opml>
