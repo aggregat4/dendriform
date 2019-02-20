@@ -12,7 +12,31 @@ import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType, KeyboardEventTrigger } from './keyboardshortcut'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findNoteElementAncestor, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getNodeNote, isInNoteElement, isNameNode, isNodeClosed, isToggleElement } from './tree-dom-util'
+import { findNoteElementAncestor, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getNodeNote, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement } from './tree-dom-util'
+
+class TreeNodeMenu extends HTMLElement {
+  commandExecutor: CommandExecutor
+  private testEl: HTMLElement
+
+  constructor() {
+    super()
+  }
+
+  connectedCallback() {
+    if (!this.testEl) {
+      this.setAttribute('class', 'menu')
+
+      this.testEl = document.createElement('p')
+      this.testEl.innerText = `this is a test.`
+      this.append(this.testEl)
+      this.testEl.addEventListener('click', (e) => {
+        console.log(`clicked on testEl, have a commandExecutor ${this.commandExecutor}`)
+      })
+    }
+  }
+}
+
+customElements.define('tree-node-menu', TreeNodeMenu)
 
 export interface CommandExecutor {
   performWithDom(command: Command): void,
@@ -27,6 +51,7 @@ export class TransientStateManager {
     focusNodePreviousName: null,
     focusNodePreviousNote: null,
     focusNodePreviousPos: -1,
+    currentMenuShownTriggerElement: null,
   }
 
   savePreviousNodeState(nodeId: string, nodeName: string, nodeNote: string, focusPos: number): void {
@@ -42,6 +67,14 @@ export class TransientStateManager {
     document.addEventListener('selectionchange', this.selectionChangeHandler.bind(this))
   }
 
+  getShownMenuTrigger(): Element {
+    return this.transientState.currentMenuShownTriggerElement
+  }
+
+  setShownMenuTrigger(element: Element): void {
+    this.transientState.currentMenuShownTriggerElement = element
+  }
+
   private selectionChangeHandler(event: Event): void {
     if (document.activeElement && isNameNode(document.activeElement)) {
       const activeNode = getNodeForNameElement(document.activeElement)
@@ -51,6 +84,7 @@ export class TransientStateManager {
         getNodeNote(activeNode),
         getCursorPos())
     }
+
   }
 
   getState() {
@@ -75,6 +109,7 @@ export class Tree implements CommandExecutor {
   private treeChangeSubscription: Subscription
   private readonly keyboardActions: Map<KbdEventType, KeyboardAction[]> = new Map()
   private readonly transientStateManager = new TransientStateManager()
+  private treeNodeMenu: TreeNodeMenu = null
 
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
@@ -98,6 +133,7 @@ export class Tree implements CommandExecutor {
     this.el.addEventListener('paste', this.onPaste.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
     this.transientStateManager.registerSelectionChangeHandler()
+    this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
   }
 
   loadNode(nodeId: string): Promise<any> {
@@ -172,23 +208,57 @@ export class Tree implements CommandExecutor {
   }
 
   private onClick(event: Event): void {
-    if (isToggleElement(event.target as Element)) {
+    const clickedElement = event.target as Element
+    this.dismissMenuIfNeeded(event)
+    if (isToggleElement(clickedElement)) {
       event.preventDefault()
       // NOTE: we can use the getNodeForNameElement function even though this is the
       // collapseElement because they are siblings
-      const node = getNodeForNameElement(event.target as Element)
+      const node = getNodeForNameElement(clickedElement)
       const payload = isNodeClosed(node)
         ? new OpenNodeByIdCommandPayload(getNodeId(node))
         : new CloseNodeByIdCommandPayload(getNodeId(node))
       this.performWithDom(new CommandBuilder(payload).isUndoable().build())
-    } else if (isInNoteElement(event.target as Element)) {
+    } else if (isInNoteElement(clickedElement)) {
       // for a note we need to take into account that a note may have its own markup (hence isInNoteElement)
-      const noteElement = findNoteElementAncestor(event.target as Element) as HTMLElement
+      const noteElement = findNoteElementAncestor(clickedElement) as HTMLElement
       if (! noteElement.isContentEditable) {
         event.preventDefault()
         TreeNode.startEditingNote(noteElement as HTMLElement)
       }
+    } else if (isMenuTriggerElement(clickedElement)) {
+      this.showMenu(clickedElement)
     }
+  }
+
+  private dismissMenuIfNeeded(event: Event): void {
+    const clickedElement = event.target as Element
+    if (this.transientStateManager.getShownMenuTrigger() &&
+        (!isMenuTriggerElement(clickedElement) || this.transientStateManager.getShownMenuTrigger() !== clickedElement) &&
+        !isInMenuElement(clickedElement)) {
+      // dismiss popup
+      this.transientStateManager.getShownMenuTrigger().setAttribute('aria-expanded', 'false')
+      this.transientStateManager.setShownMenuTrigger(null)
+      // destroy menu...
+      this.treeNodeMenu.commandExecutor = null
+      this.treeNodeMenu.style.display = 'none'
+    }
+  }
+
+  private showMenu(menuTrigger: Element): void {
+    if (menuTrigger === this.transientStateManager.getShownMenuTrigger()) {
+      return
+    }
+    // set aria-expanded to true and save transient state
+    this.transientStateManager.setShownMenuTrigger(menuTrigger)
+    menuTrigger.setAttribute('aria-expanded', 'true')
+    // TODO: menu is a bigger thing. It is dynamic (contents depend on node)
+    // it can be shown for all nodes
+    // it has to trigger real actions (see tree-actions)
+    // it has to interact with the tree itself, specifically regarding state
+    this.treeNodeMenu.commandExecutor = this
+    menuTrigger.parentElement.append(this.treeNodeMenu)
+    this.treeNodeMenu.style.display = 'block'
   }
 
   private onPaste(event: ClipboardEvent): void {

@@ -50,7 +50,7 @@
 }
 
 .node .nc:hover .toggle,
-.node .nc:hover .menu {
+.node .nc:hover .menuTrigger {
   display: block;
 }
 
@@ -96,13 +96,13 @@
 }
 
 .node span.toggle:hover,
-.node span.menu:hover {
+.node span.menuTrigger:hover {
   background: rgb(182, 197, 206); /* #c1c1ff; */
   color: white;
   cursor: pointer;
 }
 
-.node span.menu {
+.node span.menuTrigger {
   display: none;
   top: 0;
   position: absolute;
@@ -195,11 +195,19 @@
   display: none;
 }
 
-.node.first > .nc .menu {
+.node.first > .nc .menuTrigger {
   font-size: 150%;
   margin-left: -2.5ch;
 }
 
 .hidden {
   display: none;
+}
+
+tree-node-menu {
+  width: 200px;
+  height: 200px;
+  background: pink;
+  position: absolute;
+  z-index: 1;
 }

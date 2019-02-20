@@ -177,9 +177,8 @@ function onNoteInput(event: Event, commandExecutor: CommandExecutor, transientSt
       .build())
 }
 
-function onNodeSplit(evt: Event, commandExecutor: CommandExecutor, transientStateManager: TransientStateManager) {
-  evt.preventDefault()
-  const event = evt as KeyboardEvent
+function onNodeSplit(event: Event, commandExecutor: CommandExecutor, transientStateManager: TransientStateManager) {
+  event.preventDefault()
   const targetNode = getNodeForNameElement((event.target as Element))
   const nodeId = getNodeId(targetNode)
   const beforeSplitNamePart = getTextBeforeCursor(event) || ''
@@ -345,7 +344,7 @@ function deleteNode(node: Element, commandExecutor: CommandExecutor): void {
 }
 
 function onBackspaceInName(event: Event, commandExecutor: CommandExecutor, transientStateManager: TransientStateManager) {
-  if (!isTextSelected() && isCursorAtBeginning(event as KeyboardEvent)) {
+  if (!isTextSelected() && isCursorAtBeginning()) {
     const eventNode = getNodeForNameElement(event.target as Element)
     if (isEmpty(getNodeName(eventNode)) && !hasChildren(eventNode)) {
       // this is a special case for convience: when a node is empty and has no
@@ -379,7 +378,7 @@ function onBackspaceInName(event: Event, commandExecutor: CommandExecutor, trans
 
 function onDeleteInName(event: Event, commandExecutor: CommandExecutor, transientStateManager: TransientStateManager) {
   if (!isTextSelected() &&
-    isCursorAtEnd(event as KeyboardEvent) &&
+    isCursorAtEnd(event) &&
     getNodeForNameElement(event.target as Element).nextElementSibling) {
     event.preventDefault()
     const sourceNode = getNodeForNameElement(event.target as Element)

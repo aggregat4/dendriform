@@ -25,6 +25,14 @@ export function isToggleElement(element: Element): boolean {
   return element.classList.contains('toggle')
 }
 
+export function isMenuTriggerElement(element: Element): boolean {
+  return element.classList.contains('menuTrigger')
+}
+
+export function isInMenuElement(element: Element): boolean {
+  return !!element.closest('.menu')
+}
+
 export function isNoteElement(element: Element): boolean {
   return element.classList.contains('note')
 }

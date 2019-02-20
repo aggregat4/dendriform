@@ -33,7 +33,7 @@ export class TreeNode {
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
       el('span.toggle'),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
-      el('span.menu', {title: 'Show menu'}, '☰')) // trigram for heaven (U+2630)
+      el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰')) // trigram for heaven (U+2630)
     this.childList.update(treeNode.children.filter(c => c.isIncluded()))
   }
 

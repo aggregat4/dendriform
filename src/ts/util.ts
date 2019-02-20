@@ -93,15 +93,15 @@ export function setCursorPos(el: HTMLElement, charPos: number): void {
   sel.addRange(range)
 }
 
-export function isCursorAtEnd(kbdevent: KeyboardEvent): boolean {
+export function isCursorAtEnd(kbdevent: Event): boolean {
   return getCursorPos() === (kbdevent.target as HTMLElement).textContent.length
 }
 
-export function isCursorAtBeginning(kbdevent: KeyboardEvent): boolean {
+export function isCursorAtBeginning(): boolean {
   return getCursorPos() === 0
 }
 
-export function getTextBeforeCursor(kbdevent: KeyboardEvent): string {
+export function getTextBeforeCursor(kbdevent: Event): string {
   const selection = window.getSelection()
   if (selection.rangeCount) {
     const selectionRange = selection.getRangeAt(0)
@@ -114,7 +114,7 @@ export function getTextBeforeCursor(kbdevent: KeyboardEvent): string {
   }
 }
 
-export function getTextAfterCursor(kbdevent: KeyboardEvent): string {
+export function getTextAfterCursor(kbdevent: Event): string {
   const selection = window.getSelection()
   if (selection.rangeCount) {
     const selectionRange = selection.getRangeAt(0)
