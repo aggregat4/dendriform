@@ -29,10 +29,11 @@ export class TreeNode {
       class: this.genClass(treeNode, this.first),
     })
     setChildren(this.ncEl,
-      el('a', { href: `#node=${treeNode.node._id}` }, '•'), // &#8226;
+      el('a', { href: `#node=${treeNode.node._id}`, title: 'Open this node' }, '•'), // &#8226;
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
       el('span.toggle'),
-      el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null))
+      el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
+      el('span.menu', {title: 'Show menu'}, '☰')) // trigram for heaven (U+2630)
     this.childList.update(treeNode.children.filter(c => c.isIncluded()))
   }
 

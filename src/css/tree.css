@@ -49,16 +49,17 @@
   padding-left: 100px;
 }
 
-.node .nc:hover .toggle {
+.node .nc:hover .toggle,
+.node .nc:hover .menu {
   display: block;
 }
 
 .node a {
   display: inline-block;
   position: absolute;
-  padding: 0 9px 0 9px;
+  /* padding: 0 9px 0 9px; */
   text-decoration: none;
-  width: 1ch;
+  width: 2ch;
   text-align: center;  
 }
 
@@ -67,7 +68,7 @@
 }
 
 .node a:hover, .node.closed a:hover {
-  background: rgb(182, 197, 206); /* #c1c1ff; */
+  background: rgb(182, 197, 206);
 }
 
 .node.closed a {
@@ -79,10 +80,11 @@
   display: none;
   top: 0;
   position: absolute;
-  margin-left: -3ch;
-  padding: 0 9px 0 9px;
-  width: 1ch;
+  margin-left: -2.5ch;
+  /* padding: 0 9px 0 9px; */
+  width: 2ch;
   color: #aaa;
+  text-align: center;
 }
 
 .node.open span.toggle:before {
@@ -93,10 +95,21 @@
   content: '+';
 }
 
-.node span.toggle:hover {
+.node span.toggle:hover,
+.node span.menu:hover {
   background: rgb(182, 197, 206); /* #c1c1ff; */
   color: white;
   cursor: pointer;
+}
+
+.node span.menu {
+  display: none;
+  top: 0;
+  position: absolute;
+  margin-left: -5ch;
+  width: 2ch;
+  color: #aaa;
+  text-align: center;
 }
 
 .node .name {
@@ -108,7 +121,7 @@
   /* min-width (or a similar trick) is required to make the cursor show in Chrome when the element is empty */
   min-width: 20px;
   /* leaves space for the bullet since that is positioned absolute */
-  margin-left: calc(1ch + 18px); /* bullet width + the padding */
+  margin-left: calc(2ch + 6px); /* bullet width + the padding */
   padding: 0 6px 0 2px;
 }
 
@@ -180,6 +193,11 @@
 
 .node.first > .nc a, .node.first > .nc .toggle {
   display: none;
+}
+
+.node.first > .nc .menu {
+  font-size: 150%;
+  margin-left: -2.5ch;
 }
 
 .hidden {
