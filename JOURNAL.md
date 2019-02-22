@@ -505,3 +505,7 @@ Implemented a rough sketch of a menu component using Custom Elements, some CSS a
 Needs a broader dismiss trigger that reacts to clicks anywhere in the document as well.
 
 Needs an approach to add menu items there that can call the appropriate actions (in tree-actions.ts?).
+
+## 22.2.2019
+
+Tweaked the menu a ton and had some thoughts about responsive design and our controls. Menu popup is now in a place where we can fill it with stuff.
