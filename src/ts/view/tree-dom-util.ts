@@ -33,6 +33,10 @@ export function isInMenuElement(element: Element): boolean {
   return !!element.closest('.menu')
 }
 
+export function isCloseButton(element: Element): boolean {
+  return element.classList.contains('closeButton')
+}
+
 export function isNoteElement(element: Element): boolean {
   return element.classList.contains('note')
 }

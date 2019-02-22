@@ -12,11 +12,12 @@ import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType, KeyboardEventTrigger } from './keyboardshortcut'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findNoteElementAncestor, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getNodeNote, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement } from './tree-dom-util'
+import { findNoteElementAncestor, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getNodeNote, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton } from './tree-dom-util'
 
 class TreeNodeMenu extends HTMLElement {
   commandExecutor: CommandExecutor
   private testEl: HTMLElement
+  private closeButton: HTMLElement
 
   constructor() {
     super()
@@ -24,11 +25,14 @@ class TreeNodeMenu extends HTMLElement {
 
   connectedCallback() {
     if (!this.testEl) {
-      this.setAttribute('class', 'menu')
+      this.setAttribute('class', 'popup menu')
+      this.closeButton = document.createElement('div')
+      this.closeButton.setAttribute('class', 'closeButton')
 
       this.testEl = document.createElement('p')
       this.testEl.innerText = `this is a test.`
       this.append(this.testEl)
+      this.append(this.closeButton)
       this.testEl.addEventListener('click', (e) => {
         console.log(`clicked on testEl, have a commandExecutor ${this.commandExecutor}`)
       })
@@ -134,6 +138,7 @@ export class Tree implements CommandExecutor {
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
     this.transientStateManager.registerSelectionChangeHandler()
     this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
+    document.addEventListener('click', this.onDocumentClick.bind(this))
   }
 
   loadNode(nodeId: string): Promise<any> {
@@ -209,7 +214,6 @@ export class Tree implements CommandExecutor {
 
   private onClick(event: Event): void {
     const clickedElement = event.target as Element
-    this.dismissMenuIfNeeded(event)
     if (isToggleElement(clickedElement)) {
       event.preventDefault()
       // NOTE: we can use the getNodeForNameElement function even though this is the
@@ -231,15 +235,19 @@ export class Tree implements CommandExecutor {
     }
   }
 
+  private onDocumentClick(event: Event): void {
+    this.dismissMenuIfNeeded(event)
+  }
+
   private dismissMenuIfNeeded(event: Event): void {
     const clickedElement = event.target as Element
     if (this.transientStateManager.getShownMenuTrigger() &&
         (!isMenuTriggerElement(clickedElement) || this.transientStateManager.getShownMenuTrigger() !== clickedElement) &&
-        !isInMenuElement(clickedElement)) {
+        (!isInMenuElement(clickedElement) || (isCloseButton(clickedElement)))) {
       // dismiss popup
       this.transientStateManager.getShownMenuTrigger().setAttribute('aria-expanded', 'false')
       this.transientStateManager.setShownMenuTrigger(null)
-      // destroy menu...
+      // destroy menu
       this.treeNodeMenu.commandExecutor = null
       this.treeNodeMenu.style.display = 'none'
     }
@@ -257,6 +265,8 @@ export class Tree implements CommandExecutor {
     // it has to trigger real actions (see tree-actions)
     // it has to interact with the tree itself, specifically regarding state
     this.treeNodeMenu.commandExecutor = this
+    // We hang the popup window under the .nc parent of the menutrigger so it does
+    // not also disappear when the trigger disappears when not hovering over it
     menuTrigger.parentElement.append(this.treeNodeMenu)
     this.treeNodeMenu.style.display = 'block'
   }

@@ -25,6 +25,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?
 1. Implement some sort of action menu on a node so we can add the import/export option. I like the Dynalist approach (also in checkvist) to have a trigger element and then the menu stays put even if you hover away and is only close when you click somewhere else
 1. Implement import of some standard format (probably at least the workflowy opml?)
+1. UI: This has to work on mobile, specifically in narrow columns. That means the popup must work, but also the controls for the node. And they need to work without hover.
 1. Add server side admin UI (minimal, just delete log) and some form of authentication so I can set up a test server. Think about how to add admin UI and authentication to the server without adding it to the open source project. Just add it as a lib?
 1. Auto link urls in names and notes
 1. Implement export in some standard format

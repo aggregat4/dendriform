@@ -29,9 +29,9 @@ export class TreeNode {
       class: this.genClass(treeNode, this.first),
     })
     setChildren(this.ncEl,
-      el('a', { href: `#node=${treeNode.node._id}`, title: 'Open this node' }, '•'), // &#8226;
+      el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, '●'), // • = &#8226;, ● = BLACK CIRCLE, 25CF
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
-      el('span.toggle'),
+      el('span.toggle', { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰')) // trigram for heaven (U+2630)
     this.childList.update(treeNode.children.filter(c => c.isIncluded()))

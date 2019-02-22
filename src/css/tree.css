@@ -5,7 +5,9 @@
   margin: 24px auto 24px auto;
   /* Optimal width of text in a column: https://ux.stackexchange.com/a/3623 */
   max-width: 75ch;
-  border-left: 1px #eeeeee dotted;
+  /* This is a hack to make sure the controls are always visible, even when getting really narrow.
+     This is stupid for mobile though since we lose all that space. Need a better solution. */
+  padding-left: 6ch;
 }
 
 .breadcrumbs {
@@ -45,12 +47,14 @@
   /* We need a longer line to hover over to show the node controls, including the whitespace
      to the left of the node so we add negative margin and fill it back up with padding so 
      the element is wider. */
-  margin-left: -100px;
+  margin-left: -6ch;
   padding-left: 100px;
 }
 
 .node .nc:hover .toggle,
-.node .nc:hover .menuTrigger {
+.node .nc:hover .menuTrigger,
+.node .name:focus ~ .toggle,
+.node .name:focus ~ .menuTrigger {
   display: block;
 }
 
@@ -59,8 +63,10 @@
   position: absolute;
   /* padding: 0 9px 0 9px; */
   text-decoration: none;
-  width: 2ch;
-  text-align: center;  
+  /* width: 2ch; */
+  width: 24px;
+  height: 24px;
+  text-align: center;
 }
 
 .node a, .node a:hover, .node a:active, node a:visited {
@@ -69,6 +75,7 @@
 
 .node a:hover, .node.closed a:hover {
   background: rgb(182, 197, 206);
+  border-radius: 50%;
 }
 
 .node.closed a {
@@ -204,10 +211,69 @@
   display: none;
 }
 
-tree-node-menu {
-  width: 200px;
-  height: 200px;
-  background: pink;
-  position: absolute;
-  z-index: 1;
+@keyframes fadeIn {
+  from { opacity: 0; }
+    to { opacity: 1; }
 }
+
+/* Just the absolute basic styles for a responsive popup */
+.popup {
+  background: white;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 200px;
+  border-radius: 6px;
+  padding: 6px;
+  border: 1px #eee solid;
+  /* transition: all 500ms cubic-bezier(0.250, 0.100, 0.250, 1.000); */
+  animation: fadeIn 150ms ease-out;
+  box-shadow: 0px 3px 5px rgba(0,0,0,0.2);
+}
+
+.popup .closeButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: none;
+  padding: 6px;
+  color: #aaa;
+  font-size: 150%;
+}
+
+.closeButton::before {
+  content: '✕'; /* TODO: unicode something */
+}
+
+/* From Bootstrap: https://getbootstrap.com/docs/4.3/layout/overview/#responsive-breakpoints */
+
+/* Extra small devices (portrait phones, less than 576px) */
+@media (max-width: 575px) {
+  .popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .popup .closeButton {
+    position: fixed;
+    display: block;
+  }
+}
+
+/* Small devices (landscape phones, 576px and up) 
+@media (min-width: 576px) { ... }
+
+// Medium devices (tablets, 768px and up)
+@media (min-width: 768px) { ... }
+
+// Large devices (desktops, 992px and up)
+@media (min-width: 992px) { ... }
+
+// Extra large devices (large desktops, 1200px and up)
+@media (min-width: 1200px) { ... }
+*/
