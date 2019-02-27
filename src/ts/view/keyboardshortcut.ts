@@ -25,10 +25,10 @@ export class KbdCode {
   constructor(readonly code: number) {}
 }
 export enum KbdModifierType {
-  Shift,
-  Ctrl,
-  Command,
-  Alt,
+  Shift = 'Shift',
+  Ctrl = 'Ctrl',
+  Command = 'Command',
+  Alt = 'Alt',
 }
 
 export interface TreeNodeSelector {
@@ -64,6 +64,15 @@ export class KbdModifier {
 }
 export class RawKbdShortcut {
   constructor(readonly key: KbdKey | KbdCode, readonly modifiers: KbdModifier[] = []) {}
+
+  toString(): string {
+    const modifiers = this.modifiers.filter(m => m.pressed).map(m => m.type.toString()).join('+')
+    if (modifiers) {
+      return `${modifiers}+${this.key.toString()}`
+    } else {
+      return this.key.toString()
+    }
+  }
 }
 
 /**
@@ -149,6 +158,10 @@ export class KeyboardEventTrigger {
     readonly targetFilter: TreeNodeSelector,
     // a list of keyboardshortcuts that trigger this, evaluated as an OR
     readonly shortcuts: RawKbdShortcut[] = []) {}
+
+  toString(): string {
+    return this.shortcuts.map(s => s.toString()).join(', ')
+  }
 
   isTriggered(type: KbdEventType, event: Event): boolean {
     if (type !== this.eventType) {

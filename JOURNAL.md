@@ -509,3 +509,11 @@ Needs an approach to add menu items there that can call the appropriate actions 
 ## 22.2.2019
 
 Tweaked the menu a ton and had some thoughts about responsive design and our controls. Menu popup is now in a place where we can fill it with stuff.
+
+## 27.2.2019
+
+Refactored the actions stuff to pull out an action registry from the tree, and to avoid cyclic dependencies between the actions and the tree component.
+
+Added a new tool called `madge` to generate module dependency graphs with `madge --extension ts,js src -i /tmp/deps.png`.
+
+Currently struggling to get the tree node menu items to actually get instantiated. I though it may have been me not actually calling document.createElement, but it still does not work. For some reason connectCallback is not called. I should refactor this back to an action Object and pass the dependencies through the constructor once I know what is up.

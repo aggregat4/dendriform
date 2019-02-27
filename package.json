@@ -9,8 +9,9 @@
   "main": "main.js",
   "scripts": {
     "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && ./node_modules/.bin/webpack",
+    "testandbuild": "npm run test && npm run build",
     "serve": "http-server -p 9090 dist/",
-    "watch": "onchange './src/**/*.*' './*.*' -i -- npm run build -s",
+    "watch": "onchange './src/**/*.*' './*.*' -i -- npm run testandbuild -s",
     "livereload": "live-reload --port 9091 dist/",
     "sloc": "node_modules/.bin/sloc src",
     "test": "jest",
@@ -20,9 +21,9 @@
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@babel/core": "^7.2.2",
-    "@babel/preset-env": "^7.3.1",
-    "@types/jest": "^24.0.5",
+    "@babel/core": "^7.3.4",
+    "@babel/preset-env": "^7.3.4",
+    "@types/jest": "^24.0.9",
     "babel-loader": "^8.0.5",
     "babel-jest": "^24.1.0",
     "jest": "^24.1.0",
@@ -33,17 +34,17 @@
     "parallelshell": "^3.0.2",
     "sloc": "^0.2.1",
     "syntax-error": ">=1.1.1",
-    "ts-jest": "^23.10.5",
+    "ts-jest": "^24.0.0",
     "ts-loader": "^5.3.3",
-    "tslint": "^5.12.1",
+    "tslint": "^5.13.0",
     "typescript": "^3.3.3",
-    "webpack": "^4.29.3",
+    "webpack": "^4.29.5",
     "webpack-bundle-analyzer": "^3.0.4",
     "webpack-cli": "^3.2.3"
   },
   "dependencies": {
     "dexie": "^2.0.4",
-    "p-queue": "^3.0.0",
+    "p-queue": "^3.1.0",
     "redom": "^3.18.0"
   }
 }

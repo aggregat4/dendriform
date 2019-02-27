@@ -7,100 +7,16 @@ import { FilteredRepositoryNode, LoadedTree, State, Subscription } from '../doma
 import { filterNode } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
-import { debounce, getCursorPos, isEmpty, pasteTextUnformatted, setCursorPos } from '../util'
+import { debounce, isEmpty, pasteTextUnformatted, setCursorPos } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
-import { KbdEventType, KeyboardEventTrigger } from './keyboardshortcut'
+import { KbdEventType } from './keyboardshortcut'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findNoteElementAncestor, getNameElement, getNodeForNameElement, getNodeId, getNodeName, getNodeNote, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton } from './tree-dom-util'
-
-class TreeNodeMenu extends HTMLElement {
-  commandExecutor: CommandExecutor
-  private testEl: HTMLElement
-  private closeButton: HTMLElement
-
-  constructor() {
-    super()
-  }
-
-  connectedCallback() {
-    if (!this.testEl) {
-      this.setAttribute('class', 'popup menu')
-      this.closeButton = document.createElement('div')
-      this.closeButton.setAttribute('class', 'closeButton')
-
-      this.testEl = document.createElement('p')
-      this.testEl.innerText = `this is a test.`
-      this.append(this.testEl)
-      this.append(this.closeButton)
-      this.testEl.addEventListener('click', (e) => {
-        console.log(`clicked on testEl, have a commandExecutor ${this.commandExecutor}`)
-      })
-    }
-  }
-}
-
-customElements.define('tree-node-menu', TreeNodeMenu)
-
-export interface CommandExecutor {
-  performWithDom(command: Command): void,
-  performWithoutDom(command: Command)
-}
-
-export class TransientStateManager {
-  // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
-  readonly transientState = {
-    // previous node state so we can undo correctly, this is separate from the actual focus and char pos we want
-    focusNodePreviousId: null,
-    focusNodePreviousName: null,
-    focusNodePreviousNote: null,
-    focusNodePreviousPos: -1,
-    currentMenuShownTriggerElement: null,
-  }
-
-  savePreviousNodeState(nodeId: string, nodeName: string, nodeNote: string, focusPos: number): void {
-    this.transientState.focusNodePreviousId = nodeId
-    this.transientState.focusNodePreviousName = nodeName
-    this.transientState.focusNodePreviousNote = nodeNote
-    this.transientState.focusNodePreviousPos = focusPos
-  }
-
-  registerSelectionChangeHandler() {
-    // We need to track when the selection changes so we can store the current
-    // cursor position (needed for UNDO)
-    document.addEventListener('selectionchange', this.selectionChangeHandler.bind(this))
-  }
-
-  getShownMenuTrigger(): Element {
-    return this.transientState.currentMenuShownTriggerElement
-  }
-
-  setShownMenuTrigger(element: Element): void {
-    this.transientState.currentMenuShownTriggerElement = element
-  }
-
-  private selectionChangeHandler(event: Event): void {
-    if (document.activeElement && isNameNode(document.activeElement)) {
-      const activeNode = getNodeForNameElement(document.activeElement)
-      this.savePreviousNodeState(
-        getNodeId(activeNode),
-        getNodeName(activeNode),
-        getNodeNote(activeNode),
-        getCursorPos())
-    }
-
-  }
-
-  getState() {
-    return this.transientState
-  }
-}
-
-export class KeyboardAction {
-  constructor(
-    readonly trigger: KeyboardEventTrigger,
-    readonly handler: (event: Event, commandExecutor: CommandExecutor, transientStateManager: TransientStateManager, undoCommandHandler: UndoableCommandHandler) => void) {}
-}
+import { findNoteElementAncestor, getNameElement, getNodeForNameElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton } from './tree-dom-util'
+import { TreeActionContext } from './tree-actions'
+import { CommandExecutor, TransientStateManager } from './tree-helpers'
+import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
+import { TreeActionRegistry, importOpmlAction } from './tree-actionregistry'
 
 export class Tree implements CommandExecutor {
   private readonly domCommandHandler = new DomCommandHandler()
@@ -111,13 +27,13 @@ export class Tree implements CommandExecutor {
   private content: TreeNode
   private searchField
   private treeChangeSubscription: Subscription
-  private readonly keyboardActions: Map<KbdEventType, KeyboardAction[]> = new Map()
   private readonly transientStateManager = new TransientStateManager()
   private treeNodeMenu: TreeNodeMenu = null
+  private treeActionContext: TreeActionContext = null
 
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
-  constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService) {
+  constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry) {
     this.el = el('div.tree',
       el('div.searchbox',
         /* Removing the search button because we don't really need it. Right? Accesibility?
@@ -136,9 +52,17 @@ export class Tree implements CommandExecutor {
     this.el.addEventListener('click', this.onClick.bind(this))
     this.el.addEventListener('paste', this.onPaste.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
-    this.transientStateManager.registerSelectionChangeHandler()
-    this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
     document.addEventListener('click', this.onDocumentClick.bind(this))
+
+    this.transientStateManager.registerSelectionChangeHandler()
+    this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.commandHandler)
+    this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
+    // TODO: tree actions should have IDs, they are registered centrally and we should be able to look
+    // them up so we can just reference them here instead of instantiating them
+    const opmlImportMenuItem = document.createElement('tree-node-menuitem') as TreeNodeMenuItem
+    opmlImportMenuItem.treeAction = importOpmlAction
+    opmlImportMenuItem.treeActionContext = this.treeActionContext
+    this.treeNodeMenu.menuItems = [opmlImportMenuItem]
   }
 
   loadNode(nodeId: string): Promise<any> {
@@ -195,23 +119,6 @@ export class Tree implements CommandExecutor {
     return filterNode(tree.tree, doFilter ? {query: this.searchField.value} : undefined)
   }
 
-  registerKeyboardAction(action: KeyboardAction): void {
-    if (!this.keyboardActions.get(action.trigger.eventType)) {
-      this.keyboardActions.set(action.trigger.eventType, [])
-    }
-    const existingActions = this.keyboardActions.get(action.trigger.eventType)
-    existingActions.push(action)
-  }
-
-  private executeKeyboardActions(eventType: KbdEventType, event: Event): void {
-    const actions = this.keyboardActions.get(eventType) || []
-    for (const action of actions) {
-      if (action.trigger.isTriggered(eventType, event)) {
-        action.handler(event, this, this.transientStateManager, this.commandHandler)
-      }
-    }
-  }
-
   private onClick(event: Event): void {
     const clickedElement = event.target as Element
     if (isToggleElement(clickedElement)) {
@@ -247,8 +154,6 @@ export class Tree implements CommandExecutor {
       // dismiss popup
       this.transientStateManager.getShownMenuTrigger().setAttribute('aria-expanded', 'false')
       this.transientStateManager.setShownMenuTrigger(null)
-      // destroy menu
-      this.treeNodeMenu.commandExecutor = null
       this.treeNodeMenu.style.display = 'none'
     }
   }
@@ -257,14 +162,8 @@ export class Tree implements CommandExecutor {
     if (menuTrigger === this.transientStateManager.getShownMenuTrigger()) {
       return
     }
-    // set aria-expanded to true and save transient state
     this.transientStateManager.setShownMenuTrigger(menuTrigger)
     menuTrigger.setAttribute('aria-expanded', 'true')
-    // TODO: menu is a bigger thing. It is dynamic (contents depend on node)
-    // it can be shown for all nodes
-    // it has to trigger real actions (see tree-actions)
-    // it has to interact with the tree itself, specifically regarding state
-    this.treeNodeMenu.commandExecutor = this
     // We hang the popup window under the .nc parent of the menutrigger so it does
     // not also disappear when the trigger disappears when not hovering over it
     menuTrigger.parentElement.append(this.treeNodeMenu)
@@ -295,15 +194,15 @@ export class Tree implements CommandExecutor {
         (event as any).inputType === 'historyRedo') {
       return
     }
-    this.executeKeyboardActions(KbdEventType.Input, event)
+    this.treeActionRegistry.executeKeyboardActions(KbdEventType.Input, event, this.treeActionContext)
   }
 
   private onKeypress(event: KeyboardEvent) {
-    this.executeKeyboardActions(KbdEventType.Keypress, event)
+    this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keypress, event, this.treeActionContext)
   }
 
   private onKeydown(event: KeyboardEvent): void {
-    this.executeKeyboardActions(KbdEventType.Keydown, event)
+    this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keydown, event, this.treeActionContext)
   }
 
   performWithoutDom(command: Command): void {

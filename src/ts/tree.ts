@@ -7,7 +7,7 @@ import {EventlogRepository} from './repository/repository-eventlog'
 import {LocalEventLog} from './eventlog/eventlog-local'
 import {RemoteEventLog } from './remote/eventlog-remote'
 import {EventPump } from './remote/eventpump'
-import { registerTreeActions } from './view/tree-actions';
+import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
 
 /*
  * This file wires everything together for the dendriform tree.
@@ -24,8 +24,9 @@ const treePromise = localEventLog.init()
   .then(repository => {
     const treeService = new TreeService(repository)
     const commandHandler = new UndoableCommandHandler(new TreeServiceCommandHandler(treeService))
-    const tree = new Tree(commandHandler, treeService)
-    registerTreeActions(tree)
+    const treeActionRegistry = new TreeActionRegistry()
+    registerTreeActions(treeActionRegistry)
+    const tree = new Tree(commandHandler, treeService, treeActionRegistry)
     return tree
   })
 
