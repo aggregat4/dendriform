@@ -517,3 +517,11 @@ Refactored the actions stuff to pull out an action registry from the tree, and t
 Added a new tool called `madge` to generate module dependency graphs with `madge --extension ts,js src -i /tmp/deps.png`.
 
 Currently struggling to get the tree node menu items to actually get instantiated. I though it may have been me not actually calling document.createElement, but it still does not work. For some reason connectCallback is not called. I should refactor this back to an action Object and pass the dependencies through the constructor once I know what is up.
+
+## 1.3.2019
+
+I fixed the menuItem component, it was not being shown because I had a typo: instead of `connectedCallback` I had `connectCallback`. :facepalm:
+
+The custom elements can also just be used as classes and nicely instantiated, so that's much better.
+
+Next challenge: actions need to act on the correct node, this means that at activation time they need to be able to identify the current node in focus. My current thought is to just generalize the `getNodeForNameElement` code that almost all actions use to something like find the closest ancestor that is a node. This would basically assume that we are somehow inside the the node dom tree. I think this makes sense.
