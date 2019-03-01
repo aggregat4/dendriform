@@ -9,9 +9,9 @@
   "main": "main.js",
   "scripts": {
     "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && ./node_modules/.bin/webpack",
-    "testandbuild": "npm run test && npm run build",
+    "build-and-test": "npm run build && npm run test",
     "serve": "http-server -p 9090 dist/",
-    "watch": "onchange './src/**/*.*' './*.*' -i -- npm run testandbuild -s",
+    "watch": "onchange './src/**/*.*' './*.*' -i -- npm run build-and-test -s",
     "livereload": "live-reload --port 9091 dist/",
     "sloc": "node_modules/.bin/sloc src",
     "test": "jest",

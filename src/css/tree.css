@@ -246,6 +246,11 @@
   content: '✕'; /* TODO: unicode something */
 }
 
+.menuItem {
+  display: block;
+  background: pink;
+}
+
 /* From Bootstrap: https://getbootstrap.com/docs/4.3/layout/overview/#responsive-breakpoints */
 
 /* Extra small devices (portrait phones, less than 576px) */

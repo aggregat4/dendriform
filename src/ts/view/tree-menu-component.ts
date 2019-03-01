@@ -2,10 +2,9 @@ import { h } from '../lib/hyperscript.js'
 import { TreeAction, TreeActionContext } from './tree-actions'
 
 export class TreeNodeMenu extends HTMLElement {
-  menuItems: TreeNodeMenuItem[]
   private closeButton: HTMLElement
 
-  constructor() {
+  constructor(readonly menuItems: TreeNodeMenuItem[]) {
     super()
   }
 
@@ -22,22 +21,11 @@ export class TreeNodeMenu extends HTMLElement {
 }
 
 export class TreeNodeMenuItem extends HTMLElement {
-  treeAction: TreeAction
-  treeActionContext: TreeActionContext
-
-  constructor() {
+  constructor(readonly treeAction: TreeAction, readonly treeActionContext: TreeActionContext) {
     super()
-    if (this.childElementCount <= 0) {
-      this.setAttribute('class', 'menuItem')
-      this.append(h('span.name', this.treeAction.name))
-      this.append(h('span.shortcut', this.treeAction.trigger.toString()))
-      this.addEventListener('click', e => {
-        this.treeAction.handler(e, this.treeActionContext)
-      })
-    }
   }
 
-  connectCallback() {
+  connectedCallback() {
     if (this.childElementCount <= 0) {
       this.setAttribute('class', 'menuItem')
       this.append(h('span.name', this.treeAction.name))
@@ -48,6 +36,3 @@ export class TreeNodeMenuItem extends HTMLElement {
     }
   }
 }
-
-customElements.define('tree-node-menu', TreeNodeMenu)
-customElements.define('tree-node-menuitem', TreeNodeMenuItem)

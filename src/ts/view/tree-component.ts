@@ -18,6 +18,9 @@ import { CommandExecutor, TransientStateManager } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
 import { TreeActionRegistry, importOpmlAction } from './tree-actionregistry'
 
+customElements.define('tree-node-menu', TreeNodeMenu)
+customElements.define('tree-node-menuitem', TreeNodeMenuItem)
+
 export class Tree implements CommandExecutor {
   private readonly domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
@@ -56,13 +59,13 @@ export class Tree implements CommandExecutor {
 
     this.transientStateManager.registerSelectionChangeHandler()
     this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.commandHandler)
-    this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
+    // this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
     // TODO: tree actions should have IDs, they are registered centrally and we should be able to look
     // them up so we can just reference them here instead of instantiating them
-    const opmlImportMenuItem = document.createElement('tree-node-menuitem') as TreeNodeMenuItem
-    opmlImportMenuItem.treeAction = importOpmlAction
-    opmlImportMenuItem.treeActionContext = this.treeActionContext
-    this.treeNodeMenu.menuItems = [opmlImportMenuItem]
+    const opmlImportMenuItem = new TreeNodeMenuItem(importOpmlAction, this.treeActionContext)
+    // opmlImportMenuItem.treeAction = importOpmlAction
+    // opmlImportMenuItem.treeActionContext = this.treeActionContext
+    this.treeNodeMenu = new TreeNodeMenu([opmlImportMenuItem])
   }
 
   loadNode(nodeId: string): Promise<any> {
