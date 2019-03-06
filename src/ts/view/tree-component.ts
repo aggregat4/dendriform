@@ -12,7 +12,7 @@ import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType } from './keyboardshortcut'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findNoteElementAncestor, getNameElement, getNodeForNameElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton } from './tree-dom-util'
+import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientStateManager } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
@@ -128,7 +128,7 @@ export class Tree implements CommandExecutor {
       event.preventDefault()
       // NOTE: we can use the getNodeForNameElement function even though this is the
       // collapseElement because they are siblings
-      const node = getNodeForNameElement(clickedElement)
+      const node = getClosestNodeElement(clickedElement)
       const payload = isNodeClosed(node)
         ? new OpenNodeByIdCommandPayload(getNodeId(node))
         : new CloseNodeByIdCommandPayload(getNodeId(node))

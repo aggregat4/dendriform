@@ -1,3 +1,7 @@
+:root {
+  --highlight-bgcolor: #dddddd;
+}
+
 .tree {
   /* Units in CSS: https://developer.mozilla.org/en-US/docs/Learn/CSS/Introduction_to_CSS/Values_and_units */
   font: 1rem helvetica, sans-serif;
@@ -248,7 +252,11 @@
 
 .menuItem {
   display: block;
-  background: pink;
+}
+
+.menuItem:hover {
+  background-color: var(--highlight-bgcolor);
+  cursor: pointer;
 }
 
 /* From Bootstrap: https://getbootstrap.com/docs/4.3/layout/overview/#responsive-breakpoints */

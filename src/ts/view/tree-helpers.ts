@@ -1,5 +1,5 @@
 import { Command } from '../commands/commands'
-import { isNameNode, getNodeForNameElement, getNodeId, getNodeName, getNodeNote } from './tree-dom-util'
+import { isNameNode, getClosestNodeElement, getNodeId, getNodeName, getNodeNote } from './tree-dom-util'
 import { getCursorPos } from '../util'
 
 export interface CommandExecutor {
@@ -41,7 +41,7 @@ export class TransientStateManager {
 
   private selectionChangeHandler(event: Event): void {
     if (document.activeElement && isNameNode(document.activeElement)) {
-      const activeNode = getNodeForNameElement(document.activeElement)
+      const activeNode = getClosestNodeElement(document.activeElement)
       this.savePreviousNodeState(
         getNodeId(activeNode),
         getNodeName(activeNode),

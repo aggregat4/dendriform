@@ -525,3 +525,25 @@ I fixed the menuItem component, it was not being shown because I had a typo: ins
 The custom elements can also just be used as classes and nicely instantiated, so that's much better.
 
 Next challenge: actions need to act on the correct node, this means that at activation time they need to be able to identify the current node in focus. My current thought is to just generalize the `getNodeForNameElement` code that almost all actions use to something like find the closest ancestor that is a node. This would basically assume that we are somehow inside the the node dom tree. I think this makes sense.
+
+## 6.3.2019
+
+Generalised the `getNodeForNameElement` code and introduced css custom properties for some reusable values.
+
+I need a dialog component. After implementing the menu, my first actual menu action is to trigger an OPML import dialog. This again is a dialog like the popup menu and I don't want to custom implement the logic each time. I need some way to reuse the trigger/hiding/etc logic.
+
+What I can't do is make the dialog a stateful component since I may have thousands of menus in the tree.
+
+Show:
+
+* IF click on trigger element AND dialog not already shown AND not same trigger
+* THEN put dialog in right location of dom tree (needed?), make dialog visible, set aria-expanded on trigger
+
+* IF click on document AND dialog is showing AND not clicked on trigger AND (did not click in dialog OR clicked close button)
+* THEN dismiss menu: aria-expanded = false, display = none
+
+So a dialog manager needs access to a trigger element and a dialog element, that should suffice.
+
+A dialog manager can have a dialog registered on a concrete element or on a css class.
+
+Started implementation of a dialog manager.

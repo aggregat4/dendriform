@@ -1,5 +1,5 @@
 import { KbdEventType, RawKbdShortcut, KeyboardEventTrigger, NodeClassSelector, KbdKey, KbdModifier, KbdModifierType, toRawShortCuts, SemanticShortcut, SemanticShortcutType, AllNodesSelector } from './keyboardshortcut'
-import { getNodeForNameElement, getNodeId, getNodeName, getNodeNote, getNodeForNoteElement, findPreviousNode, getNameElement, findNextNode, hasChildren, getParentNode, hasParentNode, findLastChildNode } from './tree-dom-util'
+import { getClosestNodeElement, getNodeId, getNodeName, getNodeNote, findPreviousNode, getNameElement, findNextNode, hasChildren, getParentNode, hasParentNode, findLastChildNode } from './tree-dom-util'
 import { getCursorPos, getTextBeforeCursor, getTextAfterCursor, generateUUID, isTextSelected, isCursorAtBeginning, isEmpty, isCursorAtEnd } from '../util'
 import { CommandBuilder, RenameNodeByIdCommandPayload, UpdateNoteByIdCommandPayload, SplitNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, MergeNodesByIdCommandPayload, Command, ReparentNodeByIdCommandPayload } from '../commands/commands'
 import { MergeNameOrder } from '../service/service'
@@ -30,7 +30,8 @@ export class TreeActionRegistry {
 
 }
 
-// TODO: not sure we need a keyboard trigger for this, perhaps we need a NoOp keyboard trigger
+// TODO: not sure we need a keyboard trigger for this, perhaps we need a NoOp keyboard trigger?
+// TODO: move these into the registry proper
 export const importOpmlAction = new TreeAction(
   new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name')),
   onOpmlImport,
@@ -185,7 +186,7 @@ export function registerTreeActions(tree: TreeActionRegistry) {
 }
 
 function onNameInput(event: Event, treeActionContext: TreeActionContext) {
-  const targetNode = getNodeForNameElement((event.target as Element))
+  const targetNode = getClosestNodeElement((event.target as Element))
   const nodeId = getNodeId(targetNode)
   const newName = getNodeName(targetNode)
   const oldName = treeActionContext.transientStateManager.getState().focusNodePreviousName
@@ -206,7 +207,7 @@ function onNameInput(event: Event, treeActionContext: TreeActionContext) {
 }
 
 function onNoteInput(event: Event, treeActionContext: TreeActionContext) {
-  const targetNode = getNodeForNoteElement((event.target as Element))
+  const targetNode = getClosestNodeElement((event.target as Element))
   const nodeId = getNodeId(targetNode)
   const name = getNodeName(targetNode)
   const newNote = getNodeNote(targetNode)
@@ -229,7 +230,7 @@ function onNoteInput(event: Event, treeActionContext: TreeActionContext) {
 
 function onNodeSplit(event: Event, treeActionContext: TreeActionContext) {
   event.preventDefault()
-  const targetNode = getNodeForNameElement((event.target as Element))
+  const targetNode = getClosestNodeElement((event.target as Element))
   const nodeId = getNodeId(targetNode)
   const beforeSplitNamePart = getTextBeforeCursor(event) || ''
   const afterSplitNamePart = getTextAfterCursor(event) || ''
@@ -257,7 +258,7 @@ function onStartNoteEdit(evt: Event, treeActionContext: TreeActionContext) {
 
 function onMoveNodeUp(event: Event, treeActionContext: TreeActionContext) {
   event.preventDefault()
-  const nodeElement = getNodeForNameElement(event.target as Element)
+  const nodeElement = getClosestNodeElement(event.target as Element)
   // this is the combination for moving a node up in its siblings or its parent's previous siblings' children
   // if the current node has siblings before it, then just move it up
   // else if the parent has previous siblings, then move it as a child of the first previous sibling at the end
@@ -266,7 +267,7 @@ function onMoveNodeUp(event: Event, treeActionContext: TreeActionContext) {
 
 function onMoveCursorUp(event: Event, treeActionContext: TreeActionContext) {
   event.preventDefault()
-  const nodeElement = getNodeForNameElement(event.target as Element)
+  const nodeElement = getClosestNodeElement(event.target as Element)
   const previousNode = findPreviousNode(nodeElement)
   if (previousNode) {
     (getNameElement(previousNode) as HTMLElement).focus()
@@ -275,7 +276,7 @@ function onMoveCursorUp(event: Event, treeActionContext: TreeActionContext) {
 
 function onMoveNodeDown(event: Event, treeActionContext: TreeActionContext) {
   event.preventDefault()
-  const nodeElement = getNodeForNameElement(event.target as Element)
+  const nodeElement = getClosestNodeElement(event.target as Element)
   // this is the combination for moving a node down in its siblings or its parent's next siblings' children
   // if the current node has siblings after it, then just move it down
   // else if the parent has next siblings, then move it as a child of the first next sibling at the end
@@ -284,7 +285,7 @@ function onMoveNodeDown(event: Event, treeActionContext: TreeActionContext) {
 
 function onMoveCursorDown(event: Event, treeActionContext: TreeActionContext) {
   event.preventDefault()
-  const nodeElement = getNodeForNameElement(event.target as Element)
+  const nodeElement = getClosestNodeElement(event.target as Element)
   const nextNode = findNextNode(nodeElement)
   if (nextNode) {
     (getNameElement(nextNode) as HTMLElement).focus()
@@ -369,7 +370,7 @@ function createReparentingCommand(node: Element, cursorPos: number, oldParentNod
 
 function onDeleteNode(event: Event, treeActionContext: TreeActionContext) {
   event.preventDefault()
-  const eventNode = getNodeForNameElement(event.target as Element)
+  const eventNode = getClosestNodeElement(event.target as Element)
   deleteNode(eventNode, treeActionContext.commandExecutor)
 }
 
@@ -395,13 +396,13 @@ function deleteNode(node: Element, commandExecutor: CommandExecutor): void {
 
 function onBackspaceInName(event: Event, treeActionContext: TreeActionContext) {
   if (!isTextSelected() && isCursorAtBeginning()) {
-    const eventNode = getNodeForNameElement(event.target as Element)
+    const eventNode = getClosestNodeElement(event.target as Element)
     if (isEmpty(getNodeName(eventNode)) && !hasChildren(eventNode)) {
       // this is a special case for convience: when a node is empty and has no
       // children, we interpret backspace as deleting the complete node
       event.preventDefault()
       deleteNode(eventNode, treeActionContext.commandExecutor)
-    } else if (getNodeForNameElement(event.target as Element).previousElementSibling) {
+    } else if (getClosestNodeElement(event.target as Element).previousElementSibling) {
       const targetNode = eventNode
       const sourceNode = targetNode.previousElementSibling
       if (hasChildren(sourceNode)) {
@@ -429,9 +430,9 @@ function onBackspaceInName(event: Event, treeActionContext: TreeActionContext) {
 function onDeleteInName(event: Event, treeActionContext: TreeActionContext) {
   if (!isTextSelected() &&
     isCursorAtEnd(event) &&
-    getNodeForNameElement(event.target as Element).nextElementSibling) {
+    getClosestNodeElement(event.target as Element).nextElementSibling) {
     event.preventDefault()
-    const sourceNode = getNodeForNameElement(event.target as Element)
+    const sourceNode = getClosestNodeElement(event.target as Element)
     const targetNode = sourceNode.nextElementSibling
     if (hasChildren(sourceNode)) {
       return
@@ -455,7 +456,7 @@ function onDeleteInName(event: Event, treeActionContext: TreeActionContext) {
 
 function onIndentNode(event: Event, treeActionContext: TreeActionContext) {
   // When tabbing you want to make the node the last child of the previous sibling (if it exists)
-  const node = getNodeForNameElement(event.target as Element)
+  const node = getClosestNodeElement(event.target as Element)
   if (node.previousElementSibling) {
     event.preventDefault()
     // when a node is a child, it is inside a "children" container of its parent
@@ -469,7 +470,7 @@ function onUnIndentNode(event: Event, treeActionContext: TreeActionContext) {
   // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
   // Caution: we only allow unindent if the current node has a parent and a grandparent node,
   // otherwise we can not unindent
-  const node = getNodeForNameElement(event.target as Element)
+  const node = getClosestNodeElement(event.target as Element)
   if (hasParentNode(node)) {
     const oldParentNode = getParentNode(node)
     if (hasParentNode(oldParentNode)) {
@@ -527,5 +528,10 @@ function onRedo(event: Event, treeActionContext: TreeActionContext) {
 }
 
 function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
-  // TODO: do stuff
+  // TODO: implement
+  // TODO: move this action to its own file since it will have its own UI and all
+  console.log(`clicked on OPML import action`)
+  // show dialog with: File Upload button, Import button (no copy paste yet, or start with that?)
+  // upload client side and parse the opml
+  // create that tree as a child of the current node (how do I programmatically create nodes in batch!?)
 }

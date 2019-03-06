@@ -67,12 +67,8 @@ export function getNoteElement(node: Element): Element {
   return node.children[0].children[3]
 }
 
-export function getNodeForNameElement(nameEl: Element): Element {
-  return nameEl.parentElement.parentElement
-}
-
-export function getNodeForNoteElement(noteEl: Element): Element {
-  return noteEl.parentElement.parentElement
+export function getClosestNodeElement(nodeChildElement: Element): Element {
+  return nodeChildElement.closest('.node')
 }
 
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
