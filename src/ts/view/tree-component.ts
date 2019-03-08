@@ -16,8 +16,9 @@ import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNode
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientStateManager } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
-import { TreeActionRegistry, importOpmlAction } from './tree-actionregistry'
+import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog } from './dialogs'
+import { importOpmlAction } from './action-opmlimport'
 
 customElements.define('tree-node-menu', TreeNodeMenu)
 customElements.define('tree-node-menuitem', TreeNodeMenuItem)
@@ -59,14 +60,14 @@ export class Tree implements CommandExecutor {
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
 
     this.transientStateManager.registerSelectionChangeHandler()
-    this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.commandHandler)
+    this.dialogs = new Dialogs(this.el as HTMLElement)
+    this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.commandHandler, this.dialogs)
     // this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
     // TODO: tree actions should have IDs, they are registered centrally and we should be able to look
     // them up so we can just reference them here instead of instantiating them
     const opmlImportMenuItem = new TreeNodeMenuItem(importOpmlAction, this.treeActionContext)
     this.treeNodeMenu = new TreeNodeMenu([opmlImportMenuItem])
     this.el.appendChild(this.treeNodeMenu)
-    this.dialogs = new Dialogs(this.el as HTMLElement)
     this.dialogs.registerDialog(new Dialog('menuTrigger', this.treeNodeMenu))
   }
 

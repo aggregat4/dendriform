@@ -1,6 +1,7 @@
 import { CommandExecutor, TransientStateManager } from './tree-helpers'
 import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 import { KeyboardEventTrigger } from './keyboardshortcut'
+import { Dialogs } from './dialogs';
 
 export class TreeAction {
   constructor(
@@ -15,5 +16,6 @@ export class TreeActionContext {
     readonly commandExecutor: CommandExecutor,
     readonly transientStateManager: TransientStateManager,
     readonly undoCommandHandler: UndoableCommandHandler,
+    readonly dialogs: Dialogs,
   ) {}
 }

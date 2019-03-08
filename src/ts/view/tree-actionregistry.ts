@@ -7,6 +7,7 @@ import { TreeNode } from './node-component'
 import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import { CommandExecutor } from './tree-helpers'
 import { TreeAction, TreeActionContext } from './tree-actions'
+import { importOpmlAction } from './action-opmlimport'
 
 export class TreeActionRegistry {
   private readonly keyboardActions: Map<KbdEventType, TreeAction[]> = new Map()
@@ -29,13 +30,6 @@ export class TreeActionRegistry {
   }
 
 }
-
-// TODO: not sure we need a keyboard trigger for this, perhaps we need a NoOp keyboard trigger?
-// TODO: move these into the registry proper
-export const importOpmlAction = new TreeAction(
-  new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name')),
-  onOpmlImport,
-  'Import OPML')
 
 // TODO: extend the registerKeyboardAction method to take a message key for a name (and maybe a description?) as parameters
 // TODO: implement a parser for a text based syntax for keyborad shortcut definition, this is crazy
@@ -525,13 +519,4 @@ function onRedo(event: Event, treeActionContext: TreeActionContext) {
   event.preventDefault()
   event.stopPropagation()
   treeActionContext.commandExecutor.performWithDom(treeActionContext.undoCommandHandler.popRedoCommand())
-}
-
-function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
-  // TODO: implement
-  // TODO: move this action to its own file since it will have its own UI and all
-  console.log(`clicked on OPML import action`)
-  // show dialog with: File Upload button, Import button (no copy paste yet, or start with that?)
-  // upload client side and parse the opml
-  // create that tree as a child of the current node (how do I programmatically create nodes in batch!?)
 }

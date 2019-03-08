@@ -1,9 +1,25 @@
+import { h } from '../lib/hyperscript.js'
+
 export abstract class DialogElement extends HTMLElement {
+  private closeButton: HTMLElement
+
   constructor() {
     super()
   }
 
-  abstract getCloseButton(): HTMLElement
+  maybeInit(initCode: () => void) {
+    if (!this.closeButton) {
+      this.setAttribute('class', 'popup menu')
+      this.closeButton = h('div.closeButton')
+      this.append(this.closeButton)
+      initCode()
+    }
+  }
+
+  getCloseButton(): HTMLElement {
+    return this.closeButton
+  }
+
 }
 
 export type DialogTrigger = string | HTMLElement
@@ -29,6 +45,13 @@ export class Dialogs {
 
   registerDialog(dialog: Dialog): void {
     this.dialogs.push(dialog)
+  }
+
+  showTransientDialog(triggerElement: HTMLElement, dialogElement: DialogElement): void {
+    if (this.isDialogActive()) {
+      this.dismissDialog(this.getActiveDialog())
+    }
+    this.showDialog(new Dialog(triggerElement, dialogElement), triggerElement)
   }
 
   private onInRootClicked(event: Event) {

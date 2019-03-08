@@ -532,7 +532,7 @@ Generalised the `getNodeForNameElement` code and introduced css custom propertie
 
 I need a dialog component. After implementing the menu, my first actual menu action is to trigger an OPML import dialog. This again is a dialog like the popup menu and I don't want to custom implement the logic each time. I need some way to reuse the trigger/hiding/etc logic.
 
-What I can't do is make the dialog a stateful component since I may have thousands of menus in the tree.
+What I can't do is make the dialog a stateful component since I may have thousands of potential menus in the tree.
 
 Show:
 
@@ -547,3 +547,9 @@ So a dialog manager needs access to a trigger element and a dialog element, that
 A dialog manager can have a dialog registered on a concrete element or on a css class.
 
 Started implementation of a dialog manager.
+
+## 8.3.2019
+
+Implemented a dialog system that works quite well. This now pulls all the specific logic out of the tree-component. This also means we are now fixed positioning the dialogs (since we can't "know" about the local DOM structure anymore) but that seems fine. Positioning the dialog should definitely be smarter for constrained screen sizes but we'll tackle that some other time.
+
+Started the OPML import menu, need to debug the transient popup dialog showing.
