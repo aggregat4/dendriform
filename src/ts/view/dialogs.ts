@@ -1,7 +1,17 @@
+export abstract class DialogElement extends HTMLElement {
+  constructor() {
+    super()
+  }
+
+  abstract getCloseButton(): HTMLElement
+}
+
 export type DialogTrigger = string | HTMLElement
 
 export class Dialog {
-  constructor(readonly trigger: DialogTrigger, readonly dialogElement: HTMLElement) {}
+  constructor(
+    readonly trigger: DialogTrigger,
+    readonly dialogElement: DialogElement) {}
 }
 
 class ActiveDialog {
@@ -17,11 +27,15 @@ export class Dialogs {
     document.addEventListener('click', this.onDocumentClicked.bind(this))
   }
 
+  registerDialog(dialog: Dialog): void {
+    this.dialogs.push(dialog)
+  }
+
   private onInRootClicked(event: Event) {
     const clickedElement = event.target as HTMLElement
     for (const dialog of this.dialogs) {
       if ( (dialog.trigger instanceof HTMLElement && dialog.trigger === clickedElement) ||
-           (typeof dialog.trigger === 'string' && (event.target as HTMLElement).classList.contains(dialog.trigger))) {
+           (typeof dialog.trigger === 'string' && clickedElement.classList.contains(dialog.trigger))) {
         if (this.isDialogActive()) {
           return
         } else {
@@ -50,7 +64,8 @@ export class Dialogs {
     const clickedElement = event.target as HTMLElement
     if (this.isDialogActive() &&
         this.activeDialog.trigger !== clickedElement &&
-        (!this.getActiveDialog().dialog.dialogElement.contains(clickedElement) || false /* TODO: clicked close button */)) {
+        (!this.getActiveDialog().dialog.dialogElement.contains(clickedElement) ||
+         clickedElement === this.getActiveDialog().dialog.dialogElement.getCloseButton())) {
       this.dismissDialog(this.getActiveDialog())
     }
   }
@@ -65,13 +80,20 @@ export class Dialogs {
     this.setActiveDialog(new ActiveDialog(dialog, triggerEl))
     triggerEl.setAttribute('aria-expanded', 'true')
     // TODO: clever dialog positioning, we're going to display it in fixed position
-    dialog.dialogElement.style.left = '0'
-    dialog.dialogElement.style.top = '0'
+    if (this.getViewportWidth() < 576) {
+      // this means we are fullscreen, no positioning necessary
+      dialog.dialogElement.style.left = '0'
+      dialog.dialogElement.style.top = '0'
+    } else {
+      const left = triggerEl.getBoundingClientRect().left
+      const top = triggerEl.getBoundingClientRect().top + triggerEl.getBoundingClientRect().height
+      dialog.dialogElement.style.left = left + 'px'
+      dialog.dialogElement.style.top = top + 'px'
+    }
     dialog.dialogElement.style.display = 'block'
   }
 
-  registerDialog(dialog: Dialog): void {
-    this.dialogs.push(dialog)
+  private getViewportWidth() {
+    return Math.max(document.documentElement.clientWidth, window.innerWidth || 0)
   }
-
 }

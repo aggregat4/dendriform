@@ -17,6 +17,7 @@ import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientStateManager } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
 import { TreeActionRegistry, importOpmlAction } from './tree-actionregistry'
+import { Dialogs, Dialog } from './dialogs'
 
 customElements.define('tree-node-menu', TreeNodeMenu)
 customElements.define('tree-node-menuitem', TreeNodeMenuItem)
@@ -33,6 +34,7 @@ export class Tree implements CommandExecutor {
   private readonly transientStateManager = new TransientStateManager()
   private treeNodeMenu: TreeNodeMenu = null
   private treeActionContext: TreeActionContext = null
+  private dialogs: Dialogs = null
 
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
@@ -55,7 +57,7 @@ export class Tree implements CommandExecutor {
     this.el.addEventListener('click', this.onClick.bind(this))
     this.el.addEventListener('paste', this.onPaste.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
-    document.addEventListener('click', this.onDocumentClick.bind(this))
+    // document.addEventListener('click', this.onDocumentClick.bind(this))
 
     this.transientStateManager.registerSelectionChangeHandler()
     this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.commandHandler)
@@ -66,6 +68,9 @@ export class Tree implements CommandExecutor {
     // opmlImportMenuItem.treeAction = importOpmlAction
     // opmlImportMenuItem.treeActionContext = this.treeActionContext
     this.treeNodeMenu = new TreeNodeMenu([opmlImportMenuItem])
+    this.el.appendChild(this.treeNodeMenu)
+    this.dialogs = new Dialogs(this.el as HTMLElement)
+    this.dialogs.registerDialog(new Dialog('menuTrigger', this.treeNodeMenu))
   }
 
   loadNode(nodeId: string): Promise<any> {
@@ -140,37 +145,7 @@ export class Tree implements CommandExecutor {
         event.preventDefault()
         TreeNode.startEditingNote(noteElement as HTMLElement)
       }
-    } else if (isMenuTriggerElement(clickedElement)) {
-      this.showMenu(clickedElement)
     }
-  }
-
-  private onDocumentClick(event: Event): void {
-    this.dismissMenuIfNeeded(event)
-  }
-
-  private dismissMenuIfNeeded(event: Event): void {
-    const clickedElement = event.target as Element
-    if (this.transientStateManager.getShownMenuTrigger() &&
-        (!isMenuTriggerElement(clickedElement) || this.transientStateManager.getShownMenuTrigger() !== clickedElement) &&
-        (!isInMenuElement(clickedElement) || (isCloseButton(clickedElement)))) {
-      // dismiss popup
-      this.transientStateManager.getShownMenuTrigger().setAttribute('aria-expanded', 'false')
-      this.transientStateManager.setShownMenuTrigger(null)
-      this.treeNodeMenu.style.display = 'none'
-    }
-  }
-
-  private showMenu(menuTrigger: Element): void {
-    if (menuTrigger === this.transientStateManager.getShownMenuTrigger()) {
-      return
-    }
-    this.transientStateManager.setShownMenuTrigger(menuTrigger)
-    menuTrigger.setAttribute('aria-expanded', 'true')
-    // We hang the popup window under the .nc parent of the menutrigger so it does
-    // not also disappear when the trigger disappears when not hovering over it
-    menuTrigger.parentElement.append(this.treeNodeMenu)
-    this.treeNodeMenu.style.display = 'block'
   }
 
   private onPaste(event: ClipboardEvent): void {

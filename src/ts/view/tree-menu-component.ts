@@ -1,7 +1,8 @@
 import { h } from '../lib/hyperscript.js'
 import { TreeAction, TreeActionContext } from './tree-actions'
+import { DialogElement } from './dialogs'
 
-export class TreeNodeMenu extends HTMLElement {
+export class TreeNodeMenu extends DialogElement {
   private closeButton: HTMLElement
 
   constructor(readonly menuItems: TreeNodeMenuItem[]) {
@@ -17,6 +18,10 @@ export class TreeNodeMenu extends HTMLElement {
         this.append(menuItem)
       }
     }
+  }
+
+  getCloseButton(): HTMLElement {
+    return this.closeButton
   }
 }
 
