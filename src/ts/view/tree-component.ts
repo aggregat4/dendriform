@@ -57,7 +57,6 @@ export class Tree implements CommandExecutor {
     this.el.addEventListener('click', this.onClick.bind(this))
     this.el.addEventListener('paste', this.onPaste.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
-    // document.addEventListener('click', this.onDocumentClick.bind(this))
 
     this.transientStateManager.registerSelectionChangeHandler()
     this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.commandHandler)
@@ -65,8 +64,6 @@ export class Tree implements CommandExecutor {
     // TODO: tree actions should have IDs, they are registered centrally and we should be able to look
     // them up so we can just reference them here instead of instantiating them
     const opmlImportMenuItem = new TreeNodeMenuItem(importOpmlAction, this.treeActionContext)
-    // opmlImportMenuItem.treeAction = importOpmlAction
-    // opmlImportMenuItem.treeActionContext = this.treeActionContext
     this.treeNodeMenu = new TreeNodeMenu([opmlImportMenuItem])
     this.el.appendChild(this.treeNodeMenu)
     this.dialogs = new Dialogs(this.el as HTMLElement)
