@@ -55,9 +55,19 @@ export class Dialogs {
     }
   }
 
+  private dismissDialog(dialog: ActiveDialog): void {
+    dialog.trigger.setAttribute('aria-expanded', 'false')
+    dialog.dialog.dialogElement.style.display = 'none'
+    this.activeDialog = null
+  }
+
   private showDialog(dialog: Dialog, triggerEl: HTMLElement): void {
     this.setActiveDialog(new ActiveDialog(dialog, triggerEl))
-    // TODO: rest of activation logic
+    triggerEl.setAttribute('aria-expanded', 'true')
+    // TODO: clever dialog positioning, we're going to display it in fixed position
+    dialog.dialogElement.style.left = '0'
+    dialog.dialogElement.style.top = '0'
+    dialog.dialogElement.style.display = 'block'
   }
 
   registerDialog(dialog: Dialog): void {
