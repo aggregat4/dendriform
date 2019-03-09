@@ -1,5 +1,9 @@
 import { h } from '../lib/hyperscript.js'
 
+export class Position {
+  constructor(readonly x: number, readonly y: number) {}
+}
+
 export abstract class DialogElement extends HTMLElement {
   private closeButton: HTMLElement
 
@@ -9,7 +13,7 @@ export abstract class DialogElement extends HTMLElement {
 
   maybeInit(initCode: () => void) {
     if (!this.closeButton) {
-      this.setAttribute('class', 'popup menu')
+      this.setAttribute('class', 'dialog')
       this.closeButton = h('div.closeButton')
       this.append(this.closeButton)
       initCode()
@@ -47,11 +51,12 @@ export class Dialogs {
     this.dialogs.push(dialog)
   }
 
+  // always centered (for now)
   showTransientDialog(triggerElement: HTMLElement, dialogElement: DialogElement): void {
     if (this.isDialogActive()) {
       this.dismissDialog(this.getActiveDialog())
     }
-    this.showDialog(new Dialog(triggerElement, dialogElement), triggerElement)
+    this.showDialogCentered(new Dialog(triggerElement, dialogElement), triggerElement)
   }
 
   private onInRootClicked(event: Event) {
@@ -62,7 +67,7 @@ export class Dialogs {
         if (this.isDialogActive()) {
           return
         } else {
-          this.showDialog(dialog, clickedElement)
+          this.showDialogRelative(dialog, clickedElement)
         }
       }
     }
@@ -99,24 +104,45 @@ export class Dialogs {
     this.activeDialog = null
   }
 
-  private showDialog(dialog: Dialog, triggerEl: HTMLElement): void {
+  private showDialogRelative(dialog: Dialog, triggerEl: HTMLElement): void {
+    // TODO: clever dialog positioning, we're going to display it in fixed position
+    const left = triggerEl.getBoundingClientRect().left
+    const top = triggerEl.getBoundingClientRect().top + triggerEl.getBoundingClientRect().height
+    this.showDialogAtPos(dialog, triggerEl, new Position(left, top))
+  }
+
+  private showDialogAtPos(dialog: Dialog, triggerEl: HTMLElement, position: Position): void {
     this.setActiveDialog(new ActiveDialog(dialog, triggerEl))
     triggerEl.setAttribute('aria-expanded', 'true')
-    // TODO: clever dialog positioning, we're going to display it in fixed position
     if (this.getViewportWidth() < 576) {
       // this means we are fullscreen, no positioning necessary
       dialog.dialogElement.style.left = '0'
       dialog.dialogElement.style.top = '0'
     } else {
-      const left = triggerEl.getBoundingClientRect().left
-      const top = triggerEl.getBoundingClientRect().top + triggerEl.getBoundingClientRect().height
-      dialog.dialogElement.style.left = left + 'px'
-      dialog.dialogElement.style.top = top + 'px'
+      dialog.dialogElement.style.left = position.x + 'px'
+      dialog.dialogElement.style.top = position.y + 'px'
+    }
+    dialog.dialogElement.style.transform = 'none'
+    dialog.dialogElement.style.display = 'block'
+  }
+
+  private showDialogCentered(dialog: Dialog, triggerEl: HTMLElement): void {
+    this.setActiveDialog(new ActiveDialog(dialog, triggerEl))
+    triggerEl.setAttribute('aria-expanded', 'true')
+    if (this.getViewportWidth() < 576) {
+      // this means we are fullscreen, no positioning necessary
+      dialog.dialogElement.style.left = '0'
+      dialog.dialogElement.style.top = '0'
+      dialog.dialogElement.style.transform = 'none'
     }
     dialog.dialogElement.style.display = 'block'
   }
 
   private getViewportWidth() {
     return Math.max(document.documentElement.clientWidth, window.innerWidth || 0)
+  }
+
+  private getViewportHeight() {
+    return Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
   }
 }
