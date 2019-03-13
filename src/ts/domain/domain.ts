@@ -15,12 +15,16 @@ function nodeIsDeleted(node: RepositoryNode): boolean { return node.deleted && n
 
 export function nodeIsNotDeleted(node: RepositoryNode): boolean { return !nodeIsDeleted(node) }
 
-export function createNewRepositoryNode(id: string, name: string): RepositoryNode {
+export function createNewRepositoryNodeWithContent(id: string, name: string, content: string): RepositoryNode {
   return {
     _id: id,
     name,
-    content: null,
+    content,
   }
+}
+
+export function createNewRepositoryNode(id: string, name: string): RepositoryNode {
+  return createNewRepositoryNodeWithContent(id, name, null)
 }
 
 export interface ResolvedRepositoryNode {
@@ -28,11 +32,15 @@ export interface ResolvedRepositoryNode {
   children: ResolvedRepositoryNode[],
 }
 
-export function createNewResolvedRepositoryNode(id: string, name: string): ResolvedRepositoryNode {
+export function createNewResolvedRepositoryNodeWithContent(id: string, name: string, content: string): ResolvedRepositoryNode {
   return {
-    node: createNewRepositoryNode(id, name),
+    node: createNewRepositoryNodeWithContent(id, name, content),
     children: [],
   }
+}
+
+export function createNewResolvedRepositoryNode(id: string, name: string): ResolvedRepositoryNode {
+  return createNewResolvedRepositoryNodeWithContent(id, name, null)
 }
 
 export interface Filter {

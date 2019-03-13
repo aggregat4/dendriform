@@ -5,11 +5,14 @@ export interface CommandHandler {
   exec(command: Command): Promise<any>
 }
 
-interface CommandPayload {
+export interface CommandPayload {
   inverse(): CommandPayload,
   requiresRender(): boolean
 }
 
+// TODO: consider whether it is worth using a discriminated union type instead of
+// subtypes for the CommandPayload, it would theoretically allow for exhaustiveness
+// checks when switching on it. Probably not worth the effort though.
 export class Command {
   constructor(
     readonly payload: CommandPayload,
@@ -203,4 +206,19 @@ export class UpdateNoteByIdCommandPayload implements CommandPayload {
   }
 
   requiresRender() { return false }
+}
+
+export class CreateChildNodeCommandPayload implements CommandPayload {
+  constructor(
+    readonly nodeId: string,
+    readonly name: string,
+    readonly note: string,
+    readonly parentId: string,
+  ) {}
+
+  inverse() {
+    return new DeleteNodeByIdCommandPayload(this.nodeId)
+  }
+
+  requiresRender() { return true }
 }

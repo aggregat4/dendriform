@@ -553,3 +553,7 @@ Started implementation of a dialog manager.
 Implemented a dialog system that works quite well. This now pulls all the specific logic out of the tree-component. This also means we are now fixed positioning the dialogs (since we can't "know" about the local DOM structure anymore) but that seems fine. Positioning the dialog should definitely be smarter for constrained screen sizes but we'll tackle that some other time.
 
 Started the OPML import menu, need to debug the transient popup dialog showing.
+
+## 9.3.2019
+
+Transient dialogs work, keeping dialog elements in body works better. Now to implement the OPML import itself.

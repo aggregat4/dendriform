@@ -8,6 +8,8 @@ import {LocalEventLog} from './eventlog/eventlog-local'
 import {RemoteEventLog } from './remote/eventlog-remote'
 import {EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
+// DOM initialisation functions that requre the mounted DOM node
+import {init as opmlInit} from './view/action-opmlimport'
 
 /*
  * This file wires everything together for the dendriform tree.
@@ -15,7 +17,6 @@ import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregis
 
 const localEventLog = new LocalEventLog('dendriform-eventlog')
 const remoteEventLog = new RemoteEventLog('/', 'dendriform-eventlog')
-
 const eventPump = new EventPump(localEventLog, remoteEventLog)
 
 const treePromise = localEventLog.init()
@@ -49,6 +50,7 @@ export function updateTree(nodeId: string) {
  * Make sure to call mountTree only when DOMContentLoaded.
  * @param el The element to mount the tree component to.
  */
-export function mountTree(el: Element): void {
+export function mountTree(el: HTMLElement): void {
+  opmlInit(el)
   treePromise.then(tree => mount(el, tree))
 }

@@ -171,4 +171,10 @@ export class TreeService {
   subscribeToChanges(parentNodeId: string, nodeChangeListener: (nodeId: string) => void): Subscription {
     return this.repo.subscribeToChanges(parentNodeId, nodeChangeListener)
   }
+
+  createChildNode(childId: string, childName: string, childNote: string, parentId: string): Promise<any> {
+    return this.repo.createNode(childId, childName, childNote)
+      .then(() => this.repo.reparentNode(childId, parentId, { beforeOrAfter: RelativeLinearPosition.END }))
+  }
+
 }

@@ -1,6 +1,6 @@
 import {
   RelativeLinearPosition,
-  createNewResolvedRepositoryNode,
+  createNewResolvedRepositoryNodeWithContent,
 } from '../domain/domain'
 import { filterNode } from '../domain/domain-search'
 import {
@@ -15,6 +15,7 @@ import {
   SplitNodeByIdCommandPayload,
   UndeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
+  CreateChildNodeCommandPayload,
 } from '../commands/commands'
 import {MergeNameOrder} from '../service/service'
 import {TreeNode} from './node-component'
@@ -62,15 +63,17 @@ export class DomCommandHandler implements CommandHandler {
       // nothing to do, the command should trigger a rerender
     } else if (cmd instanceof UpdateNoteByIdCommandPayload) {
       this.domUpdateNote(document.getElementById(cmd.nodeId), cmd.newNote)
+    } else if (cmd instanceof CreateChildNodeCommandPayload) {
+      this.domCreateChildNode(cmd.nodeId, cmd.name, cmd.note, document.getElementById(cmd.parentId))
     } else {
       throw new Error(`Unknown Command for DomCommandHandler: ${typeof command.payload}}`)
     }
     return Promise.resolve()
   }
 
-  domMergeNodes(sourceNode: Element, sourceNodeName: string,
-                targetNode: Element, targetNodeName: string,
-                mergeNameOrder: MergeNameOrder): void {
+  private domMergeNodes(sourceNode: Element, sourceNodeName: string,
+                        targetNode: Element, targetNodeName: string,
+                        mergeNameOrder: MergeNameOrder): void {
     // DOM Handling
     // 1. rename targetnode to be targetnode.name + sourcenode.name
     // 2. move all children of sourcenode to targetnode (actual move, just reparent)
@@ -90,21 +93,26 @@ export class DomCommandHandler implements CommandHandler {
     sourceNode.remove()
   }
 
-  domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
-               newNodeId: string): void {
+  private domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
+                       newNodeId: string): void {
     this.domRenameNode(node, originalNodeName)
-    const newNode = createNewResolvedRepositoryNode(newNodeId, newNodeName)
-    const newSibling = new TreeNode()
-    newSibling.update(filterNode(newNode))
-    node.insertAdjacentElement('beforebegin', newSibling.getElement())
+    const newSiblingEl = this.createDomNode(newNodeId, newNodeName, null)
+    node.insertAdjacentElement('beforebegin', newSiblingEl)
   }
 
-  domRenameNode(node: Element, newName: string) {
+  private createDomNode(id: string, name: string, note: string): Element {
+    const newNode = createNewResolvedRepositoryNodeWithContent(id, name, note)
+    const newTreeNode = new TreeNode()
+    newTreeNode.update(filterNode(newNode))
+    return newTreeNode.getElement()
+  }
+
+  private domRenameNode(node: Element, newName: string) {
     getNameElement(node).textContent = newName
   }
 
-  domReparentNode(node: Element, newParentNode: Element,
-                  relativeNode: Element, relativePosition: RelativeLinearPosition): void {
+  private domReparentNode(node: Element, newParentNode: Element,
+                          relativeNode: Element, relativePosition: RelativeLinearPosition): void {
     const parentChildrenNode = getChildrenElementOrCreate(newParentNode)
     if (relativePosition === RelativeLinearPosition.BEGINNING) {
       parentChildrenNode.insertBefore(node, parentChildrenNode.firstChild)
@@ -119,7 +127,7 @@ export class DomCommandHandler implements CommandHandler {
     }
   }
 
-  domOpenNode(node: Element): void {
+  private domOpenNode(node: Element): void {
     if (node.classList.contains('closed')) {
       // sadly classList.replace is not widely implemented yet
       node.classList.remove('closed')
@@ -127,7 +135,7 @@ export class DomCommandHandler implements CommandHandler {
     }
   }
 
-  domCloseNode(node: Element): void {
+  private domCloseNode(node: Element): void {
     if (node.classList.contains('open')) {
       // sadly classList.replace is not widely implemented yet
       node.classList.remove('open')
@@ -135,11 +143,16 @@ export class DomCommandHandler implements CommandHandler {
     }
   }
 
-  domDeleteNode(node: Element): void {
+  private domDeleteNode(node: Element): void {
     node.remove()
   }
 
-  domUpdateNote(node: Element, note: string): void {
+  private domUpdateNote(node: Element, note: string): void {
     getNoteElement(node).innerHTML = note
+  }
+
+  private domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): void {
+    const newNode = this.createDomNode(childId, childName, childNote)
+    parentNode.appendChild(newNode)
   }
 }
