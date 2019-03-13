@@ -145,7 +145,7 @@ export function init(rootElement: HTMLElement) {
 function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
   console.log(`clicked on OPML import action`)
   const clickedElement = event.target as HTMLElement
-  const nodeElement = getClosestNodeElement(clickedElement)
+  const nodeElement = getClosestNodeElement(clickedElement) as HTMLElement
   // since the dialog is already on the page we need to set the correct context for the current action
   opmlImportMenu.setTreeActionContext(treeActionContext)
   opmlImportMenu.setActionNode(nodeElement)
