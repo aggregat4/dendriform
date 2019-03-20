@@ -14,7 +14,7 @@ import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
 import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
-import { CommandExecutor, TransientStateManager } from './tree-helpers'
+import { CommandExecutor, TransientState } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
 import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog } from './dialogs'
@@ -32,7 +32,7 @@ export class Tree implements CommandExecutor {
   private content: TreeNode
   private searchField
   private treeChangeSubscription: Subscription
-  private readonly transientStateManager = new TransientStateManager()
+  private readonly transientStateManager = new TransientState()
   private treeNodeMenu: TreeNodeMenu = null
   private treeActionContext: TreeActionContext = null
   private dialogs: Dialogs = null
@@ -127,7 +127,10 @@ export class Tree implements CommandExecutor {
 
   private onClick(event: Event): void {
     const clickedElement = event.target as Element
-    if (isToggleElement(clickedElement)) {
+    if (isMenuTriggerElement(clickedElement)) {
+      const node = getClosestNodeElement(clickedElement)
+      this.transientStateManager.setActiveNodeId(getNodeId(node))
+    } else if (isToggleElement(clickedElement)) {
       event.preventDefault()
       // NOTE: we can use the getNodeForNameElement function even though this is the
       // collapseElement because they are siblings

@@ -22,6 +22,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. BUG: OPML import: the selected file keeps getting cached and shows up in the dialog again, and we should trigger import on clicking an import button
 1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?
 1. Implement a TreeAction registry (now inside of the tree-component) that can be queried by ID or other things so we can reuse them for other purposes, like say for a keyboard shortcut help, or for a treenode menu
 1. Implement import of some standard format via file upload (probably at least the workflowy opml?)

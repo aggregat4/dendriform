@@ -7,7 +7,7 @@ export interface CommandExecutor {
   performWithoutDom(command: Command)
 }
 
-export class TransientStateManager {
+export class TransientState {
   // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
   readonly transientState = {
     // previous node state so we can undo correctly, this is separate from the actual focus and char pos we want
@@ -17,6 +17,7 @@ export class TransientStateManager {
     focusNodePreviousPos: -1,
     currentMenuShownTriggerElement: null,
   }
+  private activeNodeId: string = null
 
   savePreviousNodeState(nodeId: string, nodeName: string, nodeNote: string, focusPos: number): void {
     this.transientState.focusNodePreviousId = nodeId
@@ -31,23 +32,25 @@ export class TransientStateManager {
     document.addEventListener('selectionchange', this.selectionChangeHandler.bind(this))
   }
 
-  getShownMenuTrigger(): Element {
-    return this.transientState.currentMenuShownTriggerElement
-  }
-
-  setShownMenuTrigger(element: Element): void {
-    this.transientState.currentMenuShownTriggerElement = element
-  }
-
   private selectionChangeHandler(event: Event): void {
-    if (document.activeElement && isNameNode(document.activeElement)) {
-      const activeNode = getClosestNodeElement(document.activeElement)
-      this.savePreviousNodeState(
-        getNodeId(activeNode),
-        getNodeName(activeNode),
-        getNodeNote(activeNode),
-        getCursorPos())
+    if (document.activeElement) {
+      if (isNameNode(document.activeElement)) {
+        const activeNode = getClosestNodeElement(document.activeElement)
+        this.savePreviousNodeState(
+          getNodeId(activeNode),
+          getNodeName(activeNode),
+          getNodeNote(activeNode),
+          getCursorPos())
+      }
     }
+  }
+
+  getActiveNodeId(): string {
+    return this.activeNodeId
+  }
+
+  setActiveNodeId(nodeId: string): void {
+    this.activeNodeId = nodeId
   }
 
   getState() {

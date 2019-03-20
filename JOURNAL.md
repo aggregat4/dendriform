@@ -563,3 +563,13 @@ Transient dialogs work, keeping dialog elements in body works better. Now to imp
 OPML action is more or less implemented, but untested and there is no error handling.
 
 I introduced a new Command for this: CreateChildNode, that creates a node, makes it a child of the given parent and hangs it at the end of the child list. This seemed like the better solution than to artificially split the current parent node, reparent the new node and then modify that node. This keeps the number of events down and makes this more efficient in general.
+
+## 20.3.2019
+
+First successfull import of OPML. Now the interaction needs to be better:
+
+* validation output for the import
+* need a separate import button
+* the file selection can not stay persistent after import (reset values after import)
+* test dynalist OPML
+* test large OPML

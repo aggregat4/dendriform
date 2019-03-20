@@ -20,7 +20,6 @@ class OpmlImportDialog extends DialogElement {
   private treeActionContext: TreeActionContext
   private errorElement: HTMLElement
   private successElement: HTMLElement
-  private actionNode: HTMLElement
 
   constructor() {
     super()
@@ -40,10 +39,6 @@ class OpmlImportDialog extends DialogElement {
     })
   }
 
-  setActionNode(node: HTMLElement): void {
-    this.actionNode = node
-  }
-
   private handleFiles(event: Event): void {
     const files: FileList = (event.target as any).files as FileList
     if (files.length > 0) {
@@ -51,7 +46,7 @@ class OpmlImportDialog extends DialogElement {
       reader.onload = (e) => {
         const doc = this.parseXML(reader.result as string)
         const rootNodes = this.opmlDocumentToRepositoryNodes(doc)
-        const parentId = getNodeId(this.actionNode)
+        const parentId = this.treeActionContext.transientStateManager.getActiveNodeId()
         for (const node of rootNodes) {
           this.createNode(this.treeActionContext.commandExecutor, node, parentId)
         }
@@ -84,11 +79,12 @@ class OpmlImportDialog extends DialogElement {
    * and export them) and this is also supported.
    */
   opmlDocumentToRepositoryNodes(doc: Document): ResolvedRepositoryNode[] {
-    if (doc.getRootNode().nodeName !== 'OPML') {
+    const opmlRootNode = doc.getRootNode().firstChild
+    if (!opmlRootNode || opmlRootNode.nodeName.toUpperCase() !== 'OPML') {
       throw new Error(`Document is not OPML, root element is called ${doc.getRootNode().nodeName}`)
     }
     const bodyEl: Element = doc.querySelector('body')
-    const rootOutlines = bodyEl.getElementsByTagName('outline')
+    const rootOutlines = this.childElementsByName(bodyEl, 'outline')
     if (!rootOutlines || rootOutlines.length === 0) {
       throw new Error('OPML document is empty')
     }
@@ -102,15 +98,19 @@ class OpmlImportDialog extends DialogElement {
     return repositoryNodes
   }
 
+  private childElementsByName(el: Element, name: string): Element[] {
+    return Array.from(el.children).filter(c => c.nodeName.toUpperCase() === name.toUpperCase())
+  }
+
   opmlOutlineNodeToRepositoryNode(outlineEl: Element): ResolvedRepositoryNode {
-    if (outlineEl.tagName !== 'OUTLINE') {
+    if (outlineEl.tagName.toUpperCase() !== 'OUTLINE') {
       return null
     }
     const repoNode = createNewResolvedRepositoryNodeWithContent(
       generateUUID(),
       outlineEl.getAttribute('text'),
       outlineEl.getAttribute('_note'))
-    const children = outlineEl.getElementsByTagName('outline')
+    const children = this.childElementsByName(outlineEl, 'outline')
     for (const child of children) {
       repoNode.children.push(this.opmlOutlineNodeToRepositoryNode(child))
     }
@@ -145,9 +145,7 @@ export function init(rootElement: HTMLElement) {
 function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
   console.log(`clicked on OPML import action`)
   const clickedElement = event.target as HTMLElement
-  const nodeElement = getClosestNodeElement(clickedElement) as HTMLElement
   // since the dialog is already on the page we need to set the correct context for the current action
   opmlImportMenu.setTreeActionContext(treeActionContext)
-  opmlImportMenu.setActionNode(nodeElement)
   treeActionContext.dialogs.showTransientDialog(clickedElement, opmlImportMenu)
 }
