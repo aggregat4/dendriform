@@ -16,7 +16,8 @@ export const importOpmlAction = new TreeAction(
   'Import OPML')
 
 class OpmlImportDialog extends DialogElement {
-  private uploadButton: HTMLElement
+  private uploadButton: HTMLInputElement
+  private importButton: HTMLInputElement
   private treeActionContext: TreeActionContext
   private errorElement: HTMLElement
   private successElement: HTMLElement
@@ -31,17 +32,35 @@ class OpmlImportDialog extends DialogElement {
       // <input type="file" id="input" onchange="handleFiles(this.files)">
       this.errorElement = h('div.error', 'error')
       this.successElement = h('div.success', 'success')
-      this.uploadButton = h('input.uploadOpml', {type: 'file'}, 'Upload OPML')
-      this.append(this.errorElement)
-      this.append(this.successElement)
-      this.append(this.uploadButton)
-      this.uploadButton.addEventListener('change', this.handleFiles.bind(this), false)
+      this.uploadButton = h('input.uploadOpml', {type: 'file'}, 'Select OPML File')
+      this.importButton = h('button.import', {disabled: true}, 'Import File')
+      const wrapper = h('section',
+        h('header', h('h1', 'Import OPML')),
+        this.errorElement,
+        this.successElement,
+        this.uploadButton,
+        this.importButton)
+      this.append(wrapper)
+      this.uploadButton.addEventListener('change', this.handleFilesChanged.bind(this), false)
+      this.uploadButton.addEventListener('click', this.importFile.bind(this), false)
     })
   }
 
-  private handleFiles(event: Event): void {
+  destroy(): void {
+    this.uploadButton.value = null
+    this.importButton.disabled = true
+  }
+
+  private handleFilesChanged(event: Event): void {
     const files: FileList = (event.target as any).files as FileList
-    if (files.length > 0) {
+    if (files && files.length > 0) {
+      this.importButton.disabled = false
+    }
+  }
+
+  private importFile(event: Event): void {
+    const files: FileList = (event.target as any).files as FileList
+    if (files && files.length > 0) {
       const reader = new FileReader()
       reader.onload = (e) => {
         const doc = this.parseXML(reader.result as string)
@@ -135,7 +154,8 @@ const opmlImportMenu = new OpmlImportDialog()
 // A general init function (that we probably need for each component) to make sure
 // it can register custom elements and can put things under the root DOM node (for
 // dialogs for example)
-export function init(rootElement: HTMLElement) {
+// TODO: do we like this? We need something like it but can we make it more general?
+export function init(rootElement: Element) {
   rootElement.appendChild(opmlImportMenu)
 }
 

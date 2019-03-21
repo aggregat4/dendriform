@@ -14,6 +14,16 @@
   padding-left: 6ch;
 }
 
+.tree button,
+.tree input[type=file] {
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 6px 12px 6px 12px;
+  border: none;
+  background: #e0e1e2 none;
+  color: rgba(0,0,0,.6);
+}
+
 .breadcrumbs {
   padding: 0 6px 0 6px;
   margin: 6px 0 12px 0;
@@ -247,18 +257,6 @@
   font-size: 1.5rem;
 }
 
-tree-opmlimport-dialog {
-  width: 300px;
-}
-
-tree-opmlimport-dialog .error {
-  color: red;
-}
-
-tree-opmlimport-dialog .success {
-  color: green;
-}
-
 .closeButton::before {
   content: '✕';
 }
@@ -275,6 +273,33 @@ tree-opmlimport-dialog .success {
 .menuItem:hover {
   background-color: var(--highlight-bgcolor);
   cursor: pointer;
+}
+
+.dialog header h1 {
+  font-size: 1.5rem;
+  font-weight: normal;
+}
+
+tree-opmlimport-dialog {
+  width: 300px;
+}
+
+tree-opmlimport-dialog .error {
+  color: red;
+  display: none;
+}
+
+tree-opmlimport-dialog .success {
+  color: green;
+  display: none;
+}
+
+tree-opmlimport-dialog div.error,
+tree-opmlimport-dialog div.success,
+tree-opmlimport-dialog input.uploadOpml,
+tree-opmlimport-dialog button.import,
+tree-opmlimport-dialog h1 {
+  margin: 6px 12px 6px 12px;
 }
 
 /* From Bootstrap: https://getbootstrap.com/docs/4.3/layout/overview/#responsive-breakpoints */

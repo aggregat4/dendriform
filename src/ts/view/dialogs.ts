@@ -11,12 +11,12 @@ export abstract class DialogElement extends HTMLElement {
     super()
   }
 
-  maybeInit(initCode: () => void) {
+  maybeInit(initializer: () => void) {
     if (!this.closeButton) {
       this.setAttribute('class', 'dialog')
       this.closeButton = h('div.closeButton')
       this.append(this.closeButton)
-      initCode()
+      initializer()
     }
   }
 
@@ -24,6 +24,9 @@ export abstract class DialogElement extends HTMLElement {
     return this.closeButton
   }
 
+  destroy(): void {
+    // NOOP
+  }
 }
 
 export type DialogTrigger = string | HTMLElement
@@ -99,6 +102,7 @@ export class Dialogs {
   }
 
   private dismissDialog(dialog: ActiveDialog): void {
+    dialog.dialog.dialogElement.destroy()
     dialog.trigger.setAttribute('aria-expanded', 'false')
     dialog.dialog.dialogElement.style.display = 'none'
     this.activeDialog = null

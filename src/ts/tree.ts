@@ -51,6 +51,8 @@ export function updateTree(nodeId: string) {
  * @param el The element to mount the tree component to.
  */
 export function mountTree(el: HTMLElement): void {
-  opmlInit(el)
-  treePromise.then(tree => mount(el, tree))
+  treePromise.then(tree => {
+    mount(el, tree)
+    opmlInit(tree.getTreeElement())
+  })
 }

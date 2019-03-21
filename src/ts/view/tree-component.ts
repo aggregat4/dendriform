@@ -71,6 +71,10 @@ export class Tree implements CommandExecutor {
     this.dialogs.registerDialog(new Dialog('menuTrigger', this.treeNodeMenu))
   }
 
+  getTreeElement(): Element {
+    return this.el
+  }
+
   loadNode(nodeId: string): Promise<any> {
     if (this.treeChangeSubscription) {
       this.treeChangeSubscription.cancel()
