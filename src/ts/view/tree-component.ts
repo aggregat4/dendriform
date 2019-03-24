@@ -29,6 +29,7 @@ export class Tree implements CommandExecutor {
   private el: Element
   private contentEl: Element
   private breadcrumbsEl: Element
+  private dialogOverlayEl: Element
   private content: TreeNode
   private searchField
   private treeChangeSubscription: Subscription
@@ -46,7 +47,8 @@ export class Tree implements CommandExecutor {
           this.searchButton = el('button', 'Filter')) */
         this.searchField = el('input', {type: 'search', placeholder: 'Filter'})),
       this.breadcrumbsEl = el('div.breadcrumbs'),
-      this.contentEl = el('div.content', el('div.error', `Loading tree...`)))
+      this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
+      this.dialogOverlayEl = el('div.dialogOverlay'))
     // We need to bind the event handlers to the class otherwise the scope is the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
@@ -60,7 +62,7 @@ export class Tree implements CommandExecutor {
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
 
     this.transientStateManager.registerSelectionChangeHandler()
-    this.dialogs = new Dialogs(this.el as HTMLElement)
+    this.dialogs = new Dialogs(this.el as HTMLElement, this.dialogOverlayEl as HTMLElement)
     this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.commandHandler, this.dialogs)
     // this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
     // TODO: tree actions should have IDs, they are registered centrally and we should be able to look
@@ -192,6 +194,8 @@ export class Tree implements CommandExecutor {
     this.commandHandler.exec(command)
   }
 
+  private readonly debouncedRerender = debounce(this.rerenderTree, 5000).bind(this)
+
   performWithDom(command: Command): void {
     if (command) {
       this.domCommandHandler.exec(command)
@@ -201,7 +205,9 @@ export class Tree implements CommandExecutor {
       // to focus afterwards, we need to be careful to do this after having loaded
       // the tree
       if (command.payload.requiresRender()) {
-        commandPromise.then(this.rerenderTree.bind(this)).then(() => {
+        // if it is a batch command we don't want to immediately rerender
+        const renderFunction = command.batch ? this.debouncedRerender : this.rerenderTree.bind(this)
+        commandPromise.then(renderFunction).then(() => {
           if (command.afterFocusNodeId) {
             this.focus(command.afterFocusNodeId, command.afterFocusPos)
           }

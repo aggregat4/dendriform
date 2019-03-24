@@ -153,6 +153,7 @@ export class DomCommandHandler implements CommandHandler {
 
   private domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): void {
     const newNode = this.createDomNode(childId, childName, childNote)
-    parentNode.appendChild(newNode)
+    const parentChildrenNode = getChildrenElementOrCreate(parentNode)
+    parentChildrenNode.appendChild(newNode)
   }
 }

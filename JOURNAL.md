@@ -573,3 +573,15 @@ First successfull import of OPML. Now the interaction needs to be better:
 * the file selection can not stay persistent after import (reset values after import)
 * test dynalist OPML
 * test large OPML
+
+## 24.3.2019
+
+Made the opml import dialog more useful, still missing validation messages.
+
+Tested import of opml files with larger sets of data, including more thatn 10 000 nodes of my work workflowy. Got the client side rendering fixed to allow for very quick insertion. The insertion into the eventlog now also finishes, but takes long time. Client side is crazy fast.
+
+Remove some console.debugs from inner storage loops, but I think we need to start optimising storage. At the very least get the UUIDs out of there.
+
+Inserting individual events and directly garbage collecting them is also nasty. What can we optimise?
+
+At the very least we need something that watchs the event queue and prevents closing the window as long as it is not empty.

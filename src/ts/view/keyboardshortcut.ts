@@ -170,13 +170,22 @@ export class KeyboardEventTrigger {
     if (this.targetFilter && !this.targetFilter.matches(event.target as Element)) {
       return false
     }
-    const kbdEvent = event as KeyboardEvent
-    for (const shortcut of this.shortcuts) {
-      if (this.doesKeyMatch(shortcut.key, kbdEvent) && this.doModifiersMatch(shortcut.modifiers, kbdEvent)) {
-        return true
-      }
+    switch (type) {
+      case KbdEventType.Keydown:
+      case KbdEventType.Keypress:
+        const kbdEvent = event as KeyboardEvent
+        for (const shortcut of this.shortcuts) {
+          if (this.doesKeyMatch(shortcut.key, kbdEvent) && this.doModifiersMatch(shortcut.modifiers, kbdEvent)) {
+            return true
+          }
+        }
+        return false
+      case KbdEventType.Input:
+        return true // if something listens on input it always triggers
+      default:
+        console.log(`Unexpected event type ${type} which is not handled by our shortcut system!`)
+        return false
     }
-    return false
   }
 
   private doesKeyMatch(key: KbdKey | KbdCode, event: KeyboardEvent): boolean {

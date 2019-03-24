@@ -44,6 +44,8 @@ export class EventlogRepository implements Repository {
       // TODO: this is not great: we rebuild the maps, then subscribe and theoretically we could get
       // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
       // would mean delaying the inital map construction for too long...
+      // TODO: also this is the only subscriber at the moment, we already filter by originator,
+      // but if a ton of remote events would come in we are fucked
       this.eventLog.subscribe({
         notify: this.eventLogListener.bind(this),
         filter: (event) => event.originator !== this.eventLog.getPeerId() })

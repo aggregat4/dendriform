@@ -121,7 +121,7 @@ export class LocalEventLog implements DEventSource, DEventLog {
       return Promise.resolve()
     }
     try {
-      console.debug(`Inserting events into local log`)
+      // console.debug(`Inserting events into local log`)
       let eventCounter = -1
       for (const event of events) {
         eventCounter = await this.storeAndGarbageCollect(event)
@@ -135,10 +135,11 @@ export class LocalEventLog implements DEventSource, DEventLog {
         this.counter = eventCounter
       }
       await this.saveMetadata()
-      window.setTimeout(() => {
-        console.debug(`Notifying subscribers`)
-        this.notifySubscribers(events)
-      }, 1)
+      this.notifySubscribers(events)
+      // window.setTimeout(() => {
+      //   console.debug(`Notifying subscribers`)
+      //   this.notifySubscribers(events)
+      // }, 1)
       return Promise.resolve()
     } catch (err) {
       // TODO: do something more clever with errors?
@@ -211,7 +212,10 @@ export class LocalEventLog implements DEventSource, DEventLog {
     for (const subscriber of this.subscribers) {
       const filteredEvents = events.filter((e) => subscriber.filter(e))
       if (filteredEvents.length > 0) {
-        subscriber.notify(filteredEvents)
+        window.setTimeout(() => {
+          // console.debug(`Notifying subscriber`)
+          subscriber.notify(filteredEvents)
+        }, 1)
       }
     }
   }
@@ -219,7 +223,6 @@ export class LocalEventLog implements DEventSource, DEventLog {
   private async storeAndGarbageCollect(event: DEvent): Promise<number> {
     const primaryKey = await this.store(event)
     await this.garbageCollect(event)
-    console.debug(`Finished storeAndGarbageCollect`)
     return primaryKey
   }
 

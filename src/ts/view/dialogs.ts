@@ -44,10 +44,12 @@ class ActiveDialog {
 export class Dialogs {
   private dialogs: Dialog[] = []
   private activeDialog: ActiveDialog = null
+  private overlay: HTMLElement = null
 
-  constructor(root: HTMLElement) {
+  constructor(root: HTMLElement, overlay: HTMLElement) {
     root.addEventListener('click', this.onInRootClicked.bind(this))
     document.addEventListener('click', this.onDocumentClicked.bind(this))
+    this.overlay = overlay
   }
 
   registerDialog(dialog: Dialog): void {
@@ -106,6 +108,7 @@ export class Dialogs {
     dialog.trigger.setAttribute('aria-expanded', 'false')
     dialog.dialog.dialogElement.style.display = 'none'
     this.activeDialog = null
+    this.overlay.style.display = 'none'
   }
 
   private showDialogRelative(dialog: Dialog, triggerEl: HTMLElement): void {
@@ -140,6 +143,7 @@ export class Dialogs {
       dialog.dialogElement.style.transform = 'none'
     }
     dialog.dialogElement.style.display = 'block'
+    this.overlay.style.display = 'block'
   }
 
   private getViewportWidth() {

@@ -2,7 +2,6 @@ import { h } from '../lib/hyperscript.js'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
 import { DialogElement } from './dialogs'
-import { getClosestNodeElement, getNodeId } from './tree-dom-util'
 import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent } from '../domain/domain'
 import { generateUUID } from '../util'
 import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/commands'
@@ -33,7 +32,7 @@ class OpmlImportDialog extends DialogElement {
       this.errorElement = h('div.error', 'error')
       this.successElement = h('div.success', 'success')
       this.uploadButton = h('input.uploadOpml', {type: 'file'}, 'Select OPML File')
-      this.importButton = h('button.import', {disabled: true}, 'Import File')
+      this.importButton = h('button.import.primary', {disabled: true}, 'Import File')
       const wrapper = h('section',
         h('header', h('h1', 'Import OPML')),
         this.errorElement,
@@ -42,7 +41,7 @@ class OpmlImportDialog extends DialogElement {
         this.importButton)
       this.append(wrapper)
       this.uploadButton.addEventListener('change', this.handleFilesChanged.bind(this), false)
-      this.uploadButton.addEventListener('click', this.importFile.bind(this), false)
+      this.importButton.addEventListener('click', this.importFile.bind(this), false)
     })
   }
 
@@ -59,7 +58,7 @@ class OpmlImportDialog extends DialogElement {
   }
 
   private importFile(event: Event): void {
-    const files: FileList = (event.target as any).files as FileList
+    const files: FileList = this.uploadButton.files as FileList
     if (files && files.length > 0) {
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -83,6 +82,7 @@ class OpmlImportDialog extends DialogElement {
     const command = new CommandBuilder(
       new CreateChildNodeCommandPayload(node.node._id, node.node.name, node.node.content, parentId))
       .isUndoable()
+      .isBatch()
       .build()
     commandExecutor.performWithDom(command)
     for (const childNode of node.children) {

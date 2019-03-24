@@ -8,6 +8,7 @@ export interface CommandHandler {
 export interface CommandPayload {
   inverse(): CommandPayload,
   requiresRender(): boolean
+  // idea: add notion of batch vs interactive, in batch case rerender is debounced?
 }
 
 // TODO: consider whether it is worth using a discriminated union type instead of
@@ -21,6 +22,7 @@ export class Command {
     public afterFocusNodeId: string = null,
     public afterFocusPos: number = -1,
     readonly undoable: boolean = false,
+    readonly batch: boolean = false,
   ) {}
 }
 
@@ -31,6 +33,7 @@ export class CommandBuilder {
   private afterFocusNodeId: string = null
   private afterFocusPos: number = -1
   private undoable: boolean = false
+  private batch: boolean = false
 
   constructor(payload: CommandPayload) {
     this.payload = payload
@@ -61,6 +64,11 @@ export class CommandBuilder {
     return this
   }
 
+  isBatch(): CommandBuilder {
+    this.batch = true
+    return this
+  }
+
   build(): Command {
     return new Command(
       this.payload,
@@ -69,6 +77,7 @@ export class CommandBuilder {
       this.afterFocusNodeId,
       this.afterFocusPos,
       this.undoable,
+      this.batch,
     )
   }
 }
@@ -220,5 +229,5 @@ export class CreateChildNodeCommandPayload implements CommandPayload {
     return new DeleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender() { return true }
+  requiresRender() { return false }
 }
