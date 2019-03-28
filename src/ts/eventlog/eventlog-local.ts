@@ -136,10 +136,6 @@ export class LocalEventLog implements DEventSource, DEventLog {
       }
       await this.saveMetadata()
       this.notifySubscribers(events)
-      // window.setTimeout(() => {
-      //   console.debug(`Notifying subscribers`)
-      //   this.notifySubscribers(events)
-      // }, 1)
       return Promise.resolve()
     } catch (err) {
       // TODO: do something more clever with errors?
