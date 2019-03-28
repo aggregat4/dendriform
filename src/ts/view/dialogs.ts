@@ -4,8 +4,11 @@ export class Position {
   constructor(readonly x: number, readonly y: number) {}
 }
 
+export type DialogCloseObserver = () => void
+
 export abstract class DialogElement extends HTMLElement {
   private closeButton: HTMLElement
+  private dialogCloseObserver: DialogCloseObserver = null
 
   constructor() {
     super()
@@ -26,6 +29,14 @@ export abstract class DialogElement extends HTMLElement {
 
   destroy(): void {
     // NOOP
+  }
+
+  protected close(): void {
+    this.dialogCloseObserver()
+  }
+
+  setDialogCloseObserver(dialogCloseObserver: DialogCloseObserver): void {
+    this.dialogCloseObserver = dialogCloseObserver
   }
 }
 
@@ -91,6 +102,7 @@ export class Dialogs {
       throw new Error(`Setting an active dialog when one is already active`)
     }
     this.activeDialog = activeDialog
+    this.activeDialog.dialog.dialogElement.setDialogCloseObserver(this.activeDialogCloseHandler.bind(this))
   }
 
   private onDocumentClicked(event: Event) {
@@ -105,6 +117,7 @@ export class Dialogs {
 
   private dismissDialog(dialog: ActiveDialog): void {
     dialog.dialog.dialogElement.destroy()
+    dialog.dialog.dialogElement.setDialogCloseObserver(null)
     dialog.trigger.setAttribute('aria-expanded', 'false')
     dialog.dialog.dialogElement.style.display = 'none'
     this.activeDialog = null
@@ -131,6 +144,10 @@ export class Dialogs {
     }
     dialog.dialogElement.style.transform = 'none'
     dialog.dialogElement.style.display = 'block'
+  }
+
+  private activeDialogCloseHandler(): void {
+    this.dismissDialog(this.getActiveDialog())
   }
 
   private showDialogCentered(dialog: Dialog, triggerEl: HTMLElement): void {

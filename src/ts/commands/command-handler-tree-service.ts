@@ -15,8 +15,9 @@ import {
   CreateChildNodeCommandPayload,
 } from './commands'
 import {TreeService} from '../service/tree-service'
+import { ActivityIndicating } from '../domain/domain'
 
-export class TreeServiceCommandHandler implements CommandHandler {
+export class TreeServiceCommandHandler implements CommandHandler, ActivityIndicating {
   // We are using a single threaded queue to serialize all updates to the repository,
   // this avoids concurrent updates that may overwhelm the persistent implementation
   // and it avoids correctness problems by out of order updates
@@ -27,6 +28,14 @@ export class TreeServiceCommandHandler implements CommandHandler {
   exec(command: Command): Promise<any> {
     const cmd = command.payload
     return this.queue.add(this.toAction(cmd))
+  }
+
+  isActive(): boolean {
+    return this.queue.size && this.queue.size > 0
+  }
+
+  getActivityTitle(): string {
+    return `Processing ${this.queue.size} queued commands...`
   }
 
   private toAction(cmd: CommandPayload): () => void {

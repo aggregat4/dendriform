@@ -24,10 +24,11 @@ const treePromise = localEventLog.init()
   .then(() => new EventlogRepository(localEventLog).init())
   .then(repository => {
     const treeService = new TreeService(repository)
-    const commandHandler = new UndoableCommandHandler(new TreeServiceCommandHandler(treeService))
+    const treeServiceCommandHandler = new TreeServiceCommandHandler(treeService)
+    const commandHandler = new UndoableCommandHandler(treeServiceCommandHandler)
     const treeActionRegistry = new TreeActionRegistry()
     registerTreeActions(treeActionRegistry)
-    const tree = new Tree(commandHandler, treeService, treeActionRegistry)
+    const tree = new Tree(commandHandler, treeService, treeActionRegistry, treeServiceCommandHandler)
     return tree
   })
 

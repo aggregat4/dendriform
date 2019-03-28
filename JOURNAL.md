@@ -585,3 +585,7 @@ Remove some console.debugs from inner storage loops, but I think we need to star
 Inserting individual events and directly garbage collecting them is also nasty. What can we optimise?
 
 At the very least we need something that watchs the event queue and prevents closing the window as long as it is not empty.
+
+## 28.3.2019
+
+Implemented an activity spinner that observes the queue of repository commands and spins when it is active. Styled it and did some tiny preliminary mobile styling. But there is a bunch left to do there.

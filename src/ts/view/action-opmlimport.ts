@@ -48,6 +48,10 @@ class OpmlImportDialog extends DialogElement {
   destroy(): void {
     this.uploadButton.value = null
     this.importButton.disabled = true
+    this.successElement.innerText = ''
+    this.successElement.style.display = 'none'
+    this.errorElement.innerText = ''
+    this.errorElement.style.display = 'none'
   }
 
   private handleFilesChanged(event: Event): void {
@@ -62,17 +66,24 @@ class OpmlImportDialog extends DialogElement {
     if (files && files.length > 0) {
       const reader = new FileReader()
       reader.onload = (e) => {
-        const doc = this.parseXML(reader.result as string)
-        const rootNodes = this.opmlDocumentToRepositoryNodes(doc)
-        const parentId = this.treeActionContext.transientStateManager.getActiveNodeId()
-        for (const node of rootNodes) {
-          this.createNode(this.treeActionContext.commandExecutor, node, parentId)
+        try {
+          const doc = this.parseXML(reader.result as string)
+          const rootNodes = this.opmlDocumentToRepositoryNodes(doc)
+          const parentId = this.treeActionContext.transientStateManager.getActiveNodeId()
+          for (const node of rootNodes) {
+            this.createNode(this.treeActionContext.commandExecutor, node, parentId)
+          }
+        } catch (error) {
+          console.error(error)
+          this.errorElement.style.display = 'block'
+          this.successElement.style.display = 'none'
+          this.errorElement.innerText = error.message
+          return
         }
-        // TODO:
-        // if success
-        //    show success message instead of upload component
-        // else if error
-        //    show error message above upload component
+        this.errorElement.style.display = 'none'
+        this.successElement.style.display = 'block'
+        this.successElement.innerText = 'Successfully imported OPML file'
+        this.close()
       }
       reader.readAsText(files[0])
     }
@@ -100,7 +111,7 @@ class OpmlImportDialog extends DialogElement {
   opmlDocumentToRepositoryNodes(doc: Document): ResolvedRepositoryNode[] {
     const opmlRootNode = doc.getRootNode().firstChild
     if (!opmlRootNode || opmlRootNode.nodeName.toUpperCase() !== 'OPML') {
-      throw new Error(`Document is not OPML, root element is called ${doc.getRootNode().nodeName}`)
+      throw new Error(`Document is not OPML, root element is called ${opmlRootNode.nodeName}`)
     }
     const bodyEl: Element = doc.querySelector('body')
     const rootOutlines = this.childElementsByName(bodyEl, 'outline')

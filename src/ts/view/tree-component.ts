@@ -3,7 +3,7 @@ import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
-import { FilteredRepositoryNode, LoadedTree, State, Subscription } from '../domain/domain'
+import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating } from '../domain/domain'
 import { filterNode } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
@@ -19,6 +19,7 @@ import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
 import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog } from './dialogs'
 import { importOpmlAction } from './action-opmlimport'
+import { ActivityIndicator } from './activity-indicator-component'
 
 customElements.define('tree-node-menu', TreeNodeMenu)
 customElements.define('tree-node-menuitem', TreeNodeMenuItem)
@@ -40,12 +41,14 @@ export class Tree implements CommandExecutor {
 
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
-  constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry) {
+  constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
+    const activityIndicator = new ActivityIndicator(activityIndicating, 1000)
     this.el = el('div.tree',
       el('div.searchbox',
         /* Removing the search button because we don't really need it. Right? Accesibility?
           this.searchButton = el('button', 'Filter')) */
-        this.searchField = el('input', {type: 'search', placeholder: 'Filter'})),
+        this.searchField = el('input', {type: 'search', placeholder: 'Filter'}),
+        activityIndicator),
       this.breadcrumbsEl = el('div.breadcrumbs'),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
       this.dialogOverlayEl = el('div.dialogOverlay'))

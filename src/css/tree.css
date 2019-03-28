@@ -12,7 +12,7 @@
   max-width: 75ch;
   /* This is a hack to make sure the controls are always visible, even when getting really narrow.
      This is stupid for mobile though since we lose all that space. Need a better solution. */
-  padding-left: 6ch;
+  padding-left: 5ch;
 }
 
 .tree input {
@@ -57,13 +57,16 @@
 }
 
 .searchbox {
-  padding: 0 6px 0 6px;
+  padding: 0;
   margin: 6px 0 12px 0;
+  /* Flex layout for the input field and the activity spinner */
+  display: flex;
 }
 
 /* TODO: This is some "fancy" search box styling, not sure I prefer this over standard */
 .searchbox input[type=search] {
-  width: 100%;
+  flex-grow: 1;
+  margin-right: 6px;
   border-width: 1px;
   border-radius: 3px;
   border-top: none;
@@ -84,8 +87,8 @@
   /* We need a longer line to hover over to show the node controls, including the whitespace
      to the left of the node so we add negative margin and fill it back up with padding so 
      the element is wider. */
-  margin-left: -6ch;
-  padding-left: 100px;
+  margin-left: -5ch;
+  padding-left: 5ch;
 }
 
 .node .nc:hover .toggle,
@@ -341,6 +344,47 @@ tree-opmlimport-dialog button.import,
 tree-opmlimport-dialog h1 {
   margin: 6px 12px 6px 12px;
 }
+
+/* Spinner Component */
+
+.spinner {
+  display: none;
+}
+
+.spinner,
+.spinner:after {
+  border-radius: 50%;
+  width: 1em;
+  height: 1em;
+}
+.spinner {
+  font-size: 10px;
+  position: relative;
+  text-indent: -9999em;
+  border-top: 0.5em solid rgba(0, 0, 0, 0.2);
+  border-right: 0.5em solid rgba(0, 0, 0, 0.2);
+  border-bottom: 0.5em solid rgba(0, 0, 0, 0.2);
+  border-left: 0.5em solid #ffffff;
+  transform: translateZ(0);
+  animation: load8 1.1s infinite linear;
+}
+@-webkit-keyframes load8 {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes load8 {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 
 /* From Bootstrap: https://getbootstrap.com/docs/4.3/layout/overview/#responsive-breakpoints */
 
