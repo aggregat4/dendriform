@@ -25,11 +25,16 @@ export class TreeService {
       })
   }
 
+  /**
+   * Initializing the empty tree performs all updates synchronously so that we can be sure
+   * the nodes exist when we return. Otherwise the caller may not known when to actually
+   * draw the tree.
+   */
   private initializeEmptyTree(): Promise<void> {
     const newId = generateUUID()
-    return this.repo.createNode('ROOT', 'ROOT', null)
-      .then(() => this.repo.createNode(newId, '', null))
-      .then(() => this.addChildToParent(newId, 'ROOT'))
+    return this.repo.createNode('ROOT', 'ROOT', null, true)
+      .then(() => this.repo.createNode(newId, '', null, true))
+      .then(() => this.repo.reparentNode(newId, 'ROOT', {beforeOrAfter: RelativeLinearPosition.END}, true))
   }
 
   // loads the node by id, renames it and then returns a Promise of a response when done
@@ -96,12 +101,6 @@ export class TreeService {
           throw new Error(`Node with id ${nodeId} does not exist`)
         }
       })
-  }
-
-  // Returns a promise of the parent node
-  private addChildToParent(childId: string, parentId: string): Promise<void> {
-    // console.log(`addChildToParent ${childId} -> ${parentId}`)
-    return this.repo.reparentNode(childId, parentId, {beforeOrAfter: RelativeLinearPosition.END})
   }
 
   openNode(nodeId: string): Promise<void> {

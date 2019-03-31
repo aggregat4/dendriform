@@ -3,6 +3,7 @@ import {DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooH
 import Dexie from 'dexie'
 import {generateUUID} from '../util'
 import {VectorClock} from '../lib/vectorclock'
+import { ActivityIndicating } from '../domain/domain'
 
 /**
  * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.
@@ -22,7 +23,7 @@ interface StoredEvent {
  *
  * TODO: do we need to make this multi document capable? Currently assumes one log, one document
  */
-export class LocalEventLog implements DEventSource, DEventLog {
+export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicating {
 
   readonly db: Dexie
   readonly name: string
@@ -32,6 +33,18 @@ export class LocalEventLog implements DEventSource, DEventLog {
   private subscribers: EventSubscriber[] = []
   private externalToInternalIdMap: Map<string, number>
   private internalToExternalIdMap: Map<number, string>
+  // event storage queue
+  private storageQueue: DEvent[] = []
+  private lastStorageTimestamp: number = 0
+  private readonly STORAGE_QUEUE_TIMEOUT_MS = 25
+  private readonly STORAGE_QUEUE_MAX_LATENCY_MS = 250
+  /**
+   * The max batch size until we start storing, or the value of events we drain from the queue
+   * if many more are available. 500 causes warning on the handler taking too long. This will
+   * be platform/device dependent therefore we should probably measure storage times and adapt
+   * this dynamically.
+   */
+  private readonly STORAGE_QUEUE_BATCH_SIZE = 200
   // DEBUG
   private lastStoreMeasurement: number = 0
   private storeCount: number = 0
@@ -55,6 +68,14 @@ export class LocalEventLog implements DEventSource, DEventLog {
     this.name = dbName
   }
 
+  isActive(): boolean {
+    return this.storageQueue.length > 0
+  }
+
+  getActivityTitle(): string {
+    return `Processing ${this.storageQueue.length} queued commands...`
+  }
+
   async init(): Promise<LocalEventLog> {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
@@ -64,7 +85,49 @@ export class LocalEventLog implements DEventSource, DEventLog {
     await this.db.open()
     await this.loadOrCreateMetadata()
     await this.loadPeerIdMapping()
+    await this.drainStorageQueue()
     return this
+  }
+
+  private async drainStorageQueue(force: boolean = false): Promise<any> {
+    const currentTime = Date.now()
+    const timeSinceLastStore = currentTime - this.lastStorageTimestamp
+    if (this.storageQueue.length > 0 &&
+        (force ||
+         this.storageQueue.length >= this.STORAGE_QUEUE_BATCH_SIZE ||
+         timeSinceLastStore > this.STORAGE_QUEUE_MAX_LATENCY_MS)) {
+      const drainedEvents = this.storageQueue.splice(0, this.STORAGE_QUEUE_BATCH_SIZE)
+      await this.storeEvents(drainedEvents)
+      this.lastStorageTimestamp = currentTime
+    }
+    window.setTimeout(this.drainStorageQueue.bind(this), this.STORAGE_QUEUE_TIMEOUT_MS)
+  }
+
+  private async storeEvents(events: DEvent[]): Promise<any> {
+    const eventCounter = await this.store(events)
+    // TODO: implement garbage collection somehow (what is efficient for bulk updates?)
+    // await this.garbageCollect(event)
+
+    // We only store the latest eventid as the new max counter if it is really
+    // higher than the current state. In case of concurrent updates to the db
+    // (for example a local insert and some remote server events) it may happen
+    // that the updates are interleaved and we need to check here whether we
+    // really do have the largest counter.
+    if (eventCounter > this.counter) {
+      this.counter = eventCounter
+    }
+    await this.saveMetadata()
+    this.notifySubscribers(events)
+    // DEBUG timing output
+    // TODO: put this in some metrics package with generic measurements so we can more easily instrument?
+    this.storeCount += events.length
+    const currentTime = Date.now()
+    const measuredTime = currentTime - this.lastStoreMeasurement
+    if (measuredTime > 5000) {
+      console.debug(`Store and GC event throughput: ${this.storeCount / (measuredTime / 1000)} per s`)
+      this.lastStoreMeasurement = currentTime
+      this.storeCount = 0
+    }
   }
 
   private loadOrCreateMetadata(): Promise<void> {
@@ -130,9 +193,9 @@ export class LocalEventLog implements DEventSource, DEventLog {
     return this.counter
   }
 
-  publish(type: EventType, nodeId: string, payload: EventPayloadType): Promise<any> {
+  publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean = false): Promise<any> {
     this.vectorClock.increment(this.peerId)
-    return this.insert([new DEvent(type, this.peerId, this.vectorClock, nodeId, payload)])
+    return this.insert([new DEvent(type, this.peerId, this.vectorClock, nodeId, payload)], synchronous)
   }
 
   /**
@@ -143,26 +206,15 @@ export class LocalEventLog implements DEventSource, DEventLog {
    *
    * @param events The events to persist and rebroadcast.
    */
-  async insert(events: DEvent[]): Promise<any> {
+  async insert(events: DEvent[], synchronous: boolean): Promise<any> {
     if (events.length === 0) {
       return Promise.resolve()
     }
     try {
-      // console.debug(`Inserting events into local log`)
-      let eventCounter = -1
-      for (const event of events) {
-        eventCounter = await this.storeAndGarbageCollect(event)
+      this.storageQueue.push(...events)
+      if (synchronous) {
+        await this.drainStorageQueue(true)
       }
-      // We only store the latest eventid as the new max counter if it is really
-      // higher than the current state. In case of concurrent updates to the db
-      // (for example a local insert and some remote server events) it may happen
-      // that the updates are interleaved and we need to check here whether we
-      // really do have the largest counter.
-      if (eventCounter > this.counter) {
-        this.counter = eventCounter
-      }
-      await this.saveMetadata()
-      this.notifySubscribers(events)
       return Promise.resolve()
     } catch (err) {
       // TODO: do something more clever with errors?
@@ -243,20 +295,6 @@ export class LocalEventLog implements DEventSource, DEventLog {
     }
   }
 
-  private async storeAndGarbageCollect(event: DEvent): Promise<number> {
-    this.storeCount++
-    const currentTime = Date.now()
-    const measuredTime = currentTime - this.lastStoreMeasurement
-    if (measuredTime > 5000) {
-      console.debug(`Store and GC event throughput: ${this.storeCount / (measuredTime / 1000)} per s`)
-      this.lastStoreMeasurement = currentTime
-      this.storeCount = 0
-    }
-    const primaryKey = await this.store(event)
-    await this.garbageCollect(event)
-    return primaryKey
-  }
-
   private findNextInternalId(): number {
     let largestId = 0
     for (const key of this.internalToExternalIdMap.keys()) {
@@ -316,16 +354,17 @@ export class LocalEventLog implements DEventSource, DEventLog {
   }
 
   // TODO: react to errors better!
-  private store(event: DEvent): Promise<number> {
+  private store(events: DEvent[]): Promise<number> {
     const table = this.db.table('eventlog')
     // console.debug(`Storing event at counter ${this.counter}`)
-    return table.put({
-      eventtype: event.type,
-      treenodeid: event.nodeId,
-      peerid: this.externalToInternalPeerId(event.originator),
-      vectorclock: this.externalToInternalVectorclock(event.clock),
-      payload: event.payload,
-    }).catch(error => console.error(`store error: `, error))
+    return table.bulkPut(events.map(e => {
+      return {
+        eventtype: e.type,
+        treenodeid: e.nodeId,
+        peerid: this.externalToInternalPeerId(e.originator),
+        vectorclock: this.externalToInternalVectorclock(e.clock),
+        payload: e.payload,
+      }})).catch(error => console.error(`store error: `, error))
   }
 
   private garbageCollect(event: DEvent): Promise<any> {

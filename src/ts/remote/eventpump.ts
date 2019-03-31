@@ -119,7 +119,7 @@ export class EventPump {
   private async drainRemoteEvents(): Promise<any> {
     const events = await this.remoteEventLog.getAllEventsSince(this.maxServerCounter, this.localEventLog.getPeerId())
     if (events.events.length > 0) {
-      await this.localEventLog.insert(events.events)
+      await this.localEventLog.insert(events.events, false)
       this.maxServerCounter = events.counter
       return this.saveMetadata()
     } else {

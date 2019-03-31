@@ -133,11 +133,12 @@ export class EventlogRepository implements Repository {
     }
   }
 
-  createNode(id: string, name: string, content: string): Promise<void> {
+  createNode(id: string, name: string, content: string, synchronous: boolean = false): Promise<void> {
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       id,
-      {name, note: content, deleted: false, collapsed: false})
+      {name, note: content, deleted: false, collapsed: false},
+      synchronous)
   }
 
   updateNode(node: RepositoryNode): Promise<void> {

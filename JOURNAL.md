@@ -595,3 +595,19 @@ Implemented an activity spinner that observes the queue of repository commands a
 I optimised storage of the events by converting UUIDs to numbers, but it did not get any faster to persist the work workflowy import. From the performance profile it seems like the storage is being done only every 10ms or so. I am guessing that maybe the queue that I'm using is responsible since it uses setInterval with a 0 timeout for popping things off the queue.
 
 I replaces the queueing with just executing the action directly, but now the events don't seem to get stored anymore? Strange.
+
+## 31.3.2019
+
+The eventlog has been optimised by replacing all incoming external peerIds with integers. So instead of a UUID we just store 0, 1 etc. This requires a mapping table that is persisted in indexeddb but will always remain small.
+
+Struggled with the performance of the eventlog storage and it was unclear where the performance limits came from. I was observing single event storage with 10ms to 15ms pauses.
+
+It turns out this was just the individual indexeddb stores. I implemented batching for the stores in the repository: now we store events when either a certain latency in ms is reached (we don't want to wait too long to store stuff so we can be sure to actually have it on reload) or when the queue has a certain minimum size.
+
+After tweaking the numbers a bit we now have phenomenal indexeddb throughput. Mere seconds to store all the events.
+
+Doing this async storage required another feature so the initial empty tree can be created, loaded and displayed. Changes to the repository can now be requested synchronously which will drain the queue immediately and wait for the result. So far this is only needed for the initial create and render.
+
+The pqueue from the command-handler-tree-service can now also be removed since the storage layer does the queueing.
+
+We now need a new approach for (async) garbage collection. When and how to execute it?

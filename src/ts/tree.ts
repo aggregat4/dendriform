@@ -28,7 +28,7 @@ const treePromise = localEventLog.init()
     const commandHandler = new UndoableCommandHandler(treeServiceCommandHandler)
     const treeActionRegistry = new TreeActionRegistry()
     registerTreeActions(treeActionRegistry)
-    const tree = new Tree(commandHandler, treeService, treeActionRegistry, treeServiceCommandHandler)
+    const tree = new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
     return tree
   })
 

@@ -66,7 +66,7 @@ export interface Events {
 }
 
 export interface DEventSource {
-  publish(type: EventType, nodeId: string, payload: EventPayloadType): Promise<any>
+  publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous?: boolean): Promise<any>
 }
 
 export type EventGcInclusionFilter = (newEventPayload: EventPayloadType, oldEventPayload: EventPayloadType) => boolean
@@ -77,7 +77,7 @@ export interface DEventLog extends DEventSource {
   // The logical name of the eventlog, for example 'dendriform-tree-structure-events'
   getName(): string,
   getCounter(): number,
-  insert(events: DEvent[]): Promise<EventLogCounter>
+  insert(events: DEvent[], synchronous: boolean): Promise<EventLogCounter>
   // TODO: consider returning a subscription that can be cancelled
   subscribe(subscriber: EventSubscriber): void
   /**
