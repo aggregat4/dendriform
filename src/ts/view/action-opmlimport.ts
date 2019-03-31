@@ -70,6 +70,8 @@ class OpmlImportDialog extends DialogElement {
           const doc = this.parseXML(reader.result as string)
           const rootNodes = this.opmlDocumentToRepositoryNodes(doc)
           const parentId = this.treeActionContext.transientStateManager.getActiveNodeId()
+          // disable import button to prevent duplicate clicks
+          this.importButton.disabled = true
           for (const node of rootNodes) {
             this.createNode(this.treeActionContext.commandExecutor, node, parentId)
           }

@@ -30,6 +30,11 @@ export class LocalEventLog implements DEventSource, DEventLog {
   private vectorClock: VectorClock
   private counter: number
   private subscribers: EventSubscriber[] = []
+  private externalToInternalIdMap: Map<string, number>
+  private internalToExternalIdMap: Map<number, string>
+  // DEBUG
+  private lastStoreMeasurement: number = 0
+  private storeCount: number = 0
 
   // For the child order event log we need a special garbage collection filter because
   // with logoot events for a sequence we don't just want to retain the newest event for each
@@ -54,9 +59,11 @@ export class LocalEventLog implements DEventSource, DEventLog {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
       eventlog: '++eventid,treenodeid', // see StoredEvent for schema
+      peerid_mapping: 'externalid', // columns: externalid, internalid
     })
     await this.db.open()
     await this.loadOrCreateMetadata()
+    await this.loadPeerIdMapping()
     return this
   }
 
@@ -89,6 +96,26 @@ export class LocalEventLog implements DEventSource, DEventLog {
     }
     return this.db.table('peer').put(metadata)
       .catch(error => console.error(`saveMetadata error: `, error))
+  }
+
+  private async loadPeerIdMapping() {
+    return this.db.table('peerid_mapping').toArray().then(mappings => {
+      this.externalToInternalIdMap = new Map()
+      this.internalToExternalIdMap = new Map()
+      for (const mapping of mappings) {
+        this.externalToInternalIdMap.set(mapping.externalid, mapping.internalid)
+        this.internalToExternalIdMap.set(mapping.internalid, mapping.externalid)
+      }
+    })
+  }
+
+  private async savePeerIdMapping() {
+    const mappings = []
+    for (const [key, value] of this.externalToInternalIdMap.entries()) {
+      mappings.push({externalid: key, internalid: value})
+    }
+    return this.db.table('peerid_mapping').bulkPut(mappings)
+      .catch(error => console.error(`savePeerIdMapping error: `, error))
   }
 
   getPeerId(): string {
@@ -149,7 +176,7 @@ export class LocalEventLog implements DEventSource, DEventLog {
   }
 
   private storedEventToDEventMapper(ev: StoredEvent): DEvent {
-    return new DEvent(ev.eventtype, ev.peerid, new VectorClock(ev.vectorclock), ev.treenodeid, ev.payload)
+    return new DEvent(ev.eventtype, this.internalToExternalPeerId(Number(ev.peerid)), this.internalToExternalVectorclock(ev.vectorclock), ev.treenodeid, ev.payload)
   }
 
   getEventsSince(eventTypes: EventType[], counter: number, peerId?: string): Promise<Events> {
@@ -182,7 +209,7 @@ export class LocalEventLog implements DEventSource, DEventLog {
         if (wasMaxCounterUpdated) {
           this.saveMetadata()
         }
-        return events.map(this.storedEventToDEventMapper)
+        return events.map(this.storedEventToDEventMapper.bind(this))
       })
       .then((events: DEvent[]) => ({counter: this.counter, events}))
   }
@@ -217,19 +244,86 @@ export class LocalEventLog implements DEventSource, DEventLog {
   }
 
   private async storeAndGarbageCollect(event: DEvent): Promise<number> {
+    this.storeCount++
+    const currentTime = Date.now()
+    const measuredTime = currentTime - this.lastStoreMeasurement
+    if (measuredTime > 5000) {
+      console.debug(`Store and GC event throughput: ${this.storeCount / (measuredTime / 1000)} per s`)
+      this.lastStoreMeasurement = currentTime
+      this.storeCount = 0
+    }
     const primaryKey = await this.store(event)
     await this.garbageCollect(event)
     return primaryKey
   }
 
+  private findNextInternalId(): number {
+    let largestId = 0
+    for (const key of this.internalToExternalIdMap.keys()) {
+      if (key > largestId) {
+        largestId = key
+      }
+    }
+    return largestId + 1
+  }
+
+  private externalToInternalPeerId(externalId: string): number {
+    const existingMapping = this.externalToInternalIdMap.get(externalId)
+    if (!existingMapping) {
+      const newInternalId = this.findNextInternalId()
+      this.externalToInternalIdMap.set(externalId, newInternalId)
+      this.internalToExternalIdMap.set(newInternalId, externalId)
+      this.savePeerIdMapping()
+      return newInternalId
+    } else {
+      return existingMapping
+    }
+  }
+
+  private internalToExternalPeerId(internalId: number): string {
+    const existingExternalId = this.internalToExternalIdMap.get(internalId)
+    if (!existingExternalId) {
+      throw Error(`Invalid internalId ${internalId}`)
+    } else {
+      return existingExternalId
+    }
+  }
+
+  /**
+   * @returns A vectorclock where all node ids have been mapped from external UUIDs to
+   * internal number ids. This never throws since an unknown nodeId is just added to the map.
+   */
+  private externalToInternalVectorclock(externalClock: VectorClock): VectorClock {
+    const externalValues = externalClock.values
+    const internalValues = {}
+    for (const externalNodeId of Object.keys(externalValues)) {
+      internalValues[this.externalToInternalPeerId(externalNodeId)] = externalValues[externalNodeId]
+    }
+    return new VectorClock(internalValues)
+  }
+
+  /**
+   * @returns A vectorclock where all node ids have been mapped from internal numbers to
+   * external UUIDs. This function throws when the internal id is unknown.
+   */
+  private internalToExternalVectorclock(internalClock: VectorClock): VectorClock {
+    const internalValues = internalClock.values
+    const externalValues = {}
+    for (const internalNodeId of Object.keys(internalValues)) {
+      externalValues[this.internalToExternalPeerId(Number(internalNodeId))] = internalValues[internalNodeId]
+    }
+    return new VectorClock(externalValues)
+  }
+
   // TODO: react to errors better!
   private store(event: DEvent): Promise<number> {
     const table = this.db.table('eventlog')
+    // console.debug(`Storing event at counter ${this.counter}`)
     return table.put({
       eventtype: event.type,
       treenodeid: event.nodeId,
-      peerid: event.originator,
-      vectorclock: event.clock,
+      peerid: this.externalToInternalPeerId(event.originator),
+      vectorclock: this.externalToInternalVectorclock(event.clock),
       payload: event.payload,
     }).catch(error => console.error(`store error: `, error))
   }

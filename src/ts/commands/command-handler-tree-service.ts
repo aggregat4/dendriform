@@ -21,13 +21,14 @@ export class TreeServiceCommandHandler implements CommandHandler, ActivityIndica
   // We are using a single threaded queue to serialize all updates to the repository,
   // this avoids concurrent updates that may overwhelm the persistent implementation
   // and it avoids correctness problems by out of order updates
-  private queue = new PQueue({concurrency: 1})
+  private queue = new PQueue({concurrency: 500})
 
   constructor(readonly treeService: TreeService) {}
 
   exec(command: Command): Promise<any> {
     const cmd = command.payload
     return this.queue.add(this.toAction(cmd))
+    // return Promise.resolve(this.toAction(cmd)())
   }
 
   isActive(): boolean {

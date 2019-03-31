@@ -589,3 +589,9 @@ At the very least we need something that watchs the event queue and prevents clo
 ## 28.3.2019
 
 Implemented an activity spinner that observes the queue of repository commands and spins when it is active. Styled it and did some tiny preliminary mobile styling. But there is a bunch left to do there.
+
+## 30.3.2019
+
+I optimised storage of the events by converting UUIDs to numbers, but it did not get any faster to persist the work workflowy import. From the performance profile it seems like the storage is being done only every 10ms or so. I am guessing that maybe the queue that I'm using is responsible since it uses setInterval with a 0 timeout for popping things off the queue.
+
+I replaces the queueing with just executing the action directly, but now the events don't seem to get stored anymore? Strange.
