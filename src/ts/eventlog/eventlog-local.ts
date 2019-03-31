@@ -17,6 +17,10 @@ interface StoredEvent {
   payload: EventPayloadType,
 }
 
+class GcCandidate {
+  constructor(readonly nodeId: string, readonly eventtype: EventType) {}
+}
+
 /**
  * An event log implementation for the client that uses IndexedDb as a persistent
  * store for its own metadata and its eventlog
@@ -45,23 +49,17 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
    * this dynamically.
    */
   private readonly STORAGE_QUEUE_BATCH_SIZE = 200
+  // garbage collection
+  private readonly GC_TIMEOUT_MS = 10000
+  private readonly GC_MAX_BATCH_SIZE = 500
+  /**
+   * An optimization to avoid doing gc when no changes were made: as soon as the current counter
+   * is higher than the last counter we do gc, otherwise we just sleep.
+   */
+  private lastGcCounter = -1
   // DEBUG
   private lastStoreMeasurement: number = 0
   private storeCount: number = 0
-
-  // For the child order event log we need a special garbage collection filter because
-  // with logoot events for a sequence we don't just want to retain the newest event for each
-  // parent, rather we need to retain the newest event for a particular child for that parent and
-  // additionally take into account the operation type. We need to retain the newest DELETE as well
-  // as INSERT operation so we can reliably rebuild the sequence
-  // TODO: unsure whether it is "ok" to have this hardcoded knowledge about LOGOOT and the childorder
-  // event log in this class. Alternatively we can define this somewhere else and inject a
-  // Map<EventType, EventGcInclusionFilter> in this class
-  private readonly LOGOOT_EVENT_GC_FILTER: EventGcInclusionFilter =
-  (newEventPayload: ReorderChildNodeEventPayload, oldEventPayload: ReorderChildNodeEventPayload) => {
-    return newEventPayload.childId === oldEventPayload.childId
-      && newEventPayload.operation === oldEventPayload.operation
-  }
 
   constructor(readonly dbName: string) {
     this.db = new Dexie(dbName)
@@ -85,10 +83,19 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     await this.db.open()
     await this.loadOrCreateMetadata()
     await this.loadPeerIdMapping()
+    // start async event storage
     await this.drainStorageQueue()
+    // start GC
+    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS);
     return this
   }
 
+  /**
+   * This method automatically reschedules itself to execute after this.STORAGE_QUEUE_TIMEOUT_MS.
+   *
+   * @param force Whether to force storage or not. When this is true and there are events in
+   * the queue, then they will be stored. Can be useful for implementing synchronous storage.
+   */
   private async drainStorageQueue(force: boolean = false): Promise<any> {
     const currentTime = Date.now()
     const timeSinceLastStore = currentTime - this.lastStorageTimestamp
@@ -105,9 +112,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
 
   private async storeEvents(events: DEvent[]): Promise<any> {
     const eventCounter = await this.store(events)
-    // TODO: implement garbage collection somehow (what is efficient for bulk updates?)
-    // await this.garbageCollect(event)
-
     // We only store the latest eventid as the new max counter if it is really
     // higher than the current state. In case of concurrent updates to the db
     // (for example a local insert and some remote server events) it may happen
@@ -127,6 +131,79 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       console.debug(`Store and GC event throughput: ${this.storeCount / (measuredTime / 1000)} per s`)
       this.lastStoreMeasurement = currentTime
       this.storeCount = 0
+    }
+  }
+
+  // TODO: would this not be a perfect use case for a webworker?
+  private async gc(): Promise<any> {
+    if (this.lastGcCounter < this.counter) {
+      const gcCandidates = await this.findGcCandidates()
+      const gcBatch = gcCandidates.splice(0, this.GC_MAX_BATCH_SIZE)
+      for (const candidate of gcBatch) {
+        await this.garbageCollect(candidate)
+      }
+      // if we were able to gc all candidates this round, set our counter variable to the current counter
+      // this allows us to skip gc when there is nothing to do
+      if (gcBatch.length === gcCandidates.length) {
+        this.lastGcCounter = this.counter
+      }
+    }
+    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS)
+  }
+
+  /**
+   * Goes through all stored events and counts how many events exist for a specific discriminator.
+   * A discriminator is typically nodeid+eventtype but some events may require a more specific
+   * discriminator.
+   * For all descriminators that occur more than once we have a garbage collection candidate and
+   * we just store the candidate in our list.
+   * TODO: not implement this with strings? Or is this the best choice since it is pragmatic?
+   */
+  private async findGcCandidates(): Promise<GcCandidate[]> {
+    const startOfGcFind = Date.now()
+    const table = this.db.table('eventlog')
+    const eventCounter = {}
+    const gcCandidates = []
+    // toArray() seems to be significantly (10x?) faster than .each() but
+    // it does load everything in memory, is this ok?
+    return table.toArray().then(events => {
+      for (const ev of events) {
+        const key = this.keyForEvent(ev)
+        eventCounter[key] = eventCounter[key] ? eventCounter[key] + 1 : 1
+      }
+    })
+    // table.each((storedEvent: StoredEvent) => {
+    //   const key = this.keyForEvent(storedEvent)
+    //   eventCounter[key] = eventCounter[key] ? eventCounter[key] + 1 : 1
+    // })
+    .then(() => {
+      const buildCounterTime = Date.now()
+      for (const key of Object.keys(eventCounter)) {
+        if (eventCounter[key] > 1) {
+          const firstIndexOfColon = key.indexOf(':')
+          const secondIndexOfColon = key.indexOf(':', firstIndexOfColon + 1)
+          gcCandidates.push(
+            new GcCandidate(
+              key.slice(0, firstIndexOfColon),
+              Number(key.slice(firstIndexOfColon + 1, secondIndexOfColon)),
+            ),
+          )
+        }
+      }
+      // TODO: move this into a generic metrics thing
+      console.debug(`Determined GC candidates in ${Date.now() - startOfGcFind}ms, about ${buildCounterTime - startOfGcFind}ms was needed to build the map`)
+      return gcCandidates
+    })
+  }
+
+  private keyForEvent(storedEvent: StoredEvent): string {
+    switch (storedEvent.eventtype) {
+      case EventType.ADD_OR_UPDATE_NODE:
+      case EventType.REPARENT_NODE: return `${storedEvent.treenodeid}:${storedEvent.eventtype}:`
+      case EventType.REORDER_CHILD: {
+        const payload = storedEvent.payload as ReorderChildNodeEventPayload
+        return `${storedEvent.treenodeid}:${storedEvent.eventtype}:${payload.childId}:${payload.operation}`
+      }
     }
   }
 
@@ -367,27 +444,55 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       }})).catch(error => console.error(`store error: `, error))
   }
 
-  private garbageCollect(event: DEvent): Promise<any> {
+  private garbageCollect(candidate: GcCandidate): Promise<any> {
     const table = this.db.table('eventlog')
-    return table.where('treenodeid').equals(event.nodeId)
+    return table.where('treenodeid').equals(candidate.nodeId)
       // TODO: (perf) make a compound key for treenodeid and eventtype so we can query directly for them
-      .and(storedEvent => storedEvent.eventtype === event.type).toArray()
+      .and(storedEvent => storedEvent.eventtype === candidate.eventtype).toArray()
       .then((nodeEvents: StoredEvent[]) => {
-        const eventsToDelete = this.findEventsToPrune(nodeEvents, event)
-        if (eventsToDelete.length > 0) {
-          // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
-          return table.bulkDelete(eventsToDelete.map((e) => e.eventid))
+        // based on the eventtype we may need to partition the events for a node even further
+        const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(nodeEvents, candidate.eventtype)
+        for (const pruneCandidates of arraysToPrune) {
+          const eventsToDelete = this.findEventsToPrune(pruneCandidates)
+          if (eventsToDelete.length > 0) {
+            // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
+            return table.bulkDelete(eventsToDelete.map((e) => e.eventid))
+          }
         }
       })
   }
 
-  private findEventsToPrune(events: StoredEvent[], newEvent: DEvent): StoredEvent[] {
-    if (events.length > 1) {
-      // if we have a garbagecollectionfilter set we need to remove all stored events that are not
-      // included by it (this is needed when the treenode itself is not sufficient for filtering)
-      if (newEvent.type === EventType.REORDER_CHILD) {
-        events = events.filter(ev => this.LOGOOT_EVENT_GC_FILTER(newEvent.payload, ev.payload))
+  // For the child order event log we need a special garbage collection filter because
+  // with logoot events for a sequence we don't just want to retain the newest event for each
+  // parent, rather we need to retain the newest event for a particular child for that parent and
+  // additionally take into account the operation type. We need to retain the newest DELETE as well
+  // as INSERT operation so we can reliably rebuild the sequence
+  private groupByEventTypeDiscriminator(nodeEvents: StoredEvent[], eventtype: EventType): StoredEvent[][] {
+    switch (eventtype) {
+      case EventType.ADD_OR_UPDATE_NODE:
+      case EventType.REPARENT_NODE: return [nodeEvents]
+      // LOGOOT sequences requires more specific partitioning, we need
+      // to further group by childid + operationid
+      case EventType.REORDER_CHILD: {
+        const reduced = nodeEvents.reduce((acc, val: StoredEvent) => {
+          const payload = (val.payload as ReorderChildNodeEventPayload)
+          const key = `${payload.childId}:${payload.operation}`; // semicolon necessary!
+          (acc[key] = acc[key] || []).push(val)
+          return acc
+        }, {})
+        // Object.values() is ES2017, I don't want to target
+        // ES2017 with typescript yet so therefore the workaround with keys
+        return Object.keys(reduced).map(key => reduced[key])
       }
+    }
+  }
+
+  /**
+   * Assumes that the provided stored events are all of the same logical type and that we can
+   * just sort causally and remove all precursor events.
+   */
+  private findEventsToPrune(events: StoredEvent[]): StoredEvent[] {
+    if (events.length > 1) {
       this.sortCausally(events)
       // remove the last element, which is also the newest event which we want to retain
       events.splice(-1 , 1)

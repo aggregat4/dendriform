@@ -611,3 +611,11 @@ Doing this async storage required another feature so the initial empty tree can 
 The pqueue from the command-handler-tree-service can now also be removed since the storage layer does the queueing.
 
 We now need a new approach for (async) garbage collection. When and how to execute it?
+
+Here's how we're going to do that:
+
+* keep a list of gc candidates, these are just the nodeids+eventtypes of the events that came in during storage
+
+* have a separate setTimeout method that regularly looks at the list, pops off a batch of N ids and performs the garbage collection on them
+
+* at the start of the program prefill this list with the ids of all events where more than one event exists for nodeid+eventtype
