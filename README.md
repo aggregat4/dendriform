@@ -22,6 +22,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. BUG: filtering is slow on large datasets, what part is it? the loading, the filtering or the drawing? I assume the loading. Is this even solvable?
 1. Implement progressive loading: cap initial load at at least 2 levels of nodes or max N nodes, whatever is the largest. Then load the rest in the background or on demand. Initial load of my work workflowy is almost too long.
 1. We need a database activity element (spinner like) and prevent window closure when active
 1. make sure that rerendertree is debounced for remote events

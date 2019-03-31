@@ -619,3 +619,9 @@ Here's how we're going to do that:
 * have a separate setTimeout method that regularly looks at the list, pops off a batch of N ids and performs the garbage collection on them
 
 * at the start of the program prefill this list with the ids of all events where more than one event exists for nodeid+eventtype
+
+## 31.3.2019 B
+
+Garbage collection now happens in the background and is semi-optimised.
+
+Now determined that search is slow as fuck when operating on the large datasets. I need to somehow determine what it is that is the slowest here. If the loading is slowest, which I suspect, then I don't know what we can do...
