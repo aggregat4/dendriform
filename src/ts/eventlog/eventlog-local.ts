@@ -86,7 +86,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     // start async event storage
     await this.drainStorageQueue()
     // start GC
-    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS);
+    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS)
     return this
   }
 
