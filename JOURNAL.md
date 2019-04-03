@@ -642,3 +642,4 @@ There are two further optimisations I can do:
 Implemented composite index on dexie for the loading all event types use case and loading performance has been increased. It takes about half or less the time than before.
 
 Next up: on demand rendering of child nodes.
+Next up: the event pump even when not able to reach the server is causing massive queries on the indexeddb locally since it tries to sync all the local events. Turn this off more intelligently?
