@@ -37,6 +37,10 @@ export class EventlogRepository implements Repository {
   private readonly debouncedNotifyNodeChangeSubscribers = debounce(this.notifyNodeChangeSubscribers.bind(this), 5000)
   private readonly debouncedRebuildAndNotify = debounce(this.rebuildAndNotify.bind(this), 5000)
 
+  // TODO: tweak this magic number
+  // this is the limit after which we will bulk load all nodes instead of loading a tree incrementally
+  private readonly MAX_NODES_TO_LOAD_INDIVIDUALLY = 500
+
   constructor(readonly eventLog: DEventLog) {}
 
   init(): Promise<EventlogRepository> {
@@ -288,9 +292,18 @@ export class EventlogRepository implements Repository {
     }
   }
 
+  /**
+   * This implementation decides based on the amount of nodes that are in the tree we are loading
+   * whether we can or should load it incrementally (node+children per node) or bulk load all
+   * nodes and create the tree from that. The latter is faster for very large subtrees but also
+   * very wasteful for small subtrees.
+   */
   async loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
     try {
-      const tree = await this.loadTreeNodeRecursively(nodeId, nodeFilter)
+      const amountOfNodesToLoad = this.determineAmountOfNodesToLoad(nodeId)
+      const tree = amountOfNodesToLoad < this.MAX_NODES_TO_LOAD_INDIVIDUALLY
+        ? await this.loadTreeNodeRecursively(nodeId, nodeFilter)
+        : await this.loadTreeBulk(nodeId, nodeFilter)
       const ancestors = await this.loadAncestors(nodeId, [])
       return { status: { state: State.LOADED }, tree, ancestors }
     } catch (reason) {
@@ -302,6 +315,41 @@ export class EventlogRepository implements Repository {
         return { status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } }
       }
     }
+  }
+
+  private determineAmountOfNodesToLoad(nodeId: string): number {
+    let childCount = 0
+    for (const childNodeId of this.getChildren(nodeId)) {
+      childCount += this.determineAmountOfNodesToLoad(childNodeId)
+    }
+    return 1 + childCount
+  }
+
+  private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode> {
+    const nodeEvents = await this.eventLog.getEventsSince([EventType.ADD_OR_UPDATE_NODE], -1)
+    const nodeMap: Map<string, RepositoryNode> = new Map()
+    for (const nodeEvent of nodeEvents.events) {
+      nodeMap.set(nodeEvent.nodeId, this.mapEventToRepositoryNode(nodeEvent.nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload))
+    }
+    return this.loadTreeNodeBulk(nodeId, nodeMap, nodeFilter)
+  }
+
+  private loadTreeNodeBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): ResolvedRepositoryNode {
+    const node = nodeMap.get(nodeId)
+    if (! node) {
+      throw new NodeNotFoundError(`Node not found in nodeMap with id ${nodeId}`)
+    }
+    if (! nodeFilter(node)) {
+      return null
+    }
+    const children = []
+    for (const childNodeId of this.getChildren(nodeId)) {
+      const childNode = this.loadTreeNodeBulk(childNodeId, nodeMap, nodeFilter)
+      if (childNode) { // node may have been filtered out, in that case omit
+        children.push(childNode)
+      }
+    }
+    return {node, children}
   }
 
   private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>):

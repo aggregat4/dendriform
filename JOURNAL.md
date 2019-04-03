@@ -625,3 +625,14 @@ Here's how we're going to do that:
 Garbage collection now happens in the background and is semi-optimised.
 
 Now determined that search is slow as fuck when operating on a large dataset. I need to somehow determine what it is that is the slowest here. If the loading is slowest, which I suspect, then I don't know what we can do...
+
+## 3.4.2019
+
+Optimised tree loading by introducing an alternate path that triggers from a certain amount of nodes that need to be loaded. It will load all node events from indexeddb and then create the tree by traversing the parentChildMap and getting nodes from that list.
+
+This speeds up full tree loading significantly, but for the 8000 work nodes this still means a little less than 2 seconds of loading the node events and 2 seconds rendering the entire thing.
+
+There are two further optimisations I can do:
+
+* Have a composite index with node events so I can filter by type (I only need a third of the 24000 events).
+* Have a clever approach where collapsed nodes are not actually rendered but we "just" store the child tree on that node and render it on demand when the node is opened. This would massively cut down on rendering trees that are not fully opened, which in reality is almost all of them.

@@ -22,16 +22,12 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. BUG: filtering is slow on large datasets, what part is it? the loading, the filtering or the drawing? I assume the loading. Is this even solvable?
-1. Implement progressive loading: cap initial load at at least 2 levels of nodes or max N nodes, whatever is the largest. Then load the rest in the background or on demand. Initial load of my work workflowy is almost too long.
-1. We need a database activity element (spinner like) and prevent window closure when active
+1. Implement composite index for node event retrieval in eventlog (id+type)
+1. Implement on-demand child node rendering for collapsed nodes (necessary)
+1. Filter on notes as well as on node names (or i this just the "bug" where notes are not expanded?)
 1. make sure that rerendertree is debounced for remote events
-1. we probably need async garbage collection for our events, this probably does not scale (we should already be able to deal with lists of events right? check!)
 1. Describe the architecture of the client: dependencies, external APIs, storage format, ...
-1. BUG: OPML import: the selected file keeps getting cached and shows up in the dialog again, and we should trigger import on clicking an import button
 1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?
-1. Implement a TreeAction registry (now inside of the tree-component) that can be queried by ID or other things so we can reuse them for other purposes, like say for a keyboard shortcut help, or for a treenode menu
-1. Implement import of some standard format via file upload (probably at least the workflowy opml?)
 1. Implement import by pasting into a text area.
 1. UI: This has to work on mobile, specifically in narrow columns. That means the popup must work, but also the controls for the node. And they need to work without hover. Also the menu on the nodes needs to be different, we lose too much horizontal space like this.
 1. Add server side admin UI (minimal, just delete log) and some form of authentication so I can set up a test server. Think about how to add admin UI and authentication to the server without adding it to the open source project. Just add it as a lib?
