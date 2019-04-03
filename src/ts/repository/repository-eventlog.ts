@@ -102,6 +102,7 @@ export class EventlogRepository implements Repository {
   private async rebuildTreeStructureMaps(): Promise<void> {
     const newChildParentMap = {}
     const newParentChildMap = {}
+    // TODO: perf, redo these in separate calls for each event type (faster because index)
     const events = await this.eventLog.getEventsSince([EventType.REPARENT_NODE, EventType.REORDER_CHILD], -1)
     events.events.forEach(event => {
       if (event.type === EventType.REPARENT_NODE) {

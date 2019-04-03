@@ -636,3 +636,9 @@ There are two further optimisations I can do:
 
 * Have a composite index with node events so I can filter by type (I only need a third of the 24000 events).
 * Have a clever approach where collapsed nodes are not actually rendered but we "just" store the child tree on that node and render it on demand when the node is opened. This would massively cut down on rendering trees that are not fully opened, which in reality is almost all of them.
+
+## 3.4.2019 B
+
+Implemented composite index on dexie for the loading all event types use case and loading performance has been increased. It takes about half or less the time than before.
+
+Next up: on demand rendering of child nodes.

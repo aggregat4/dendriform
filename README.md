@@ -22,9 +22,8 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. Implement composite index for node event retrieval in eventlog (id+type)
+1. BUG: when adding some nodes and reordering then reloading they get duplicated
 1. Implement on-demand child node rendering for collapsed nodes (necessary)
-1. Filter on notes as well as on node names (or i this just the "bug" where notes are not expanded?)
 1. make sure that rerendertree is debounced for remote events
 1. Describe the architecture of the client: dependencies, external APIs, storage format, ...
 1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?

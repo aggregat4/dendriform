@@ -77,7 +77,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   async init(): Promise<LocalEventLog> {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
-      eventlog: '++eventid,treenodeid', // see StoredEvent for schema
+      eventlog: '++eventid,eventtype,[eventtype+treenodeid]', // see StoredEvent for schema
       peerid_mapping: 'externalid', // columns: externalid, internalid
     })
     await this.db.open()
@@ -314,7 +314,11 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         ` but events were requested since ${counter}`)
     }
     const table = this.db.table('eventlog')
-    let query = table.where('eventid').above(counter).and(event => eventTypes.indexOf(event.eventtype) !== -1)
+    // Optimisation: in case this method gets called with one event type and -1 for a counter (all events)
+    // we choose a different more optimal query that uses the eventtype index
+    let query = eventTypes.length === 1 && counter < 0
+      ? table.where('eventtype').equals(eventTypes[0])
+      : table.where('eventid').above(counter).and(event => eventTypes.indexOf(event.eventtype) !== -1)
     if (peerId) {
       query = query.and(event => event.peerid === peerId)
     }
@@ -345,7 +349,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
 
   getNodeEvent(nodeId: string): Promise<DEvent> {
     const table = this.db.table('eventlog')
-    return table.where('treenodeid').equals(nodeId).and(event => event.eventtype === EventType.ADD_OR_UPDATE_NODE).toArray()
+    return table.where('[eventtype+treenodeid]').equals([EventType.ADD_OR_UPDATE_NODE, nodeId]).toArray()
       .then((events: StoredEvent[]) => {
         if (events.length === 0) {
           return null
@@ -446,9 +450,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
 
   private garbageCollect(candidate: GcCandidate): Promise<any> {
     const table = this.db.table('eventlog')
-    return table.where('treenodeid').equals(candidate.nodeId)
-      // TODO: (perf) make a compound key for treenodeid and eventtype so we can query directly for them
-      .and(storedEvent => storedEvent.eventtype === candidate.eventtype).toArray()
+    return table.where('[eventtype+treenodeid]').equals([candidate.eventtype, candidate.nodeId]).toArray()
       .then((nodeEvents: StoredEvent[]) => {
         // based on the eventtype we may need to partition the events for a node even further
         const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(nodeEvents, candidate.eventtype)
