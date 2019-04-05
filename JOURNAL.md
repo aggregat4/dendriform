@@ -643,3 +643,7 @@ Implemented composite index on dexie for the loading all event types use case an
 
 Next up: on demand rendering of child nodes.
 Next up: the event pump even when not able to reach the server is causing massive queries on the indexeddb locally since it tries to sync all the local events. Turn this off more intelligently?
+
+## 5.4.2019
+
+I implemented some half hearted async loading of children of collapsed nodes, but I'm getting confused with the order of things. It seems like the OpenNode command gets executed but the change to the collapsed state does not reach the eventlog before I start loading from it? Is there some place where the promise is lost somehow? Trace further with breakpoints in the eventlog publish call

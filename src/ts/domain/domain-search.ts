@@ -1,4 +1,4 @@
-import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode } from './domain'
+import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode, DeferredRepositoryNode } from './domain'
 
 // element is of type any because I could not find a good way to abstract all
 // the interfaces and mixins
@@ -37,11 +37,22 @@ function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
   }
 }
 
-export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
+export async function filterNode(node: DeferredRepositoryNode, filter?: Filter): Promise<FilteredRepositoryNode> {
+  return node.children
+    .then(children => children.map(c => filterNode(c, filter)))
+    .then(filteredChildren => new FilteredRepositoryNode(
+      node.node,
+      Promise.all(filteredChildren),
+      !!filter,
+      node.node.name ? filterHtml(node.node.name, filter) : null,
+      node.node.content ? filterHtml(node.node.content, filter) : null))
+}
+
+export function filterNodeSynchronous(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
   return new FilteredRepositoryNode(
-    node.node,
-    node.children.map(c => filterNode(c, filter)),
-    !!filter,
-    node.node.name ? filterHtml(node.node.name, filter) : null,
-    node.node.content ? filterHtml(node.node.content, filter) : null)
+      node.node,
+      Promise.resolve(node.children.map(c => filterNodeSynchronous(c, filter))),
+      !!filter,
+      node.node.name ? filterHtml(node.node.name, filter) : null,
+      node.node.content ? filterHtml(node.node.content, filter) : null)
 }

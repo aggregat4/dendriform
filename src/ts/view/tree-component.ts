@@ -98,7 +98,7 @@ export class Tree implements CommandExecutor {
     this.reloadTree(this.currentRootNodeId)
   }
 
-  update(tree: LoadedTree) {
+  async update(tree: LoadedTree) {
     setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
     if (tree.status.state === State.ERROR) {
       setChildren(this.contentEl,
@@ -115,7 +115,8 @@ export class Tree implements CommandExecutor {
       // and with patches
       this.content = new TreeNode(true)
       setChildren(this.contentEl, this.content)
-      this.content.update(this.getFilteredTree(tree))
+      const filteredTree = await this.getFilteredTree(tree)
+      this.content.update(filteredTree)
     }
   }
 
@@ -129,12 +130,12 @@ export class Tree implements CommandExecutor {
     }
   }
 
-  private getFilteredTree(tree: LoadedTree): FilteredRepositoryNode {
+  private getFilteredTree(tree: LoadedTree): Promise<FilteredRepositoryNode> {
     const doFilter = !isEmpty(this.searchField.value)
     return filterNode(tree.tree, doFilter ? {query: this.searchField.value} : undefined)
   }
 
-  private onClick(event: Event): void {
+  private async onClick(event: Event): Promise<void> {
     const clickedElement = event.target as Element
     if (isMenuTriggerElement(clickedElement)) {
       const node = getClosestNodeElement(clickedElement)
@@ -144,10 +145,20 @@ export class Tree implements CommandExecutor {
       // NOTE: we can use the getNodeForNameElement function even though this is the
       // collapseElement because they are siblings
       const node = getClosestNodeElement(clickedElement)
-      const payload = isNodeClosed(node)
+      const nodeClosed = isNodeClosed(node)
+      const payload = nodeClosed
         ? new OpenNodeByIdCommandPayload(getNodeId(node))
         : new CloseNodeByIdCommandPayload(getNodeId(node))
-      this.performWithDom(new CommandBuilder(payload).isUndoable().build())
+      await this.performWithDom(new CommandBuilder(payload).isUndoable().build())
+      if (nodeClosed) {
+        // When we open the node we need to load the subtree on demand
+        const nodeId = getNodeId(node)
+        const loadedTree = await this.treeService.loadTree(nodeId)
+        const filteredTree = await this.getFilteredTree(loadedTree)
+        const newOpenedNode = new TreeNode(false)// can it be that we update the first node? No it's always open (right?)
+        await newOpenedNode.update(filteredTree)
+        node.parentElement.replaceChild(newOpenedNode.getElement(), node)
+      }
     } else if (isInNoteElement(clickedElement)) {
       // for a note we need to take into account that a note may have its own markup (hence isInNoteElement)
       const noteElement = findNoteElementAncestor(clickedElement) as HTMLElement
@@ -199,10 +210,10 @@ export class Tree implements CommandExecutor {
 
   private readonly debouncedRerender = debounce(this.rerenderTree, 5000).bind(this)
 
-  performWithDom(command: Command): void {
+  performWithDom(command: Command): Promise<void> {
     if (command) {
-      this.domCommandHandler.exec(command)
-      const commandPromise = this.commandHandler.exec(command)
+      const commandPromise = this.domCommandHandler.exec(command)
+        .then(() => this.commandHandler.exec(command))
       // If a command requires a rerender this means we need to reload the tree
       // and then let Redom efficiently update all the nodes, however if we need
       // to focus afterwards, we need to be careful to do this after having loaded
@@ -216,10 +227,15 @@ export class Tree implements CommandExecutor {
           }
         })
       } else  {
-        if (command.afterFocusNodeId) {
-          this.focus(command.afterFocusNodeId, command.afterFocusPos)
-        }
+        commandPromise.then(() => {
+          if (command.afterFocusNodeId) {
+            this.focus(command.afterFocusNodeId, command.afterFocusPos)
+          }
+        })
       }
+      return commandPromise
+    } else {
+      return Promise.resolve()
     }
   }
 

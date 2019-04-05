@@ -1,8 +1,9 @@
 import {
   RelativeLinearPosition,
   createNewResolvedRepositoryNodeWithContent,
+  createNewDeferredRepositoryNodeWithContent,
 } from '../domain/domain'
-import { filterNode } from '../domain/domain-search'
+import { filterNode, filterNodeSynchronous } from '../domain/domain-search'
 import {
   CloseNodeByIdCommandPayload,
   Command,
@@ -103,7 +104,7 @@ export class DomCommandHandler implements CommandHandler {
   private createDomNode(id: string, name: string, note: string): Element {
     const newNode = createNewResolvedRepositoryNodeWithContent(id, name, note)
     const newTreeNode = new TreeNode()
-    newTreeNode.update(filterNode(newNode))
+    newTreeNode.update(filterNodeSynchronous(newNode))
     return newTreeNode.getElement()
   }
 
@@ -132,6 +133,7 @@ export class DomCommandHandler implements CommandHandler {
       // sadly classList.replace is not widely implemented yet
       node.classList.remove('closed')
       node.classList.add('open')
+      // update child tree with nodes
     }
   }
 

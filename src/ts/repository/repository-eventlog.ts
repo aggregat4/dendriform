@@ -3,7 +3,7 @@ import {Repository} from './repository'
 import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode, Subscription } from '../domain/domain'
+import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode, Subscription, DeferredRepositoryNode } from '../domain/domain'
 import { atomIdent } from '../lib/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 
@@ -305,6 +305,7 @@ export class EventlogRepository implements Repository {
       const tree = amountOfNodesToLoad < this.MAX_NODES_TO_LOAD_INDIVIDUALLY
         ? await this.loadTreeNodeRecursively(nodeId, nodeFilter)
         : await this.loadTreeBulk(nodeId, nodeFilter)
+      // const tree =  await this.loadTreeNodeRecursively(nodeId, nodeFilter)
       const ancestors = await this.loadAncestors(nodeId, [])
       return { status: { state: State.LOADED }, tree, ancestors }
     } catch (reason) {
@@ -326,7 +327,7 @@ export class EventlogRepository implements Repository {
     return 1 + childCount
   }
 
-  private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode> {
+  private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<DeferredRepositoryNode> {
     const nodeEvents = await this.eventLog.getEventsSince([EventType.ADD_OR_UPDATE_NODE], -1)
     const nodeMap: Map<string, RepositoryNode> = new Map()
     for (const nodeEvent of nodeEvents.events) {
@@ -335,7 +336,7 @@ export class EventlogRepository implements Repository {
     return this.loadTreeNodeBulk(nodeId, nodeMap, nodeFilter)
   }
 
-  private loadTreeNodeBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): ResolvedRepositoryNode {
+  private loadTreeNodeBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): DeferredRepositoryNode {
     const node = nodeMap.get(nodeId)
     if (! node) {
       throw new NodeNotFoundError(`Node not found in nodeMap with id ${nodeId}`)
@@ -343,26 +344,47 @@ export class EventlogRepository implements Repository {
     if (! nodeFilter(node)) {
       return null
     }
-    const children = []
+    if (node.collapsed) {
+      return {
+        node,
+        children: new Promise((resolve, reject) => {
+          resolve(this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter))
+        }),
+      }
+    } else {
+      const children = this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter)
+      return {node, children: Promise.resolve(children)}
+    }
+  }
+
+  private loadChildTreeNodesBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): DeferredRepositoryNode[] {
+    const children: DeferredRepositoryNode[] = []
     for (const childNodeId of this.getChildren(nodeId)) {
       const childNode = this.loadTreeNodeBulk(childNodeId, nodeMap, nodeFilter)
       if (childNode) { // node may have been filtered out, in that case omit
         children.push(childNode)
       }
     }
-    return {node, children}
+    return children
   }
 
   private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>):
-      Promise<ResolvedRepositoryNode> {
+      Promise<DeferredRepositoryNode> {
     const node = await this.loadNode(nodeId, nodeFilter)
     if (! node) {
       throw new NodeNotFoundError()
     }
-    // explicitly doing a Promise.all here to allow for parallel execution
-    // TODO: do we have an error here? Does not work?
-    const children = await Promise.all(this.getChildren(nodeId).map(childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<ResolvedRepositoryNode>>)
-    return {node, children}
+    if (node.collapsed) {
+      return {
+        node,
+        children: new Promise((resolve, reject) => {
+          resolve(Promise.all(this.getChildren(nodeId).map(childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<DeferredRepositoryNode>>))
+        }),
+      }
+    } else {
+      const children = await Promise.all(this.getChildren(nodeId).map(childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<DeferredRepositoryNode>>)
+      return { node, children: Promise.resolve(children) }
+    }
   }
 
   private getChildren(nodeId: string): string[] {

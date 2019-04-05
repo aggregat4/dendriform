@@ -101,6 +101,7 @@ export class EventPump {
    * @throws something on server contact failure
    */
   private async drainLocalEvents(): Promise<any> {
+/* TODO: TEMPORARY DISABLE
     const events: Events = await this.localEventLog.getEventsSince(ALL_EVENT_TYPES, this.maxLocalCounter, this.localEventLog.getPeerId())
     if (events.events.length > 0) {
       await this.remoteEventLog.publishEvents(events.events)
@@ -109,6 +110,7 @@ export class EventPump {
     } else {
       return Promise.resolve()
     }
+    */
   }
 
   /**

@@ -23,10 +23,10 @@ export class TreeNode {
       this.childList = list('div.children', TreeNode, n => n.node._id)) // key can be a lookup function (thanks finnish dude!)
   }
 
-  update(treeNode: FilteredRepositoryNode) {
+  async update(treeNode: FilteredRepositoryNode) {
     setAttr(this.el, {
       id: treeNode.node._id,
-      class: this.genClass(treeNode, this.first),
+      class: this.genClass(treeNode.node, this.first),
     })
     setChildren(this.ncEl,
       el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, '●'), // • = &#8226;, ● = BLACK CIRCLE, 25CF
@@ -34,7 +34,12 @@ export class TreeNode {
       el('span.toggle', { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰')) // trigram for heaven (U+2630)
-    this.childList.update(treeNode.children.filter(c => c.isIncluded()))
+    if (!treeNode.node.collapsed) {
+      const children = await treeNode.children
+      this.childList.update(children.filter(c => c.isIncluded()))
+    } else {
+      this.childList.update([]) // TODO: handler on uncollapse to render nodes
+    }
   }
 
   getElement(): Element {
@@ -45,9 +50,9 @@ export class TreeNode {
     return node._id === 'ROOT'
   }
 
-  private genClass(node: ResolvedRepositoryNode, isFirst: boolean): string {
-    return 'node' + (this.isRoot(node.node) ? ' root' : '') + (isFirst ? ' first' : '') +
-      (node.node.collapsed ? ' closed' : ' open')
+  private genClass(node: RepositoryNode, isFirst: boolean): string {
+    return 'node' + (this.isRoot(node) ? ' root' : '') + (isFirst ? ' first' : '') +
+      (node.collapsed ? ' closed' : ' open')
   }
 
   // install event handler to listen for escape (or backspace in the beginning when empty,

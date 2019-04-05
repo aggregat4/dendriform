@@ -39,8 +39,20 @@ export function createNewResolvedRepositoryNodeWithContent(id: string, name: str
   }
 }
 
+export function createNewDeferredRepositoryNodeWithContent(id: string, name: string, content: string): DeferredRepositoryNode {
+  return {
+    node: createNewRepositoryNodeWithContent(id, name, content),
+    children: Promise.resolve([]),
+  }
+}
+
 export function createNewResolvedRepositoryNode(id: string, name: string): ResolvedRepositoryNode {
   return createNewResolvedRepositoryNodeWithContent(id, name, null)
+}
+
+export interface DeferredRepositoryNode {
+  node: RepositoryNode
+  children: Promise<DeferredRepositoryNode[]>
 }
 
 export interface Filter {
@@ -62,14 +74,15 @@ export class FilteredRepositoryNode {
 
   constructor(
     readonly node: RepositoryNode,
-    readonly children: FilteredRepositoryNode[],
+    readonly children: Promise<FilteredRepositoryNode[]>,
     readonly filterApplied: boolean,
     readonly filteredName: FilteredFragment,
     readonly filteredNote: FilteredFragment) {}
 
-  isIncluded(): boolean {
+  async isIncluded(): Promise<boolean> {
     if (this.areAnyChildrenIncluded === undefined) {
-      this.areAnyChildrenIncluded = !!findFirst(this.children, (c) => c.isIncluded())
+      const resolvedChildren = await this.children
+      this.areAnyChildrenIncluded = !!findFirst(resolvedChildren, (c) => c.isIncluded())
     }
     return !this.filterApplied
       || (this.filteredName && this.filteredName.containsFilterHit)
@@ -92,7 +105,7 @@ export interface Status {
 
 export interface LoadedTree {
   status: Status
-  tree?: ResolvedRepositoryNode
+  tree?: DeferredRepositoryNode
   ancestors?: RepositoryNode[]
 }
 
