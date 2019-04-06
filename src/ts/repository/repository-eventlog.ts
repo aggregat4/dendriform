@@ -138,7 +138,7 @@ export class EventlogRepository implements Repository {
     }
   }
 
-  createNode(id: string, name: string, content: string, synchronous: boolean = false): Promise<void> {
+  createNode(id: string, name: string, content: string, synchronous: boolean): Promise<void> {
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       id,
@@ -146,7 +146,7 @@ export class EventlogRepository implements Repository {
       synchronous)
   }
 
-  updateNode(node: RepositoryNode): Promise<void> {
+  updateNode(node: RepositoryNode, synchronous: boolean): Promise<void> {
     if (!!node.deleted) {
       // here we assume the node just got deleted, this is not necessarily correct, one could
       // also update a node that was already deleted but doing it twice doesn't hurt? And we
@@ -155,26 +155,27 @@ export class EventlogRepository implements Repository {
       if (! parentId) {
         throw new Error(`Parent not known for node ${node._id} therefore can not delete this node`)
       }
-      this.deleteNode(node._id, parentId, true)
+      this.deleteNode(node._id, parentId, true, synchronous)
     }
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
-      {name: node.name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed})
+      {name: node.name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed},
+      synchronous)
   }
 
   // implNote: We ONLY publish an INSERT event when the parent hasn't changed, this DEPENDS on the fact that
   // eventlogs will garbage collect older insert events in the same sequence, if this is not the
   // case then we would need to publish a delete event before this
-  async reparentNode(childId: string, parentId: string, position: RelativeNodePosition): Promise<void> {
+  async reparentNode(childId: string, parentId: string, position: RelativeNodePosition, synchronous: boolean): Promise<void> {
     const oldParentId = this.childParentMap[childId]
     if (oldParentId) {
       if (oldParentId !== parentId) {
         // publish a delete event on the old parent if there was a different old parent
-        await this.deleteNode(childId, oldParentId, true)
+        await this.deleteNode(childId, oldParentId, true, synchronous)
       } else {
         // don't publish the delete event when just moving an element under the same parent
-        await this.deleteNode(childId, oldParentId, false)
+        await this.deleteNode(childId, oldParentId, false, synchronous)
       }
     }
     const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
@@ -187,7 +188,7 @@ export class EventlogRepository implements Repository {
     seq.insertAtAtomIdent(childId, insertionAtomIdent)
     if (oldParentId !== parentId) {
       // publish a reparent event when we have a new parent
-      await this.eventLog.publish(EventType.REPARENT_NODE, childId, { parentId })
+      await this.eventLog.publish(EventType.REPARENT_NODE, childId, { parentId }, synchronous)
     }
     // publish insert reorder event on new parent
     return this.eventLog.publish(
@@ -198,10 +199,11 @@ export class EventlogRepository implements Repository {
         position: insertionAtomIdent,
         childId,
         parentId,
-      })
+      },
+      synchronous)
   }
 
-  private deleteNode(childId: string, parentId: string, publishEvent: boolean): Promise<void> {
+  private deleteNode(childId: string, parentId: string, publishEvent: boolean, synchronous: boolean): Promise<void> {
     // delete the child at the old parent
     const seq: LogootSequenceWrapper<string> = this.parentChildMap[parentId]
     if (seq) {
@@ -222,7 +224,8 @@ export class EventlogRepository implements Repository {
               position: deletionAtomIdent,
               childId,
               parentId,
-            })
+            },
+            synchronous)
         } else {
           return Promise.resolve()
         }

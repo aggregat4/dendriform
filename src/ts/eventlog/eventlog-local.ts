@@ -270,7 +270,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     return this.counter
   }
 
-  publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean = false): Promise<any> {
+  publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any> {
     this.vectorClock.increment(this.peerId)
     return this.insert([new DEvent(type, this.peerId, this.vectorClock, nodeId, payload)], synchronous)
   }

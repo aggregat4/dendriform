@@ -647,3 +647,11 @@ Next up: the event pump even when not able to reach the server is causing massiv
 ## 5.4.2019
 
 I implemented some half hearted async loading of children of collapsed nodes, but I'm getting confused with the order of things. It seems like the OpenNode command gets executed but the change to the collapsed state does not reach the eventlog before I start loading from it? Is there some place where the promise is lost somehow? Trace further with breakpoints in the eventlog publish call
+
+## 6.4.2019
+
+On demand loading of nodes when opening collapsed ones has been implemented. This required pulling the notion of synchronous updates up to the command creation. This way we can require a particular update (say the opening of a node) to be synchronous so that we can immediately load its children and we are sure that the node will be in the correct collapsed state.
+
+This synchronous flag does not look nice in all the method calls though, but I'm not sure how to make that better.
+
+I think we are very close to optimal performance now but it is still unclear what strategy we should use to load the nodes themselves: do we stay with the heuristic that chooses bulk loading or incremental loading like we have now? To what values should we tweak the threshold?

@@ -23,6 +23,7 @@ export class Command {
     public afterFocusPos: number = -1,
     readonly undoable: boolean = false,
     readonly batch: boolean = false,
+    readonly synchronous: boolean = false,
   ) {}
 }
 
@@ -33,7 +34,9 @@ export class CommandBuilder {
   private afterFocusNodeId: string = null
   private afterFocusPos: number = -1
   private undoable: boolean = false
+  // TODO: verify whether we still need this
   private batch: boolean = false
+  private synchronous: boolean = false
 
   constructor(payload: CommandPayload) {
     this.payload = payload
@@ -69,6 +72,11 @@ export class CommandBuilder {
     return this
   }
 
+  isSynchronous(): CommandBuilder {
+    this.synchronous = true
+    return this
+  }
+
   build(): Command {
     return new Command(
       this.payload,
@@ -78,6 +86,7 @@ export class CommandBuilder {
       this.afterFocusPos,
       this.undoable,
       this.batch,
+      this.synchronous,
     )
   }
 }

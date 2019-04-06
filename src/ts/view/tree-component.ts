@@ -149,7 +149,11 @@ export class Tree implements CommandExecutor {
       const payload = nodeClosed
         ? new OpenNodeByIdCommandPayload(getNodeId(node))
         : new CloseNodeByIdCommandPayload(getNodeId(node))
-      await this.performWithDom(new CommandBuilder(payload).isUndoable().build())
+      await this.performWithDom(
+        new CommandBuilder(payload)
+          .isUndoable()
+          .isSynchronous() // we need this to be a synchronous update so we can immediately reload the node afterwards
+          .build())
       if (nodeClosed) {
         // When we open the node we need to load the subtree on demand
         const nodeId = getNodeId(node)

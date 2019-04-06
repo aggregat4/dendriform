@@ -77,9 +77,6 @@
 
 .node {
   display: block;
-  /* This is spacing before a node so that it does not "stick" to the previous one.
-     Hard to get the right balance between this and the line-height. */
-  padding-top: 4px;
 }
 
 .node .nc {
@@ -160,6 +157,18 @@
   text-align: center;
 }
 
+.node a,
+.node .toggle,
+.node .menuTrigger,
+.node .name {
+  /* It is crucial that the padding here is on the name of the node itself
+     because this makes the name larger and the click area larger. If the
+     padding would be on a containing element we would have annoying dead
+     zones between elements where you can not click to select an element. */
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 .node .name {
   display: block;
   position: relative;
@@ -170,7 +179,8 @@
   min-width: 20px;
   /* leaves space for the bullet since that is positioned absolute */
   margin-left: calc(2ch + 6px); /* bullet width + the padding */
-  padding: 0 6px 0 2px;
+  padding-right: 6px;
+  padding-left: 2px;
 }
 
 /* This is a kludge for Firefox: when the name div has no content it has zero height, and then
