@@ -23,10 +23,11 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 ## Next Steps
 
 1. BUG: when adding some nodes and reordering then reloading they get duplicated
+1. implement export in OPML format and make sure Workflowy can read it
 1. make sure that rerendertree is debounced for remote events
 1. Describe the architecture of the client: dependencies, external APIs, storage format, ...
 1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?
-1. Auto link urls in names and notes
+1. Auto link urls in names and notes (means adding and removing special 'a' tag around the text when loading the node/storing the node)
 1. Implement hashtags and @-tags with auto linking and filtering
 1. Some classes are really big. Especially `eventlog-local.ts` and `repository-eventlog.ts` this is becoming hard to understand. Refactor them.
 1. Implement import by pasting into a text area.
