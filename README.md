@@ -26,14 +26,15 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. make sure that rerendertree is debounced for remote events
 1. Describe the architecture of the client: dependencies, external APIs, storage format, ...
 1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?
+1. Auto link urls in names and notes
+1. Implement hashtags and @-tags with auto linking and filtering
+1. Some classes are really big. Especially `eventlog-local.ts` and `repository-eventlog.ts` this is becoming hard to understand. Refactor them.
 1. Implement import by pasting into a text area.
 1. UI: This has to work on mobile, specifically in narrow columns. That means the popup must work, but also the controls for the node. And they need to work without hover. Also the menu on the nodes needs to be different, we lose too much horizontal space like this.
 1. Add server side admin UI (minimal, just delete log) and some form of authentication so I can set up a test server. Think about how to add admin UI and authentication to the server without adding it to the open source project. Just add it as a lib? Or perhaps better we just make the server private and keep it closed source.
-1. Auto link urls in names and notes
 1. Implement export in some standard format
 1. Implement suport for hashtags and @-tags (with toggle filter like Workflowy)
 1. Make this work on touch: what interactions would be good? How can we do better than Workflowy?
-1. replace UUID peer ids in the event logs with locally resolved ints (persistent), maybe also do this for the vector clocks
 1. Add creation timestamp and update timestamp
 1. Implement multi-select and delete and move operations (at least with keyboard)
 

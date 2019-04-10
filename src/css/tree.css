@@ -111,14 +111,19 @@
   color: #666;
 }
 
-.node a:hover, .node.closed a:hover {
-  background: rgb(182, 197, 206);
-  border-radius: 50%;
+/* TODO: replace the unicode characters with svg icons */
+.node a:before {
+  content: '●'; /* • = &#8226;, ● = BLACK CIRCLE, 25CF */
 }
 
-.node.closed a {
-  background: #ddd;
-  border-radius: 50%;
+.node.closed a:before {
+  content: '⬤'; /* &#11044; */
+  color: #bbb;
+}
+
+.node a:hover:before, .node.closed a:hover:before {
+  color: #666;
+  content: '⬤'; /* &#11044; */
 }
 
 .node span.toggle {

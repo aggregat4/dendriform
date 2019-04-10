@@ -1,6 +1,6 @@
 import { el, setAttr, setChildren, list, setStyle } from 'redom'
 import { RepositoryNode, ResolvedRepositoryNode, FilteredRepositoryNode } from '../domain/domain'
-import { isCursorAtContentEditableBeginning } from '../util'
+import { isCursorAtContentEditableBeginning, filterAsync } from '../util'
 
 export class TreeNode {
   private first: boolean
@@ -29,16 +29,17 @@ export class TreeNode {
       class: this.genClass(treeNode.node, this.first),
     })
     setChildren(this.ncEl,
-      el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, '●'), // • = &#8226;, ● = BLACK CIRCLE, 25CF
+      el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, ''),
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
       el('span.toggle', { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰')) // trigram for heaven (U+2630)
-    if (!treeNode.node.collapsed) {
+    if (!treeNode.node.collapsed || treeNode.filterApplied) {
       const children = await treeNode.children
-      this.childList.update(children.filter(c => c.isIncluded()))
+      const filteredChildren = await filterAsync(children, c => c.isIncluded()) // children.filter(c => c.isIncluded())
+      this.childList.update(filteredChildren)
     } else {
-      this.childList.update([]) // TODO: handler on uncollapse to render nodes
+      this.childList.update([])
     }
   }
 

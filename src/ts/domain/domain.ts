@@ -1,4 +1,4 @@
-import {findFirst} from '../util'
+import {findFirst, findFirstAsync} from '../util'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
 export const END_NODELIST_MARKER = '-|'
@@ -82,7 +82,9 @@ export class FilteredRepositoryNode {
   async isIncluded(): Promise<boolean> {
     if (this.areAnyChildrenIncluded === undefined) {
       const resolvedChildren = await this.children
-      this.areAnyChildrenIncluded = !!findFirst(resolvedChildren, (c) => c.isIncluded())
+      // implNote: it is important to !! the return value after awaiting, otherwise this is always true!
+      // because you are getting a promise object, not the actual value
+      this.areAnyChildrenIncluded = !! await findFirstAsync(resolvedChildren, async (c) => await c.isIncluded())
     }
     return !this.filterApplied
       || (this.filteredName && this.filteredName.containsFilterHit)
