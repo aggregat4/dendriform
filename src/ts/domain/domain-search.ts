@@ -24,12 +24,50 @@ function filterElement(element: any, query: string): boolean {
   return hitFound
 }
 
+const linkRegexp = new RegExp('[^\\s]+://[^\\s]+')
+function createLink(s: string): Element {
+  const el = document.createElement('a')
+  el.setAttribute('href', s)
+  el.setAttribute('class', 'embeddedLink')
+  el.innerHTML = s
+  return el
+}
+
+function createFilterMarker(s: string): Element {
+  const el = document.createElement('mark')
+  el.innerHTML = s
+  return el
+}
+
+function findAndMarkText(element: any, regex: RegExp, marker: (s) => Element): boolean {
+  let hitFound = false
+  if (element.nodeType === Node.TEXT_NODE) {
+    let searchEl = element
+    let reMatch = null
+    while (searchEl && (reMatch = searchEl.nodeValue.match(regex))) {
+      const newEl = searchEl.splitText(reMatch.index)
+      searchEl = newEl.splitText(reMatch[0].length)
+      const markEl = marker(reMatch[0])
+      element.parentNode.replaceChild(markEl, newEl)
+      hitFound = true
+    }
+  } else if (element.childNodes) {
+    for (const child of element.childNodes) {
+      hitFound = hitFound || findAndMarkText(child, regex, marker)
+    }
+  }
+  return hitFound
+}
+
 function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
   const fragment = document.createRange().createContextualFragment(rawHtml)
+  // identify links, hashtags and @mentions to autolink
+  findAndMarkText(fragment, linkRegexp, createLink)
   let containsFilterHit = false
   if (filter) {
     // recursively go through all text nodes and find and annotate hits with a mark tag
-    containsFilterHit = filterElement(fragment, filter.query.toLowerCase())
+    // TODO: inline regex in filter
+    containsFilterHit = findAndMarkText(fragment, new RegExp(filter.query, 'i'), createFilterMarker)
   }
   return {
     fragment,

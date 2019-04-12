@@ -3,7 +3,7 @@ import {
   createNewResolvedRepositoryNodeWithContent,
   createNewDeferredRepositoryNodeWithContent,
 } from '../domain/domain'
-import { filterNode, filterNodeSynchronous } from '../domain/domain-search'
+import { filterNodeSynchronous } from '../domain/domain-search'
 import {
   CloseNodeByIdCommandPayload,
   Command,

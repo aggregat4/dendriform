@@ -22,6 +22,8 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. as long as we don't support formatting the importer needs to strip all tags
+1. implement limited formatting, allow those tags when exporting and importing
 1. BUG: when adding some nodes and reordering then reloading they get duplicated
 1. implement export in OPML format and make sure Workflowy can read it
 1. make sure that rerendertree is debounced for remote events

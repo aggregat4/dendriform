@@ -96,7 +96,7 @@
   display: block;
 }
 
-.node a {
+.nc > a {
   display: inline-block;
   position: absolute;
   /* padding: 0 9px 0 9px; */
@@ -107,21 +107,21 @@
   text-align: center;
 }
 
-.node a, .node a:hover, .node a:active, node a:visited {
+.nc > a, .nc > a:hover, .nc > a:active, .nc > a:visited {
   color: #666;
 }
 
 /* TODO: replace the unicode characters with svg icons */
-.node a:before {
+.nc > a:before {
   content: '●'; /* • = &#8226;, ● = BLACK CIRCLE, 25CF */
 }
 
-.node.closed a:before {
+.node.closed > .nc > a:before {
   content: '⬤'; /* &#11044; */
   color: #bbb;
 }
 
-.node a:hover:before, .node.closed a:hover:before {
+.nc > a:hover:before, .node.closed > .nc > a:hover:before {
   color: #666;
   content: '⬤'; /* &#11044; */
 }
@@ -162,7 +162,7 @@
   text-align: center;
 }
 
-.node a,
+.node > .nc > a,
 .node .toggle,
 .node .menuTrigger,
 .node .name {
@@ -227,6 +227,10 @@
   display: none;
 }
 
+a.embeddedLink {
+  cursor: pointer;
+}
+
 .node .children {
   margin-left: 0px;
 }
@@ -255,7 +259,7 @@
   margin: 0 0 6px 6px;
 }
 
-.node.first > .nc a, .node.first > .nc .toggle {
+.node.first > .nc > a, .node.first > .nc .toggle {
   display: none;
 }
 

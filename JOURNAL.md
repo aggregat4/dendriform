@@ -655,3 +655,11 @@ On demand loading of nodes when opening collapsed ones has been implemented. Thi
 This synchronous flag does not look nice in all the method calls though, but I'm not sure how to make that better.
 
 I think we are very close to optimal performance now but it is still unclear what strategy we should use to load the nodes themselves: do we stay with the heuristic that chooses bulk loading or incremental loading like we have now? To what values should we tweak the threshold?
+
+## 12.4.2019
+
+Starting to add auto hyperlinking for tags and links. Problem I am having is that links inside contentEditables are not clickable. Dynalist just solves this by only allowing clicking when not in the node (requires setting contenteditable to false on blur) but workflowy has some dark magic that always allows clicking.
+
+I really want the latter. Especially since I would need it for notes anyway.
+
+Is there some trick whereby I set the link to contenteditable false when mousedown is pressed?
