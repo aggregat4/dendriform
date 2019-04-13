@@ -21,12 +21,20 @@ export function isNameNode(element: Element): boolean {
   return element.classList.contains('name')
 }
 
+export function isInNameNode(element: Element): boolean {
+  return !! element.closest('.name')
+}
+
 export function isToggleElement(element: Element): boolean {
   return element.classList.contains('toggle')
 }
 
 export function isMenuTriggerElement(element: Element): boolean {
   return element.classList.contains('menuTrigger')
+}
+
+export function isEmbeddedLink(element: Element): boolean {
+  return element.classList.contains('embeddedLink')
 }
 
 export function isInMenuElement(element: Element): boolean {

@@ -188,15 +188,15 @@ function onNameInput(event: Event, treeActionContext: TreeActionContext) {
   const beforeFocusPos = treeActionContext.transientStateManager.getState().focusNodePreviousPos
   const afterFocusPos = getCursorPos()
   treeActionContext.transientStateManager.savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
-  // no dom operation or refresh needed since this is an inline update
-  treeActionContext.commandExecutor.performWithoutDom(
+  // the update itself is inline, but we may need to update attributes of other elements like embdeddedLinks
+  treeActionContext.commandExecutor.performWithDom(
     new CommandBuilder(
       new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
       .isUndoable()
-      .withBeforeFocusNodeId(beforeFocusNodeId)
-      .withBeforeFocusPos(beforeFocusPos)
-      .withAfterFocusNodeId(nodeId)
-      .withAfterFocusPos(afterFocusPos)
+      // .withBeforeFocusNodeId(beforeFocusNodeId)
+      // .withBeforeFocusPos(beforeFocusPos)
+      // .withAfterFocusNodeId(nodeId)
+      // .withAfterFocusPos(afterFocusPos)
       .build())
 }
 
@@ -206,19 +206,13 @@ function onNoteInput(event: Event, treeActionContext: TreeActionContext) {
   const name = getNodeName(targetNode)
   const newNote = getNodeNote(targetNode)
   const oldNote = treeActionContext.transientStateManager.getState().focusNodePreviousNote
-  const beforeFocusNodeId = nodeId
-  const beforeFocusPos = treeActionContext.transientStateManager.getState().focusNodePreviousPos
   const afterFocusPos = getCursorPos()
   treeActionContext.transientStateManager.savePreviousNodeState(nodeId, name, newNote, afterFocusPos)
-  // no dom operation or refresh needed since this is an inline update
-  treeActionContext.commandExecutor.performWithoutDom(
+  // updates are de facto inline but we may need to update further elements like links
+  treeActionContext.commandExecutor.performWithDom(
     new CommandBuilder(
       new UpdateNoteByIdCommandPayload(nodeId, oldNote, newNote))
       .isUndoable()
-      .withBeforeFocusNodeId(beforeFocusNodeId)
-      .withBeforeFocusPos(beforeFocusPos)
-      .withAfterFocusNodeId(nodeId)
-      .withAfterFocusPos(afterFocusPos)
       .build())
 }
 

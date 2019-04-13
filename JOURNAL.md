@@ -663,3 +663,16 @@ Starting to add auto hyperlinking for tags and links. Problem I am having is tha
 I really want the latter. Especially since I would need it for notes anyway.
 
 Is there some trick whereby I set the link to contenteditable false when mousedown is pressed?
+
+## 14.4.2019
+
+Implemented on the fly autolinking of URLs.
+
+This was not trivial since we have to consider many aspects:
+
+* We now no longer need highlight filter matches, but also URLs and soon tags and @ mentions. This meant generalising the markup code.
+* In a contenteditable links are not clickable so we needed our own click handler and open the links like that.
+* We want links to be autolinked when start typing them in notes and in names. This required us to perform the rename operations WITH dom and then to implement new logic that for each input checks whether in the new text something should be marked up or marked down, and if so it will replace the contents of the node AND preserve the cursor position.
+* Since we now definitely have tags in our nodes our cursor posiotion code was no longer sufficient. We needed to be inspired by the Stackoverflow canonical position answer to get and set cursor position _across_ tags.
+
+With an improved pipeline for updating names and notes we should now be better prepared for further markup extensions to the program.

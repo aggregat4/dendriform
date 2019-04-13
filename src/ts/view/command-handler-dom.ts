@@ -1,7 +1,8 @@
 import {
   RelativeLinearPosition,
   createNewResolvedRepositoryNodeWithContent,
-  createNewDeferredRepositoryNodeWithContent,
+  markupHtml,
+  verifyAndRepairMarkup,
 } from '../domain/domain'
 import { filterNodeSynchronous } from '../domain/domain-search'
 import {
@@ -80,8 +81,9 @@ export class DomCommandHandler implements CommandHandler {
     // 2. move all children of sourcenode to targetnode (actual move, just reparent)
     // 3. delete sourcenode
     // 4. focus the new node at the end of its old name
-    getNameElement(targetNode).textContent = mergeNameOrder === MergeNameOrder.SOURCE_TARGET ?
-      sourceNodeName + targetNodeName : targetNodeName + sourceNodeName
+    (mergeNameOrder === MergeNameOrder.SOURCE_TARGET)
+      ? this.replaceElementWithTaggedContent(getNameElement(targetNode), sourceNodeName + targetNodeName)
+      : this.replaceElementWithTaggedContent(getNameElement(targetNode), targetNodeName + sourceNodeName)
     // Only move source node children if it has any
     // TODO: make this childnodestuff safer with some utility methods
     if (hasChildren(sourceNode)) {
@@ -96,9 +98,14 @@ export class DomCommandHandler implements CommandHandler {
 
   private domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
                        newNodeId: string): void {
-    this.domRenameNode(node, originalNodeName)
+    this.replaceElementWithTaggedContent(getNameElement(node), originalNodeName)
     const newSiblingEl = this.createDomNode(newNodeId, newNodeName, null)
     node.insertAdjacentElement('beforebegin', newSiblingEl)
+  }
+
+  private replaceElementWithTaggedContent(el: Element, newName: string): void {
+    el.innerHTML = ''
+    el.appendChild(markupHtml(newName))
   }
 
   private createDomNode(id: string, name: string, note: string): Element {
@@ -108,8 +115,14 @@ export class DomCommandHandler implements CommandHandler {
     return newTreeNode.getElement()
   }
 
+  /**
+   * Renames are handled inline already, but we need to check whether any embeddedLink's
+   * texts were changed and if so update the href attribute as well (so links are always
+   * correct).
+   */
   private domRenameNode(node: Element, newName: string) {
-    getNameElement(node).textContent = newName
+    const nameEl = getNameElement(node)
+    verifyAndRepairMarkup(nameEl)
   }
 
   private domReparentNode(node: Element, newParentNode: Element,
@@ -150,7 +163,8 @@ export class DomCommandHandler implements CommandHandler {
   }
 
   private domUpdateNote(node: Element, note: string): void {
-    getNoteElement(node).innerHTML = note
+    const noteEl = getNoteElement(node)
+    verifyAndRepairMarkup(noteEl)
   }
 
   private domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): void {

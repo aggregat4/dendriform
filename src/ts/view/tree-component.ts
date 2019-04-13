@@ -12,7 +12,7 @@ import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType } from './keyboardshortcut'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton } from './tree-dom-util'
+import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton, isEmbeddedLink, isInNameNode } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientState } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
@@ -170,13 +170,19 @@ export class Tree implements CommandExecutor {
         event.preventDefault()
         TreeNode.startEditingNote(noteElement as HTMLElement)
       }
+      if (isEmbeddedLink(clickedElement)) {
+        window.open(clickedElement.getAttribute('href'), '_blank')
+      }
+    } else if (isInNameNode(clickedElement)) {
+      if (isEmbeddedLink(clickedElement)) {
+        window.open(clickedElement.getAttribute('href'), '_blank')
+      }
     }
   }
 
   private onPaste(event: ClipboardEvent): void {
     // We don't want any formatted HTML pasted in our nodes.
-    // Inside a note we can be inside some child HTML tags, so we need to to a more thorough check
-    if (isNameNode(event.target as Element) || isInNoteElement(event.target as Element)) {
+    if (isInNameNode(event.target as Element) || isInNoteElement(event.target as Element)) {
       event.preventDefault()
       pasteTextUnformatted(event)
     }

@@ -35,6 +35,50 @@ export function getCursorPos(): number {
   }
 }
 
+/**
+ * From https://stackoverflow.com/a/41034697/1996
+ */
+function isChildOf(node: Node, parent: Node) {
+  let currentNode = node
+  while (currentNode !== null) {
+    if (currentNode === parent) {
+      return true
+    }
+    currentNode = currentNode.parentNode
+  }
+  return false
+}
+
+/**
+ * From https://stackoverflow.com/a/41034697/1996
+ */
+export function getCursorPosAcrossMarkup(parent: Element) {
+  const selection = window.getSelection()
+  let charCount = -1
+  let node = null
+  if (selection.focusNode) {
+    if (isChildOf(selection.focusNode, parent)) {
+      node = selection.focusNode
+      charCount = selection.focusOffset
+      while (node) {
+        if (node === parent) {
+          break
+        }
+        if (node.previousSibling) {
+          node = node.previousSibling
+          charCount += node.textContent.length
+        } else {
+          node = node.parentNode
+          if (node === null) {
+            break
+          }
+        }
+      }
+    }
+  }
+  return charCount
+}
+
 // This function tries to determine whether the caret is at the actual beginning
 // of a contenteditable field. This is non trivial since the contenteditable can contain
 // multiple lines and we need to find the line boundary first
@@ -80,7 +124,7 @@ function isCursorAtContentEditableFirstLine(focusNode: Element, outerElementClas
 }
 
 // NOTE this assumes that the element has only one textContent child as child 0, no rich content!
-export function setCursorPos(el: HTMLElement, charPos: number): void {
+export function setCursorPos(el: Element, charPos: number): void {
   if (!el.childNodes[0]) {
     return
   }
@@ -91,6 +135,52 @@ export function setCursorPos(el: HTMLElement, charPos: number): void {
   const sel = window.getSelection()
   sel.removeAllRanges()
   sel.addRange(range)
+}
+
+/**
+ * From https://stackoverflow.com/a/41034697/1996
+ */
+export function setCursorPosAcrossMarkup(el: Element, chars: number): void {
+  if (chars >= 0) {
+    const selection = window.getSelection()
+    const range = createRange(el, { count: chars }, undefined)
+    if (range) {
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
+  }
+}
+
+/**
+ * From https://stackoverflow.com/a/41034697/1996
+ */
+function createRange(node, chars, range) {
+  if (!range) {
+    range = document.createRange()
+    range.selectNode(node)
+    range.setStart(node, 0)
+  }
+  if (chars.count === 0) {
+    range.setEnd(node, chars.count)
+  } else if (node && chars.count > 0) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (node.textContent.length < chars.count) {
+        chars.count -= node.textContent.length
+      } else {
+        range.setEnd(node, chars.count)
+        chars.count = 0
+      }
+    } else {
+      for (let lp = 0; lp < node.childNodes.length; lp++) {
+        range = createRange(node.childNodes[lp], chars, range)
+        if (chars.count === 0) {
+          break
+        }
+      }
+    }
+  }
+  return range
 }
 
 export function isCursorAtEnd(kbdevent: Event): boolean {
@@ -219,4 +309,35 @@ export function guessOperatingSystem(): OperatingSystem {
   } else {
     return OperatingSystem.Windows
   }
+}
+
+export function findAndMarkText(element: any, regex: RegExp, marker: (s) => Element): boolean {
+  let hitFound = false
+  if (element.nodeType === Node.TEXT_NODE) {
+    let searchEl = element
+    let reMatch = null
+    while (searchEl && (reMatch = searchEl.nodeValue.match(regex))) {
+      const newEl = searchEl.splitText(reMatch.index)
+      searchEl = newEl.splitText(reMatch[0].length)
+      const markEl = marker(reMatch[0])
+      element.parentNode.replaceChild(markEl, newEl)
+      hitFound = true
+    }
+  } else if (element.childNodes) {
+    for (const child of element.childNodes) {
+      hitFound = hitFound || findAndMarkText(child, regex, marker)
+    }
+  }
+  return hitFound
+}
+
+export function countNonTextNodes(el: Node): number {
+  let count = 0
+  for (const child of el.childNodes) {
+    if (child.nodeType !== Node.TEXT_NODE) {
+      count++
+    }
+    count += countNonTextNodes(child)
+  }
+  return count
 }

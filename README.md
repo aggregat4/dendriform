@@ -22,6 +22,9 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. Auto link urls in names and notes (means adding and removing special 'a' tag around the text when loading the node/storing the node).
+1. When links are modified in the text, their anchor needs to be modified as well!
+1. Link editing is a bit precarious now: if you are at the edge of the link url you will often edit outside the anchor, preferably this would always be inside? That would suck though if everything you have is the link since you couldn't add anything? So the rule is: when abutting the link always edit the link if there is more normal text to the left or right
 1. as long as we don't support formatting the importer needs to strip all tags
 1. implement limited formatting, allow those tags when exporting and importing
 1. BUG: when adding some nodes and reordering then reloading they get duplicated
@@ -29,7 +32,6 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 1. make sure that rerendertree is debounced for remote events
 1. Describe the architecture of the client: dependencies, external APIs, storage format, ...
 1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?
-1. Auto link urls in names and notes (means adding and removing special 'a' tag around the text when loading the node/storing the node)
 1. Implement hashtags and @-tags with auto linking and filtering
 1. Some classes are really big. Especially `eventlog-local.ts` and `repository-eventlog.ts` this is becoming hard to understand. Refactor them.
 1. Implement import by pasting into a text area.

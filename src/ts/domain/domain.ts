@@ -1,4 +1,4 @@
-import {findFirst, findFirstAsync} from '../util'
+import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup} from '../util'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
 export const END_NODELIST_MARKER = '-|'
@@ -131,4 +131,52 @@ export interface Subscription {
 export interface ActivityIndicating {
   isActive(): boolean
   getActivityTitle(): string
+}
+
+// TODO: does this belong here?
+const linkRegexp = new RegExp('[^\\s]+://[^\\s]+')
+function createLink(s: string): Element {
+  const el = document.createElement('a')
+  el.setAttribute('href', s)
+  el.setAttribute('class', 'embeddedLink')
+  el.setAttribute('rel', 'noreferrer')
+  el.innerHTML = s
+  return el
+}
+
+export function markupHtml(rawHtml: string): DocumentFragment {
+  const fragment = document.createRange().createContextualFragment(rawHtml)
+  // identify links, hashtags and @mentions to autolink
+  findAndMarkText(fragment, linkRegexp, createLink)
+  return fragment
+}
+
+function updateAllEmbeddedLinks(node: Element): void {
+  for (const anchor of node.querySelectorAll('a.embeddedLink')) {
+    const anchorText = anchor.textContent
+    if (anchor.getAttribute('href') !== anchorText) {
+      anchor.setAttribute('href', anchorText)
+    }
+  }
+}
+
+/**
+ * Will figure out whether the provided element's contents require something to be
+ * marked up (or have markup removed). If it does it will replace the contents of the
+ * node and preserve the cursor position in the process.
+ *
+ * It will also make sure all the embeddedLink elements have the correct href value.
+ */
+export function verifyAndRepairMarkup(el: Element): void {
+  updateAllEmbeddedLinks(el)
+  const currentTagCount = countNonTextNodes(el)
+  const newMarkup = markupHtml(el.textContent)
+  const newTagCount = countNonTextNodes(newMarkup)
+  // If we have more or less tags in the new markup, it means that we need to autolink something
+  if (currentTagCount !== newTagCount) {
+    const cursorPos = getCursorPosAcrossMarkup(el)
+    el.innerHTML = ''
+    el.appendChild(newMarkup)
+    setCursorPosAcrossMarkup(el, cursorPos)
+  }
 }
