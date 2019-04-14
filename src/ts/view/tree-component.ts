@@ -63,6 +63,9 @@ export class Tree implements CommandExecutor {
     this.el.addEventListener('click', this.onClick.bind(this))
     this.el.addEventListener('paste', this.onPaste.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
+    // In general we only want to limit ourselves to our component with listener, but for some functions we
+    // need the complete document
+    document.addEventListener('keydown', this.onDocumentKeydown.bind(this))
 
     this.transientStateManager.registerSelectionChangeHandler()
     this.dialogs = new Dialogs(this.el as HTMLElement, this.dialogOverlayEl as HTMLElement)
@@ -217,6 +220,20 @@ export class Tree implements CommandExecutor {
 
   private onKeydown(event: KeyboardEvent): void {
     this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keydown, event, this.treeActionContext)
+  }
+
+  private onDocumentKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      // Escape should clear the searchfield and blur the focus when we have an active query
+      const filter = this.searchField.value
+      if (!isEmpty(filter)) {
+        this.searchField.value = ''
+        if (document.activeElement === this.searchField) {
+          this.searchField.blur()
+        }
+        this.onQueryChange()
+      }
+    }
   }
 
   performWithoutDom(command: Command): void {

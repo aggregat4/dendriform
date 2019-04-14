@@ -686,3 +686,5 @@ Clicking a hashtag or at mention now causes the tree to be filtered.
 Identified a shortcoming in the filtering in that it will treat the entire filter string as the query and what we want is to tokenize the string and treat it as an AND between its constituents.
 
 For example: clicking two hashtags after another should filter down to those nodes that contain both the first and the second one irrespective of ordering.
+
+Also implemented clearing the filter when pressing escape anywhere. This necessitated a document eventlistener.
