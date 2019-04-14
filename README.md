@@ -2,7 +2,7 @@
 
 An outliner that runs in the browser and works offline by default.
 
-CRDT-based peer synchronisation is under construction.
+CRDT-based peer synchronisation with additional vector clocks for causal sorting and easier garbage collection.
 
 This application is heavily inspired by [Workflowy](http://workflowy.com), the most elegant outliner out there.
 
