@@ -5,7 +5,7 @@ export class ActivityIndicator extends HTMLElement {
   private spinner: HTMLElement = null
   private timerId = null
 
-  constructor(readonly activityIndicating: ActivityIndicating, readonly delayMs: number) {
+  constructor(readonly activityIndicating: ActivityIndicating, readonly delayMs: number = 1000) {
     super()
   }
 
@@ -16,22 +16,26 @@ export class ActivityIndicator extends HTMLElement {
     }
     if (! this.timerId) {
       this.timerId = setInterval(() => {
-        const currentDisplay = this.spinner.style.display
-        if (this.activityIndicating.isActive()) {
-          if (currentDisplay !== 'block') {
-            this.installPreventCloseWindowHandler()
-            this.spinner.style.display = 'block'
-          }
-          this.spinner.title = this.activityIndicating.getActivityTitle() || 'Working...' // TODO: i18n
-        } else {
-          if (currentDisplay !== 'none') {
-            this.uninstallPreventCloseWindowHandler()
-            this.spinner.style.display = 'none'
-            this.spinner.title = 'Idle' // TODO: i18n
-          }
-        }
+        this.updateActivityStatus()
       },
       this.delayMs)
+    }
+  }
+
+  updateActivityStatus(): void {
+    const currentDisplay = this.spinner.style.display
+    if (this.activityIndicating.isActive()) {
+      if (currentDisplay !== 'block') {
+        this.installPreventCloseWindowHandler()
+        this.spinner.style.display = 'block'
+      }
+      this.spinner.title = this.activityIndicating.getActivityTitle() || 'Working...' // TODO: i18n
+    } else {
+      if (currentDisplay !== 'none') {
+        this.uninstallPreventCloseWindowHandler()
+        this.spinner.style.display = 'none'
+        this.spinner.title = 'Idle' // TODO: i18n
+      }
     }
   }
 

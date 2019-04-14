@@ -2,10 +2,11 @@ import { h } from '../lib/hyperscript.js'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
 import { DialogElement } from './dialogs'
-import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent } from '../domain/domain'
+import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent, ActivityIndicating } from '../domain/domain'
 import { generateUUID } from '../util'
 import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/commands'
 import { CommandExecutor } from './tree-helpers'
+import { ActivityIndicator } from './activity-indicator-component'
 
 // TODO: not sure we need a keyboard trigger for this, perhaps we need a NoOp keyboard trigger?
 // TODO: move these into the registry proper identifiable by some name?
@@ -14,12 +15,14 @@ export const importOpmlAction = new TreeAction(
   onOpmlImport,
   'Import OPML')
 
-class OpmlImportDialog extends DialogElement {
+class OpmlImportDialog extends DialogElement implements ActivityIndicating {
   private uploadButton: HTMLInputElement
   private importButton: HTMLInputElement
   private treeActionContext: TreeActionContext
   private errorElement: HTMLElement
   private successElement: HTMLElement
+  private spinner: ActivityIndicator
+  private importing: boolean = false
 
   constructor() {
     super()
@@ -33,12 +36,14 @@ class OpmlImportDialog extends DialogElement {
       this.successElement = h('div.success', 'success')
       this.uploadButton = h('input.uploadOpml', {type: 'file'}, 'Select OPML File')
       this.importButton = h('button.import.primary', {disabled: true}, 'Import File')
+      this.spinner = new ActivityIndicator(this, 250)
       const wrapper = h('section',
         h('header', h('h1', 'Import OPML')),
         this.errorElement,
         this.successElement,
         this.uploadButton,
-        this.importButton)
+        this.importButton,
+        this.spinner)
       this.append(wrapper)
       this.uploadButton.addEventListener('change', this.handleFilesChanged.bind(this), false)
       this.importButton.addEventListener('click', this.importFile.bind(this), false)
@@ -54,6 +59,14 @@ class OpmlImportDialog extends DialogElement {
     this.errorElement.style.display = 'none'
   }
 
+  isActive(): boolean {
+    return this.importing
+  }
+
+  getActivityTitle(): string {
+    return 'Creating imported nodes...'
+  }
+
   private handleFilesChanged(event: Event): void {
     const files: FileList = (event.target as any).files as FileList
     if (files && files.length > 0) {
@@ -65,15 +78,19 @@ class OpmlImportDialog extends DialogElement {
     const files: FileList = this.uploadButton.files as FileList
     if (files && files.length > 0) {
       const reader = new FileReader()
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const doc = this.parseXML(reader.result as string)
           const rootNodes = this.opmlDocumentToRepositoryNodes(doc)
           const parentId = this.treeActionContext.transientStateManager.getActiveNodeId()
           // disable import button to prevent duplicate clicks
           this.importButton.disabled = true
+          // make sure the spinner starts spinning
+          this.importing = true
+          // TODO: this doesn't actually appear, the following operations maybe block the UI thread when doing large imports?
+          this.spinner.updateActivityStatus()
           for (const node of rootNodes) {
-            this.createNode(this.treeActionContext.commandExecutor, node, parentId)
+            await this.createNode(this.treeActionContext.commandExecutor, node, parentId)
           }
         } catch (error) {
           console.error(error)
@@ -81,6 +98,8 @@ class OpmlImportDialog extends DialogElement {
           this.successElement.style.display = 'none'
           this.errorElement.innerText = error.message
           return
+        } finally {
+          this.importing = false
         }
         this.errorElement.style.display = 'none'
         this.successElement.style.display = 'block'
@@ -101,7 +120,7 @@ class OpmlImportDialog extends DialogElement {
     // otherwise the effect will be that only the toplevel nodes are visible
     await commandExecutor.performWithDom(command)
     for (const childNode of node.children) {
-      this.createNode(commandExecutor, childNode, node.node._id)
+      await this.createNode(commandExecutor, childNode, node.node._id)
     }
   }
 
