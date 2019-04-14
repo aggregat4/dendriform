@@ -22,6 +22,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. BUG: import is broken, I only see the first node, then I have to reload
 1. Link editing is a bit precarious now: if you are at the edge of the link url you will often edit outside the anchor, preferably this would always be inside? That would suck though if everything you have is the link since you couldn't add anything? So the rule is: when abutting the link always edit the link if there is more normal text to the left or right
 1. A filter operation always treats the complete input as a contiguous string, what we really want is to tokenize it and to search for each element individually and and them together. Implement this.
 1. as long as we don't support formatting the importer needs to strip all tags

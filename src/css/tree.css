@@ -113,12 +113,18 @@
 
 /* TODO: replace the unicode characters with svg icons */
 .nc > a:before {
-  content: '●'; /* • = &#8226;, ● = BLACK CIRCLE, 25CF */
+  content: '●'; /* BLACK CIRCLE, 25CF */
 }
 
 .node.closed > .nc > a:before {
-  content: '⬤'; /* &#11044; */
-  color: #bbb;
+  /* content: '⬤'; */ /* &#11044; */
+  /* content: '⭗'; */ /* U+2B57 */
+  /* content: '◎'; */ /* &#x25CE; */
+  /* content: '◯'; */
+  /* content: '○';  */
+  /* content: '◯'; */ /* &#x25EF;	*/
+  content: '◉	'; /* FISHEYE &#x25C9; */
+  color: #666;
 }
 
 .nc > a:hover:before, .node.closed > .nc > a:hover:before {
@@ -215,6 +221,7 @@
      it tries to mimic the set line-height */
   height: 1.4em;
   overflow-y: hidden;
+  overflow-x: hidden;
   padding: 0 0 0 2px;
 }
 
