@@ -23,16 +23,17 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 ## Next Steps
 
 1. BUG: import is broken, I only see the first node, then I have to reload
+1. BUG: when adding some nodes and reordering then reloading they get duplicated
+1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?
+1. Importing OPML first seems to hang in the import dialog before dismissing it, this is probably the DOM update blocking everything, can we revert that?
+1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
+1. Some classes are really big. Especially `eventlog-local.ts` and `repository-eventlog.ts` this is becoming hard to understand. Refactor them.
 1. Link editing is a bit precarious now: if you are at the edge of the link url you will often edit outside the anchor, preferably this would always be inside? That would suck though if everything you have is the link since you couldn't add anything? So the rule is: when abutting the link always edit the link if there is more normal text to the left or right
 1. A filter operation always treats the complete input as a contiguous string, what we really want is to tokenize it and to search for each element individually and and them together. Implement this.
 1. as long as we don't support formatting the importer needs to strip all tags
 1. implement export in OPML format and make sure Workflowy can read it
 1. implement limited formatting, allow those tags when exporting and importing
-1. BUG: when adding some nodes and reordering then reloading they get duplicated
 1. make sure that rerendertree is debounced for remote events
-1. Describe the architecture of the client: dependencies, external APIs, storage format, ...
-1. BUG: when collapsing a node and then drilling down into it, the children are collapsed and you can not expand a currently visible root node. Should probably auto expand root node always?
-1. Some classes are really big. Especially `eventlog-local.ts` and `repository-eventlog.ts` this is becoming hard to understand. Refactor them.
 1. Implement import by pasting into a text area.
 1. UI: This has to work on mobile, specifically in narrow columns. That means the popup must work, but also the controls for the node. And they need to work without hover. Also the menu on the nodes needs to be different, we lose too much horizontal space like this.
 1. Add server side admin UI (minimal, just delete log) and some form of authentication so I can set up a test server. Think about how to add admin UI and authentication to the server without adding it to the open source project. Just add it as a lib? Or perhaps better we just make the server private and keep it closed source.
