@@ -37,6 +37,14 @@ export function isEmbeddedLink(element: Element): boolean {
   return element.classList.contains('embeddedLink')
 }
 
+export function isFilterTag(element: Element): boolean {
+  return element.classList.contains('filterTag')
+}
+
+export function extractFilterText(element: Element): string {
+  return element.textContent
+}
+
 export function isInMenuElement(element: Element): boolean {
   return !!element.closest('.menu')
 }

@@ -231,6 +231,12 @@ a.embeddedLink {
   cursor: pointer;
 }
 
+.filterTag {
+  cursor: pointer;
+  text-decoration: underline;
+  color: rgb(0, 0, 238);
+}
+
 .node .children {
   margin-left: 0px;
 }

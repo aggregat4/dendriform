@@ -664,7 +664,7 @@ I really want the latter. Especially since I would need it for notes anyway.
 
 Is there some trick whereby I set the link to contenteditable false when mousedown is pressed?
 
-## 14.4.2019
+## 13.4.2019
 
 Implemented on the fly autolinking of URLs.
 
@@ -676,3 +676,13 @@ This was not trivial since we have to consider many aspects:
 * Since we now definitely have tags in our nodes our cursor posiotion code was no longer sufficient. We needed to be inspired by the Stackoverflow canonical position answer to get and set cursor position _across_ tags.
 
 With an improved pipeline for updating names and notes we should now be better prepared for further markup extensions to the program.
+
+## 14.4.2019
+
+Implemented autolinking of hashtags and at mentions using the mechanism from yesterday with the small extension that we needed support for lookbehind in the regex matching, and this is not widely supported yet. Faked it with some subgroup matching.
+
+Clicking a hashtag or at mention now causes the tree to be filtered.
+
+Identified a shortcoming in the filtering in that it will treat the entire filter string as the query and what we want is to tokenize the string and treat it as an AND between its constituents.
+
+For example: clicking two hashtags after another should filter down to those nodes that contain both the first and the second one irrespective of ordering.

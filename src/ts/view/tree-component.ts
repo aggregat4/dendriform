@@ -12,7 +12,7 @@ import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType } from './keyboardshortcut'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton, isEmbeddedLink, isInNameNode } from './tree-dom-util'
+import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientState } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
@@ -32,7 +32,7 @@ export class Tree implements CommandExecutor {
   private breadcrumbsEl: Element
   private dialogOverlayEl: Element
   private content: TreeNode
-  private searchField
+  private searchField: HTMLInputElement
   private treeChangeSubscription: Subscription
   private readonly transientStateManager = new TransientState()
   private treeNodeMenu: TreeNodeMenu = null
@@ -170,12 +170,17 @@ export class Tree implements CommandExecutor {
         event.preventDefault()
         TreeNode.startEditingNote(noteElement as HTMLElement)
       }
+    }
+    // Handle clicking on links inside of names and notes
+    if (isInNoteElement(clickedElement) || isInNameNode(clickedElement)) {
       if (isEmbeddedLink(clickedElement)) {
         window.open(clickedElement.getAttribute('href'), '_blank')
-      }
-    } else if (isInNameNode(clickedElement)) {
-      if (isEmbeddedLink(clickedElement)) {
-        window.open(clickedElement.getAttribute('href'), '_blank')
+      } else if (isFilterTag(clickedElement)) {
+        const oldValue = this.searchField.value
+        this.searchField.value = isEmpty(oldValue)
+          ? extractFilterText(clickedElement)
+          : oldValue + ' ' + extractFilterText(clickedElement)
+        this.onQueryChange() // trigger a filter operation
       }
     }
   }
@@ -188,7 +193,7 @@ export class Tree implements CommandExecutor {
     }
   }
 
-  private onQueryChange(event: Event) {
+  private onQueryChange() {
     this.rerenderTree()
   }
 

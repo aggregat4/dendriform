@@ -144,10 +144,19 @@ function createLink(s: string): Element {
   return el
 }
 
+const filterRegexp = new RegExp('\\s([@#][\\w-]+)')
+function createFilterLink(s: string): Element {
+  const el = document.createElement('span')
+  el.setAttribute('class', 'filterTag')
+  el.innerHTML = s
+  return el
+}
+
 export function markupHtml(rawHtml: string): DocumentFragment {
   const fragment = document.createRange().createContextualFragment(rawHtml)
   // identify links, hashtags and @mentions to autolink
   findAndMarkText(fragment, linkRegexp, createLink)
+  findAndMarkText(fragment, filterRegexp, createFilterLink)
   return fragment
 }
 
