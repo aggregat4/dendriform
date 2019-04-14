@@ -34,7 +34,7 @@ export class DomCommandHandler implements CommandHandler {
   exec(command: Command): Promise<any> {
     const cmd = command.payload
     if (cmd instanceof SplitNodeByIdCommandPayload) {
-      this.domSplitNode(
+      return this.domSplitNode(
         document.getElementById(cmd.nodeId),
         cmd.newNodeName,
         cmd.remainingNodeName,
@@ -66,7 +66,7 @@ export class DomCommandHandler implements CommandHandler {
     } else if (cmd instanceof UpdateNoteByIdCommandPayload) {
       this.domUpdateNote(document.getElementById(cmd.nodeId), cmd.newNote)
     } else if (cmd instanceof CreateChildNodeCommandPayload) {
-      this.domCreateChildNode(cmd.nodeId, cmd.name, cmd.note, document.getElementById(cmd.parentId))
+      return this.domCreateChildNode(cmd.nodeId, cmd.name, cmd.note, document.getElementById(cmd.parentId))
     } else {
       throw new Error(`Unknown Command for DomCommandHandler: ${typeof command.payload}}`)
     }
@@ -96,10 +96,10 @@ export class DomCommandHandler implements CommandHandler {
     sourceNode.remove()
   }
 
-  private domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
-                       newNodeId: string): void {
+  private async domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
+                             newNodeId: string): Promise<void> {
     this.replaceElementWithTaggedContent(getNameElement(node), originalNodeName)
-    const newSiblingEl = this.createDomNode(newNodeId, newNodeName, null)
+    const newSiblingEl = await this.createDomNode(newNodeId, newNodeName, null)
     node.insertAdjacentElement('beforebegin', newSiblingEl)
   }
 
@@ -108,10 +108,10 @@ export class DomCommandHandler implements CommandHandler {
     el.appendChild(markupHtml(newName))
   }
 
-  private createDomNode(id: string, name: string, note: string): Element {
+  private async createDomNode(id: string, name: string, note: string): Promise<Element> {
     const newNode = createNewResolvedRepositoryNodeWithContent(id, name, note)
     const newTreeNode = new TreeNode()
-    newTreeNode.update(filterNodeSynchronous(newNode))
+    await newTreeNode.update(filterNodeSynchronous(newNode))
     return newTreeNode.getElement()
   }
 
@@ -167,9 +167,9 @@ export class DomCommandHandler implements CommandHandler {
     verifyAndRepairMarkup(noteEl)
   }
 
-  private domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): void {
-    const newNode = this.createDomNode(childId, childName, childNote)
+  private async domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): Promise<void> {
     const parentChildrenNode = getChildrenElementOrCreate(parentNode)
+    const newNode = await this.createDomNode(childId, childName, childNote)
     parentChildrenNode.appendChild(newNode)
   }
 }

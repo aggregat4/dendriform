@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<opml version="2.0">
+  <head>
+    <ownerEmail>
+      aggregat4@gmail.com
+    </ownerEmail>
+  </head>
+  <body>
+    <outline text="first line" _note="first note">
+      <outline text="second line">
+      </outline>
+    </outline>
+  </body>
+</opml>

@@ -91,13 +91,15 @@ class OpmlImportDialog extends DialogElement {
     }
   }
 
-  private createNode(commandExecutor: CommandExecutor, node: ResolvedRepositoryNode, parentId: string): void {
+  private async createNode(commandExecutor: CommandExecutor, node: ResolvedRepositoryNode, parentId: string): Promise<void> {
     const command = new CommandBuilder(
       new CreateChildNodeCommandPayload(node.node._id, node.node.name, node.node.content, parentId))
       .isUndoable()
       .isBatch()
       .build()
-    commandExecutor.performWithDom(command)
+    // It is important to await here since when create a child node we need the parent node to already be there
+    // otherwise the effect will be that only the toplevel nodes are visible
+    await commandExecutor.performWithDom(command)
     for (const childNode of node.children) {
       this.createNode(commandExecutor, childNode, node.node._id)
     }

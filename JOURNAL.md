@@ -688,3 +688,9 @@ Identified a shortcoming in the filtering in that it will treat the entire filte
 For example: clicking two hashtags after another should filter down to those nodes that contain both the first and the second one irrespective of ordering.
 
 Also implemented clearing the filter when pressing escape anywhere. This necessitated a document eventlistener.
+
+## 14.4.2019 b
+
+An interesting effect of having deferred node loading is that much more of the pipeline of DOM operations for creating and updating nodes is now async as well. This means that we need to take care to await all the necessary operations if we depend in one operation on the DOM result of a previous operation.
+
+For example we just had a bug that only the toplevel nodes of an imported tree were visible. After a refresh, the rest was visible as well. This was due to the fact that each node operation in the DOM was async, and by the time we were adding child elements, the parent was not yet added to the dom so it was just not shown in the tree.
