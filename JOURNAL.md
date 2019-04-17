@@ -698,3 +698,9 @@ For example we just had a bug that only the toplevel nodes of an imported tree w
 ## 16.4.2019
 
 Added rudimentary markup for bold and italic by just using markdown and our existing autolinking infrastructure. This is just temporary, in the longer term we need something with only one pass and with the ability to nest markup at least.
+
+I figured out the bug with where adding nodes, reordering them and then reloading causes the order to be wrong. This is because in `repository-eventlog.ts` in reparentNode() we explicitly depend on the fact that when we reorder inside the same parent, garbage collection will make sure that the duplicate INSERT operation in the logoot sequence (the original one and the new one) will be compacted and that only one will remain. Since garbage collection now runs async, this is no longer always true. If you reload before gc, then you will have two insert events. This gets worse the more reorders you have of course.
+
+If we would force this operation to be synchronous, performance of reordering would deteriorate significantly. Alternatively we could  store DELETE operations in the logoot sequence, but that does not seem to be implemented yet in our logoot lib and it would mean a new kind of eventlog event?
+
+Final alternative: implement a dedicated garbage collection just for a parents logoot sequence events that we trigger synchronously?
