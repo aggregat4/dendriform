@@ -694,3 +694,7 @@ Also implemented clearing the filter when pressing escape anywhere. This necessi
 An interesting effect of having deferred node loading is that much more of the pipeline of DOM operations for creating and updating nodes is now async as well. This means that we need to take care to await all the necessary operations if we depend in one operation on the DOM result of a previous operation.
 
 For example we just had a bug that only the toplevel nodes of an imported tree were visible. After a refresh, the rest was visible as well. This was due to the fact that each node operation in the DOM was async, and by the time we were adding child elements, the parent was not yet added to the dom so it was just not shown in the tree.
+
+## 16.4.2019
+
+Added rudimentary markup for bold and italic by just using markdown and our existing autolinking infrastructure. This is just temporary, in the longer term we need something with only one pass and with the ability to nest markup at least.

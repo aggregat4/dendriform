@@ -152,11 +152,29 @@ function createFilterLink(s: string): Element {
   return el
 }
 
+const boldRegexp = new RegExp('\\*\\*[^\\*]+\\*\\*')
+function createBoldTag(s: string): Element {
+  const el = document.createElement('b')
+  el.innerHTML = s
+  return el
+}
+
+const italicRegexp = new RegExp('_[^_]+_')
+function createItalicTag(s: string): Element {
+  const el = document.createElement('i')
+  el.innerHTML = s
+  return el
+}
+
+// TODO: if we are really going to use this for formatting styles then we need something better than this
+// poor man's markup engine. This makes many passes and nested markup is not possible.
 export function markupHtml(rawHtml: string): DocumentFragment {
   const fragment = document.createRange().createContextualFragment(rawHtml)
   // identify links, hashtags and @mentions to autolink
   findAndMarkText(fragment, linkRegexp, createLink)
   findAndMarkText(fragment, filterRegexp, createFilterLink)
+  findAndMarkText(fragment, boldRegexp, createBoldTag)
+  findAndMarkText(fragment, italicRegexp, createItalicTag)
   return fragment
 }
 
