@@ -34,7 +34,10 @@ export class TreeNode {
       el('span.toggle', { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰')) // trigram for heaven (U+2630)
-    if (!treeNode.node.collapsed || treeNode.filterApplied) {
+    // There are a bunch of conditions where we ignore the "collapsed" state of a node:
+    // If the node was filtered we may have hits in the children
+    // If the node is the first node of the page then we always want to show it opened
+    if (!treeNode.node.collapsed || treeNode.filterApplied || this.first) {
       const children = await treeNode.children
       const filteredChildren = await filterAsync(children, c => c.isIncluded()) // children.filter(c => c.isIncluded())
       this.childList.update(filteredChildren)
@@ -51,9 +54,12 @@ export class TreeNode {
     return node._id === 'ROOT'
   }
 
+  /**
+   * Has special casing for nodes that are the first on the page, they are always open.
+   */
   private genClass(node: RepositoryNode, isFirst: boolean): string {
     return 'node' + (this.isRoot(node) ? ' root' : '') + (isFirst ? ' first' : '') +
-      (node.collapsed ? ' closed' : ' open')
+      (node.collapsed && !isFirst ? ' closed' : ' open')
   }
 
   // install event handler to listen for escape (or backspace in the beginning when empty,
