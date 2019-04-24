@@ -122,7 +122,7 @@ export class DomCommandHandler implements CommandHandler {
    */
   private domRenameNode(node: Element, newName: string) {
     const nameEl = getNameElement(node)
-    verifyAndRepairMarkup(nameEl)
+    verifyAndRepairMarkup(nameEl, newName)
   }
 
   private domReparentNode(node: Element, newParentNode: Element,
@@ -164,7 +164,7 @@ export class DomCommandHandler implements CommandHandler {
 
   private domUpdateNote(node: Element, note: string): void {
     const noteEl = getNoteElement(node)
-    verifyAndRepairMarkup(noteEl)
+    verifyAndRepairMarkup(noteEl, note)
   }
 
   private async domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): Promise<void> {
