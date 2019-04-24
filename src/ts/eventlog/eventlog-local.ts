@@ -172,10 +172,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         eventCounter[key] = eventCounter[key] ? eventCounter[key] + 1 : 1
       }
     })
-    // table.each((storedEvent: StoredEvent) => {
-    //   const key = this.keyForEvent(storedEvent)
-    //   eventCounter[key] = eventCounter[key] ? eventCounter[key] + 1 : 1
-    // })
     .then(() => {
       const buildCounterTime = Date.now()
       for (const key of Object.keys(eventCounter)) {

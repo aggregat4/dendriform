@@ -703,4 +703,10 @@ I figured out the bug with where adding nodes, reordering them and then reloadin
 
 If we would force this operation to be synchronous, performance of reordering would deteriorate significantly. Alternatively we could  store DELETE operations in the logoot sequence, but that does not seem to be implemented yet in our logoot lib and it would mean a new kind of eventlog event?
 
-Final alternative: implement a dedicated garbage collection just for a parents logoot sequence events that we trigger synchronously?
+Final alternative: implement a dedicated garbage collection just for a parent's logoot sequence events that we trigger synchronously?
+
+## 24.4.2019
+
+It is always good to step back from a problem for a bit. On looking at the logoot sequence problem again I realised I had already accommodated for insert as well as delete events. Since I was specifically suppressing the delete events when the parent node wasn't changed in a reorder event, I could just remove this special casing and it all works.
+
+The downside is that additional events are generated for all moves that remain in the eventlog as tombstones. Garbarge collection should be able to get rid of them, need to verify that we remove them.
