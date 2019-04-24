@@ -712,3 +712,5 @@ It is always good to step back from a problem for a bit. On looking at the logoo
 The downside is that additional events are generated for all moves that remain in the eventlog as tombstones. Garbarge collection should be able to get rid of them, need to verify that we remove them.
 
 Changed some behaviour to always open the first node of a page, regardless of its collapsed state. Otherwise you could never see the children of a collapsed root node.
+
+Changed the implementation of our verifyAndRepairMarkup function to always just redo the entire markup as soon as there is __any__ markup availably. This makes for really nice markup updates when you are editing links for example. No matter where you add to it, it is automatically linked correctly. The downside is that we redo the entire markup on each edit in a text node that has any markup at all. For large amounts of text this may be slow. The bet here is that node contents will never be so large that it matters.

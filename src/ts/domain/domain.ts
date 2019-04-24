@@ -195,12 +195,13 @@ function updateAllEmbeddedLinks(node: Element): void {
  * It will also make sure all the embeddedLink elements have the correct href value.
  */
 export function verifyAndRepairMarkup(el: Element): void {
-  updateAllEmbeddedLinks(el)
-  const currentTagCount = countNonTextNodes(el)
   const newMarkup = markupHtml(el.textContent)
   const newTagCount = countNonTextNodes(newMarkup)
-  // If we have more or less tags in the new markup, it means that we need to autolink something
-  if (currentTagCount !== newTagCount) {
+  // We now always update the markup as soon as the text has markup at all.
+  // This automatically catches changes to existing markup (text added to links for example)
+  // and it catches new markup. Hopefully it is fast enough.
+  if (newTagCount > 0) {
+    updateAllEmbeddedLinks(el)
     const cursorPos = getCursorPosAcrossMarkup(el)
     el.innerHTML = ''
     el.appendChild(newMarkup)
