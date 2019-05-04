@@ -1,5 +1,11 @@
-import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode, DeferredRepositoryNode, markupHtml } from './domain'
+import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode, DeferredRepositoryNode, markupHtml, QueryComponent } from './domain'
 import { findAndMarkText } from '../util'
+
+const splitRegexp = new RegExp('[,\\.;\\s]+')
+
+export function parseQuery(query: string): QueryComponent[] {
+  return query.split(splitRegexp).map(comp => new QueryComponent(comp))
+}
 
 function createFilterMarker(s: string): Element {
   const el = document.createElement('mark')
@@ -8,16 +14,30 @@ function createFilterMarker(s: string): Element {
 }
 
 function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
-  const fragment = markupHtml(rawHtml)
-  let containsFilterHit = false
+  let fragment = markupHtml(rawHtml)
+  let filterMatches = false
   if (filter) {
-    // recursively go through all text nodes and find and annotate hits with a mark tag
-    // TODO: inline regex in filter
-    containsFilterHit = findAndMarkText(fragment, new RegExp(filter.query, 'i'), createFilterMarker)
+    // we AND search for all query components
+    let hitCount = 0
+    for (const queryComponent of filter.queryComponents) {
+      if (findAndMarkText(fragment, new RegExp(queryComponent.value, 'i'), createFilterMarker)) {
+        hitCount++
+      } else {
+        break
+      }
+    }
+    filterMatches = hitCount === filter.queryComponents.length
+    // if we did not find a hit we need to reset the the marked up fragment, we need to optimize this
+    // so we don't constantly remarkup every node
+    // if there was only one querycomponent to match, and we did not find a hit then we can just
+    // use the original fragment, otherwise we need new markup
+    if (!filterMatches && hitCount >= 1) {
+      fragment = markupHtml(rawHtml)
+    }
   }
   return {
     fragment,
-    containsFilterHit,
+    filterMatches,
   }
 }
 

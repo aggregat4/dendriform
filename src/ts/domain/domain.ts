@@ -55,8 +55,12 @@ export interface DeferredRepositoryNode {
   children: Promise<DeferredRepositoryNode[]>
 }
 
-export interface Filter {
-  query: string
+export class QueryComponent {
+  constructor(readonly value: string) {}
+}
+
+export class Filter {
+  constructor(readonly queryComponents: QueryComponent[]) {}
 }
 
 export interface Highlight {
@@ -66,7 +70,7 @@ export interface Highlight {
 
 export interface FilteredFragment {
   fragment: DocumentFragment,
-  containsFilterHit: boolean
+  filterMatches: boolean
 }
 
 export class FilteredRepositoryNode {
@@ -87,8 +91,8 @@ export class FilteredRepositoryNode {
       this.areAnyChildrenIncluded = !! await findFirstAsync(resolvedChildren, async (c) => await c.isIncluded())
     }
     return !this.filterApplied
-      || (this.filteredName && this.filteredName.containsFilterHit)
-      || (this.filteredNote && this.filteredNote.containsFilterHit)
+      || (this.filteredName && this.filteredName.filterMatches)
+      || (this.filteredNote && this.filteredNote.filterMatches)
       || this.areAnyChildrenIncluded
   }
 }

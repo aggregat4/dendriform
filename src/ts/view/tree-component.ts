@@ -3,8 +3,8 @@ import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
-import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating } from '../domain/domain'
-import { filterNode } from '../domain/domain-search'
+import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter } from '../domain/domain'
+import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
 import { debounce, isEmpty, pasteTextUnformatted, setCursorPos } from '../util'
@@ -135,7 +135,7 @@ export class Tree implements CommandExecutor {
 
   private getFilteredTree(tree: LoadedTree): Promise<FilteredRepositoryNode> {
     const doFilter = !isEmpty(this.searchField.value)
-    return filterNode(tree.tree, doFilter ? {query: this.searchField.value} : undefined)
+    return filterNode(tree.tree, doFilter ? new Filter(parseQuery(this.searchField.value)) : undefined)
   }
 
   private async onClick(event: Event): Promise<void> {
