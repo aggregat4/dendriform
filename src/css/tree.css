@@ -1,5 +1,6 @@
 :root {
-  --highlight-bgcolor: #dddddd;
+  --highlight-bgcolor: #5d8fac;
+  --highlight-color: white;
 }
 
 .tree {
@@ -153,8 +154,8 @@
 
 .node span.toggle:hover,
 .node span.menuTrigger:hover {
-  background: rgb(182, 197, 206); /* #c1c1ff; */
-  color: white;
+  background: var(--highlight-bgcolor);
+  color: var(--highlight-color);
   cursor: pointer;
 }
 
@@ -285,11 +286,7 @@ a.embeddedLink {
   display: none;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-    to { opacity: 1; }
-}
-
+/* ---------- Dialog ---------- */ 
 /* Just the absolute basic styles for a responsive dialog */
 .dialog {
   background: white;
@@ -297,8 +294,6 @@ a.embeddedLink {
   position: fixed;
   z-index: 2; /* dialogs need to be above the overlay */
   border-radius: 3px;
-  padding: 6px;
-  border: 1px #eee solid;
   animation: fadeIn 150ms ease-out;
   box-shadow: 0px 3px 5px rgba(0,0,0,0.2);
   /* To center horizontally and vertically as per https://stackoverflow.com/a/25829529/1996 */
@@ -307,10 +302,15 @@ a.embeddedLink {
   transform: translate(-50%, -50%);
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .dialogOverlay {
   display: none;
   position: fixed;
-  z-index: 1;
+  z-index: 1; /* overlay is above everything but the dialog itself */
   left: 0;
   top: 0;
   width: 100%;
@@ -343,6 +343,7 @@ a.embeddedLink {
 
 .menuItem:hover {
   background-color: var(--highlight-bgcolor);
+  color: var(--highlight-color);
   cursor: pointer;
 }
 
@@ -352,8 +353,10 @@ a.embeddedLink {
   margin-bottom: 12px;
 }
 
+/* ---------- OPML Import component ---------- */ 
 tree-opmlimport-dialog {
   width: 400px;
+  padding: 6px;
 }
 
 tree-opmlimport-dialog .error {
