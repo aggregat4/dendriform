@@ -1,8 +1,8 @@
 // tslint:disable-next-line:max-line-length
-import {DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events, EventGcInclusionFilter, EventPayloadType, ReorderChildNodeEventPayload} from './eventlog'
+import { DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events, EventPayloadType, ReorderChildNodeEventPayload } from './eventlog'
 import Dexie from 'dexie'
-import {generateUUID} from '../util'
-import {VectorClock} from '../lib/vectorclock'
+import { generateUUID } from '../util'
+import { VectorClock } from '../lib/vectorclock'
 import { ActivityIndicating } from '../domain/domain'
 
 /**
@@ -503,7 +503,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   // sort event array by vectorclock and peerid
   private sortCausally(events: StoredEvent[]): StoredEvent[] {
     events.sort((a, b) => {
-      const vcComp = VectorClock.compareValues(a, b)
+      const vcComp = VectorClock.compareValues(a.vectorclock, b.vectorclock)
       if (vcComp === 0) {
         return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
       } else {
