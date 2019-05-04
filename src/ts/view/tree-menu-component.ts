@@ -25,7 +25,7 @@ export class TreeNodeMenuItem extends HTMLElement {
     if (this.childElementCount <= 0) {
       this.setAttribute('class', 'menuItem')
       this.append(h('span.name', this.treeAction.name))
-      this.append(h('span.shortcut', this.treeAction.trigger.toString()))
+      this.append(h('kbd', this.treeAction.trigger.toString()))
       this.addEventListener('click', e => {
         this.treeAction.handler(e, this.treeActionContext)
       })
