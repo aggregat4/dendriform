@@ -69,8 +69,6 @@ export interface DEventSource {
   publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any>
 }
 
-export type EventGcInclusionFilter = (newEventPayload: EventPayloadType, oldEventPayload: EventPayloadType) => boolean
-
 export interface DEventLog extends DEventSource {
   // A globally unique ID identifying this peer in a multi-peer environment
   getPeerId(): string,
