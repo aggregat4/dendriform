@@ -22,9 +22,9 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. Importing OPML first seems to hang in the import dialog before dismissing it, this is probably the DOM update blocking everything, can we avoid that? This is only noticeable for really large imports.
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Some classes are really big. Especially `eventlog-local.ts` and `repository-eventlog.ts` this is becoming hard to understand. Refactor them.
+1. Put all the standard actions into menuitems for the node popup
 1. As long as we don't support formatting the importer needs to strip all HTML tags
 1. implement export in OPML format and make sure Workflowy can read it
 1. implement limited formatting, allow those tags when exporting and importing (unsure here to do the markdown like approach here or "real" formatting)
@@ -39,6 +39,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 1. replace dexie with raw indexeddb calls or something smaller (maybe, maybe not, the size is not that bad)
 1. Think through the performance of deleting a root node of a huge subtree: what does that mean for client storage? Do we keep any of those events?
+1. Importing OPML first seems to hang in the import dialog before dismissing it, this is probably the DOM update blocking everything, can we avoid that? This is only noticeable for really large imports.
 1. At some point we probably need paging for getting server side events, just to prevent us from crashing when the list of events becomes too large. Maybe one parameter suffices? pageSize=100 maybe?
 1. RE:DOM is used but not really how it is meant to be be used. For initial rendering it is fine, but since we do our local DOM operations directly by hand, RE:DOM components get out of sync and doing an incremental update when we get updates from other peers does not work. The current workaround is to redo the entire tree when we get such events (see `tree-component.ts` in `update(tree)`). A better solution would be to also have incremental updates there, perhaps with something like incremental-dom?
 1. I probably need some kind of forced garbage collect where on a peer a user confirms that this is the master copy and some sort of synchronous operation happens that forces a reset. What does that mean? Generate a snapshot on the server and have clients load this? This means putting data structure knowhow on the server. Or the client generates a snapshot and sends it to the server, but this means that all clients need to have the same software version.
