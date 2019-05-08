@@ -4,11 +4,13 @@ import Dexie from 'dexie'
 import { generateUUID } from '../util'
 import { VectorClock } from '../lib/vectorclock'
 import { ActivityIndicating } from '../domain/domain'
+import { LocalEventLogGarbageCollector } from './eventlog-local-gc'
+import { LocalEventLogIdMapper } from './eventlog-local-peerid-mapper'
 
 /**
  * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.
  */
-interface StoredEvent {
+export interface StoredEvent {
   eventid?: number,
   eventtype: number,
   treenodeid: string,
@@ -17,8 +19,13 @@ interface StoredEvent {
   payload: EventPayloadType,
 }
 
-class GcCandidate {
-  constructor(readonly nodeId: string, readonly eventtype: EventType) {}
+export function storedEventComparator(a: StoredEvent, b: StoredEvent): number {
+  const vcComp = VectorClock.compareValues(a.vectorclock, b.vectorclock)
+  if (vcComp === 0) {
+    return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
+  } else {
+    return vcComp
+  }
 }
 
 /**
@@ -35,8 +42,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   private vectorClock: VectorClock
   private counter: number
   private subscribers: EventSubscriber[] = []
-  private externalToInternalIdMap: Map<string, number>
-  private internalToExternalIdMap: Map<number, string>
   // event storage queue
   private storageQueue: DEvent[] = []
   private lastStorageTimestamp: number = 0
@@ -49,14 +54,8 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
    * this dynamically.
    */
   private readonly STORAGE_QUEUE_BATCH_SIZE = 200
-  // garbage collection
-  private readonly GC_TIMEOUT_MS = 10000
-  private readonly GC_MAX_BATCH_SIZE = 500
-  /**
-   * An optimization to avoid doing gc when no changes were made: as soon as the current counter
-   * is higher than the last counter we do gc, otherwise we just sleep.
-   */
-  private lastGcCounter = -1
+  private garbageCollector: LocalEventLogGarbageCollector
+  private peeridMapper: LocalEventLogIdMapper
   // DEBUG
   private lastStoreMeasurement: number = 0
   private storeCount: number = 0
@@ -74,19 +73,31 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     return `Processing ${this.storageQueue.length} queued commands...`
   }
 
+  getPeerId(): string {
+    return this.peerId
+  }
+
+  getName(): string {
+    return this.name
+  }
+
+  getCounter(): number {
+    return this.counter
+  }
+
   async init(): Promise<LocalEventLog> {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
       eventlog: '++eventid,eventtype,[eventtype+treenodeid]', // see StoredEvent for schema
-      peerid_mapping: 'externalid', // columns: externalid, internalid
     })
     await this.db.open()
     await this.loadOrCreateMetadata()
-    await this.loadPeerIdMapping()
     // start async event storage
     await this.drainStorageQueue()
-    // start GC
-    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS)
+    this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db.table('eventlog'))
+    this.garbageCollector.start()
+    this.peeridMapper = new LocalEventLogIdMapper(this.dbName + '-peerid-mapping')
+    await this.peeridMapper.init()
     return this
   }
 
@@ -128,79 +139,24 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     const currentTime = Date.now()
     const measuredTime = currentTime - this.lastStoreMeasurement
     if (measuredTime > 5000) {
-      console.debug(`Store and GC event throughput: ${this.storeCount / (measuredTime / 1000)} per s`)
+      console.debug(`Store event throughput: ${this.storeCount / (measuredTime / 1000)} per s`)
       this.lastStoreMeasurement = currentTime
       this.storeCount = 0
     }
   }
 
-  // TODO: would this not be a perfect use case for a webworker?
-  private async gc(): Promise<any> {
-    if (this.lastGcCounter < this.counter) {
-      const gcCandidates = await this.findGcCandidates()
-      const gcBatch = gcCandidates.splice(0, this.GC_MAX_BATCH_SIZE)
-      for (const candidate of gcBatch) {
-        await this.garbageCollect(candidate)
-      }
-      // if we were able to gc all candidates this round, set our counter variable to the current counter
-      // this allows us to skip gc when there is nothing to do
-      if (gcBatch.length === gcCandidates.length) {
-        this.lastGcCounter = this.counter
-      }
-    }
-    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS)
-  }
-
-  /**
-   * Goes through all stored events and counts how many events exist for a specific discriminator.
-   * A discriminator is typically nodeid+eventtype but some events may require a more specific
-   * discriminator.
-   * For all descriminators that occur more than once we have a garbage collection candidate and
-   * we just store the candidate in our list.
-   * TODO: not implement this with strings? Or is this the best choice since it is pragmatic?
-   */
-  private async findGcCandidates(): Promise<GcCandidate[]> {
-    const startOfGcFind = Date.now()
+  // TODO: react to errors better!
+  private store(events: DEvent[]): Promise<number> {
     const table = this.db.table('eventlog')
-    const eventCounter = {}
-    const gcCandidates = []
-    // toArray() seems to be significantly (10x?) faster than .each() but
-    // it does load everything in memory, is this ok?
-    return table.toArray().then(events => {
-      for (const ev of events) {
-        const key = this.keyForEvent(ev)
-        eventCounter[key] = eventCounter[key] ? eventCounter[key] + 1 : 1
-      }
-    })
-    .then(() => {
-      const buildCounterTime = Date.now()
-      for (const key of Object.keys(eventCounter)) {
-        if (eventCounter[key] > 1) {
-          const firstIndexOfColon = key.indexOf(':')
-          const secondIndexOfColon = key.indexOf(':', firstIndexOfColon + 1)
-          gcCandidates.push(
-            new GcCandidate(
-              key.slice(0, firstIndexOfColon),
-              Number(key.slice(firstIndexOfColon + 1, secondIndexOfColon)),
-            ),
-          )
-        }
-      }
-      // TODO: move this into a generic metrics thing
-      console.debug(`Determined GC candidates in ${Date.now() - startOfGcFind}ms, about ${buildCounterTime - startOfGcFind}ms was needed to build the map`)
-      return gcCandidates
-    })
-  }
-
-  private keyForEvent(storedEvent: StoredEvent): string {
-    switch (storedEvent.eventtype) {
-      case EventType.ADD_OR_UPDATE_NODE:
-      case EventType.REPARENT_NODE: return `${storedEvent.treenodeid}:${storedEvent.eventtype}:`
-      case EventType.REORDER_CHILD: {
-        const payload = storedEvent.payload as ReorderChildNodeEventPayload
-        return `${storedEvent.treenodeid}:${storedEvent.eventtype}:${payload.childId}:${payload.operation}`
-      }
-    }
+    // console.debug(`Storing event at counter ${this.counter}`)
+    return table.bulkPut(events.map(e => {
+      return {
+        eventtype: e.type,
+        treenodeid: e.nodeId,
+        peerid: this.peeridMapper.externalToInternalPeerId(e.originator),
+        vectorclock: this.peeridMapper.externalToInternalVectorclock(e.clock),
+        payload: e.payload,
+      }})).catch(error => console.error(`store error: `, error))
   }
 
   private loadOrCreateMetadata(): Promise<void> {
@@ -232,38 +188,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
     return this.db.table('peer').put(metadata)
       .catch(error => console.error(`saveMetadata error: `, error))
-  }
-
-  private async loadPeerIdMapping() {
-    return this.db.table('peerid_mapping').toArray().then(mappings => {
-      this.externalToInternalIdMap = new Map()
-      this.internalToExternalIdMap = new Map()
-      for (const mapping of mappings) {
-        this.externalToInternalIdMap.set(mapping.externalid, mapping.internalid)
-        this.internalToExternalIdMap.set(mapping.internalid, mapping.externalid)
-      }
-    })
-  }
-
-  private async savePeerIdMapping() {
-    const mappings = []
-    for (const [key, value] of this.externalToInternalIdMap.entries()) {
-      mappings.push({externalid: key, internalid: value})
-    }
-    return this.db.table('peerid_mapping').bulkPut(mappings)
-      .catch(error => console.error(`savePeerIdMapping error: `, error))
-  }
-
-  getPeerId(): string {
-    return this.peerId
-  }
-
-  getName(): string {
-    return this.name
-  }
-
-  getCounter(): number {
-    return this.counter
   }
 
   publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any> {
@@ -300,10 +224,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     this.subscribers.push(subscriber)
   }
 
-  private storedEventToDEventMapper(ev: StoredEvent): DEvent {
-    return new DEvent(ev.eventtype, this.internalToExternalPeerId(Number(ev.peerid)), this.internalToExternalVectorclock(ev.vectorclock), ev.treenodeid, ev.payload)
-  }
-
   getEventsSince(eventTypes: EventType[], counter: number, peerId?: string): Promise<Events> {
     if (counter > this.counter) {
       throw new CounterTooHighError(`The eventlog has a counter of ${this.counter}` +
@@ -320,7 +240,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
     return query.toArray()
       .then((events: StoredEvent[]) => {
-        this.sortCausally(events)
+        events.sort(storedEventComparator)
         // This code is a bit of a cop out: we should not need this since this.counter is always
         // set to the highest stored event id when we insert() it into the database.
         // However we observed a counter being one off (and lower) than the real max event
@@ -338,7 +258,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         if (wasMaxCounterUpdated) {
           this.saveMetadata()
         }
-        return events.map(this.storedEventToDEventMapper.bind(this))
+        return events.map(e => this.peeridMapper.storedEventToDEventMapper(e))
       })
       .then((events: DEvent[]) => ({counter: this.counter, events}))
   }
@@ -354,9 +274,9 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         // the garbage collection has already run or not for this event. So we may need
         // to do some ad hoc garbage collection here.
         if (events.length > 1) {
-          this.sortCausally(events)
+          events.sort(storedEventComparator)
         }
-        return this.storedEventToDEventMapper(events[events.length - 1])
+        return this.peeridMapper.storedEventToDEventMapper(events[events.length - 1])
       })
   }
 
@@ -370,147 +290,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         }, 1)
       }
     }
-  }
-
-  private findNextInternalId(): number {
-    let largestId = 0
-    for (const key of this.internalToExternalIdMap.keys()) {
-      if (key > largestId) {
-        largestId = key
-      }
-    }
-    return largestId + 1
-  }
-
-  private externalToInternalPeerId(externalId: string): number {
-    const existingMapping = this.externalToInternalIdMap.get(externalId)
-    if (!existingMapping) {
-      const newInternalId = this.findNextInternalId()
-      this.externalToInternalIdMap.set(externalId, newInternalId)
-      this.internalToExternalIdMap.set(newInternalId, externalId)
-      this.savePeerIdMapping()
-      return newInternalId
-    } else {
-      return existingMapping
-    }
-  }
-
-  private internalToExternalPeerId(internalId: number): string {
-    const existingExternalId = this.internalToExternalIdMap.get(internalId)
-    if (!existingExternalId) {
-      throw Error(`Invalid internalId ${internalId}`)
-    } else {
-      return existingExternalId
-    }
-  }
-
-  /**
-   * @returns A vectorclock where all node ids have been mapped from external UUIDs to
-   * internal number ids. This never throws since an unknown nodeId is just added to the map.
-   */
-  private externalToInternalVectorclock(externalClock: VectorClock): VectorClock {
-    const externalValues = externalClock.values
-    const internalValues = {}
-    for (const externalNodeId of Object.keys(externalValues)) {
-      internalValues[this.externalToInternalPeerId(externalNodeId)] = externalValues[externalNodeId]
-    }
-    return new VectorClock(internalValues)
-  }
-
-  /**
-   * @returns A vectorclock where all node ids have been mapped from internal numbers to
-   * external UUIDs. This function throws when the internal id is unknown.
-   */
-  private internalToExternalVectorclock(internalClock: VectorClock): VectorClock {
-    const internalValues = internalClock.values
-    const externalValues = {}
-    for (const internalNodeId of Object.keys(internalValues)) {
-      externalValues[this.internalToExternalPeerId(Number(internalNodeId))] = internalValues[internalNodeId]
-    }
-    return new VectorClock(externalValues)
-  }
-
-  // TODO: react to errors better!
-  private store(events: DEvent[]): Promise<number> {
-    const table = this.db.table('eventlog')
-    // console.debug(`Storing event at counter ${this.counter}`)
-    return table.bulkPut(events.map(e => {
-      return {
-        eventtype: e.type,
-        treenodeid: e.nodeId,
-        peerid: this.externalToInternalPeerId(e.originator),
-        vectorclock: this.externalToInternalVectorclock(e.clock),
-        payload: e.payload,
-      }})).catch(error => console.error(`store error: `, error))
-  }
-
-  private garbageCollect(candidate: GcCandidate): Promise<any> {
-    const table = this.db.table('eventlog')
-    return table.where('[eventtype+treenodeid]').equals([candidate.eventtype, candidate.nodeId]).toArray()
-      .then((nodeEvents: StoredEvent[]) => {
-        // based on the eventtype we may need to partition the events for a node even further
-        const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(nodeEvents, candidate.eventtype)
-        for (const pruneCandidates of arraysToPrune) {
-          const eventsToDelete = this.findEventsToPrune(pruneCandidates)
-          if (eventsToDelete.length > 0) {
-            // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
-            return table.bulkDelete(eventsToDelete.map((e) => e.eventid))
-          }
-        }
-      })
-  }
-
-  // For the child order event log we need a special garbage collection filter because
-  // with logoot events for a sequence we don't just want to retain the newest event for each
-  // parent, rather we need to retain the newest event for a particular child for that parent and
-  // additionally take into account the operation type. We need to retain the newest DELETE as well
-  // as INSERT operation so we can reliably rebuild the sequence
-  private groupByEventTypeDiscriminator(nodeEvents: StoredEvent[], eventtype: EventType): StoredEvent[][] {
-    switch (eventtype) {
-      case EventType.ADD_OR_UPDATE_NODE:
-      case EventType.REPARENT_NODE: return [nodeEvents]
-      // LOGOOT sequences requires more specific partitioning, we need
-      // to further group by childid + operationid
-      case EventType.REORDER_CHILD: {
-        const reduced = nodeEvents.reduce((acc, val: StoredEvent) => {
-          const payload = (val.payload as ReorderChildNodeEventPayload)
-          const key = `${payload.childId}:${payload.operation}`; // semicolon necessary!
-          (acc[key] = acc[key] || []).push(val)
-          return acc
-        }, {})
-        // Object.values() is ES2017, I don't want to target
-        // ES2017 with typescript yet so therefore the workaround with keys
-        return Object.keys(reduced).map(key => reduced[key])
-      }
-    }
-  }
-
-  /**
-   * Assumes that the provided stored events are all of the same logical type and that we can
-   * just sort causally and remove all precursor events.
-   */
-  private findEventsToPrune(events: StoredEvent[]): StoredEvent[] {
-    if (events.length > 1) {
-      this.sortCausally(events)
-      // remove the last element, which is also the newest event which we want to retain
-      events.splice(-1 , 1)
-      return events
-    } else {
-      return []
-    }
-  }
-
-  // sort event array by vectorclock and peerid
-  private sortCausally(events: StoredEvent[]): StoredEvent[] {
-    events.sort((a, b) => {
-      const vcComp = VectorClock.compareValues(a.vectorclock, b.vectorclock)
-      if (vcComp === 0) {
-        return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
-      } else {
-        return vcComp
-      }
-    })
-    return events
   }
 
 }
