@@ -1,14 +1,14 @@
 import { OperatingSystem, guessOperatingSystem } from '../util'
 
 export const enum KbdEventType { Input, Keydown, Keypress }
-export const enum SemanticShortcutType {
+export enum SemanticShortcutType {
   Undo = 'Undo',
   Redo = 'Redo',
   BeginningOfDocument = 'BeginningOfDocument',
   EndOfDocument = 'EndOfDocument',
   Save = 'Save',
 }
-export const enum KbdKey {
+export enum KbdKey {
   Enter = 'Enter',
   ArrowUp = 'ArrowUp',
   ArrowDown = 'ArrowDown',
@@ -24,7 +24,7 @@ export const enum KbdKey {
 export class KbdCode {
   constructor(readonly code: number) {}
 }
-export const enum KbdModifierType {
+export enum KbdModifierType {
   Shift = 'Shift',
   Ctrl = 'Ctrl',
   Command = 'Command',
