@@ -23,7 +23,6 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 ## Next Steps
 
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
-1. Some classes are really big. Especially `eventlog-local.ts` and `repository-eventlog.ts` this is becoming hard to understand. Refactor them.
 1. Put all the standard actions into menuitems for the node popup
 1. As long as we don't support formatting the importer needs to strip all HTML tags
 1. implement export in OPML format and make sure Workflowy can read it
