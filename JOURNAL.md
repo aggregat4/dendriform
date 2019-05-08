@@ -716,3 +716,11 @@ Changed some behaviour to always open the first node of a page, regardless of it
 Changed the implementation of our verifyAndRepairMarkup function to always just redo the entire markup as soon as there is __any__ markup availably. This makes for really nice markup updates when you are editing links for example. No matter where you add to it, it is automatically linked correctly. The downside is that we redo the entire markup on each edit in a text node that has any markup at all. For large amounts of text this may be slow. The bet here is that node contents will never be so large that it matters.
 
 Undo was also no longer working: had to modify the verifyAndRepairMarkup function again. In case of node name or note renames we were not actually using the new text to update the dom node. So this had to be extended. The condition for NOT doing anything in this function is also different since Undo can cause text to be added or subtracted without impacting the markup. Now the condition for not doing anything is that the text is completely the same as before __and__ we have no markup at all.
+
+## 8.5.2019
+
+I refactored `eventlog-local.ts` to split some self-contained code out into some helper classes. I think this makes things more legible.
+
+Also refactored enums into const enums, based on a tip in a chat on  a twitch livestream linking to an article. Apparently they are not compiled to objects but inlined to values.
+
+For now I don't see an obvious refactoring for `repository-eventlog.ts` and will leave it as such.
