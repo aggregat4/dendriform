@@ -291,7 +291,7 @@ const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K']
 const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE']
 const iosPlatforms = ['iPhone', 'iPad', 'iPod']
 
-export enum OperatingSystem { MacOs = 'MacOs', Linux = 'Linux', Windows = 'Windows', Android = 'Android', Ios = 'Ios' }
+export const enum OperatingSystem { MacOs = 'MacOs', Linux = 'Linux', Windows = 'Windows', Android = 'Android', Ios = 'Ios' }
 
 export function guessOperatingSystem(): OperatingSystem {
   const userAgent = window.navigator.userAgent

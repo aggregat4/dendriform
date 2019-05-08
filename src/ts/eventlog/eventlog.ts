@@ -2,7 +2,7 @@ import {VectorClock} from '../lib/vectorclock'
 import {Predicate} from '../util'
 import {atomIdent} from '../lib/logootsequence.js'
 
-export enum EventType {
+export const enum EventType {
   ADD_OR_UPDATE_NODE,
   REPARENT_NODE,
   REORDER_CHILD,
@@ -21,7 +21,7 @@ export interface ReparentNodeEventPayload {
   parentId: string,
 }
 
-export enum LogootReorderOperation {
+export const enum LogootReorderOperation {
   INSERT,
   DELETE,
 }

@@ -97,7 +97,7 @@ export class FilteredRepositoryNode {
   }
 }
 
-export enum State {
+export const enum State {
   LOADING,
   LOADED,
   ERROR,
@@ -115,7 +115,7 @@ export interface LoadedTree {
   ancestors?: RepositoryNode[]
 }
 
-export enum RelativeLinearPosition {
+export const enum RelativeLinearPosition {
   BEFORE,
   AFTER,
   BEGINNING,
