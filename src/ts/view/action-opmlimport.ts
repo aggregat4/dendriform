@@ -3,10 +3,11 @@ import { TreeAction, TreeActionContext } from './tree-actions'
 import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
 import { DialogElement } from './dialogs'
 import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent, ActivityIndicating } from '../domain/domain'
-import { generateUUID } from '../util'
+import { generateUUID, parseXML } from '../util'
 import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/commands'
 import { CommandExecutor } from './tree-helpers'
 import { ActivityIndicator } from './activity-indicator-component'
+import { opmlDocumentToRepositoryNodes } from '../opml/opml-util'
 
 // TODO: not sure we need a keyboard trigger for this, perhaps we need a NoOp keyboard trigger?
 // TODO: move these into the registry proper identifiable by some name?
@@ -80,8 +81,8 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
       const reader = new FileReader()
       reader.onload = async (e) => {
         try {
-          const doc = this.parseXML(reader.result as string)
-          const rootNodes = this.opmlDocumentToRepositoryNodes(doc)
+          const doc = parseXML(reader.result as string)
+          const rootNodes = opmlDocumentToRepositoryNodes(doc)
           const parentId = this.treeActionContext.transientStateManager.getActiveNodeId()
           // disable import button to prevent duplicate clicks
           this.importButton.disabled = true
@@ -124,33 +125,6 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
     }
   }
 
-  /**
-   * Parses a DOM tree representing an OPML file into RepositoryNodes. We assume a workflowy
-   * or dynalist like document. Currently only supports the node name and the note.
-   *
-   * In dynalist it is possible to have multiple root nodes (you can select a bunch of nodes
-   * and export them) and this is also supported.
-   */
-  opmlDocumentToRepositoryNodes(doc: Document): ResolvedRepositoryNode[] {
-    const opmlRootNode = doc.getRootNode().firstChild
-    if (!opmlRootNode || opmlRootNode.nodeName.toUpperCase() !== 'OPML') {
-      throw new Error(`Document is not OPML, root element is called ${opmlRootNode.nodeName}`)
-    }
-    const bodyEl: Element = doc.querySelector('body')
-    const rootOutlines = this.childElementsByName(bodyEl, 'outline')
-    if (!rootOutlines || rootOutlines.length === 0) {
-      throw new Error('OPML document is empty')
-    }
-    const repositoryNodes = []
-    for (const rootOutline of rootOutlines) {
-      const potentialRepositoryNode = this.opmlOutlineNodeToRepositoryNode(rootOutline)
-      if (potentialRepositoryNode) {
-        repositoryNodes.push(potentialRepositoryNode)
-      }
-    }
-    return repositoryNodes
-  }
-
   private childElementsByName(el: Element, name: string): Element[] {
     return Array.from(el.children).filter(c => c.nodeName.toUpperCase() === name.toUpperCase())
   }
@@ -168,13 +142,6 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
       repoNode.children.push(this.opmlOutlineNodeToRepositoryNode(child))
     }
     return repoNode
-  }
-
-  private parseXML(content: string): Document {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(content, 'application/xml')
-    // TODO: DOMParser returns an error document instead of throwing an exception on parsing, catch that
-    return doc
   }
 
   setTreeActionContext(treeActionContext: TreeActionContext): void {
@@ -197,7 +164,7 @@ export function init(rootElement: Element) {
 // upload client side and parse the opml
 // create that tree as a child of the current node (how do I programmatically create nodes in batch!?)
 function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
-  console.log(`clicked on OPML import action`)
+  console.debug(`clicked on OPML import action`)
   const clickedElement = event.target as HTMLElement
   // since the dialog is already on the page we need to set the correct context for the current action
   opmlImportMenu.setTreeActionContext(treeActionContext)

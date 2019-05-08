@@ -353,3 +353,10 @@ export function countNonTextNodes(el: Node): number {
   }
   return count
 }
+
+export function parseXML(content: string): Document {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(content, 'application/xml')
+  // TODO: DOMParser returns an error document instead of throwing an exception on parsing, catch that
+  return doc
+}
