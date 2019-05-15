@@ -293,9 +293,10 @@ a.embeddedLink {
   display: none;
   position: fixed;
   z-index: 2; /* dialogs need to be above the overlay */
+  border: 1px #d1d1d1 solid;
   border-radius: 3px;
   animation: fadeIn 150ms ease-out;
-  box-shadow: 0px 3px 5px rgba(0,0,0,0.2);
+  box-shadow: 0px 3px 6px rgba(0,0,0,0.2);
   /* To center horizontally and vertically as per https://stackoverflow.com/a/25829529/1996 */
   left: 50%;
   top: 50%;
