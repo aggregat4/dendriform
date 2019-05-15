@@ -158,25 +158,6 @@ export function registerTreeActions(tree: TreeActionRegistry) {
         toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Save))),
       onSaveDocument,
       'Save Document'))
-  // TODO: I'm considering moving these undo and redo actions inside of the tree itself, they are a bit the odd ones out
-  // they are the only ones requiring the UndoableCommandHandler, and it just feels like an internal implemenation
-  // detail and not something that should be registerable from the outside.
-  tree.registerKeyboardAction(
-    new TreeAction(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new AllNodesSelector(),
-        toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Undo))),
-      onUndo,
-      'Undo'))
-  tree.registerKeyboardAction(
-    new TreeAction(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new AllNodesSelector(),
-        toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Redo))),
-      onRedo,
-      'Redo'))
 }
 
 function onNameInput(event: Event, treeActionContext: TreeActionContext) {
@@ -501,16 +482,4 @@ function onSaveDocument(event: Event, treeActionContext: TreeActionContext) {
   // suppress saving the page with ctrl s since that is just annoying
   // everything should be saved by now
   event.preventDefault()
-}
-
-function onUndo(event: Event, treeActionContext: TreeActionContext) {
-  event.preventDefault()
-  event.stopPropagation()
-  treeActionContext.commandExecutor.performWithDom(treeActionContext.undoCommandHandler.popUndoCommand())
-}
-
-function onRedo(event: Event, treeActionContext: TreeActionContext) {
-  event.preventDefault()
-  event.stopPropagation()
-  treeActionContext.commandExecutor.performWithDom(treeActionContext.undoCommandHandler.popRedoCommand())
 }

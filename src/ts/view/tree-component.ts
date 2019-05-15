@@ -9,7 +9,7 @@ import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
 import { debounce, isEmpty, pasteTextUnformatted, setCursorPos } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
-import { KbdEventType } from './keyboardshortcut'
+import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType } from './keyboardshortcut'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
 import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
@@ -18,8 +18,10 @@ import { CommandExecutor, TransientState } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
 import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog } from './dialogs'
-import { importOpmlAction } from './action-opmlimport'
 import { ActivityIndicator } from './activity-indicator-component'
+
+import { importOpmlAction } from './action-opmlimport'
+import { exportOpmlExportAction } from './action-opmlexport'
 
 customElements.define('tree-node-menu', TreeNodeMenu)
 customElements.define('tree-node-menuitem', TreeNodeMenuItem)
@@ -38,6 +40,9 @@ export class Tree implements CommandExecutor {
   private treeNodeMenu: TreeNodeMenu = null
   private treeActionContext: TreeActionContext = null
   private dialogs: Dialogs = null
+  // We handle undo and redo internally since they are core functionality we don't want to make generic and overwritable
+  private readonly undoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Undo)))
+  private readonly redoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Redo)))
 
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
@@ -69,12 +74,16 @@ export class Tree implements CommandExecutor {
 
     this.transientStateManager.registerSelectionChangeHandler()
     this.dialogs = new Dialogs(this.el as HTMLElement, this.dialogOverlayEl as HTMLElement)
-    this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.commandHandler, this.dialogs)
+    this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.dialogs, this.treeService)
     // this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
     // TODO: tree actions should have IDs, they are registered centrally and we should be able to look
     // them up so we can just reference them here instead of instantiating them
     const opmlImportMenuItem = new TreeNodeMenuItem(importOpmlAction, this.treeActionContext)
-    this.treeNodeMenu = new TreeNodeMenu([opmlImportMenuItem])
+    const opmlExportMenuItem = new TreeNodeMenuItem(exportOpmlExportAction, this.treeActionContext)
+    this.treeNodeMenu = new TreeNodeMenu([
+      opmlImportMenuItem,
+      opmlExportMenuItem,
+    ])
     this.el.appendChild(this.treeNodeMenu)
     this.dialogs.registerDialog(new Dialog('menuTrigger', this.treeNodeMenu))
   }
@@ -219,7 +228,13 @@ export class Tree implements CommandExecutor {
   }
 
   private onKeydown(event: KeyboardEvent): void {
-    this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keydown, event, this.treeActionContext)
+    if (this.undoTrigger.isTriggered(KbdEventType.Keydown, event)) {
+      this.onUndo(event)
+    } else if (this.redoTrigger.isTriggered(KbdEventType.Keydown, event)) {
+      this.onRedo(event)
+    } else {
+      this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keydown, event, this.treeActionContext)
+    }
   }
 
   private onDocumentKeydown(event: KeyboardEvent): void {
@@ -284,4 +299,15 @@ export class Tree implements CommandExecutor {
     }
   }
 
+  private onUndo(event: Event) {
+    event.preventDefault()
+    event.stopPropagation()
+    this.performWithDom(this.commandHandler.popUndoCommand())
+  }
+
+  private onRedo(event: Event) {
+    event.preventDefault()
+    event.stopPropagation()
+    this.performWithDom(this.commandHandler.popRedoCommand())
+  }
 }

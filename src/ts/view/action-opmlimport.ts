@@ -125,25 +125,6 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
     }
   }
 
-  private childElementsByName(el: Element, name: string): Element[] {
-    return Array.from(el.children).filter(c => c.nodeName.toUpperCase() === name.toUpperCase())
-  }
-
-  opmlOutlineNodeToRepositoryNode(outlineEl: Element): ResolvedRepositoryNode {
-    if (outlineEl.tagName.toUpperCase() !== 'OUTLINE') {
-      return null
-    }
-    const repoNode = createNewResolvedRepositoryNodeWithContent(
-      generateUUID(),
-      outlineEl.getAttribute('text'),
-      outlineEl.getAttribute('_note'))
-    const children = this.childElementsByName(outlineEl, 'outline')
-    for (const child of children) {
-      repoNode.children.push(this.opmlOutlineNodeToRepositoryNode(child))
-    }
-    return repoNode
-  }
-
   setTreeActionContext(treeActionContext: TreeActionContext): void {
     this.treeActionContext = treeActionContext
   }

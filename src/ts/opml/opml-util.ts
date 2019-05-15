@@ -1,4 +1,5 @@
-import { ResolvedRepositoryNode } from '../domain/domain'
+import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent, DeferredRepositoryNode } from '../domain/domain'
+import { generateUUID } from '../util';
 
 /**
  * Parses a DOM tree representing an OPML file into RepositoryNodes. We assume a workflowy
@@ -13,13 +14,13 @@ export function opmlDocumentToRepositoryNodes(doc: Document): ResolvedRepository
     throw new Error(`Document is not OPML, root element is called ${opmlRootNode.nodeName}`)
   }
   const bodyEl: Element = doc.querySelector('body')
-  const rootOutlines = this.childElementsByName(bodyEl, 'outline')
+  const rootOutlines = childElementsByName(bodyEl, 'outline')
   if (!rootOutlines || rootOutlines.length === 0) {
     throw new Error('OPML document is empty')
   }
   const repositoryNodes = []
   for (const rootOutline of rootOutlines) {
-    const potentialRepositoryNode = this.opmlOutlineNodeToRepositoryNode(rootOutline)
+    const potentialRepositoryNode = opmlOutlineNodeToRepositoryNode(rootOutline)
     if (potentialRepositoryNode) {
       repositoryNodes.push(potentialRepositoryNode)
     }
@@ -27,15 +28,51 @@ export function opmlDocumentToRepositoryNodes(doc: Document): ResolvedRepository
   return repositoryNodes
 }
 
-export function repositoryNodeToOpmlDocument(node: ResolvedRepositoryNode): Document {
+function childElementsByName(el: Element, name: string): Element[] {
+  return Array.from(el.children).filter(c => c.nodeName.toUpperCase() === name.toUpperCase())
+}
+
+function opmlOutlineNodeToRepositoryNode(outlineEl: Element): ResolvedRepositoryNode {
+  if (outlineEl.tagName.toUpperCase() !== 'OUTLINE') {
+    return null
+  }
+  const repoNode = createNewResolvedRepositoryNodeWithContent(
+    generateUUID(),
+    outlineEl.getAttribute('text'),
+    outlineEl.getAttribute('_note'))
+  const children = childElementsByName(outlineEl, 'outline')
+  for (const child of children) {
+    repoNode.children.push(opmlOutlineNodeToRepositoryNode(child))
+  }
+  return repoNode
+}
+
+export async function repositoryNodeToOpmlDocument(node: DeferredRepositoryNode): Promise<Document> {
   const xmlDoc = document.implementation.createDocument(null, 'opml', null)
   xmlDoc.documentElement.setAttribute('version', '2.0') // just copied from workflowy, need to check the spec
   const headEl = xmlDoc.createElementNS('', 'head')
   const bodyEl = xmlDoc.createElementNS('', 'body')
-  bodyEl.appendChild(createOpmlNode(node))
+  // TODO: make the choice to export deleted elements optional?
+  if (!node.node.deleted) {
+    const childEl = await createOpmlNode(xmlDoc, node)
+    bodyEl.appendChild(childEl)
+  }
+  xmlDoc.documentElement.appendChild(headEl)
+  xmlDoc.documentElement.appendChild(bodyEl)
   return xmlDoc
 }
 
-function createOpmlNode(node: ResolvedRepositoryNode): Element {
-  
+async function createOpmlNode(xmlDoc: Document, node: DeferredRepositoryNode): Promise<Element> {
+  const el = xmlDoc.createElementNS('', 'outline')
+  el.setAttribute('text', node.node.name || '') // exporting "empty" nodes as well, seems sensible?
+  if (node.node.content) {
+    el.setAttribute('_note', node.node.content)
+  }
+  const children = await node.children
+  for (const child of children) {
+    if (!child.node.deleted) {
+      el.appendChild(await createOpmlNode(xmlDoc, child))
+    }
+  }
+  return el
 }
