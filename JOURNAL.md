@@ -730,3 +730,5 @@ Started work on the opml export action.
 ## 15.5.2019
 
 While working on the opml export action I was sucked into a tooling and dependencies upgrade blitz. We are now up to date again, unused dependency p-queue is now gone, we depend on the proper npm hyperscript dependency and I futzed around with some Typescript webpack loader whatever bullshit.
+
+Finished OPML export implementation with file download.
