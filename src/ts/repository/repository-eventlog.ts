@@ -1,6 +1,6 @@
 import {Repository} from './repository'
 // tslint:disable-next-line:max-line-length
-import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation } from '../eventlog/eventlog'
+import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode, Subscription, DeferredRepositoryNode } from '../domain/domain'
@@ -142,7 +142,7 @@ export class EventlogRepository implements Repository {
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       id,
-      {name, note: content, deleted: false, collapsed: false},
+      createNewAddOrUpdateNodeEventPayload(name, content, false, false),
       synchronous)
   }
 
@@ -160,7 +160,7 @@ export class EventlogRepository implements Repository {
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
-      {name: node.name, note: node.content, deleted: !!node.deleted, collapsed: !!node.collapsed},
+      createNewAddOrUpdateNodeEventPayload(node.name, node.note, !!node.deleted, !!node.collapsed),
       synchronous)
   }
 
@@ -287,9 +287,11 @@ export class EventlogRepository implements Repository {
     return {
       _id: nodeId,
       name: eventPayload.name,
-      content: eventPayload.note,
+      note: eventPayload.note,
       deleted: eventPayload.deleted,
       collapsed: eventPayload.collapsed,
+      created: eventPayload.created,
+      updated: eventPayload.updated,
     }
   }
 

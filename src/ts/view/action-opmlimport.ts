@@ -113,7 +113,7 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
 
   private async createNode(commandExecutor: CommandExecutor, node: ResolvedRepositoryNode, parentId: string): Promise<void> {
     const command = new CommandBuilder(
-      new CreateChildNodeCommandPayload(node.node._id, node.node.name, node.node.content, parentId))
+      new CreateChildNodeCommandPayload(node.node._id, node.node.name, node.node.note, parentId))
       .isUndoable()
       .isBatch()
       .build()

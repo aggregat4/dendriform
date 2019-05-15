@@ -1,5 +1,5 @@
 import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent, DeferredRepositoryNode } from '../domain/domain'
-import { generateUUID } from '../util';
+import { generateUUID } from '../util'
 
 /**
  * Parses a DOM tree representing an OPML file into RepositoryNodes. We assume a workflowy
@@ -65,8 +65,8 @@ export async function repositoryNodeToOpmlDocument(node: DeferredRepositoryNode)
 async function createOpmlNode(xmlDoc: Document, node: DeferredRepositoryNode): Promise<Element> {
   const el = xmlDoc.createElementNS('', 'outline')
   el.setAttribute('text', node.node.name || '') // exporting "empty" nodes as well, seems sensible?
-  if (node.node.content) {
-    el.setAttribute('_note', node.node.content)
+  if (node.node.note) {
+    el.setAttribute('_note', node.node.note)
   }
   const children = await node.children
   for (const child of children) {

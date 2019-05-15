@@ -8,6 +8,7 @@
       "redom": ["node_modules/redom/dist/redom"],
       "dexie": ["node_modules/dexie/dist/dexie"],
       "filesaver": ["node_modules/file-saver/dist/FileSaver"],
+      "moment": ["node_modules/moment/moment"],
       "hyperscript": ["node_modules/hyperscript/index"]
     }
   }

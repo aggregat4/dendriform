@@ -1,4 +1,5 @@
 import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup} from '../util'
+import * as moment from 'moment'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
 export const END_NODELIST_MARKER = '-|'
@@ -6,9 +7,11 @@ export const END_NODELIST_MARKER = '-|'
 export interface RepositoryNode {
   _id: string,
   name: string,
-  content: string,
+  note: string,
   deleted?: boolean,
   collapsed?: boolean,
+  created: string, // ISO 8601 timestamp with timezone information, e.g. "2007-04-05T14:30Z"
+  updated: string, // ISO 8601 timestamp with timezone information, e.g. "2007-04-05T14:30Z"
 }
 
 function nodeIsDeleted(node: RepositoryNode): boolean { return node.deleted && node.deleted === true }
@@ -19,7 +22,10 @@ export function createNewRepositoryNodeWithContent(id: string, name: string, con
   return {
     _id: id,
     name,
-    content,
+    note: content,
+    // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
+    created: moment(new Date()).format(),
+    updated: moment(new Date()).format(),
   }
 }
 

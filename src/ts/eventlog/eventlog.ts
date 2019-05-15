@@ -1,6 +1,7 @@
 import {VectorClock} from '../lib/vectorclock'
 import {Predicate} from '../util'
 import {atomIdent} from '../lib/logootsequence.js'
+import * as moment from 'moment'
 
 export const enum EventType {
   ADD_OR_UPDATE_NODE,
@@ -10,11 +11,26 @@ export const enum EventType {
 
 export const ALL_EVENT_TYPES = [EventType.ADD_OR_UPDATE_NODE, EventType.REORDER_CHILD, EventType.REPARENT_NODE]
 
+// TODO: this interface is highly linked to RepositoryNode in domain.ts, should we reuse that? Keep separate is better? Anti-Corruption layer?
 export interface AddOrUpdateNodeEventPayload {
   name: string,
   note: string,
   deleted: boolean,
   collapsed: boolean,
+  created: string,
+  updated: string,
+}
+
+export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean): AddOrUpdateNodeEventPayload {
+  return {
+    name,
+    note,
+    deleted,
+    collapsed,
+    // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
+    created: moment(new Date()).format(),
+    updated: moment(new Date()).format(),
+  }
 }
 
 export interface ReparentNodeEventPayload {

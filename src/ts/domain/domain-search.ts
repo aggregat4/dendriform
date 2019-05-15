@@ -49,7 +49,7 @@ export async function filterNode(node: DeferredRepositoryNode, filter?: Filter):
       Promise.all(filteredChildren),
       !!filter,
       node.node.name ? filterHtml(node.node.name, filter) : null,
-      node.node.content ? filterHtml(node.node.content, filter) : null))
+      node.node.note ? filterHtml(node.node.note, filter) : null))
 }
 
 export function filterNodeSynchronous(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
@@ -58,5 +58,5 @@ export function filterNodeSynchronous(node: ResolvedRepositoryNode, filter?: Fil
       Promise.resolve(node.children.map(c => filterNodeSynchronous(c, filter))),
       !!filter,
       node.node.name ? filterHtml(node.node.name, filter) : null,
-      node.node.content ? filterHtml(node.node.content, filter) : null)
+      node.node.note ? filterHtml(node.node.note, filter) : null)
 }

@@ -124,7 +124,7 @@ export class TreeService {
   updateNote(nodeId: string, note: string, synchronous: boolean): Promise<void> {
     return this.repo.loadNode(nodeId, nodeIsNotDeleted)
       .then(node => {
-        node.content = note
+        node.note = note
         return this.repo.updateNode(node, synchronous)
       })
   }
