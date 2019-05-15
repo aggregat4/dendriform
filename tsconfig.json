@@ -3,6 +3,7 @@
     "target": "ES6",
     "sourceMap": true,
     "baseUrl": ".",
+    "esModuleInterop": true,
     "paths": {
       // TS could not resolve these modules, this is from the https://www.typescriptlang.org/docs/handbook/module-resolution.html page under Path mapping
       "redom": ["node_modules/redom/dist/redom"],

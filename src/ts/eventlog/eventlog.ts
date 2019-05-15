@@ -1,7 +1,7 @@
 import {VectorClock} from '../lib/vectorclock'
 import {Predicate} from '../util'
 import {atomIdent} from '../lib/logootsequence.js'
-import * as moment from 'moment'
+import moment from 'moment'
 
 export const enum EventType {
   ADD_OR_UPDATE_NODE,

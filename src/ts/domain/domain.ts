@@ -1,5 +1,5 @@
 import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup} from '../util'
-import * as moment from 'moment'
+import moment from 'moment'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
 export const END_NODELIST_MARKER = '-|'
