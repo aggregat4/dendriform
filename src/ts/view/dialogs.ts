@@ -1,4 +1,4 @@
-import { h } from '../lib/hyperscript.js'
+import h from 'hyperscript'
 
 export class Position {
   constructor(readonly x: number, readonly y: number) {}

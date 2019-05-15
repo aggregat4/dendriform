@@ -6,8 +6,9 @@
     "paths": {
       // TS could not resolve these modules, this is from the https://www.typescriptlang.org/docs/handbook/module-resolution.html page under Path mapping
       "redom": ["node_modules/redom/dist/redom"],
-      "p-queue": ["node_modules/p-queue/index"],
-      "dexie": ["node_modules/dexie/dist/dexie"]
+      "dexie": ["node_modules/dexie/dist/dexie"],
+      "filesaver": ["node_modules/file-saver/dist/FileSaver"],
+      "hyperscript": ["node_modules/hyperscript/index"]
     }
   }
 }

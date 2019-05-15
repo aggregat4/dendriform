@@ -21,9 +21,20 @@ module.exports = {
   module: {
     rules: [
       // all files with a `.js` extension will be handled by `babel`
-      { include: path.resolve(__dirname, 'src/'), test: /\.js$/, loader: 'babel-loader' },
+      {
+        include: path.resolve(__dirname, 'src/'),
+        test: /\.js$/,
+        loader: 'babel-loader'
+      },
       // all files with a `.ts` or `.tsx` extension will be handled by `ts-loader`
-      { include: path.resolve(__dirname, 'src/'), test: /\.tsx?$/, loader: 'ts-loader' }
+      {
+        include: path.resolve(__dirname, 'src/'),
+        test: /\.tsx?$/,
+        loader: 'ts-loader',
+        options: {
+          configFile: "tsconfig.webpack.json",
+        }
+      }
     ]
   },
   plugins: [

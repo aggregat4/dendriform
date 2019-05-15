@@ -1,4 +1,4 @@
-// from https://github.com/gbirke/Sanitize.js
+// from https://github.com/gbirke/Sanitize.js (MIT license)
 
 /**
  * Copyright (c) 2010 by Gabriel Birke

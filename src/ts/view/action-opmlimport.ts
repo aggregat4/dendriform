@@ -1,4 +1,4 @@
-import { h } from '../lib/hyperscript.js'
+import h from 'hyperscript'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
 import { DialogElement } from './dialogs'

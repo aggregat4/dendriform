@@ -1,4 +1,4 @@
-import { h } from '../lib/hyperscript.js'
+import h from 'hyperscript'
 import { ActivityIndicating } from '../domain/domain'
 
 export class ActivityIndicator extends HTMLElement {
