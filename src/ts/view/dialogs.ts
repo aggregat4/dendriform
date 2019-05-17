@@ -38,6 +38,10 @@ export abstract class DialogElement extends HTMLElement {
   setDialogCloseObserver(dialogCloseObserver: DialogCloseObserver): void {
     this.dialogCloseObserver = dialogCloseObserver
   }
+
+  beforeShow(): void {
+    // NOOP
+  }
 }
 
 export type DialogTrigger = string | HTMLElement
@@ -125,7 +129,6 @@ export class Dialogs {
   }
 
   private showDialogRelative(dialog: Dialog, triggerEl: HTMLElement): void {
-    // TODO: clever dialog positioning, we're going to display it in fixed position
     const left = triggerEl.getBoundingClientRect().left
     const top = triggerEl.getBoundingClientRect().top + triggerEl.getBoundingClientRect().height
     this.showDialogAtPos(dialog, triggerEl, new Position(left, top))
@@ -142,6 +145,7 @@ export class Dialogs {
       dialog.dialogElement.style.left = position.x + 'px'
       dialog.dialogElement.style.top = position.y + 'px'
     }
+    dialog.dialogElement.beforeShow()
     dialog.dialogElement.style.transform = 'none'
     dialog.dialogElement.style.display = 'block'
   }
@@ -159,6 +163,7 @@ export class Dialogs {
       dialog.dialogElement.style.top = '0'
       dialog.dialogElement.style.transform = 'none'
     }
+    dialog.dialogElement.beforeShow()
     dialog.dialogElement.style.display = 'block'
     this.overlay.style.display = 'block'
   }

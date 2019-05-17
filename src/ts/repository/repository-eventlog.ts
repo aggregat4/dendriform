@@ -3,7 +3,7 @@ import {Repository} from './repository'
 import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, ResolvedRepositoryNode, Subscription, DeferredRepositoryNode } from '../domain/domain'
+import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, DeferredRepositoryNode } from '../domain/domain'
 import { atomIdent } from '../lib/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 
@@ -160,7 +160,7 @@ export class EventlogRepository implements Repository {
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
-      createNewAddOrUpdateNodeEventPayload(node.name, node.note, !!node.deleted, !!node.collapsed),
+      createNewAddOrUpdateNodeEventPayload(node.name, node.note, !!node.deleted, !!node.collapsed, node.created),
       synchronous)
   }
 

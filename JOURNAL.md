@@ -735,4 +735,10 @@ Finished OPML export implementation with file download.
 
 Started a new branch to implement adding `created` and `updated` timestamps to the nodes. Interesting to see what I have to change to make this change.
 
-In order to have ISO 8601 timestamps that include the actual local timezone I had to add moment js as a dependency and use its format function to generate that. May be a bit overkill if I use it just for that function.
+In order to have ISO 8601 timestamps that include the actual local timezone I had to add momentjs as a dependency and use its format function to generate that. May be a bit overkill if I use it just for that function?
+
+## 17.5.2019
+
+Implementing created and updated timestamps was easier than expected on the backend. It appears that the datamodel with node contents is sufficiently abstracted and deduplicated. We basically just have the two representations: RepositoryNode for the frontend and the event payload for the backend. It seems right to keep those separated as an anti-corruption layer even if it duplicates a little bit.
+
+Moment js seems to work really well so far for generating ISO strings and formatting dates.

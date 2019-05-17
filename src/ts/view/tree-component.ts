@@ -15,7 +15,7 @@ import { TreeNode } from './node-component'
 import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientState } from './tree-helpers'
-import { TreeNodeMenu, TreeNodeMenuItem } from './tree-menu-component'
+import { TreeNodeMenu, TreeNodeActionMenuItem, TreeNodeInfoMenuItem } from './tree-menu-component'
 import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog } from './dialogs'
 import { ActivityIndicator } from './activity-indicator-component'
@@ -23,8 +23,9 @@ import { ActivityIndicator } from './activity-indicator-component'
 import { importOpmlAction } from './action-opmlimport'
 import { exportOpmlExportAction } from './action-opmlexport'
 
-customElements.define('tree-node-menu', TreeNodeMenu)
-customElements.define('tree-node-menuitem', TreeNodeMenuItem)
+customElements.define('treenode-menu', TreeNodeMenu)
+customElements.define('treenode-menuitem-action', TreeNodeActionMenuItem)
+customElements.define('treenode-menuitem-info', TreeNodeInfoMenuItem)
 
 export class Tree implements CommandExecutor {
   private readonly domCommandHandler = new DomCommandHandler()
@@ -75,14 +76,12 @@ export class Tree implements CommandExecutor {
     this.transientStateManager.registerSelectionChangeHandler()
     this.dialogs = new Dialogs(this.el as HTMLElement, this.dialogOverlayEl as HTMLElement)
     this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.dialogs, this.treeService)
-    // this.treeNodeMenu = document.createElement('tree-node-menu') as TreeNodeMenu
     // TODO: tree actions should have IDs, they are registered centrally and we should be able to look
     // them up so we can just reference them here instead of instantiating them
-    const opmlImportMenuItem = new TreeNodeMenuItem(importOpmlAction, this.treeActionContext)
-    const opmlExportMenuItem = new TreeNodeMenuItem(exportOpmlExportAction, this.treeActionContext)
     this.treeNodeMenu = new TreeNodeMenu([
-      opmlImportMenuItem,
-      opmlExportMenuItem,
+      new TreeNodeActionMenuItem(importOpmlAction, this.treeActionContext),
+      new TreeNodeActionMenuItem(exportOpmlExportAction, this.treeActionContext),
+      new TreeNodeInfoMenuItem(this.treeActionContext),
     ])
     this.el.appendChild(this.treeNodeMenu)
     this.dialogs.registerDialog(new Dialog('menuTrigger', this.treeNodeMenu))

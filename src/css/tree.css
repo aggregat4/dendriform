@@ -1,6 +1,7 @@
 :root {
   --highlight-bgcolor: #5d8fac;
   --highlight-color: white;
+  --disabled-text-color: #aaa;
 }
 
 .tree {
@@ -340,12 +341,20 @@ a.embeddedLink {
 .menuItem {
   display: block;
   padding: 6px 12px 6px 12px;
+  max-width: 300px;
 }
 
 .menuItem:hover {
   background-color: var(--highlight-bgcolor);
   color: var(--highlight-color);
   cursor: pointer;
+}
+
+.menuItem.disabled,
+.menuItem.disabled:hover {
+  background-color: inherit;
+  color: var(--disabled-text-color);
+  cursor: inherit;
 }
 
 .dialog header h1 {

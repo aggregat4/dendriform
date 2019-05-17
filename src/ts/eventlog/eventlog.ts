@@ -21,14 +21,14 @@ export interface AddOrUpdateNodeEventPayload {
   updated: string,
 }
 
-export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean): AddOrUpdateNodeEventPayload {
+export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean, created?: string): AddOrUpdateNodeEventPayload {
   return {
     name,
     note,
     deleted,
     collapsed,
     // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
-    created: moment(new Date()).format(),
+    created: created || moment(new Date()).format(),
     updated: moment(new Date()).format(),
   }
 }
