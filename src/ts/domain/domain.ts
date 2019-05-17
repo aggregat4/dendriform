@@ -1,5 +1,5 @@
 import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup} from '../util'
-import moment from 'moment'
+import { DateTime } from 'luxon'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
 export const END_NODELIST_MARKER = '-|'
@@ -24,8 +24,8 @@ export function createNewRepositoryNodeWithContent(id: string, name: string, con
     name,
     note: content,
     // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
-    created: moment(new Date()).format(),
-    updated: moment(new Date()).format(),
+    created: DateTime.local().toISO(),
+    updated: DateTime.local().toISO(),
   }
 }
 

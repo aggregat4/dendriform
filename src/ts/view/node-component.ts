@@ -1,13 +1,13 @@
-import { el, setAttr, setChildren, list, setStyle } from 'redom'
-import { RepositoryNode, ResolvedRepositoryNode, FilteredRepositoryNode } from '../domain/domain'
+import { el, setAttr, setChildren, list, setStyle, RedomComponent } from 'redom'
+import { RepositoryNode, FilteredRepositoryNode } from '../domain/domain'
 import { isCursorAtContentEditableBeginning, filterAsync } from '../util'
 
-export class TreeNode {
+export class TreeNode implements RedomComponent {
   private first: boolean
-  private el
   private ncEl
-  // private childrenEl
   private childList
+  // For REDOM
+  el: HTMLElement
 
   // 1. check for own filterhits
   // 2. process all children
@@ -19,7 +19,6 @@ export class TreeNode {
     this.first = first
     this.el = el('div',
       this.ncEl = el('div.nc'),
-      // this.childrenEl = el('div.children'))
       this.childList = list('div.children', TreeNode, n => n.node._id)) // key can be a lookup function (thanks finnish dude!)
   }
 
@@ -28,12 +27,13 @@ export class TreeNode {
       id: treeNode.node._id,
       class: this.genClass(treeNode.node, this.first),
     })
-    setChildren(this.ncEl,
+    setChildren(this.ncEl, [
       el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, ''),
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
       el('span.toggle', { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
-      el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰')) // trigram for heaven (U+2630)
+      el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰'), // trigram for heaven (U+2630)
+    ])
     // There are a bunch of conditions where we ignore the "collapsed" state of a node:
     // If the node was filtered we may have hits in the children
     // If the node is the first node of the page then we always want to show it opened

@@ -1,4 +1,4 @@
-import { el, setChildren } from 'redom'
+import { el, setChildren, RedomElement, RedomComponent } from 'redom'
 import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload } from '../commands/commands'
@@ -27,10 +27,9 @@ customElements.define('treenode-menu', TreeNodeMenu)
 customElements.define('treenode-menuitem-action', TreeNodeActionMenuItem)
 customElements.define('treenode-menuitem-info', TreeNodeInfoMenuItem)
 
-export class Tree implements CommandExecutor {
+export class Tree implements CommandExecutor, RedomComponent {
   private readonly domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
-  private el: Element
   private contentEl: Element
   private breadcrumbsEl: Element
   private dialogOverlayEl: Element
@@ -45,6 +44,9 @@ export class Tree implements CommandExecutor {
   private readonly undoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Undo)))
   private readonly redoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Redo)))
 
+  // For REDOM
+  el: HTMLElement
+
   // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
   // should we not only have the command handler?
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
@@ -53,7 +55,7 @@ export class Tree implements CommandExecutor {
       el('div.searchbox',
         /* Removing the search button because we don't really need it. Right? Accesibility?
           this.searchButton = el('button', 'Filter')) */
-        this.searchField = el('input', {type: 'search', placeholder: 'Filter'}),
+        this.searchField = el('input', {type: 'search', placeholder: 'Filter'}) as HTMLInputElement,
         activityIndicator),
       this.breadcrumbsEl = el('div.breadcrumbs'),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
@@ -113,9 +115,9 @@ export class Tree implements CommandExecutor {
     setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
     if (tree.status.state === State.ERROR) {
       setChildren(this.contentEl,
-        el('div.error', `Can not load tree from backing store: ${tree.status.msg}`))
+        [el('div.error', `Can not load tree from backing store: ${tree.status.msg}`)])
     } else if (tree.status.state === State.LOADING) {
-      setChildren(this.contentEl, el('div.error', `Loading tree...`))
+      setChildren(this.contentEl, [el('div.error', `Loading tree...`)])
     } else if (tree.status.state === State.LOADED) {
       this.currentRootNodeId = tree.tree.node._id
       // TODO: this is currently redoing the complete tree component for each update
@@ -125,7 +127,7 @@ export class Tree implements CommandExecutor {
       // incremental DOM and have a complete update of the tree but really incrementally
       // and with patches
       this.content = new TreeNode(true)
-      setChildren(this.contentEl, this.content)
+      setChildren(this.contentEl, [this.content])
       const filteredTree = await this.getFilteredTree(tree)
       this.content.update(filteredTree)
     }

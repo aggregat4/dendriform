@@ -741,4 +741,18 @@ In order to have ISO 8601 timestamps that include the actual local timezone I ha
 
 Implementing created and updated timestamps was easier than expected on the backend. It appears that the datamodel with node contents is sufficiently abstracted and deduplicated. We basically just have the two representations: RepositoryNode for the frontend and the event payload for the backend. It seems right to keep those separated as an anti-corruption layer even if it duplicates a little bit.
 
-Moment js seems to work really well so far for generating ISO strings and formatting dates.
+Moment js seems to work really well so far for generating ISO strings and formatting dates. The cost doesn't seem to onerous.
+
+I take it back: momentjs adds 540 KB to the appsize!? Need to investigate whether I can get the same features with less of a performance hit.
+
+I went to luxon instead of moment js: huge reduction in size, it's only 250 KB or so. Still not tiny, but much better. And it delegates to new browser Intl features which is good.
+
+I learned something new with the webpack/typescript setup: last time we refactored a bunch of that to be apparently better or more standard. I still have the problem that I need to manually add paths to node_modules libraries that I use in my code. Today I noticed that for luxon this was not required. The trick appears to be that when you install the @types for a particular dependency it also finds the module itself.
+
+So I need to add types for all the libs that have them.
+
+Also: apparently I needed to set `moduleResolution` to `node` in tsconfig to make sure it finds node modules. :facepalm:
+
+Update: the REDOM type definition seems to be faulty, it does not correctly allow for a lambda as a parameter to the list function, therefore had to revert to removing the types, specifying its path in tsconfig and not use typed access. At least I was able to solve some minor type issues when I had it active.
+
+I also realized that the "created" timestamp may not be that useful: when splitting a node it can non-intuitive what part of the split node gets the original created date...

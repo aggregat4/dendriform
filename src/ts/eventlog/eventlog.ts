@@ -1,7 +1,7 @@
-import {VectorClock} from '../lib/vectorclock'
-import {Predicate} from '../util'
-import {atomIdent} from '../lib/logootsequence.js'
-import moment from 'moment'
+import { VectorClock } from '../lib/vectorclock'
+import { Predicate } from '../util'
+import { atomIdent } from '../lib/logootsequence.js'
+import { DateTime } from 'luxon'
 
 export const enum EventType {
   ADD_OR_UPDATE_NODE,
@@ -28,8 +28,8 @@ export function createNewAddOrUpdateNodeEventPayload(name: string, note: string,
     deleted,
     collapsed,
     // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
-    created: created || moment(new Date()).format(),
-    updated: moment(new Date()).format(),
+    created: created || DateTime.local().toISO(),
+    updated: DateTime.local().toISO(),
   }
 }
 

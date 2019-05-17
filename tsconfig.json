@@ -4,13 +4,10 @@
     "sourceMap": true,
     "baseUrl": ".",
     "esModuleInterop": true,
+    "moduleResolution": "node",
     "paths": {
-      // TS could not resolve these modules, this is from the https://www.typescriptlang.org/docs/handbook/module-resolution.html page under Path mapping
+      // This is the only module that needs to be explicitly specified since I can't use the @types/redom since the definition of the list method is false
       "redom": ["node_modules/redom/dist/redom"],
-      "dexie": ["node_modules/dexie/dist/dexie"],
-      "filesaver": ["node_modules/file-saver/dist/FileSaver"],
-      "moment": ["node_modules/moment/moment"],
-      "hyperscript": ["node_modules/hyperscript/index"]
     }
   }
 }
