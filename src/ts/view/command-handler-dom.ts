@@ -27,6 +27,9 @@ import {
   getNameElement,
   hasChildren,
   getNoteElement,
+  hideToggle,
+  unhideToggle,
+  getParentNode,
 } from './tree-dom-util'
 
 export class DomCommandHandler implements CommandHandler {
@@ -127,6 +130,11 @@ export class DomCommandHandler implements CommandHandler {
 
   private domReparentNode(node: Element, newParentNode: Element,
                           relativeNode: Element, relativePosition: RelativeLinearPosition): void {
+    // save the original parent node for later
+    const oldParentNode = getParentNode(node)
+    // if we add a new child to a parent we may need to unhide the toggle button on the new parent
+    // and hide the toggle button on the old parent
+    unhideToggle(newParentNode)
     const parentChildrenNode = getChildrenElementOrCreate(newParentNode)
     if (relativePosition === RelativeLinearPosition.BEGINNING) {
       parentChildrenNode.insertBefore(node, parentChildrenNode.firstChild)
@@ -138,6 +146,10 @@ export class DomCommandHandler implements CommandHandler {
       relativeNode.insertAdjacentElement('afterend', node)
     } else {
       throw new Error(`Invalid RelativeLinearPosition: ${relativePosition}`)
+    }
+    // we need to check whether the original parent still has children, and if not, hide the toggle (if necessary)
+    if (!hasChildren(oldParentNode)) {
+      hideToggle(oldParentNode)
     }
   }
 

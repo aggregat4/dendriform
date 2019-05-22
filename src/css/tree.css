@@ -98,6 +98,12 @@
   display: block;
 }
 
+/* Override selector for the previous rule: if the toggle is hidden, we don't show it (this is for nodes with no children) */
+.node .nc:hover .toggle.hidden,
+.node .name:focus ~ .toggle.hidden {
+  display: none;
+}
+
 .nc > a {
   display: inline-block;
   position: absolute;
@@ -132,6 +138,10 @@
 .nc > a:hover:before, .node.closed > .nc > a:hover:before {
   color: #666;
   content: '⬤'; /* &#11044; */
+}
+
+.node .span.hiddenToggle {
+  display: none;
 }
 
 .node span.toggle {
@@ -448,14 +458,17 @@ tree-opmlimport-dialog h1 {
     display: block;
   }
 
-  /* Move the close button to the right on mobile */
+  /* Move the close button to the right on mobile and hide if hidden */
   .node span.toggle {
     margin-left: 0;
     right: 0;
     display: block;
   }
+  .node span.toggle.hidden {
+    display: none;
+  }
 
-  /* Hide the menu on mobile, we will have alternative */
+  /* Hide the menu on mobile, we will have an alternative */
   .node .nc:hover .menuTrigger,
   .node .name:focus ~ .menuTrigger {
     display: none;

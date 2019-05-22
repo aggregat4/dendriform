@@ -109,6 +109,20 @@ export function getNodeName(node: Element): string {
   return getNameElement(node).textContent || ''
 }
 
+export function hideToggle(node: Element): void {
+  const toggleElement = getToggleElement(node)
+  toggleElement.classList.add('hidden')
+}
+
+export function unhideToggle(node: Element): void {
+  const toggleElement = getToggleElement(node)
+  toggleElement.classList.remove('hidden')
+}
+
+function getToggleElement(node: Element): Element {
+  return node.querySelector('.toggle')
+}
+
 export function getNodeNote(node: Element): string {
   // sanitizeContent returns a documentFragment, apparently we can not get innerHTML on this
   // therefore we create an artificial element, append the fragment and get its innerHTML

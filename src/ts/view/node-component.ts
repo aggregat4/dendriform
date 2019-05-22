@@ -27,22 +27,27 @@ export class TreeNode implements RedomComponent {
       id: treeNode.node._id,
       class: this.genClass(treeNode.node, this.first),
     })
+    const childElements = await this.getChildElements(treeNode)
     setChildren(this.ncEl, [
       el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, ''),
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
-      el('span.toggle', { title: 'Open or close node'}),
+      el(`span.toggle${childElements.length === 0 ? '.hidden' : ''}`, { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰'), // trigram for heaven (U+2630)
     ])
+    this.childList.update(childElements)
+  }
+
+  private async getChildElements(treeNode: FilteredRepositoryNode): Promise<FilteredRepositoryNode[]> {
     // There are a bunch of conditions where we ignore the "collapsed" state of a node:
     // If the node was filtered we may have hits in the children
     // If the node is the first node of the page then we always want to show it opened
     if (!treeNode.node.collapsed || treeNode.filterApplied || this.first) {
       const children = await treeNode.children
       const filteredChildren = await filterAsync(children, c => c.isIncluded()) // children.filter(c => c.isIncluded())
-      this.childList.update(filteredChildren)
+      return filteredChildren as FilteredRepositoryNode[]
     } else {
-      this.childList.update([])
+      return []
     }
   }
 
