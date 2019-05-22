@@ -9,7 +9,7 @@
   font-size: 1rem;
   font-family: helvetica, arial, sans-serif;
   line-height: 1.4;
-  margin: 24px auto 24px auto;
+  margin: 12px auto 12px auto;
   /* Optimal width of text in a column: https://ux.stackexchange.com/a/3623 */
   max-width: 75ch;
   /* This is a hack to make sure the controls are always visible, even when getting really narrow.
@@ -87,8 +87,8 @@
   /* We need a longer line to hover over to show the node controls, including the whitespace
      to the left of the node so we add negative margin and fill it back up with padding so 
      the element is wider. */
-  margin-left: -5ch;
-  padding-left: 5ch;
+  margin-left: -40ch;
+  padding-left: 40ch;
 }
 
 .node .nc:hover .toggle,
@@ -447,6 +447,24 @@ tree-opmlimport-dialog h1 {
     position: fixed;
     display: block;
   }
+
+  /* Move the close button to the right on mobile */
+  .node span.toggle {
+    margin-left: 0;
+    right: 0;
+    display: block;
+  }
+
+  /* Hide the menu on mobile, we will have alternative */
+  .node .nc:hover .menuTrigger,
+  .node .name:focus ~ .menuTrigger {
+    display: none;
+  }
+
+  /* Don't waste horizontal space on mobile */
+  .tree {
+    padding-left: 0;
+  }  
 
 }
 
