@@ -756,3 +756,15 @@ Also: apparently I needed to set `moduleResolution` to `node` in tsconfig to mak
 Update: the REDOM type definition seems to be faulty, it does not correctly allow for a lambda as a parameter to the list function, therefore had to revert to removing the types, specifying its path in tsconfig and not use typed access. At least I was able to solve some minor type issues when I had it active.
 
 I also realized that the "created" timestamp may not be that useful: when splitting a node it can non-intuitive what part of the split node gets the original created date...
+
+## 22.5.019
+
+Improved the UX for small screens by moving the collapse button to the right of the screen when crossing the width threshold and removing the menu button. This allows the content to sit flush with the left hand border of the screen.
+
+This also necessitated making the toggle button only appear when a node really has children. A state that needs to be updated as soon as a node gets new children. This makes the mobile UI much more usable and cleaner.
+
+This is all heavily inspired by Workflowy, I am a bit worried that I'm so close to workflowy UI, but they did solve it really well.
+
+I will need to do something about the menu as well: that is now floating strangely to the left on nodes without children. Workflow also does it well here by showing the menu on hover over the bullet or as a dedicated menu on mobile devices.
+
+Dynalist is currently down and I can't check how they solve that.

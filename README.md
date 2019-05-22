@@ -22,16 +22,17 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
+1. Implement a "completed" toggle for doing tasks
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Put all the standard actions into menuitems for the node popup
-1. As long as we don't support formatting the importer needs to strip all HTML tags
+1. As long as we don't support formatting the importer needs to strip all HTML tags and optionally convert some tags to markdown?
 1. make sure that rerendertree is debounced for remote events
 1. Implement import by pasting into a text area.
-1. UI: This has to work on mobile, specifically in narrow columns. That means the popup must work, but also the controls for the node. And they need to work without hover. Also the menu on the nodes needs to be different, we lose too much horizontal space like this.
 1. Add server side admin UI (minimal, just delete log) and some form of authentication so I can set up a test server. Think about how to add admin UI and authentication to the server without adding it to the open source project. Just add it as a lib? Or perhaps better we just make the server private and keep it closed source.
-1. Make this work on touch: what interactions would be good? How can we do better than Workflowy?
+1. Test with touch
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. Escape should dismiss dialogs
+1. Redesign the menu: trigger it differently on desktop and have an alternative for mobile
 
 1. MAYBE replace dexie with raw indexeddb calls or something smaller (maybe, maybe not, the size is not that bad)
 1. Think through the performance of deleting a root node of a huge subtree: what does that mean for client storage? Do we keep any of those events?
