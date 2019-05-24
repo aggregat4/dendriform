@@ -757,7 +757,7 @@ Update: the REDOM type definition seems to be faulty, it does not correctly allo
 
 I also realized that the "created" timestamp may not be that useful: when splitting a node it can non-intuitive what part of the split node gets the original created date...
 
-## 22.5.019
+## 22.5.2019
 
 Improved the UX for small screens by moving the collapse button to the right of the screen when crossing the width threshold and removing the menu button. This allows the content to sit flush with the left hand border of the screen.
 
@@ -768,3 +768,13 @@ This is all heavily inspired by Workflowy, I am a bit worried that I'm so close 
 I will need to do something about the menu as well: that is now floating strangely to the left on nodes without children. Workflow also does it well here by showing the menu on hover over the bullet or as a dedicated menu on mobile devices.
 
 Dynalist is currently down and I can't check how they solve that.
+
+## 24.05.2019
+
+Implementing completed/uncompleted status on nodes. The backend work should be done, there is a new TreeConfig class used on the tree component to track what sort of toggles are set. This is different from transient state since this is somewhat persistent.
+
+GUI is required for configuring the current mode, the shortcut for completing/uncompleting is missing. We also will need some css to show completed nodes with strikethrough or something similar.
+
+I now have 3 commands that just update flags on nodes (deleted, collapsed and completed) and this is causing redundant code all over the place (see for example the command-handler-tree-service), this should really be more generic, right?
+
+The DOM command handler needs to be implemented and the actual action in the actionregistry as well.

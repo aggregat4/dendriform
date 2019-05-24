@@ -11,6 +11,8 @@ import {
   DeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
   CreateChildNodeCommandPayload,
+  CompleteNodeByIdCommandPayload,
+  UnCompleteNodeByIdCommandPayload,
 } from './commands'
 import {TreeService} from '../service/tree-service'
 
@@ -40,6 +42,10 @@ export class TreeServiceCommandHandler implements CommandHandler {
       return () => this.treeService.deleteNode(payload.nodeId, command.synchronous)
     } else if (payload instanceof UndeleteNodeByIdCommandPayload) {
       return () => this.treeService.undeleteNode(payload.nodeId, command.synchronous)
+    } else if (payload instanceof CompleteNodeByIdCommandPayload) {
+      return () => this.treeService.completeNode(payload.nodeId, command.synchronous)
+    } else if (payload instanceof UnCompleteNodeByIdCommandPayload) {
+      return () => this.treeService.unCompleteNode(payload.nodeId, command.synchronous)
     } else if (payload instanceof UpdateNoteByIdCommandPayload) {
       return () => this.treeService.updateNote(payload.nodeId, payload.newNote, command.synchronous)
     } else if (payload instanceof CreateChildNodeCommandPayload) {

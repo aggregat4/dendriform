@@ -1,4 +1,4 @@
-import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup} from '../util'
+import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate} from '../util'
 import { DateTime } from 'luxon'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
@@ -8,24 +8,31 @@ export interface RepositoryNode {
   _id: string,
   name: string,
   note: string,
-  deleted?: boolean,
-  collapsed?: boolean,
+  deleted: boolean,
+  collapsed: boolean,
+  completed: boolean,
   created: string, // ISO 8601 timestamp with timezone information, e.g. "2007-04-05T14:30Z"
   updated: string, // ISO 8601 timestamp with timezone information, e.g. "2007-04-05T14:30Z"
 }
 
-function nodeIsDeleted(node: RepositoryNode): boolean { return node.deleted && node.deleted === true }
+// const NODE_IS_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.deleted
+export const NODE_IS_NOT_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.deleted
 
-export function nodeIsNotDeleted(node: RepositoryNode): boolean { return !nodeIsDeleted(node) }
+export const NODE_IS_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.completed
+export const NODE_IS_NOT_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.completed
+export const NODE_NOT_DELETED_AND_NOT_COMPLETED = createCompositeAndPredicate([NODE_IS_NOT_DELETED, NODE_IS_NOT_COMPLETED])
 
 export function createNewRepositoryNodeWithContent(id: string, name: string, content: string): RepositoryNode {
   return {
     _id: id,
     name,
     note: content,
+    deleted: false,
+    collapsed: false,
     // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
     created: DateTime.local().toISO(),
     updated: DateTime.local().toISO(),
+    completed: false,
   }
 }
 

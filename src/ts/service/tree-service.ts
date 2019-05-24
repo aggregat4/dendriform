@@ -1,12 +1,14 @@
-import {generateUUID, ALWAYS_TRUE} from '../util'
+import {generateUUID, ALWAYS_TRUE, Predicate} from '../util'
 import {
   RelativeLinearPosition,
   RepositoryNode,
   LoadedTree,
   State,
   RelativeNodePosition,
-  nodeIsNotDeleted,
+  NODE_IS_NOT_DELETED,
   Subscription,
+  NODE_IS_NOT_COMPLETED,
+  NODE_IS_COMPLETED,
 } from '../domain/domain'
 import {Repository} from '../repository/repository'
 import { MergeNameOrder } from './service'
@@ -14,11 +16,11 @@ import { MergeNameOrder } from './service'
 export class TreeService {
   constructor(readonly repo: Repository) {}
 
-  loadTree(nodeId: string): Promise<LoadedTree> {
-    return this.repo.loadTree(nodeId, ALWAYS_TRUE)
+  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
+    return this.repo.loadTree(nodeId, nodeFilter)
       .then((tree) => {
         if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
-          return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId, ALWAYS_TRUE))
+          return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId, nodeFilter))
         } else {
           return tree
         }
@@ -39,7 +41,7 @@ export class TreeService {
 
   // loads the node by id, renames it and then returns a Promise of a response when done
   renameNode(nodeId: string, newName: string, synchronous): Promise<any> {
-    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
+    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
       .then(node => {
         if (newName !== node.name) {
           node.name = newName
@@ -54,12 +56,7 @@ export class TreeService {
     return this.repo.createNode(id, name, content, synchronous)
   }
 
-  getNode(nodeId: string): Promise<RepositoryNode> {
-    // console.log(`getNode for id '${nodeId}'`)
-    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
-  }
-
-  findNode(nodeId: string, includeDeleted: boolean): Promise<RepositoryNode> {
+  loadNode(nodeId: string): Promise<RepositoryNode> {
     // console.log(`getNode for id '${nodeId}'`)
     return this.repo.loadNode(nodeId, ALWAYS_TRUE)
   }
@@ -83,7 +80,7 @@ export class TreeService {
 
   // deletes a node, this just sets a deleted flag to true
   deleteNode(nodeId: string, synchronous: boolean): Promise<any> {
-    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
+    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
       .then(node => {
         node.deleted = true
         return this.repo.updateNode(node, synchronous)
@@ -95,7 +92,7 @@ export class TreeService {
     return this.repo.loadNode(nodeId, ALWAYS_TRUE)
       .then(node => {
         if (node) {
-          delete node.deleted // removing this flag from the object since it is not required anymore
+          node.deleted = false
           return this.repo.updateNode(node, synchronous)
         } else {
           throw new Error(`Node with id ${nodeId} does not exist`)
@@ -103,8 +100,28 @@ export class TreeService {
       })
   }
 
+  completeNode(nodeId: string, synchronous: boolean): Promise<any> {
+    return this.repo.loadNode(nodeId, NODE_IS_NOT_COMPLETED)
+      .then(node => {
+        if (node) {
+          node.completed = true
+          return this.repo.updateNode(node, synchronous)
+        }
+      })
+  }
+
+  unCompleteNode(nodeId: string, synchronous: boolean): Promise<any> {
+    return this.repo.loadNode(nodeId, NODE_IS_COMPLETED)
+      .then(node => {
+        if (node) {
+          node.completed = false
+          return this.repo.updateNode(node, synchronous)
+        }
+      })
+  }
+
   openNode(nodeId: string, synchronous: boolean): Promise<void> {
-    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
+    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
       .then(node => {
         if (node.collapsed) {
           delete node.collapsed
@@ -114,7 +131,7 @@ export class TreeService {
   }
 
   closeNode(nodeId: string, synchronous: boolean): Promise<void> {
-    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
+    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
       .then(node => {
         node.collapsed = true
         return this.repo.updateNode(node, synchronous)
@@ -122,7 +139,7 @@ export class TreeService {
   }
 
   updateNote(nodeId: string, note: string, synchronous: boolean): Promise<void> {
-    return this.repo.loadNode(nodeId, nodeIsNotDeleted)
+    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
       .then(node => {
         node.note = note
         return this.repo.updateNode(node, synchronous)
@@ -132,7 +149,7 @@ export class TreeService {
   // 1. rename the current node to the right hand side of the split
   // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
   splitNode(nodeId: string, nodeName: string, newSiblingId: string, newSiblingName: string, synchronous: boolean): Promise<any> {
-    return this.findNode(newSiblingId, true)
+    return this.findNode(newSiblingId)
       .then(sibling => {
         if (sibling) {
           return this.undeleteNode(newSiblingId, synchronous)
@@ -146,6 +163,10 @@ export class TreeService {
       .then(() => this.repo.getChildIds(nodeId))
       .then(childIds => this.reparentNodes(childIds, newSiblingId, synchronous))
       .then(() => this.renameNode(nodeId, nodeName, synchronous))
+  }
+
+  private findNode(nodeId: string): Promise<RepositoryNode> {
+    return this.repo.loadNode(nodeId, ALWAYS_TRUE)
   }
 
   // 1. rename targetnode to be targetnode.name + sourcenode.name

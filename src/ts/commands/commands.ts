@@ -5,6 +5,7 @@ export interface CommandHandler {
   exec(command: Command): Promise<any>
 }
 
+// TODO: make this an abstract class, the other payloads can inherit and save a ton of code
 export interface CommandPayload {
   inverse(): CommandPayload,
   requiresRender(): boolean
@@ -209,7 +210,28 @@ export class UndeleteNodeByIdCommandPayload implements CommandPayload {
     return new DeleteNodeByIdCommandPayload(this.nodeId)
   }
 
+  // TODO: figure out why this is the only command that requires a rerender!?
   requiresRender() { return true }
+}
+
+export class CompleteNodeByIdCommandPayload implements CommandPayload {
+  constructor(readonly nodeId: string) {}
+
+  inverse() {
+    return new UnCompleteNodeByIdCommandPayload(this.nodeId)
+  }
+
+  requiresRender() { return false }
+}
+
+export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
+  constructor(readonly nodeId: string) {}
+
+  inverse() {
+    return new CompleteNodeByIdCommandPayload(this.nodeId)
+  }
+
+  requiresRender() { return false }
 }
 
 export class UpdateNoteByIdCommandPayload implements CommandPayload {

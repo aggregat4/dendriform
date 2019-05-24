@@ -66,6 +66,7 @@ export class DomCommandHandler implements CommandHandler {
       this.domDeleteNode(document.getElementById(cmd.nodeId))
     } else if (cmd instanceof UndeleteNodeByIdCommandPayload) {
       // nothing to do, the command should trigger a rerender
+      // TODO: implement complete and uncomplete
     } else if (cmd instanceof UpdateNoteByIdCommandPayload) {
       this.domUpdateNote(document.getElementById(cmd.nodeId), cmd.newNote)
     } else if (cmd instanceof CreateChildNodeCommandPayload) {

@@ -17,16 +17,18 @@ export interface AddOrUpdateNodeEventPayload {
   note: string,
   deleted: boolean,
   collapsed: boolean,
+  completed: boolean,
   created: string,
   updated: string,
 }
 
-export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean, created?: string): AddOrUpdateNodeEventPayload {
+export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean, completed: boolean, created?: string): AddOrUpdateNodeEventPayload {
   return {
     name,
     note,
     deleted,
     collapsed,
+    completed,
     // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
     created: created || DateTime.local().toISO(),
     updated: DateTime.local().toISO(),

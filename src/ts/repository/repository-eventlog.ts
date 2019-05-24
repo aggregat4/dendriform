@@ -142,7 +142,7 @@ export class EventlogRepository implements Repository {
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       id,
-      createNewAddOrUpdateNodeEventPayload(name, content, false, false),
+      createNewAddOrUpdateNodeEventPayload(name, content, false, false, false),
       synchronous)
   }
 
@@ -160,7 +160,14 @@ export class EventlogRepository implements Repository {
     return this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
-      createNewAddOrUpdateNodeEventPayload(node.name, node.note, !!node.deleted, !!node.collapsed, node.created),
+      createNewAddOrUpdateNodeEventPayload(
+        node.name,
+        node.note,
+        !!node.deleted,
+        !!node.collapsed,
+        !!node.completed,
+        node.created,
+      ),
       synchronous)
   }
 
@@ -290,6 +297,7 @@ export class EventlogRepository implements Repository {
       note: eventPayload.note,
       deleted: eventPayload.deleted,
       collapsed: eventPayload.collapsed,
+      completed: eventPayload.completed,
       created: eventPayload.created,
       updated: eventPayload.updated,
     }

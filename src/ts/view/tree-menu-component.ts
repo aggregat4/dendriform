@@ -67,7 +67,7 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
   beforeShow(): void {
     const activeNodeId = this.treeActionContext.transientStateManager.getActiveNodeId()
     if (activeNodeId) {
-      this.treeActionContext.treeService.getNode(activeNodeId)
+      this.treeActionContext.treeService.loadNode(activeNodeId)
         .then(node => this.nodeInfoEl.textContent =
           `Created: ${this.formatDate(node.created)}, Updated: ${this.formatDate(node.updated)}`)
     }

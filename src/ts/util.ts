@@ -1,6 +1,17 @@
 export type Predicate<T> = (_: T) => boolean
 
-export function ALWAYS_TRUE(foo: any) { return true }
+export const ALWAYS_TRUE: Predicate<any> = (foo: any) => true
+
+export function createCompositeAndPredicate<T>(predicates: Array<Predicate<T>>): Predicate<T> {
+  return (value: T) => {
+    for (const predicate of predicates) {
+      if (!predicate(value)) {
+        return false
+      }
+    }
+    return true
+  }
+}
 
 export function isEmpty(str: string): boolean {
   return !str || str.trim() === ''

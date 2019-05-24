@@ -3,11 +3,11 @@ import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
-import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter } from '../domain/domain'
+import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode } from '../domain/domain'
 import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
-import { debounce, isEmpty, pasteTextUnformatted, setCursorPos } from '../util'
+import { debounce, isEmpty, pasteTextUnformatted, setCursorPos, Predicate } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType } from './keyboardshortcut'
 import { TreeNode } from './node-component'
@@ -27,6 +27,10 @@ customElements.define('treenode-menu', TreeNodeMenu)
 customElements.define('treenode-menuitem-action', TreeNodeActionMenuItem)
 customElements.define('treenode-menuitem-info', TreeNodeInfoMenuItem)
 
+class TreeConfig {
+  showCompleted: boolean = false
+}
+
 export class Tree implements CommandExecutor, RedomComponent {
   private readonly domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
@@ -40,6 +44,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   private treeNodeMenu: TreeNodeMenu = null
   private treeActionContext: TreeActionContext = null
   private dialogs: Dialogs = null
+  private config: TreeConfig = new TreeConfig()
   // We handle undo and redo internally since they are core functionality we don't want to make generic and overwritable
   private readonly undoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Undo)))
   private readonly redoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Redo)))
@@ -102,8 +107,12 @@ export class Tree implements CommandExecutor, RedomComponent {
       .then(() => this.treeChangeSubscription = this.treeService.subscribeToChanges(nodeId, this.onBackgroundTreeChange.bind(this)))
   }
 
+  private getNodeVisibilityPredicate(): Predicate<RepositoryNode> {
+    return this.config.showCompleted ? NODE_IS_NOT_DELETED : NODE_NOT_DELETED_AND_NOT_COMPLETED
+  }
+
   private reloadTree(nodeId: string): Promise<any> {
-    return this.treeService.loadTree(nodeId)
+    return this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate())
       .then(loadedTree => this.update(loadedTree))
   }
 
@@ -170,7 +179,7 @@ export class Tree implements CommandExecutor, RedomComponent {
       if (nodeClosed) {
         // When we open the node we need to load the subtree on demand
         const nodeId = getNodeId(node)
-        const loadedTree = await this.treeService.loadTree(nodeId)
+        const loadedTree = await this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate())
         const filteredTree = await this.getFilteredTree(loadedTree)
         const newOpenedNode = new TreeNode(false)// can it be that we update the first node? No it's always open (right?)
         await newOpenedNode.update(filteredTree)

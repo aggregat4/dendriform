@@ -158,6 +158,14 @@ export function registerTreeActions(tree: TreeActionRegistry) {
         toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Save))),
       onSaveDocument,
       'Save Document'))
+  tree.registerKeyboardAction(
+    new TreeAction(
+      new KeyboardEventTrigger(
+        KbdEventType.Keydown,
+        new NodeClassSelector('name'),
+        [new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Ctrl, true)])]),
+      onCompleteNode,
+      'Complete Node'))
 }
 
 function onNameInput(event: Event, treeActionContext: TreeActionContext) {
@@ -361,6 +369,15 @@ function deleteNode(node: Element, commandExecutor: CommandExecutor): void {
       .withAfterFocusPos(getNodeName(previousNode).length)
   }
   commandExecutor.performWithDom(builder.build())
+}
+
+function onCompleteNode(event: Event, treeActionContext: TreeActionContext) {
+  const eventNode = getClosestNodeElement(event.target as Element)
+  completeNode(eventNode, treeActionContext.commandExecutor)
+}
+
+function completeNode(node: Element, commandExecutor: CommandExecutor) {
+  
 }
 
 function onBackspaceInName(event: Event, treeActionContext: TreeActionContext) {

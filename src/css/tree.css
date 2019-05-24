@@ -218,7 +218,7 @@
 
 .node .name:focus, .node .note:focus {
   outline: none;
-  background-color: rgb(243, 235, 214); /* #f5f5aa; */
+  background-color: rgb(240, 240, 240, 0.5);
 }
 
 .node .note {
