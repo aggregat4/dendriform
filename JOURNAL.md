@@ -784,3 +784,5 @@ The DOM command handler needs to be implemented and the actual action in the act
 Further steps in the node completion logic. They are now also hidden in the tree. Rediscovered the fact that you can't CSS animate the `display` property. I still think this is rediculous.
 
 We have further issues though: when completed nodes are not shown we also need to remove them from the DOM tree or all sorts of keyboard navigation logic no longer works.
+
+We should try the rerender method first since that is the easiest? Allthough then the delay where the node is shown as completed and then removed is not really possible...
