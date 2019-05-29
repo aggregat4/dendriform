@@ -61,6 +61,10 @@ export function isNodeClosed(element: Element): boolean {
   return element.classList.contains('closed')
 }
 
+export function isNodeCompleted(element: Element): boolean {
+  return element.classList.contains('completed')
+}
+
 export function getNameElement(node: Element): Element {
   return node.children[0].children[1]
 }

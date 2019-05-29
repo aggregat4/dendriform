@@ -293,6 +293,16 @@ a.embeddedLink {
   margin-left: -2.5ch;
 }
 
+/* Completion status */
+.node.completed,
+.completed-visual-only {
+  text-decoration: line-through;
+}
+
+.tree.hideCompleted .node.completed {
+  display: none;
+}
+
 .hidden {
   display: none;
 }

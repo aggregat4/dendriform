@@ -778,3 +778,9 @@ GUI is required for configuring the current mode, the shortcut for completing/un
 I now have 3 commands that just update flags on nodes (deleted, collapsed and completed) and this is causing redundant code all over the place (see for example the command-handler-tree-service), this should really be more generic, right?
 
 The DOM command handler needs to be implemented and the actual action in the actionregistry as well.
+
+## 29.5.2019
+
+Further steps in the node completion logic. They are now also hidden in the tree. Rediscovered the fact that you can't CSS animate the `display` property. I still think this is rediculous.
+
+We have further issues though: when completed nodes are not shown we also need to remove them from the DOM tree or all sorts of keyboard navigation logic no longer works.

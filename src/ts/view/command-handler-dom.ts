@@ -18,6 +18,8 @@ import {
   UndeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
   CreateChildNodeCommandPayload,
+  CompleteNodeByIdCommandPayload,
+  UnCompleteNodeByIdCommandPayload,
 } from '../commands/commands'
 import {MergeNameOrder} from '../service/service'
 import {TreeNode} from './node-component'
@@ -66,7 +68,10 @@ export class DomCommandHandler implements CommandHandler {
       this.domDeleteNode(document.getElementById(cmd.nodeId))
     } else if (cmd instanceof UndeleteNodeByIdCommandPayload) {
       // nothing to do, the command should trigger a rerender
-      // TODO: implement complete and uncomplete
+    } else if (cmd instanceof CompleteNodeByIdCommandPayload) {
+      this.domCompleteNode(document.getElementById(cmd.nodeId))
+    } else if (cmd instanceof UnCompleteNodeByIdCommandPayload) {
+      this.domUnCompleteNode(document.getElementById(cmd.nodeId))
     } else if (cmd instanceof UpdateNoteByIdCommandPayload) {
       this.domUpdateNote(document.getElementById(cmd.nodeId), cmd.newNote)
     } else if (cmd instanceof CreateChildNodeCommandPayload) {
@@ -184,5 +189,22 @@ export class DomCommandHandler implements CommandHandler {
     const parentChildrenNode = getChildrenElementOrCreate(parentNode)
     const newNode = await this.createDomNode(childId, childName, childNote)
     parentChildrenNode.appendChild(newNode)
+  }
+
+  private domCompleteNode(node: Element): void {
+    node.classList.add('completed-visual-only')
+    setTimeout(() => {
+      node.classList.add('completed')
+      node.classList.remove('completed-visual-only')
+    }, 250)
+    // TODO: this is not sufficient: we need to detect whether we are showing completed nodes or not
+    // and in case we are not showing them we need to remove the DOM node from the tree, otherwise all
+    // our navigation logic goes out the window (alternatively we rerender the tree when completing
+    // and when not showing completed nodes?)
+  }
+
+  private domUnCompleteNode(node: Element): void {
+    node.classList.remove('completed')
+    node.classList.remove('completed-visual-only')
   }
 }

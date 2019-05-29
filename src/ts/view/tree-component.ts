@@ -56,7 +56,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   // should we not only have the command handler?
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
     const activityIndicator = new ActivityIndicator(activityIndicating, 1000)
-    this.el = el('div.tree',
+    this.el = el(`div.tree${this.generateTreeClasses()}`,
       el('div.searchbox',
         /* Removing the search button because we don't really need it. Right? Accesibility?
           this.searchButton = el('button', 'Filter')) */
@@ -92,6 +92,10 @@ export class Tree implements CommandExecutor, RedomComponent {
     ])
     this.el.appendChild(this.treeNodeMenu)
     this.dialogs.registerDialog(new Dialog('menuTrigger', this.treeNodeMenu))
+  }
+
+  private generateTreeClasses(): string {
+    return this.config.showCompleted ? '.showCompleted' : '.hideCompleted'
   }
 
   getTreeElement(): Element {

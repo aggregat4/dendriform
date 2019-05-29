@@ -1,7 +1,7 @@
 import { KbdEventType, RawKbdShortcut, KeyboardEventTrigger, NodeClassSelector, KbdKey, KbdModifier, KbdModifierType, toRawShortCuts, SemanticShortcut, SemanticShortcutType, AllNodesSelector } from './keyboardshortcut'
-import { getClosestNodeElement, getNodeId, getNodeName, getNodeNote, findPreviousNode, getNameElement, findNextNode, hasChildren, getParentNode, hasParentNode, findLastChildNode } from './tree-dom-util'
+import { getClosestNodeElement, getNodeId, getNodeName, getNodeNote, findPreviousNode, getNameElement, findNextNode, hasChildren, getParentNode, hasParentNode, findLastChildNode, isNodeCompleted } from './tree-dom-util'
 import { getCursorPos, getTextBeforeCursor, getTextAfterCursor, generateUUID, isTextSelected, isCursorAtBeginning, isEmpty, isCursorAtEnd } from '../util'
-import { CommandBuilder, RenameNodeByIdCommandPayload, UpdateNoteByIdCommandPayload, SplitNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, MergeNodesByIdCommandPayload, Command, ReparentNodeByIdCommandPayload } from '../commands/commands'
+import { CommandBuilder, RenameNodeByIdCommandPayload, UpdateNoteByIdCommandPayload, SplitNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, MergeNodesByIdCommandPayload, Command, ReparentNodeByIdCommandPayload, UnCompleteNodeByIdCommandPayload, CompleteNodeByIdCommandPayload } from '../commands/commands'
 import { MergeNameOrder } from '../service/service'
 import { TreeNode } from './node-component'
 import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
@@ -51,7 +51,7 @@ export function registerTreeActions(tree: TreeActionRegistry) {
       new KeyboardEventTrigger(
         KbdEventType.Keypress,
         new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Shift, false)])]),
+        [new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Shift, false), new KbdModifier(KbdModifierType.Ctrl, false)])]),
       onNodeSplit,
       'Split Node'))
   tree.registerKeyboardAction(
@@ -164,8 +164,8 @@ export function registerTreeActions(tree: TreeActionRegistry) {
         KbdEventType.Keydown,
         new NodeClassSelector('name'),
         [new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Ctrl, true)])]),
-      onCompleteNode,
-      'Complete Node'))
+      onToggleNodeCompletion,
+      'Toggle Node Completion'))
 }
 
 function onNameInput(event: Event, treeActionContext: TreeActionContext) {
@@ -371,13 +371,30 @@ function deleteNode(node: Element, commandExecutor: CommandExecutor): void {
   commandExecutor.performWithDom(builder.build())
 }
 
-function onCompleteNode(event: Event, treeActionContext: TreeActionContext) {
+function onToggleNodeCompletion(event: Event, treeActionContext: TreeActionContext) {
   const eventNode = getClosestNodeElement(event.target as Element)
-  completeNode(eventNode, treeActionContext.commandExecutor)
+  toggleNodeCompletion(eventNode, treeActionContext.commandExecutor)
 }
 
-function completeNode(node: Element, commandExecutor: CommandExecutor) {
-  
+function toggleNodeCompletion(node: Element, commandExecutor: CommandExecutor) {
+  const nodeId = getNodeId(node)
+  if (isNodeCompleted(node)) {
+    const builder = new CommandBuilder(new UnCompleteNodeByIdCommandPayload(nodeId))
+      .isUndoable()
+      .withBeforeFocusNodeId(nodeId)
+      .withBeforeFocusPos(getCursorPos())
+    commandExecutor.performWithDom(builder.build())
+  } else {
+    const nextNode = findNextNode(node)
+    const builder = new CommandBuilder(new CompleteNodeByIdCommandPayload(nodeId))
+      .isUndoable()
+      .withBeforeFocusNodeId(nodeId)
+      .withBeforeFocusPos(getCursorPos())
+      .withAfterFocusNodeId(getNodeId(nextNode))
+      .withAfterFocusPos(0)
+    commandExecutor.performWithDom(builder.build())
+    // TODO: maybe also set focus after complete? especially if we make completed nodes disappear
+  }
 }
 
 function onBackspaceInName(event: Event, treeActionContext: TreeActionContext) {

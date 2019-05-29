@@ -315,7 +315,10 @@ export class EventlogRepository implements Repository {
       const tree = amountOfNodesToLoad < this.MAX_NODES_TO_LOAD_INDIVIDUALLY
         ? await this.loadTreeNodeRecursively(nodeId, nodeFilter)
         : await this.loadTreeBulk(nodeId, nodeFilter)
-      // const tree =  await this.loadTreeNodeRecursively(nodeId, nodeFilter)
+      if (!tree) {
+        // since loadTreeNodRecursively can return null, we need to check it
+        throw new NodeNotFoundError(`Node not found: ${nodeId}`)
+      }
       const ancestors = await this.loadAncestors(nodeId, [])
       return { status: { state: State.LOADED }, tree, ancestors }
     } catch (reason) {
@@ -382,7 +385,7 @@ export class EventlogRepository implements Repository {
       Promise<DeferredRepositoryNode> {
     const node = await this.loadNode(nodeId, nodeFilter)
     if (! node) {
-      throw new NodeNotFoundError()
+      return null // we can't throw here because of the filter: may be that the node is not included in the filter
     }
     if (node.collapsed) {
       return {
@@ -392,8 +395,11 @@ export class EventlogRepository implements Repository {
         }),
       }
     } else {
-      const children = await Promise.all(this.getChildren(nodeId).map(childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<DeferredRepositoryNode>>)
-      return { node, children: Promise.resolve(children) }
+      const children = await Promise.all(
+        this.getChildren(nodeId)
+          .map(childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<DeferredRepositoryNode>>)
+      // filter out nulls that are excluded because of the nodeFilter
+      return { node, children: Promise.resolve(children.filter(c => !!c)) }
     }
   }
 
