@@ -172,7 +172,6 @@ export class ReparentNodeByIdCommandPayload implements CommandPayload {
 
   requiresRender() { return false }
 }
-}
 
 export class OpenNodeByIdCommandPayload implements CommandPayload {
   constructor(readonly nodeId: string) {}

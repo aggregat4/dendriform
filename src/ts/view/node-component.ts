@@ -22,32 +22,34 @@ export class TreeNode implements RedomComponent {
       this.childList = list('div.children', TreeNode, n => n.node._id)) // key can be a lookup function (thanks finnish dude!)
   }
 
-  async update(treeNode: FilteredRepositoryNode) {
+  update(treeNode: FilteredRepositoryNode) {
     setAttr(this.el, {
       id: treeNode.node._id,
       class: this.genClass(treeNode.node, this.first),
     })
-    const childElements = await this.getChildElements(treeNode)
+    const childElements = this.getChildElements(treeNode)
     setChildren(this.ncEl, [
       el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, ''),
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
-      el(`span.toggle${childElements.length === 0 ? '.hidden' : ''}`, { title: 'Open or close node'}),
+      // we only hide the toggle button when the childElements array exists and is empty, otherwise it may be that we just haven't loaded the nodes yet since we do that on demand
+      el(`span.toggle${childElements != null && childElements.length === 0 ? '.hidden' : ''}`, { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰'), // trigram for heaven (U+2630)
     ])
     this.childList.update(childElements)
   }
 
-  private async getChildElements(treeNode: FilteredRepositoryNode): Promise<FilteredRepositoryNode[]> {
+  private getChildElements(treeNode: FilteredRepositoryNode): FilteredRepositoryNode[] {
     // There are a bunch of conditions where we ignore the "collapsed" state of a node:
     // If the node was filtered we may have hits in the children
     // If the node is the first node of the page then we always want to show it opened
     if (!treeNode.node.collapsed || treeNode.filterApplied || this.first) {
-      const children = await treeNode.children
-      const filteredChildren = await filterAsync(children, c => c.isIncluded()) // children.filter(c => c.isIncluded())
+      const children = treeNode.children
+      const filteredChildren = children.filter(c => c.isIncluded()) // children.filter(c => c.isIncluded())
       return filteredChildren as FilteredRepositoryNode[]
     } else {
-      return []
+      // we need to preserve the information whether nodes were simply not loaded or whether there really are no children
+      return treeNode.node.collapsed && treeNode.children === null ? null : []
     }
   }
 

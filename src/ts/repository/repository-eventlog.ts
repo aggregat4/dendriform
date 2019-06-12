@@ -3,7 +3,7 @@ import {Repository} from './repository'
 import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, DeferredRepositoryNode } from '../domain/domain'
+import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, DeferredRepositoryNode, ResolvedRepositoryNode } from '../domain/domain'
 import { atomIdent } from '../lib/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 
@@ -340,7 +340,7 @@ export class EventlogRepository implements Repository {
     return 1 + childCount
   }
 
-  private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<DeferredRepositoryNode> {
+  private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode> {
     const nodeEvents = await this.eventLog.getEventsSince([EventType.ADD_OR_UPDATE_NODE], -1)
     const nodeMap: Map<string, RepositoryNode> = new Map()
     for (const nodeEvent of nodeEvents.events) {
@@ -349,7 +349,7 @@ export class EventlogRepository implements Repository {
     return this.loadTreeNodeBulk(nodeId, nodeMap, nodeFilter)
   }
 
-  private loadTreeNodeBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): DeferredRepositoryNode {
+  private async loadTreeNodeBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode> {
     const node = nodeMap.get(nodeId)
     if (! node) {
       throw new NodeNotFoundError(`Node not found in nodeMap with id ${nodeId}`)
@@ -358,22 +358,21 @@ export class EventlogRepository implements Repository {
       return null
     }
     if (node.collapsed) {
+      const childIds = this.getChildren(nodeId)
       return {
         node,
-        children: new Promise((resolve, reject) => {
-          resolve(this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter))
-        }),
+        children: childIds.length !== 0 ? null : [], // This is a marker: if the array is not empty then we just did not load it!
       }
     } else {
-      const children = this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter)
-      return {node, children: Promise.resolve(children)}
+      const children = await this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter)
+      return {node, children}
     }
   }
 
-  private loadChildTreeNodesBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): DeferredRepositoryNode[] {
-    const children: DeferredRepositoryNode[] = []
+  private async loadChildTreeNodesBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode[]> {
+    const children: ResolvedRepositoryNode[] = []
     for (const childNodeId of this.getChildren(nodeId)) {
-      const childNode = this.loadTreeNodeBulk(childNodeId, nodeMap, nodeFilter)
+      const childNode = await this.loadTreeNodeBulk(childNodeId, nodeMap, nodeFilter)
       if (childNode) { // node may have been filtered out, in that case omit
         children.push(childNode)
       }
@@ -381,25 +380,21 @@ export class EventlogRepository implements Repository {
     return children
   }
 
-  private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>):
-      Promise<DeferredRepositoryNode> {
+  private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode> {
     const node = await this.loadNode(nodeId, nodeFilter)
     if (! node) {
       return null // we can't throw here because of the filter: may be that the node is not included in the filter
     }
+    const childIds = this.getChildren(nodeId)
     if (node.collapsed) {
       return {
         node,
-        children: new Promise((resolve, reject) => {
-          resolve(Promise.all(this.getChildren(nodeId).map(childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<DeferredRepositoryNode>>))
-        }),
+        children: childIds.length !== 0 ? null : [], // This is a marker: if the array is not empty then we just did not load it!
       }
     } else {
-      const children = await Promise.all(
-        this.getChildren(nodeId)
-          .map(childId => this.loadTreeNodeRecursively(childId, nodeFilter)) as Array<Promise<DeferredRepositoryNode>>)
+      const children = await Promise.all(childIds.map(async childId => await this.loadTreeNodeRecursively(childId, nodeFilter)))
       // filter out nulls that are excluded because of the nodeFilter
-      return { node, children: Promise.resolve(children.filter(c => !!c)) }
+      return { node, children: children.filter(c => !!c) }
     }
   }
 

@@ -786,3 +786,31 @@ Further steps in the node completion logic. They are now also hidden in the tree
 We have further issues though: when completed nodes are not shown we also need to remove them from the DOM tree or all sorts of keyboard navigation logic no longer works.
 
 We should try the rerender method first since that is the easiest? Allthough then the delay where the node is shown as completed and then removed is not really possible...
+
+## 12.6.2019
+
+I more or less finished the implementation of completing nodes by opting for the approach of rerendering the tree after doing a completion. This causes the node to disappear from the DOM completely and our navigation will work once again.
+
+However, setting the focus after the rerender was not working.
+
+This was caused by the fact that the rerender is asynchronous.
+
+This was caused by the update() method on NodeComponent (see node-component.ts) was async.
+
+This was async because we have deferred node loading and the list of child nodes of a node is basically a promise that _can_ load nodes on demand.
+
+We did this because we wanted on demand loading when opening a collapsed node and for allowing for node filtering even when some nodes are not completely loaded (by reiterating over the tree and on-demand resolving the unloaded nodes).
+
+This is very clever but messes with our focus-after-rendering because I can't make REDOM treat the update method as async and await on it. It just executes it.
+
+There are only two, involved, ways out of this: make REDOM understand async/await or see if we can't do the deferred loading differently.
+
+In fact for on demand collapsed node loading we didn't actually NEED all that infrastructure since we load the complete subtree and replace the node in the original tree with that.
+
+So I started a branch to revert all the deferred loading stuff. This makes the code simpler again but introduces two problems:
+
+1. When a node is collapsed we do not load the children. Clients need to distinguish between: the children were not loaded and there really are no children. Luckily in repository-eventlog where we load them, we have this information. For now I encode this by either setting the children to null (not loaded) or setting an empty array (no children present). This makes all subsequent client code more fragile and ugly since everywhere you need to test for that. Must be fixed later.
+
+2. The second problem is a bit trickier: our node filtering no longer works. Since child nodes of collapsed nodes are not loaded at all anymore, you can not just take the current tree and filter it. That information just isn't there anymore.
+
+I need to fix the second problem: here we need to probably modify our repository api to allow one to specify whether to load collapsed nodes or not, this is currently hidden in the implementation and can not be controlled from outside.

@@ -124,7 +124,7 @@ export class Tree implements CommandExecutor, RedomComponent {
     this.reloadTree(this.currentRootNodeId)
   }
 
-  async update(tree: LoadedTree) {
+  update(tree: LoadedTree) {
     setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
     if (tree.status.state === State.ERROR) {
       setChildren(this.contentEl,
@@ -141,9 +141,8 @@ export class Tree implements CommandExecutor, RedomComponent {
       // and with patches
       this.content = new TreeNode(true)
       setChildren(this.contentEl, [this.content])
-      // we await here so that the promise we return is truly after the render of the tree
-      const filteredTree = await this.getFilteredTree(tree)
-      await this.content.update(filteredTree)
+      const filteredTree = this.getFilteredTree(tree)
+      this.content.update(filteredTree)
     }
   }
 
@@ -157,7 +156,7 @@ export class Tree implements CommandExecutor, RedomComponent {
     }
   }
 
-  private getFilteredTree(tree: LoadedTree): Promise<FilteredRepositoryNode> {
+  private getFilteredTree(tree: LoadedTree): FilteredRepositoryNode {
     const doFilter = !isEmpty(this.searchField.value)
     return filterNode(tree.tree, doFilter ? new Filter(parseQuery(this.searchField.value)) : undefined)
   }
@@ -182,7 +181,7 @@ export class Tree implements CommandExecutor, RedomComponent {
           .isSynchronous() // we need this to be a synchronous update so we can immediately reload the node afterwards
           .build())
       if (nodeClosed) {
-        // When we open the node we need to load the subtree on demand
+        // When we open the node we need to load the subtree on demand and patch it
         const nodeId = getNodeId(node)
         const loadedTree = await this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate())
         const filteredTree = await this.getFilteredTree(loadedTree)

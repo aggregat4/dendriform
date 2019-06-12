@@ -41,21 +41,19 @@ function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
   }
 }
 
-export async function filterNode(node: DeferredRepositoryNode, filter?: Filter): Promise<FilteredRepositoryNode> {
-  return node.children
-    .then(children => children.map(c => filterNode(c, filter)))
-    .then(filteredChildren => new FilteredRepositoryNode(
-      node.node,
-      Promise.all(filteredChildren),
-      !!filter,
-      node.node.name ? filterHtml(node.node.name, filter) : null,
-      node.node.note ? filterHtml(node.node.note, filter) : null))
+export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
+  return new FilteredRepositoryNode(
+    node.node,
+    node.children ? node.children.map(c => filterNode(c, filter)) : null,
+    !!filter,
+    node.node.name ? filterHtml(node.node.name, filter) : null,
+    node.node.note ? filterHtml(node.node.note, filter) : null)
 }
 
 export function filterNodeSynchronous(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
   return new FilteredRepositoryNode(
       node.node,
-      Promise.resolve(node.children.map(c => filterNodeSynchronous(c, filter))),
+      node.children ? node.children.map(c => filterNodeSynchronous(c, filter)) : null,
       !!filter,
       node.node.name ? filterHtml(node.node.name, filter) : null,
       node.node.note ? filterHtml(node.node.note, filter) : null)

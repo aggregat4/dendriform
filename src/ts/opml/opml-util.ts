@@ -47,14 +47,14 @@ function opmlOutlineNodeToRepositoryNode(outlineEl: Element): ResolvedRepository
   return repoNode
 }
 
-export async function repositoryNodeToOpmlDocument(node: DeferredRepositoryNode): Promise<Document> {
+export function repositoryNodeToOpmlDocument(node: ResolvedRepositoryNode): Document {
   const xmlDoc = document.implementation.createDocument(null, 'opml', null)
   xmlDoc.documentElement.setAttribute('version', '2.0') // just copied from workflowy, need to check the spec
   const headEl = xmlDoc.createElementNS('', 'head')
   const bodyEl = xmlDoc.createElementNS('', 'body')
   // TODO: make the choice to export deleted elements optional?
   if (!node.node.deleted) {
-    const childEl = await createOpmlNode(xmlDoc, node)
+    const childEl = createOpmlNode(xmlDoc, node)
     bodyEl.appendChild(childEl)
   }
   xmlDoc.documentElement.appendChild(headEl)
@@ -62,16 +62,16 @@ export async function repositoryNodeToOpmlDocument(node: DeferredRepositoryNode)
   return xmlDoc
 }
 
-async function createOpmlNode(xmlDoc: Document, node: DeferredRepositoryNode): Promise<Element> {
+function createOpmlNode(xmlDoc: Document, node: ResolvedRepositoryNode): Element {
   const el = xmlDoc.createElementNS('', 'outline')
   el.setAttribute('text', node.node.name || '') // exporting "empty" nodes as well, seems sensible?
   if (node.node.note) {
     el.setAttribute('_note', node.node.note)
   }
-  const children = await node.children
+  const children = node.children
   for (const child of children) {
     if (!child.node.deleted) {
-      el.appendChild(await createOpmlNode(xmlDoc, child))
+      el.appendChild(createOpmlNode(xmlDoc, child))
     }
   }
   return el

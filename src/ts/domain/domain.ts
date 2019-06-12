@@ -1,4 +1,4 @@
-import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate} from '../util'
+import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst} from '../util'
 import { DateTime } from 'luxon'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
@@ -91,17 +91,16 @@ export class FilteredRepositoryNode {
 
   constructor(
     readonly node: RepositoryNode,
-    readonly children: Promise<FilteredRepositoryNode[]>,
+    readonly children: FilteredRepositoryNode[],
     readonly filterApplied: boolean,
     readonly filteredName: FilteredFragment,
     readonly filteredNote: FilteredFragment) {}
 
-  async isIncluded(): Promise<boolean> {
+  isIncluded(): boolean {
     if (this.areAnyChildrenIncluded === undefined) {
-      const resolvedChildren = await this.children
       // implNote: it is important to !! the return value after awaiting, otherwise this is always true!
       // because you are getting a promise object, not the actual value
-      this.areAnyChildrenIncluded = !! await findFirstAsync(resolvedChildren, async (c) => await c.isIncluded())
+      this.areAnyChildrenIncluded = !! findFirst(this.children, (c) => c.isIncluded())
     }
     return !this.filterApplied
       || (this.filteredName && this.filteredName.filterMatches)
@@ -124,7 +123,7 @@ export interface Status {
 
 export interface LoadedTree {
   status: Status
-  tree?: DeferredRepositoryNode
+  tree?: ResolvedRepositoryNode
   ancestors?: RepositoryNode[]
 }
 
