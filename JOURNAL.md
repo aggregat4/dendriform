@@ -781,7 +781,7 @@ The DOM command handler needs to be implemented and the actual action in the act
 
 ## 29.5.2019
 
-Further steps in the node completion logic. They are now also hidden in the tree. Rediscovered the fact that you can't CSS animate the `display` property. I still think this is rediculous.
+Further steps in the node completion logic. They are now also hidden in the tree. Rediscovered the fact that you can't CSS animate the `display` property. I still think this is ridiculous.
 
 We have further issues though: when completed nodes are not shown we also need to remove them from the DOM tree or all sorts of keyboard navigation logic no longer works.
 

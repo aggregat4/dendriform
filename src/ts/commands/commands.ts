@@ -172,6 +172,7 @@ export class ReparentNodeByIdCommandPayload implements CommandPayload {
 
   requiresRender() { return false }
 }
+}
 
 export class OpenNodeByIdCommandPayload implements CommandPayload {
   constructor(readonly nodeId: string) {}
@@ -221,7 +222,10 @@ export class CompleteNodeByIdCommandPayload implements CommandPayload {
     return new UnCompleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender() { return false }
+  // In case the tree is set to not show completed nodes, we need a rerender since
+  // we need to make sure nodes are removed from the tree afterwards for navigation to work
+  // TODO: we only need rerender if a certain setting is set. Should these maybe be properties of the builder?
+  requiresRender() { return true }
 }
 
 export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
@@ -231,7 +235,7 @@ export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
     return new CompleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender() { return false }
+  requiresRender() { return true } // we don't need a rerender since we can only uncomplete when the node is visible
 }
 
 export class UpdateNoteByIdCommandPayload implements CommandPayload {

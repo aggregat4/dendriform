@@ -141,8 +141,9 @@ export class Tree implements CommandExecutor, RedomComponent {
       // and with patches
       this.content = new TreeNode(true)
       setChildren(this.contentEl, [this.content])
+      // we await here so that the promise we return is truly after the render of the tree
       const filteredTree = await this.getFilteredTree(tree)
-      this.content.update(filteredTree)
+      await this.content.update(filteredTree)
     }
   }
 
@@ -242,13 +243,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   private onKeydown(event: KeyboardEvent): void {
-    if (this.undoTrigger.isTriggered(KbdEventType.Keydown, event)) {
-      this.onUndo(event)
-    } else if (this.redoTrigger.isTriggered(KbdEventType.Keydown, event)) {
-      this.onRedo(event)
-    } else {
-      this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keydown, event, this.treeActionContext)
-    }
+    this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keydown, event, this.treeActionContext)
   }
 
   private onDocumentKeydown(event: KeyboardEvent): void {
@@ -262,6 +257,10 @@ export class Tree implements CommandExecutor, RedomComponent {
         }
         this.onQueryChange()
       }
+    } else if (this.undoTrigger.isTriggered(KbdEventType.Keydown, event)) {
+      this.onUndo(event)
+    } else if (this.redoTrigger.isTriggered(KbdEventType.Keydown, event)) {
+      this.onRedo(event)
     }
   }
 

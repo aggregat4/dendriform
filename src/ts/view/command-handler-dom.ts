@@ -197,14 +197,13 @@ export class DomCommandHandler implements CommandHandler {
       node.classList.add('completed')
       node.classList.remove('completed-visual-only')
     }, 250)
-    // TODO: this is not sufficient: we need to detect whether we are showing completed nodes or not
-    // and in case we are not showing them we need to remove the DOM node from the tree, otherwise all
-    // our navigation logic goes out the window (alternatively we rerender the tree when completing
-    // and when not showing completed nodes?)
   }
 
   private domUnCompleteNode(node: Element): void {
-    node.classList.remove('completed')
-    node.classList.remove('completed-visual-only')
+    // node can be null in case of undo
+    if (node) {
+      node.classList.remove('completed')
+      node.classList.remove('completed-visual-only')
+    }
   }
 }

@@ -381,19 +381,23 @@ function toggleNodeCompletion(node: Element, commandExecutor: CommandExecutor) {
   if (isNodeCompleted(node)) {
     const builder = new CommandBuilder(new UnCompleteNodeByIdCommandPayload(nodeId))
       .isUndoable()
+      .isSynchronous() // because we rerender afterwards and we need the state change
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(getCursorPos())
     commandExecutor.performWithDom(builder.build())
   } else {
-    const nextNode = findNextNode(node)
-    const builder = new CommandBuilder(new CompleteNodeByIdCommandPayload(nodeId))
+    let builder = new CommandBuilder(new CompleteNodeByIdCommandPayload(nodeId))
       .isUndoable()
+      .isSynchronous() // because we rerender afterwards and we need the state change
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(getCursorPos())
-      .withAfterFocusNodeId(getNodeId(nextNode))
-      .withAfterFocusPos(0)
+    // This is the node where we will focus after completing the current node (if there is one)
+    const afterFocusNode = findNextNode(node) || findPreviousNode(node)
+    if (afterFocusNode) {
+      builder = builder.withAfterFocusNodeId(getNodeId(afterFocusNode))
+        .withAfterFocusPos(0)
+    }
     commandExecutor.performWithDom(builder.build())
-    // TODO: maybe also set focus after complete? especially if we make completed nodes disappear
   }
 }
 
