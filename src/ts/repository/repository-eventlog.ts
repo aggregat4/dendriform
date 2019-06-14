@@ -356,6 +356,8 @@ export class EventlogRepository implements Repository {
       const children = await this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter, loadCollapsedChildren)
       return { node, children: { loaded: true, elements: children } }
     } else {
+      // even if we do not load collapsed children, we optimize the case where the node is collapsed but has no children
+      // in that case we can just pretend we loaded the child array
       const childIds = this.getChildIdsInternal(nodeId)
       return { node, children: {loaded: childIds.length === 0 ? true : false, elements: []} }
     }
@@ -384,6 +386,8 @@ export class EventlogRepository implements Repository {
       // filter out nulls that are excluded because of the nodeFilter
       return { node, children: {loaded: true, elements: children.filter(c => !!c) } }
     } else {
+      // even if we do not load collapsed children, we optimize the case where the node is collapsed but has no children
+      // in that case we can just pretend we loaded the child array
       return { node, children: {loaded: childIds.length === 0 ? true : false, elements: []} }
     }
   }
