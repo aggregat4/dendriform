@@ -16,11 +16,11 @@ import { MergeNameOrder } from './service'
 export class TreeService {
   constructor(readonly repo: Repository) {}
 
-  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
-    return this.repo.loadTree(nodeId, nodeFilter)
+  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<LoadedTree> {
+    return this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren)
       .then((tree) => {
         if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
-          return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId, nodeFilter))
+          return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren))
         } else {
           return tree
         }

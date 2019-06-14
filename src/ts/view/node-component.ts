@@ -25,14 +25,15 @@ export class TreeNode implements RedomComponent {
   update(treeNode: FilteredRepositoryNode) {
     setAttr(this.el, {
       id: treeNode.node._id,
-      class: this.genClass(treeNode.node, this.first),
+      class: this.genClass(treeNode.node, this.first, treeNode.filterApplied && treeNode.isIncluded()),
     })
     const childElements = this.getChildElements(treeNode)
+    const hideToggleButton = treeNode.children.loaded && !treeNode.node.collapsed && childElements.elements.length === 0
     setChildren(this.ncEl, [
       el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, ''),
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
       // we only hide the toggle button when the childElements array exists and is empty, otherwise it may be that we just haven't loaded the nodes yet since we do that on demand
-      el(`span.toggle${childElements.loaded && childElements.elements.length === 0 ? '.hidden' : ''}`, { title: 'Open or close node'}),
+      el(`span.toggle${hideToggleButton ? '.hidden' : ''}`, { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰'), // trigram for heaven (U+2630)
     ])
@@ -57,9 +58,11 @@ export class TreeNode implements RedomComponent {
   /**
    * Has special casing for nodes that are the first on the page, they are always open.
    */
-  private genClass(node: RepositoryNode, isFirst: boolean): string {
-    return 'node' + (this.isRoot(node) ? ' root' : '') + (isFirst ? ' first' : '') +
-      (node.collapsed && !isFirst ? ' closed' : ' open')
+  private genClass(node: RepositoryNode, isFirst: boolean, isFilterIncluded: boolean): string {
+    return 'node' +
+      (this.isRoot(node) ? ' root' : '') +
+      (isFirst ? ' first' : '') +
+      (node.collapsed && !isFirst && !isFilterIncluded ? ' closed' : ' open') // make sure nodes are always open when they are first or filtered
   }
 
   // install event handler to listen for escape (or backspace in the beginning when empty,

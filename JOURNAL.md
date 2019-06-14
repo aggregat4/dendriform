@@ -827,3 +827,11 @@ Note that I corrected the getChildElements logic in node-component, however now 
     // If the node was filtered we may have hits in the children
     // If the node is the first node of the page then we always want to show it opened
     // if (!treeNode.node.collapsed || treeNode.filterApplied || this.first) {
+
+Fixed the second issue as well: we now have an extra parameter to tell the repository whether or not to load the children of a collapsed node. I thought I could resolve all of this with just a nodeFilter, but of course in case of a collapsed node we don't filter out the node itself, but its children.
+
+Therefore collapsed children need to be treated especially.
+
+I added some logic to the node-component to always show a node when it is either NOT collapsed or it is the first node or it is included in a filter.
+
+The code looks better now, I think this is the right approach.

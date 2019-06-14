@@ -3,16 +3,16 @@ import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
-import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode } from '../domain/domain'
+import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode, NODE_IS_NOT_COLLAPSED, NODE_IS_NOT_COMPLETED } from '../domain/domain'
 import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
-import { debounce, isEmpty, pasteTextUnformatted, setCursorPos, Predicate } from '../util'
+import { debounce, isEmpty, pasteTextUnformatted, setCursorPos, Predicate, createCompositeAndPredicate } from '../util'
 import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType } from './keyboardshortcut'
 import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
-import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isInMenuElement, isCloseButton, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
+import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientState } from './tree-helpers'
 import { TreeNodeMenu, TreeNodeActionMenuItem, TreeNodeInfoMenuItem } from './tree-menu-component'
@@ -112,11 +112,22 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   private getNodeVisibilityPredicate(): Predicate<RepositoryNode> {
-    return this.config.showCompleted ? NODE_IS_NOT_DELETED : NODE_NOT_DELETED_AND_NOT_COMPLETED
+    // consider three properties for visibility of a node:
+    // - deleted: never show deleted so add NODE_IS_NOT_DELETED
+    // - showCompleted: if false then add NODE_NOT_COMPLETED
+    const filters = [NODE_IS_NOT_DELETED]
+    if (! this.config.showCompleted) {
+      filters.push(NODE_IS_NOT_COMPLETED)
+    }
+    return createCompositeAndPredicate(filters)
+  }
+
+  private shouldCollapsedChildrenBeLoaded(): boolean {
+    return this.filterIsActive()
   }
 
   private reloadTree(nodeId: string): Promise<any> {
-    return this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate())
+    return this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate(), this.shouldCollapsedChildrenBeLoaded())
       .then(loadedTree => this.update(loadedTree))
   }
 
@@ -156,9 +167,12 @@ export class Tree implements CommandExecutor, RedomComponent {
     }
   }
 
+  private filterIsActive(): boolean {
+    return !isEmpty(this.searchField.value)
+  }
+
   private getFilteredTree(tree: LoadedTree): FilteredRepositoryNode {
-    const doFilter = !isEmpty(this.searchField.value)
-    return filterNode(tree.tree, doFilter ? new Filter(parseQuery(this.searchField.value)) : undefined)
+    return filterNode(tree.tree, this.filterIsActive() ? new Filter(parseQuery(this.searchField.value)) : undefined)
   }
 
   private async onClick(event: Event): Promise<void> {
@@ -183,7 +197,7 @@ export class Tree implements CommandExecutor, RedomComponent {
       if (nodeClosed) {
         // When we open the node we need to load the subtree on demand and patch it
         const nodeId = getNodeId(node)
-        const loadedTree = await this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate())
+        const loadedTree = await this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate(), this.shouldCollapsedChildrenBeLoaded())
         const filteredTree = await this.getFilteredTree(loadedTree)
         const newOpenedNode = new TreeNode(false)// can it be that we update the first node? No it's always open (right?)
         await newOpenedNode.update(filteredTree)
@@ -248,8 +262,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   private onDocumentKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
       // Escape should clear the searchfield and blur the focus when we have an active query
-      const filter = this.searchField.value
-      if (!isEmpty(filter)) {
+      if (this.filterIsActive()) {
         this.searchField.value = ''
         if (document.activeElement === this.searchField) {
           this.searchField.blur()

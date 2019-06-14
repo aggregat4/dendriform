@@ -20,7 +20,11 @@ export const NODE_IS_NOT_DELETED: Predicate<RepositoryNode> = (node: RepositoryN
 
 export const NODE_IS_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.completed
 export const NODE_IS_NOT_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.completed
+
 export const NODE_NOT_DELETED_AND_NOT_COMPLETED = createCompositeAndPredicate([NODE_IS_NOT_DELETED, NODE_IS_NOT_COMPLETED])
+
+export const NODE_IS_COLLAPSED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.collapsed
+export const NODE_IS_NOT_COLLAPSED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.collapsed
 
 export function createNewRepositoryNodeWithContent(id: string, name: string, content: string): RepositoryNode {
   return {

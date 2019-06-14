@@ -304,12 +304,12 @@ export class EventlogRepository implements Repository {
    * nodes and create the tree from that. The latter is faster for very large subtrees but also
    * very wasteful for small subtrees.
    */
-  async loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree> {
+  async loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<LoadedTree> {
     try {
       const amountOfNodesToLoad = this.determineAmountOfNodesToLoad(nodeId)
       const tree = amountOfNodesToLoad < this.MAX_NODES_TO_LOAD_INDIVIDUALLY
-        ? await this.loadTreeNodeRecursively(nodeId, nodeFilter)
-        : await this.loadTreeBulk(nodeId, nodeFilter)
+        ? await this.loadTreeNodeRecursively(nodeId, nodeFilter, loadCollapsedChildren)
+        : await this.loadTreeBulk(nodeId, nodeFilter, loadCollapsedChildren)
       if (!tree) {
         // since loadTreeNodRecursively can return null, we need to check it
         throw new NodeNotFoundError(`Node not found: ${nodeId}`)
@@ -335,16 +335,16 @@ export class EventlogRepository implements Repository {
     return 1 + childCount
   }
 
-  private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode> {
+  private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode> {
     const nodeEvents = await this.eventLog.getEventsSince([EventType.ADD_OR_UPDATE_NODE], -1)
     const nodeMap: Map<string, RepositoryNode> = new Map()
     for (const nodeEvent of nodeEvents.events) {
       nodeMap.set(nodeEvent.nodeId, this.mapEventToRepositoryNode(nodeEvent.nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload))
     }
-    return this.loadTreeNodeBulk(nodeId, nodeMap, nodeFilter)
+    return this.loadTreeNodeBulk(nodeId, nodeMap, nodeFilter, loadCollapsedChildren)
   }
 
-  private async loadTreeNodeBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode> {
+  private async loadTreeNodeBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode> {
     const node = nodeMap.get(nodeId)
     if (! node) {
       throw new NodeNotFoundError(`Node not found in nodeMap with id ${nodeId}`)
@@ -352,23 +352,20 @@ export class EventlogRepository implements Repository {
     if (! nodeFilter(node)) {
       return null
     }
-    if (node.collapsed) {
-      const childIds = this.getChildIdsInternal(nodeId)
-      return {
-        node,
-        // if there _would_ be children, we mark the deferredarray as not loaded
-        children: { loaded: childIds.length !== 0 ? false : true, elements: [] },
-      }
+    if (!node.collapsed || loadCollapsedChildren) {
+      const children = await this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter, loadCollapsedChildren)
+      return { node, children: { loaded: true, elements: children } }
     } else {
-      const children = await this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter)
-      return {node, children: { loaded: true, elements: children }}
+      const childIds = this.getChildIdsInternal(nodeId)
+      return { node, children: {loaded: childIds.length === 0 ? true : false, elements: []} }
     }
   }
 
-  private async loadChildTreeNodesBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode[]> {
+  private async loadChildTreeNodesBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode[]> {
     const children: ResolvedRepositoryNode[] = []
-    for (const childNodeId of this.getChildIdsInternal(nodeId)) {
-      const childNode = await this.loadTreeNodeBulk(childNodeId, nodeMap, nodeFilter)
+    const childIds = this.getChildIdsInternal(nodeId)
+    for (const childNodeId of childIds) {
+      const childNode = await this.loadTreeNodeBulk(childNodeId, nodeMap, nodeFilter, loadCollapsedChildren)
       if (childNode) { // node may have been filtered out, in that case omit
         children.push(childNode)
       }
@@ -376,21 +373,18 @@ export class EventlogRepository implements Repository {
     return children
   }
 
-  private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode> {
+  private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode> {
     const node = await this.loadNode(nodeId, nodeFilter)
     if (! node) {
       return null // we can't throw here because of the filter: may be that the node is not included in the filter
     }
     const childIds = this.getChildIdsInternal(nodeId)
-    if (node.collapsed) {
-      return {
-        node,
-        children: { loaded: childIds.length !== 0 ? false : true, elements: [] },
-      }
-    } else {
-      const children = await Promise.all(childIds.map(async childId => await this.loadTreeNodeRecursively(childId, nodeFilter)))
+    if (!node.collapsed || loadCollapsedChildren) {
+      const children = await Promise.all(childIds.map(async childId => await this.loadTreeNodeRecursively(childId, nodeFilter, loadCollapsedChildren)))
       // filter out nulls that are excluded because of the nodeFilter
       return { node, children: {loaded: true, elements: children.filter(c => !!c) } }
+    } else {
+      return { node, children: {loaded: childIds.length === 0 ? true : false, elements: []} }
     }
   }
 

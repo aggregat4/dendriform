@@ -15,7 +15,7 @@ export const exportOpmlExportAction = new TreeAction(
 async function onOpmlExport(event: Event, treeActionContext: TreeActionContext) {
   const activeNodeId = treeActionContext.transientStateManager.getActiveNodeId()
   if (activeNodeId) {
-    const loadedTree = await treeActionContext.treeService.loadTree(activeNodeId, NODE_IS_NOT_DELETED)
+    const loadedTree = await treeActionContext.treeService.loadTree(activeNodeId, NODE_IS_NOT_DELETED, true)
     const opmlDocument = repositoryNodeToOpmlDocument(loadedTree.tree)
     const serializer = new XMLSerializer()
     const blob = new Blob(['<?xml version="1.0"?>' + serializer.serializeToString(opmlDocument)], {type: 'text/plain;charset=utf-8'})

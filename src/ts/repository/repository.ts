@@ -9,7 +9,7 @@ export interface Repository {
   getChildIds(nodeId: string): Promise<string[]>
   getParentId(nodeId: string): Promise<string>
   loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode>
-  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<LoadedTree>
+  loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<LoadedTree>
 
   subscribeToChanges(parentNodeId: string, nodeChangeListener: (nodeId: string) => void): Subscription
 }
