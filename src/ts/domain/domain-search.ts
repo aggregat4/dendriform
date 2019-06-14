@@ -1,4 +1,4 @@
-import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode, DeferredRepositoryNode, markupHtml, QueryComponent } from './domain'
+import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode, markupHtml, QueryComponent } from './domain'
 import { findAndMarkText } from '../util'
 
 const splitRegexp = new RegExp('[,\\.;\\s]+')
@@ -44,17 +44,8 @@ function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
 export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
   return new FilteredRepositoryNode(
     node.node,
-    node.children ? node.children.map(c => filterNode(c, filter)) : null,
+    { loaded: node.children.loaded, elements: node.children.elements.map(c => filterNode(c, filter)) },
     !!filter,
     node.node.name ? filterHtml(node.node.name, filter) : null,
     node.node.note ? filterHtml(node.node.note, filter) : null)
-}
-
-export function filterNodeSynchronous(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
-  return new FilteredRepositoryNode(
-      node.node,
-      node.children ? node.children.map(c => filterNodeSynchronous(c, filter)) : null,
-      !!filter,
-      node.node.name ? filterHtml(node.node.name, filter) : null,
-      node.node.note ? filterHtml(node.node.note, filter) : null)
 }

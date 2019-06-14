@@ -3,7 +3,7 @@ import {Repository} from './repository'
 import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, DeferredRepositoryNode, ResolvedRepositoryNode } from '../domain/domain'
+import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, ResolvedRepositoryNode } from '../domain/domain'
 import { atomIdent } from '../lib/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 
@@ -267,11 +267,6 @@ export class EventlogRepository implements Repository {
     }
   }
 
-  getChildIds(nodeId: string): Promise<string[]> {
-    const childIdsSeq = this.parentChildMap[nodeId]
-    return Promise.resolve(childIdsSeq ? childIdsSeq.toArray() : [])
-  }
-
   getParentId(nodeId: string): Promise<string> {
     return Promise.resolve(this.childParentMap[nodeId])
   }
@@ -334,7 +329,7 @@ export class EventlogRepository implements Repository {
 
   private determineAmountOfNodesToLoad(nodeId: string): number {
     let childCount = 0
-    for (const childNodeId of this.getChildren(nodeId)) {
+    for (const childNodeId of this.getChildIdsInternal(nodeId)) {
       childCount += this.determineAmountOfNodesToLoad(childNodeId)
     }
     return 1 + childCount
@@ -358,20 +353,21 @@ export class EventlogRepository implements Repository {
       return null
     }
     if (node.collapsed) {
-      const childIds = this.getChildren(nodeId)
+      const childIds = this.getChildIdsInternal(nodeId)
       return {
         node,
-        children: childIds.length !== 0 ? null : [], // This is a marker: if the array is not empty then we just did not load it!
+        // if there _would_ be children, we mark the deferredarray as not loaded
+        children: { loaded: childIds.length !== 0 ? false : true, elements: [] },
       }
     } else {
       const children = await this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter)
-      return {node, children}
+      return {node, children: { loaded: true, elements: children }}
     }
   }
 
   private async loadChildTreeNodesBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>): Promise<ResolvedRepositoryNode[]> {
     const children: ResolvedRepositoryNode[] = []
-    for (const childNodeId of this.getChildren(nodeId)) {
+    for (const childNodeId of this.getChildIdsInternal(nodeId)) {
       const childNode = await this.loadTreeNodeBulk(childNodeId, nodeMap, nodeFilter)
       if (childNode) { // node may have been filtered out, in that case omit
         children.push(childNode)
@@ -385,21 +381,25 @@ export class EventlogRepository implements Repository {
     if (! node) {
       return null // we can't throw here because of the filter: may be that the node is not included in the filter
     }
-    const childIds = this.getChildren(nodeId)
+    const childIds = this.getChildIdsInternal(nodeId)
     if (node.collapsed) {
       return {
         node,
-        children: childIds.length !== 0 ? null : [], // This is a marker: if the array is not empty then we just did not load it!
+        children: { loaded: childIds.length !== 0 ? false : true, elements: [] },
       }
     } else {
       const children = await Promise.all(childIds.map(async childId => await this.loadTreeNodeRecursively(childId, nodeFilter)))
       // filter out nulls that are excluded because of the nodeFilter
-      return { node, children: children.filter(c => !!c) }
+      return { node, children: {loaded: true, elements: children.filter(c => !!c) } }
     }
   }
 
-  private getChildren(nodeId: string): string[] {
+  private getChildIdsInternal(nodeId: string): string[] {
     return this.parentChildMap[nodeId] ? this.parentChildMap[nodeId].toArray() : []
+  }
+
+  getChildIds(nodeId: string): Promise<string[]> {
+    return Promise.resolve(this.getChildIdsInternal(nodeId))
   }
 
   private async loadAncestors(childId: string, ancestors: RepositoryNode[]): Promise<RepositoryNode[]> {

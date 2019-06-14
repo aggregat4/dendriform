@@ -4,7 +4,7 @@ import {
   markupHtml,
   verifyAndRepairMarkup,
 } from '../domain/domain'
-import { filterNodeSynchronous } from '../domain/domain-search'
+import { filterNode } from '../domain/domain-search'
 import {
   CloseNodeByIdCommandPayload,
   Command,
@@ -120,7 +120,7 @@ export class DomCommandHandler implements CommandHandler {
   private async createDomNode(id: string, name: string, note: string): Promise<Element> {
     const newNode = createNewResolvedRepositoryNodeWithContent(id, name, note)
     const newTreeNode = new TreeNode()
-    await newTreeNode.update(filterNodeSynchronous(newNode))
+    await newTreeNode.update(filterNode(newNode))
     return newTreeNode.getElement()
   }
 

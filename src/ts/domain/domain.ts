@@ -1,4 +1,4 @@
-import {findFirstAsync, findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst} from '../util'
+import {findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst} from '../util'
 import { DateTime } from 'luxon'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
@@ -40,32 +40,25 @@ export function createNewRepositoryNode(id: string, name: string): RepositoryNod
   return createNewRepositoryNodeWithContent(id, name, null)
 }
 
+export interface DeferredArray<T> {
+  loaded: boolean,
+  elements: T[],
+}
+
 export interface ResolvedRepositoryNode {
   node: RepositoryNode,
-  children: ResolvedRepositoryNode[],
+  children: DeferredArray<ResolvedRepositoryNode>,
 }
 
 export function createNewResolvedRepositoryNodeWithContent(id: string, name: string, content: string): ResolvedRepositoryNode {
   return {
     node: createNewRepositoryNodeWithContent(id, name, content),
-    children: [],
-  }
-}
-
-export function createNewDeferredRepositoryNodeWithContent(id: string, name: string, content: string): DeferredRepositoryNode {
-  return {
-    node: createNewRepositoryNodeWithContent(id, name, content),
-    children: Promise.resolve([]),
+    children: { loaded: true, elements: [] },
   }
 }
 
 export function createNewResolvedRepositoryNode(id: string, name: string): ResolvedRepositoryNode {
   return createNewResolvedRepositoryNodeWithContent(id, name, null)
-}
-
-export interface DeferredRepositoryNode {
-  node: RepositoryNode
-  children: Promise<DeferredRepositoryNode[]>
 }
 
 export class QueryComponent {
@@ -91,16 +84,15 @@ export class FilteredRepositoryNode {
 
   constructor(
     readonly node: RepositoryNode,
-    readonly children: FilteredRepositoryNode[],
+    readonly children: DeferredArray<FilteredRepositoryNode>,
     readonly filterApplied: boolean,
     readonly filteredName: FilteredFragment,
     readonly filteredNote: FilteredFragment) {}
 
   isIncluded(): boolean {
     if (this.areAnyChildrenIncluded === undefined) {
-      // implNote: it is important to !! the return value after awaiting, otherwise this is always true!
-      // because you are getting a promise object, not the actual value
-      this.areAnyChildrenIncluded = !! findFirst(this.children, (c) => c.isIncluded())
+      // We don't really care about the deferred loading here, if it is not loaded then we don't have to check any children
+      this.areAnyChildrenIncluded = !! findFirst(this.children.elements, (c) => c.isIncluded())
     }
     return !this.filterApplied
       || (this.filteredName && this.filteredName.filterMatches)

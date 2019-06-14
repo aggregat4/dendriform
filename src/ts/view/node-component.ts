@@ -1,6 +1,6 @@
 import { el, setAttr, setChildren, list, setStyle, RedomComponent } from 'redom'
-import { RepositoryNode, FilteredRepositoryNode } from '../domain/domain'
-import { isCursorAtContentEditableBeginning, filterAsync } from '../util'
+import { RepositoryNode, FilteredRepositoryNode, DeferredArray } from '../domain/domain'
+import { isCursorAtContentEditableBeginning } from '../util'
 
 export class TreeNode implements RedomComponent {
   private first: boolean
@@ -32,24 +32,17 @@ export class TreeNode implements RedomComponent {
       el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, ''),
       el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
       // we only hide the toggle button when the childElements array exists and is empty, otherwise it may be that we just haven't loaded the nodes yet since we do that on demand
-      el(`span.toggle${childElements != null && childElements.length === 0 ? '.hidden' : ''}`, { title: 'Open or close node'}),
+      el(`span.toggle${childElements.loaded && childElements.elements.length === 0 ? '.hidden' : ''}`, { title: 'Open or close node'}),
       el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰'), // trigram for heaven (U+2630)
     ])
-    this.childList.update(childElements)
+    this.childList.update(childElements.elements)
   }
 
-  private getChildElements(treeNode: FilteredRepositoryNode): FilteredRepositoryNode[] {
-    // There are a bunch of conditions where we ignore the "collapsed" state of a node:
-    // If the node was filtered we may have hits in the children
-    // If the node is the first node of the page then we always want to show it opened
-    if (!treeNode.node.collapsed || treeNode.filterApplied || this.first) {
-      const children = treeNode.children
-      const filteredChildren = children.filter(c => c.isIncluded()) // children.filter(c => c.isIncluded())
-      return filteredChildren as FilteredRepositoryNode[]
-    } else {
-      // we need to preserve the information whether nodes were simply not loaded or whether there really are no children
-      return treeNode.node.collapsed && treeNode.children === null ? null : []
+  private getChildElements(treeNode: FilteredRepositoryNode): DeferredArray<FilteredRepositoryNode> {
+    return {
+      loaded: treeNode.children.loaded,
+      elements: treeNode.children.elements.filter(c => c.isIncluded()),
     }
   }
 

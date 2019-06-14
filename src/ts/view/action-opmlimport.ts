@@ -120,7 +120,8 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
     // It is important to await here since when create a child node we need the parent node to already be there
     // otherwise the effect will be that only the toplevel nodes are visible
     await commandExecutor.performWithDom(command)
-    for (const childNode of node.children) {
+    // NOTE: this assumes that the children are always loaded
+    for (const childNode of node.children.elements) {
       await this.createNode(commandExecutor, childNode, node.node._id)
     }
   }

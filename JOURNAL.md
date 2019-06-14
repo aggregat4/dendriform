@@ -795,7 +795,7 @@ However, setting the focus after the rerender was not working.
 
 This was caused by the fact that the rerender is asynchronous.
 
-This was caused by the update() method on NodeComponent (see node-component.ts) was async.
+This was caused by the update() method on NodeComponent (see node-component.ts) that was async.
 
 This was async because we have deferred node loading and the list of child nodes of a node is basically a promise that _can_ load nodes on demand.
 
@@ -803,9 +803,9 @@ We did this because we wanted on demand loading when opening a collapsed node an
 
 This is very clever but messes with our focus-after-rendering because I can't make REDOM treat the update method as async and await on it. It just executes it.
 
-There are only two, involved, ways out of this: make REDOM understand async/await or see if we can't do the deferred loading differently.
+There are only two (involved) ways out of this: make REDOM understand async/await or see if we can't do the deferred loading differently.
 
-In fact for on demand collapsed node loading we didn't actually NEED all that infrastructure since we load the complete subtree and replace the node in the original tree with that.
+In fact for on demand collapsed node loading we didn't actually NEED all that infrastructure since we load the complete subtree and replace the node in the original tree with that. (see tree-component.ts in the onClick() method)
 
 So I started a branch to revert all the deferred loading stuff. This makes the code simpler again but introduces two problems:
 
@@ -813,4 +813,17 @@ So I started a branch to revert all the deferred loading stuff. This makes the c
 
 2. The second problem is a bit trickier: our node filtering no longer works. Since child nodes of collapsed nodes are not loaded at all anymore, you can not just take the current tree and filter it. That information just isn't there anymore.
 
-I need to fix the second problem: here we need to probably modify our repository api to allow one to specify whether to load collapsed nodes or not, this is currently hidden in the implementation and can not be controlled from outside.
+I need to fix both problems.
+
+For the second one: we probably need to modify our repository api to allow one to specify whether to load collapsed nodes or not, this is currently hidden in the implementation and can not be controlled from outside.
+
+## 14.6.2019
+
+Fixing the null issue first: introduced the concept of a DeferredArray that represents whether the array was loaded or not.
+
+Note that I corrected the getChildElements logic in node-component, however now I need to make sure that I take the following into account:
+
+    // There are a bunch of conditions where we ignore the "collapsed" state of a node:
+    // If the node was filtered we may have hits in the children
+    // If the node is the first node of the page then we always want to show it opened
+    // if (!treeNode.node.collapsed || treeNode.filterApplied || this.first) {

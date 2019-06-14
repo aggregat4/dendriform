@@ -1,4 +1,4 @@
-import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent, DeferredRepositoryNode } from '../domain/domain'
+import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent } from '../domain/domain'
 import { generateUUID } from '../util'
 
 /**
@@ -42,7 +42,7 @@ function opmlOutlineNodeToRepositoryNode(outlineEl: Element): ResolvedRepository
     outlineEl.getAttribute('_note'))
   const children = childElementsByName(outlineEl, 'outline')
   for (const child of children) {
-    repoNode.children.push(opmlOutlineNodeToRepositoryNode(child))
+    repoNode.children.elements.push(opmlOutlineNodeToRepositoryNode(child))
   }
   return repoNode
 }
@@ -68,7 +68,7 @@ function createOpmlNode(xmlDoc: Document, node: ResolvedRepositoryNode): Element
   if (node.node.note) {
     el.setAttribute('_note', node.node.note)
   }
-  const children = node.children
+  const children = node.children.elements
   for (const child of children) {
     if (!child.node.deleted) {
       el.appendChild(createOpmlNode(xmlDoc, child))
