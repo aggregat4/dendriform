@@ -1,6 +1,6 @@
 # Dendriform
 
-An outliner that works offline by default.
+An outliner that runs in the browser and works offline by default. Implemented in Typescript.
 
 CRDT-based peer synchronisation with additional vector clocks for causal sorting and easier garbage collection.
 
