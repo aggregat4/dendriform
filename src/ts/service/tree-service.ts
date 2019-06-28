@@ -111,6 +111,7 @@ export class TreeService {
   }
 
   unCompleteNode(nodeId: string, synchronous: boolean): Promise<any> {
+    console.debug(`TreeService.unCompleteNode`)
     return this.repo.loadNode(nodeId, NODE_IS_COMPLETED)
       .then(node => {
         if (node) {

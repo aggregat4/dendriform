@@ -22,7 +22,7 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. BUG: Undo no longer works on complete node
+1. Refactor the commands.ts file to remove redundancy (abstract base class?)
 1. Implement a UI control to toggle "Show Completed"
 1. Completed State: implement fallback behaviour for the after focus node: if there is no next node, find a previous node
 1. Implement all the toggles differently: bit masks? Does that work in JS? At least generically so toggling is always just one parametrized action.

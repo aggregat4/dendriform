@@ -835,3 +835,11 @@ Therefore collapsed children need to be treated especially.
 I added some logic to the node-component to always show a node when it is either NOT collapsed or it is the first node or it is included in a filter.
 
 The code looks better now, I think this is the right approach.
+
+## 28.6.2019
+
+The undo function is broken again. After completing a node and undoing that operation the node is not shown. I debugged it and then it appears to work. I think my rerender is still not working correctly.
+
+The rerender is actually working, the problem was that the UNDO command for complete, which is an uncomplete, was not set to synchronous. We were setting synchronous execution as a flag before by hand when we create the commands when the user triggers them, but in reality each command that requires a rerender should be ran synchronously since otherwise there will be a timing problem where the store may not have happened when the load is coming.
+
+I fixed this more generally by making the synchronous flag be automatically calculated based on the "requiresReRender" flag and you can override it manually if needed. This is currently only used once in the Open/Close Node logic to load deferred children and then reload the tree.

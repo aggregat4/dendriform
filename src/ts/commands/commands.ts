@@ -24,8 +24,15 @@ export class Command {
     public afterFocusPos: number = -1,
     readonly undoable: boolean = false,
     readonly batch: boolean = false,
-    readonly synchronous: boolean = false,
+    readonly _synchronous: boolean = false,
   ) {}
+
+  // Whether or not a command should synchronously executed is implicitly true when it requires 
+  // a rerender (because of timing between store and load) or when the user has explicitly requested
+  // it
+  get synchronous(): boolean {
+    return this.payload.requiresRender() || this._synchronous
+  }
 }
 
 export class CommandBuilder {
@@ -210,7 +217,7 @@ export class UndeleteNodeByIdCommandPayload implements CommandPayload {
     return new DeleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  // TODO: figure out why this is the only command that requires a rerender!?
+  // we need the node to reappear in the tree: therefore we trigger a rerender and it will get loaded
   requiresRender() { return true }
 }
 
@@ -234,7 +241,9 @@ export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
     return new CompleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender() { return true } // we don't need a rerender since we can only uncomplete when the node is visible
+  // Changes the tree structure: undo can cause an uncomplete of a node that needs to reappear (see undelete)
+  // this requires loading the nodes and rendering them
+  requiresRender() { return true }
 }
 
 export class UpdateNoteByIdCommandPayload implements CommandPayload {

@@ -136,6 +136,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   update(tree: LoadedTree) {
+    console.debug(`Tree.update`)
     setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
     if (tree.status.state === State.ERROR) {
       setChildren(this.contentEl,

@@ -147,6 +147,7 @@ export class EventlogRepository implements Repository {
   }
 
   updateNode(node: RepositoryNode, synchronous: boolean): Promise<void> {
+    console.debug(`EventLogRepository.updateNode: synchronous=${synchronous}`)
     if (!!node.deleted) {
       // here we assume the node just got deleted, this is not necessarily correct, one could
       // also update a node that was already deleted but doing it twice doesn't hurt? And we

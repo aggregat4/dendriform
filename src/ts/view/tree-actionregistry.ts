@@ -381,14 +381,12 @@ function toggleNodeCompletion(node: Element, commandExecutor: CommandExecutor) {
   if (isNodeCompleted(node)) {
     const builder = new CommandBuilder(new UnCompleteNodeByIdCommandPayload(nodeId))
       .isUndoable()
-      .isSynchronous() // because we rerender afterwards and we need the state change
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(getCursorPos())
     commandExecutor.performWithDom(builder.build())
   } else {
     let builder = new CommandBuilder(new CompleteNodeByIdCommandPayload(nodeId))
       .isUndoable()
-      .isSynchronous() // because we rerender afterwards and we need the state change
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(getCursorPos())
     // This is the node where we will focus after completing the current node (if there is one)
