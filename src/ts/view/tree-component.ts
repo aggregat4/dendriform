@@ -39,6 +39,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   private dialogOverlayEl: Element
   private content: TreeNode
   private searchField: HTMLInputElement
+  private showCompletedCheckbox: HTMLInputElement
   private treeChangeSubscription: Subscription
   private readonly transientStateManager = new TransientState()
   private treeNodeMenu: TreeNodeMenu = null
@@ -61,7 +62,11 @@ export class Tree implements CommandExecutor, RedomComponent {
         /* Removing the search button because we don't really need it. Right? Accesibility?
           this.searchButton = el('button', 'Filter')) */
         this.searchField = el('input', {type: 'search', placeholder: 'Filter'}) as HTMLInputElement,
-        activityIndicator),
+        activityIndicator,
+        el('fieldset.config',
+          el('label',
+            this.showCompletedCheckbox = el('input', this.config.showCompleted ? {type: 'checkbox', checked: ''} : {type: 'checkbox'}),
+            'Show Completed'))),
       this.breadcrumbsEl = el('div.breadcrumbs'),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
       this.dialogOverlayEl = el('div.dialogOverlay'))
@@ -76,6 +81,7 @@ export class Tree implements CommandExecutor, RedomComponent {
     this.el.addEventListener('click', this.onClick.bind(this))
     this.el.addEventListener('paste', this.onPaste.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
+    this.showCompletedCheckbox.addEventListener('input', this.onShowCompletedToggle.bind(this))
     // In general we only want to limit ourselves to our component with listener, but for some functions we
     // need the complete document
     document.addEventListener('keydown', this.onDocumentKeydown.bind(this))
@@ -95,7 +101,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   private generateTreeClasses(): string {
-    return this.config.showCompleted ? '.showCompleted' : '.hideCompleted'
+    return ''
   }
 
   getTreeElement(): Element {
@@ -235,6 +241,11 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   private onQueryChange() {
+    this.rerenderTree()
+  }
+
+  private onShowCompletedToggle() {
+    this.config.showCompleted = !! this.showCompletedCheckbox.checked
     this.rerenderTree()
   }
 

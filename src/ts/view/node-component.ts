@@ -62,7 +62,9 @@ export class TreeNode implements RedomComponent {
     return 'node' +
       (this.isRoot(node) ? ' root' : '') +
       (isFirst ? ' first' : '') +
-      (node.collapsed && !isFirst && !isFilterIncluded ? ' closed' : ' open') // make sure nodes are always open when they are first or filtered
+      // make sure nodes are always open when they are first or filtered
+      (node.collapsed && !isFirst && !isFilterIncluded ? ' closed' : ' open') +
+      (node.completed ? ' completed' : '')
   }
 
   // install event handler to listen for escape (or backspace in the beginning when empty,

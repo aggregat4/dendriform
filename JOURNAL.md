@@ -843,3 +843,5 @@ The undo function is broken again. After completing a node and undoing that oper
 The rerender is actually working, the problem was that the UNDO command for complete, which is an uncomplete, was not set to synchronous. We were setting synchronous execution as a flag before by hand when we create the commands when the user triggers them, but in reality each command that requires a rerender should be ran synchronously since otherwise there will be a timing problem where the store may not have happened when the load is coming.
 
 I fixed this more generally by making the synchronous flag be automatically calculated based on the "requiresReRender" flag and you can override it manually if needed. This is currently only used once in the Open/Close Node logic to load deferred children and then reload the tree.
+
+Implemented a toggle for showing completed nodes, this also forced me to remove the special css classes we had for showing or not showing completed nodes since we now always either have them in the DOM or we remove them.

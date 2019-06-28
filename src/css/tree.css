@@ -45,6 +45,16 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+.tree fieldset {
+  border: none;
+  padding: 0;
+  margin: inherit;
+}
+
+.tree fieldset label {
+  line-height: 1.4;
+}
+
 .breadcrumbs {
   padding: 0 6px 0 6px;
   margin: 6px 0 12px 0;
@@ -297,10 +307,7 @@ a.embeddedLink {
 .node.completed,
 .completed-visual-only {
   text-decoration: line-through;
-}
-
-.tree.hideCompleted .node.completed {
-  display: none;
+  color: var(--disabled-text-color);
 }
 
 .hidden {
