@@ -15,9 +15,7 @@ function deserializeAddOrUpdateNodeEventPayload(payload: any): AddOrUpdateNodeEv
   return {
     name: payload.name,
     note: payload.note,
-    deleted: !!payload.deleted,
-    collapsed: !!payload.collapsed,
-    completed: !!payload.completed,
+    flags: payload.flags,
     created: payload.created,
     updated: payload.updated,
   }

@@ -1,11 +1,12 @@
 import {Repository} from './repository'
 // tslint:disable-next-line:max-line-length
-import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload } from '../eventlog/eventlog'
+import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload, NodeFlags } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../util'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, ResolvedRepositoryNode } from '../domain/domain'
 import { atomIdent } from '../lib/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
+import { DateTime } from 'luxon'
 
 class NodeNotFoundError extends Error {}
 
@@ -291,11 +292,11 @@ export class EventlogRepository implements Repository {
       _id: nodeId,
       name: eventPayload.name,
       note: eventPayload.note,
-      deleted: eventPayload.deleted,
-      collapsed: eventPayload.collapsed,
-      completed: eventPayload.completed,
-      created: eventPayload.created,
-      updated: eventPayload.updated,
+      deleted: (eventPayload.flags & NodeFlags.deleted) === NodeFlags.deleted,
+      collapsed: (eventPayload.flags & NodeFlags.collapsed) === NodeFlags.collapsed,
+      completed: (eventPayload.flags & NodeFlags.completed) === NodeFlags.completed,
+      created: DateTime.fromSeconds(eventPayload.created).toISO(),
+      updated: DateTime.fromSeconds(eventPayload.updated).toISO(),
     }
   }
 

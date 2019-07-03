@@ -11,27 +11,37 @@ export const enum EventType {
 
 export const ALL_EVENT_TYPES = [EventType.ADD_OR_UPDATE_NODE, EventType.REORDER_CHILD, EventType.REPARENT_NODE]
 
+export const enum NodeFlags {
+  deleted = 1,
+  collapsed = 2,
+  completed = 4,
+}
+
 // TODO: this interface is highly linked to RepositoryNode in domain.ts, should we reuse that? Keep separate is better? Anti-Corruption layer?
+/**
+ * This represents a node creation or update event, some fields have formats that are optimised
+ * for storage and not for querying.
+ * 
+ * The flags field is a bitmask that can be read using the NodeFlags enum.
+ * 
+ * The created and updated timestamps are stored as the number of seconds since the epoch
+ * because we don't need more than that accuracy and we save space.
+ */
 export interface AddOrUpdateNodeEventPayload {
   name: string,
   note: string,
-  deleted: boolean,
-  collapsed: boolean,
-  completed: boolean,
-  created: string,
-  updated: string,
+  flags: number, // bitmask as per NodeFlags
+  created: number, // epoch seconds
+  updated: number, // epoch seconds
 }
 
 export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean, completed: boolean, created?: string): AddOrUpdateNodeEventPayload {
   return {
     name,
     note,
-    deleted,
-    collapsed,
-    completed,
-    // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
-    created: created || DateTime.local().toISO(),
-    updated: DateTime.local().toISO(),
+    flags: (deleted ? NodeFlags.deleted : 0) | (collapsed ? NodeFlags.collapsed : 0) | (completed ? NodeFlags.completed : 0),
+    created: Math.trunc(created ? DateTime.fromISO(created).toSeconds() : DateTime.local().toSeconds()),
+    updated: Math.trunc(DateTime.local().toSeconds()),
   }
 }
 
