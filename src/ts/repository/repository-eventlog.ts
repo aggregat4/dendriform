@@ -292,8 +292,11 @@ export class EventlogRepository implements Repository {
       _id: nodeId,
       name: eventPayload.name,
       note: eventPayload.note,
+      // tslint:disable-next-line:no-bitwise
       deleted: (eventPayload.flags & NodeFlags.deleted) === NodeFlags.deleted,
+      // tslint:disable-next-line:no-bitwise
       collapsed: (eventPayload.flags & NodeFlags.collapsed) === NodeFlags.collapsed,
+      // tslint:disable-next-line:no-bitwise
       completed: (eventPayload.flags & NodeFlags.completed) === NodeFlags.completed,
       created: DateTime.fromSeconds(eventPayload.created).toISO(),
       updated: DateTime.fromSeconds(eventPayload.updated).toISO(),

@@ -21,9 +21,9 @@ export const enum NodeFlags {
 /**
  * This represents a node creation or update event, some fields have formats that are optimised
  * for storage and not for querying.
- * 
+ *
  * The flags field is a bitmask that can be read using the NodeFlags enum.
- * 
+ *
  * The created and updated timestamps are stored as the number of seconds since the epoch
  * because we don't need more than that accuracy and we save space.
  */
@@ -39,6 +39,7 @@ export function createNewAddOrUpdateNodeEventPayload(name: string, note: string,
   return {
     name,
     note,
+    // tslint:disable-next-line:no-bitwise
     flags: (deleted ? NodeFlags.deleted : 0) | (collapsed ? NodeFlags.collapsed : 0) | (completed ? NodeFlags.completed : 0),
     created: Math.trunc(created ? DateTime.fromISO(created).toSeconds() : DateTime.local().toSeconds()),
     updated: Math.trunc(DateTime.local().toSeconds()),
