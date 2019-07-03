@@ -1,4 +1,4 @@
-import {generateUUID, ALWAYS_TRUE, Predicate} from '../util'
+import { generateUUID, ALWAYS_TRUE, Predicate } from '../util'
 import {
   RelativeLinearPosition,
   RepositoryNode,
@@ -7,10 +7,8 @@ import {
   RelativeNodePosition,
   NODE_IS_NOT_DELETED,
   Subscription,
-  NODE_IS_NOT_COMPLETED,
-  NODE_IS_COMPLETED,
 } from '../domain/domain'
-import {Repository} from '../repository/repository'
+import { Repository } from '../repository/repository'
 import { MergeNameOrder } from './service'
 
 export class TreeService {
@@ -78,73 +76,46 @@ export class TreeService {
     return sequentialPromise
   }
 
-  // deletes a node, this just sets a deleted flag to true
   deleteNode(nodeId: string, synchronous: boolean): Promise<any> {
-    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
-      .then(node => {
-        node.deleted = true
-        return this.repo.updateNode(node, synchronous)
-      })
+    return this.updateNode(nodeId, synchronous, (node) => node.deleted = true)
   }
 
   // undeletes a node, just removing its deleted flag
   undeleteNode(nodeId: string, synchronous: boolean): Promise<any> {
+    return this.updateNode(nodeId, synchronous, (node) => node.deleted = false)
+  }
+
+  completeNode(nodeId: string, synchronous: boolean): Promise<any> {
+    return this.updateNode(nodeId, synchronous, (node) => node.completed = true)
+  }
+
+  unCompleteNode(nodeId: string, synchronous: boolean): Promise<any> {
+    return this.updateNode(nodeId, synchronous, (node) => node.completed = false)
+  }
+
+  openNode(nodeId: string, synchronous: boolean): Promise<void> {
+    return this.updateNode(nodeId, synchronous, (node) => node.collapsed = false)
+  }
+
+  closeNode(nodeId: string, synchronous: boolean): Promise<void> {
+    return this.updateNode(nodeId, synchronous, (node) => node.collapsed = true)
+  }
+
+  updateNote(nodeId: string, note: string, synchronous: boolean): Promise<void> {
+    return this.updateNode(nodeId, synchronous, (node) => node.note = note)
+  }
+
+  private updateNode(nodeId: string, synchronous: boolean, updateFun: (node) => void): Promise<any> {
     return this.repo.loadNode(nodeId, ALWAYS_TRUE)
       .then(node => {
         if (node) {
-          node.deleted = false
+          updateFun(node)
           return this.repo.updateNode(node, synchronous)
         } else {
           throw new Error(`Node with id ${nodeId} does not exist`)
         }
       })
-  }
 
-  completeNode(nodeId: string, synchronous: boolean): Promise<any> {
-    return this.repo.loadNode(nodeId, NODE_IS_NOT_COMPLETED)
-      .then(node => {
-        if (node) {
-          node.completed = true
-          return this.repo.updateNode(node, synchronous)
-        }
-      })
-  }
-
-  unCompleteNode(nodeId: string, synchronous: boolean): Promise<any> {
-    console.debug(`TreeService.unCompleteNode`)
-    return this.repo.loadNode(nodeId, NODE_IS_COMPLETED)
-      .then(node => {
-        if (node) {
-          node.completed = false
-          return this.repo.updateNode(node, synchronous)
-        }
-      })
-  }
-
-  openNode(nodeId: string, synchronous: boolean): Promise<void> {
-    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
-      .then(node => {
-        if (node.collapsed) {
-          delete node.collapsed
-        }
-        return this.repo.updateNode(node, synchronous)
-      })
-  }
-
-  closeNode(nodeId: string, synchronous: boolean): Promise<void> {
-    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
-      .then(node => {
-        node.collapsed = true
-        return this.repo.updateNode(node, synchronous)
-      })
-  }
-
-  updateNote(nodeId: string, note: string, synchronous: boolean): Promise<void> {
-    return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
-      .then(node => {
-        node.note = note
-        return this.repo.updateNode(node, synchronous)
-      })
   }
 
   // 1. rename the current node to the right hand side of the split
