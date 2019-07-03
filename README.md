@@ -23,7 +23,6 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 ## Next Steps
 
 1. Move garbage collection to a web worker, maybe use comlink?
-1. Completed State: implement fallback behaviour for the after focus node: if there is no next node, find a previous node
 1. Implement all the toggles differently: bit masks? Does that work in JS? At least generically so toggling is always just one parametrized action.
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Put all the standard actions into menuitems for the node popup
