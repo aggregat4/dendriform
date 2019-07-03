@@ -845,3 +845,13 @@ The rerender is actually working, the problem was that the UNDO command for comp
 I fixed this more generally by making the synchronous flag be automatically calculated based on the "requiresReRender" flag and you can override it manually if needed. This is currently only used once in the Open/Close Node logic to load deferred children and then reload the tree.
 
 Implemented a toggle for showing completed nodes, this also forced me to remove the special css classes we had for showing or not showing completed nodes since we now always either have them in the DOM or we remove them.
+
+## 3.7.2019
+
+Completed state is now implemented completely as far as I can tell.
+
+Changed the persistence format for add or update events to optimise space used by having a bitmask for the 3 flags that we have and storing epoch seconds for both the timestamps.
+
+Unsure whether this was actually worth it since I don't really know how indexeddb stores its data. But even if it just stores a serialised JSON blob it will be smaller this way.
+
+We sacrified millisecond accuracy on the timestamps for this, but that seems unimportant for this use case.
