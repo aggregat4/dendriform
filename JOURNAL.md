@@ -852,6 +852,10 @@ Completed state is now implemented completely as far as I can tell.
 
 Changed the persistence format for add or update events to optimise space used by having a bitmask for the 3 flags that we have and storing epoch seconds for both the timestamps.
 
+Also removed redundancy in tree-service.ts by having a generic update method for changing properties on nodes.
+
 Unsure whether this was actually worth it since I don't really know how indexeddb stores its data. But even if it just stores a serialised JSON blob it will be smaller this way.
 
 We sacrified millisecond accuracy on the timestamps for this, but that seems unimportant for this use case.
+
+Realised that while I could also make the flags be generic across the entire code base, we actually need to distinguis between different commands on the flag level because they may have different rerender semantics. So it does not seem worth it to pull through that refactoring.

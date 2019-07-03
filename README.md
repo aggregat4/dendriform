@@ -23,13 +23,12 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 ## Next Steps
 
 1. Move garbage collection to a web worker, maybe use comlink?
-1. Implement all the toggles differently: bit masks? Does that work in JS? At least generically so toggling is always just one parametrized action.
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Put all the standard actions into menuitems for the node popup
 1. As long as we don't support formatting the importer needs to strip all HTML tags and optionally convert some tags to markdown?
 1. make sure that rerendertree is debounced for remote events
 1. Implement import by pasting into a text area.
-1. Add server side admin UI (minimal, just delete log) and some form of authentication so I can set up a test server. Think about how to add admin UI and authentication to the server without adding it to the open source project. Just add it as a lib? Or perhaps better we just make the server private and keep it closed source.
+1. Add server side admin UI (minimal, just delete log) and some form of authentication so I can set up a test server. Think about how to add admin UI and authentication to the server without adding it to the open source project. Current thinking: make the repo private.
 1. Test with touch
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. Escape should dismiss dialogs
