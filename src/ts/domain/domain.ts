@@ -33,10 +33,10 @@ export function createNewRepositoryNodeWithContent(id: string, name: string, con
     note: content,
     deleted: false,
     collapsed: false,
+    completed: false,
     // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
     created: DateTime.local().toISO(),
     updated: DateTime.local().toISO(),
-    completed: false,
   }
 }
 
