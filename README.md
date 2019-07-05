@@ -65,7 +65,59 @@ This starts all _active_ components in the correct order:
 2. The event pump is a mechanism that actively gets events from the remote (central) server and feeds them into the local event log and vice versa. It allows multiple peers to communicate with each other using an intermediary hosted central eventlog.
 3. Finally the repository is a layer on top of the local event log that offers a nice tree based API to all our code and abstracts away the fact that the whole storage is event based. It needs to create some datastructures and caches on top of the event log.
 
-## Next Steps
+## Architectural Strategies
+
+### Direct DOM Manipulation
+
+The view layer consists of direct DOM manipulation with some assitance by RE:DOM to render the main components. The program started out with a virtual DOM based diffing approach (using Maquette) but that turned out to have unpredictable performance characteristics and did not offer the amount of control over selection and cursor placement that we required.
+
+This program is special in that it is basically a giant tree based structural text editor. Everything is directly editable and can be manipulated and responses need to be as fast as possible so as not to get into the way of the editing experience.
+
+We may move to an even lower level approach than RE:DOM as we currently don't have efficient in-place updates for large changes to the tree. We will investigate using `incremental-dom` for this.
+
+View code is all in `src/ts/view`. The main component is the tree itself in `tree-component.ts`, it consists of recursively nested nodes that are rendered with `node-component.ts`.
+
+### Actions
+
+All user actions are represented by concrete `TreeAction` objects that have a trigger (typically a keyboard shortcut) and an associated handler. Handlers are functions that take a DOM event and a context object and perform the actual logic associated with the operation.
+
+The Action abstraction allows for platform-specific keyboard shortcuts and doing things like triggering operations from the keyboard or from a menu.
+
+All TreeActions are registerd in the `TreeActionRegistry` which acts as the central dispatcher: it is called by the tree component when various DOM events happend and it figures out what action to execute based on its triggers.
+
+Actions do not modify the datastore or the DOM directly, they just construct the command (see Commands below) that model the operation.
+
+### Commands
+
+All mutating GUI actions are modelled as commands in order to support full undo for all operations. User events trigger commands that are both handled locally for updating the DOM directly and are also dispatched to the backend to make sure changes are persisted.
+
+Commands always have an inverse command that can be constructed automatically fromm the original command and used for undoing the operation. This can be continued ad nauseam by creating the reverse of a reverse command for a redo operation for example.
+
+Commands and the necessary infrastructure are in `src/ts/commands`.
+
+### Offline First
+
+Since this program should work without a network connection, it was designed offline first. This means that all the storage is primarily local (in indexeddb) and can optionally be told to synchronize with a server.
+
+### Event Based Storage, CRDTs and Vectorclocks
+
+A further design goal of the program is that it can work not only offline, but that it can work with any number of decentralized peers and that the state will be eventually consistent. The basic use case is using the program from your desktop, tablet and phone and having a fast editing experience locally but benefit from shared state across all those devices.
+
+The smallest unit of data is a node in the tree. We use an approach that is inspired by CRDTs to model all operations on these nodes as events and to optionally, lazily, asynchronously disseminate these events to other peers using a central server. The CRDT model allows for no explicit coordination between the peers and guarantees an eventually consistent state.
+
+In order to make garbage collection easier we extended all events with vector clocks. Combining the vector clock partial causal ordering with a sorting criteria by node id allows us to have a total order over all events that is consistent over all nodes.
+
+There are 3 types of events that each represent a CRDT managed data structure:
+
+* The node contents themselves are modeled as a set of things
+* The parent-child relationships between nodes are managed as a set of parent-child relationship tuples
+* The ordering of the children of a parent is modeled as a set of logoot sequences with one logoot sequence per parent
+
+No data is actively deleted, all "deleted" nodes remain in the set as tombstones.
+
+There is a periodical garbage collection phase that will collect all nodes that are known to be causally redundant and removes them from the event log. This phase does not yet run in a separate thread (web worker) and can thus cause pauses.
+
+## TODOs
 
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Move garbage collection to a web worker, maybe use comlink?
