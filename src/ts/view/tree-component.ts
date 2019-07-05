@@ -109,6 +109,9 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   loadNode(nodeId: string): Promise<any> {
+    if (!nodeId) {
+      return Promise.resolve()
+    }
     if (this.treeChangeSubscription) {
       this.treeChangeSubscription.cancel()
       this.treeChangeSubscription = null
@@ -137,12 +140,11 @@ export class Tree implements CommandExecutor, RedomComponent {
       .then(loadedTree => this.update(loadedTree))
   }
 
-  private onBackgroundTreeChange(nodeId: string): void {
+  private onBackgroundTreeChange(): void {
     this.reloadTree(this.currentRootNodeId)
   }
 
-  update(tree: LoadedTree) {
-    console.debug(`Tree.update`)
+  private update(tree: LoadedTree) {
     setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
     if (tree.status.state === State.ERROR) {
       setChildren(this.contentEl,

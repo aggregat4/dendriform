@@ -22,8 +22,9 @@ The sample application can be tested by loading the `dist/index.html` file in yo
 
 ## Next Steps
 
-1. Move garbage collection to a web worker, maybe use comlink?
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
+1. Move garbage collection to a web worker, maybe use comlink?
+1. Move event pumping to a web worker?
 1. Put all the standard actions into menuitems for the node popup
 1. As long as we don't support formatting the importer needs to strip all HTML tags and optionally convert some tags to markdown?
 1. make sure that rerendertree is debounced for remote events

@@ -10,11 +10,14 @@
   font-family: helvetica, arial, sans-serif;
   line-height: 1.4;
   margin: 12px auto 12px auto;
-  /* Optimal width of text in a column: https://ux.stackexchange.com/a/3623 */
-  max-width: 75ch;
-  /* This is a hack to make sure the controls are always visible, even when getting really narrow.
-     This is stupid for mobile though since we lose all that space. Need a better solution. */
+  /* Optimal width of text in a column: https://ux.stackexchange.com/a/3623 
+     75ch + 2*5ch overhead
+  */
+  max-width: 85ch;
+  /* Make sure that we have room for the controls on the left as long as
+     we don't go responsive small */
   padding-left: 5ch;
+  padding-right: 5ch;
 }
 
 .tree input {
@@ -494,6 +497,7 @@ tree-opmlimport-dialog h1 {
   /* Don't waste horizontal space on mobile */
   .tree {
     padding-left: 0;
+    padding-right: 0;
   }  
 
 }

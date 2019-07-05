@@ -371,3 +371,11 @@ export function parseXML(content: string): Document {
   // TODO: DOMParser returns an error document instead of throwing an exception on parsing, catch that
   return doc
 }
+
+export function waitForThen(condition: () => boolean, action: () => void, delay: number) {
+  if (condition()) {
+    action()
+  } else {
+    window.setTimeout(() => { waitForThen(condition, action, delay) }, delay)
+  }
+}
