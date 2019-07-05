@@ -31,11 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('hashchange', () => updateTree(getRequestedNodeId()))
 ```
 
-On `DOMContentLoaded` the functions mountTree and updateTree are called, and to allow us to react to navigation events (like drilling down on a node) we attach an event listener that will get the requested node id to load from a hash fragment in the URL.
+On `DOMContentLoaded` the functions `mountTree` and `updateTree` are called to initialise the tree.
 
-This is just an example, in your own usage you can use whateveer navigation you would like. The `getRequestedNodeId` function here defaults to the value `ROOT` if no node id was specified. This is a symbolic name indicating that you want to see the whole tree.
+To allow us to react to navigation events (like drilling down on a node) we attach an event listener that will get the requested node id to load from a hash fragment in the URL.
 
-### Tree Initialisation
+This is just an example, in your own usage you can use whatever navigation you would like. The `getRequestedNodeId` function here defaults to the value `ROOT` if no node id was specified. This is a symbolic name indicating that you want to see the whole tree.
+
+### Dendriform Initialisation
 
 If we look into `mountTree` which is in `src/ts/tree.ts` we can see the initialisation flow of all the components:
 
