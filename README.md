@@ -101,7 +101,7 @@ Since this program should work without a network connection, it was designed off
 
 ### Event Based Storage, CRDTs and Vectorclocks
 
-A further design goal of the program is that it can work not only offline, but that it can work with any number of decentralized peers and that the state will be eventually consistent. The basic use case is using the program from your desktop, tablet and phone and having a fast editing experience locally but benefit from shared state across all those devices.
+A further design goal of the program is that it can not only work offline, but that it can work with any number of decentralized peers and that the state will be eventually consistent. The use case is using the program from your desktop, tablet and phone and having a fast editing experience locally but benefit from shared state across all those devices.
 
 The smallest unit of data is a node in the tree. We use an approach that is inspired by CRDTs to model all operations on these nodes as events and to optionally, lazily, asynchronously disseminate these events to other peers using a central server. The CRDT model allows for no explicit coordination between the peers and guarantees an eventually consistent state.
 
