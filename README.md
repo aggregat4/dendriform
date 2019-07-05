@@ -16,9 +16,52 @@ This project uses npm and webpack to build. To get started, do the following:
 
 The sample application can be tested by loading the `dist/index.html` file in your browser.
 
-## Useful links
+## Initialisation of the Tree
 
-* [`package.json` specification](https://docs.npmjs.com/files/package.json)
+### Embedding The Tree Component
+
+`src/example/main.ts` is the example program that shows a basic case of initialising the tree on a particular dom element:
+
+```javascript
+document.addEventListener('DOMContentLoaded', () => {
+  mountTree(document.body)
+  updateTree(getRequestedNodeId())
+})
+
+window.addEventListener('hashchange', () => updateTree(getRequestedNodeId()))
+```
+
+On `DOMContentLoaded` the functions mountTree and updateTree are called, and to allow us to react to navigation events (like drilling down on a node) we attach an event listener that will get the requested node id to load from a hash fragment in the URL.
+
+This is just an example, in your own usage you can use whateveer navigation you would like. The `getRequestedNodeId` function here defaults to the value `ROOT` if no node id was specified. This is a symbolic name indicating that you want to see the whole tree.
+
+### Tree Initialisation
+
+If we look into `mountTree` which is in `src/ts/tree.ts` we can see the initialisation flow of all the components:
+
+```typescript
+export function mountTree(el: HTMLElement): void {
+  initPromise.then(() => {
+    mount(el, tree)
+    opmlInit(tree.getTreeElement())
+  })
+}
+```
+
+`mountTree` requires a DOM element where the web component should be hung but it does this only when the initialisation has finised. This is embodied in the `initPromise`:
+
+```typescript
+const initPromise = localEventLog.init()
+  .then(() => eventPump.init())
+  .then(() => eventPump.start())
+  .then(() => repository.init())
+```
+
+This starts all _active_ components in the correct order:
+
+1. The local event log is the backing store for all our data, it initialises the indexeddb storage layer and if necessary creates the required tables.
+2. The event pump is a mechanism that actively gets events from the remote (central) server and feeds them into the local event log and vice versa. It allows multiple peers to communicate with each other using an intermediary hosted central eventlog.
+3. Finally the repository is a layer on top of the local event log that offers a nice tree based API to all our code and abstracts away the fact that the whole storage is event based. It needs to create some datastructures and caches on top of the event log.
 
 ## Next Steps
 
