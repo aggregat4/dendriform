@@ -1,6 +1,6 @@
 import Dexie from 'dexie'
 import { VectorClock } from '../lib/vectorclock'
-import { StoredEvent } from './eventlog-local'
+import { StoredEvent } from './eventlog-indexeddb'
 import { DEvent } from './eventlog'
 
 export class LocalEventLogIdMapper {

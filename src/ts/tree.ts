@@ -7,7 +7,7 @@ import { TreeServiceCommandHandler } from './commands/command-handler-tree-servi
 import { UndoableCommandHandler } from './commands/command-handler-undoable'
 import { Tree } from './view/tree-component'
 import { EventlogRepository } from './repository/repository-eventlog'
-import { LocalEventLog } from './eventlog/eventlog-local'
+import { LocalEventLog } from './eventlog/eventlog-indexeddb'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'

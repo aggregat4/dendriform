@@ -1,4 +1,4 @@
-import { StoredEvent, storedEventComparator } from './eventlog-local'
+import { StoredEvent, storedEventComparator } from './eventlog-indexeddb'
 import { EventType, ReorderChildNodeEventPayload, DEventLog } from './eventlog'
 
 class GcCandidate {

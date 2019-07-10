@@ -859,3 +859,13 @@ Unsure whether this was actually worth it since I don't really know how indexedd
 We sacrified millisecond accuracy on the timestamps for this, but that seems unimportant for this use case.
 
 Realised that while I could also make the flags be generic across the entire code base, we actually need to distinguis between different commands on the flag level because they may have different rerender semantics. So it does not seem worth it to pull through that refactoring.
+
+## 5.7.2019
+
+Did some code cleanup and refactoring and wrote documentation for dendriform in the README. Architectural strategies only for now, I still mean to have a diagram showing the various classes and how they work together.
+
+## 10.7.2019
+
+Did a performance trace of filtering the tree on my 8000 node workflowy import and noticed that about 800ms is spent doing indexeddb stuff, but about 1400ms is spent in marking up the html, a third ot that again is doing createContextualFragment.
+
+This seems to imply that my multipass markup may be a bottleneck here and perhaps I can reduce the amount of fragment generation?

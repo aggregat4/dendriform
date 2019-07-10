@@ -4,8 +4,8 @@ import Dexie from 'dexie'
 import { generateUUID } from '../util'
 import { VectorClock } from '../lib/vectorclock'
 import { ActivityIndicating } from '../domain/domain'
-import { LocalEventLogGarbageCollector } from './eventlog-local-gc'
-import { LocalEventLogIdMapper } from './eventlog-local-peerid-mapper'
+import { LocalEventLogGarbageCollector } from './eventlog-indexeddb-gc'
+import { LocalEventLogIdMapper } from './eventlog-indexeddb-peerid-mapper'
 
 /**
  * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.

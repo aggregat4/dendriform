@@ -115,11 +115,12 @@ There are 3 types of events that each represent a CRDT managed data structure:
 
 No data is actively deleted, all "deleted" nodes remain in the set as tombstones.
 
-There is a periodical garbage collection phase that will collect all nodes that are known to be causally redundant and removes them from the event log. This phase does not yet run in a separate thread (web worker) and can thus cause pauses.
+There is a periodical garbage collection phase that will collect all nodes that are known to be causally redundant and removes them from the event log. This phase does not yet run in a separate thread (web worker) and causes (small) pauses.
 
 ## TODOs
 
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
+1. Add a feature to quickly move nodes to another parent node. Either with a bunch of fixed targets and automcomplete and remembering the last used? is last used an antipattern since you may need a different one each time? Or based on tags somehow? Or autocomplete on all nodes with last used?
 1. Move garbage collection to a web worker, maybe use comlink?
 1. Move event pumping to a web worker?
 1. Put all the standard actions into menuitems for the node popup
