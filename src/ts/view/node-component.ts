@@ -29,12 +29,24 @@ export class TreeNode implements RedomComponent {
     })
     const childElements = this.getChildElements(treeNode)
     const hideToggleButton = treeNode.children.loaded && !treeNode.node.collapsed && childElements.elements.length === 0
+    // Name and Note elements are created by hand since we only have raw HTML strings for their contents and REDOM doesn't deal with that
+    const nameEl = document.createElement('div')
+    nameEl.classList.add('name')
+    nameEl.setAttribute('contentEditable', 'true')
+    if (treeNode.filteredName) {
+      nameEl.innerHTML =  treeNode.filteredName.fragment
+    }
+    const noteEl = document.createElement('div')
+    noteEl.classList.add('note')
+    if (treeNode.filteredNote) {
+      noteEl.innerHTML = treeNode.filteredNote.fragment
+    }
     setChildren(this.ncEl, [
       el('a', { href: `#node=${treeNode.node._id}`, title: 'Focus on this node' }, ''),
-      el('div.name', { contentEditable: true }, treeNode.filteredName ? treeNode.filteredName.fragment : ''),
+      nameEl,
       // we only hide the toggle button when the childElements array exists and is empty, otherwise it may be that we just haven't loaded the nodes yet since we do that on demand
       el(`span.toggle${hideToggleButton ? '.hidden' : ''}`, { title: 'Open or close node'}),
-      el('div.note', treeNode.filteredNote ? treeNode.filteredNote.fragment : null),
+      noteEl,
       el('span.menuTrigger', {title: 'Show menu', 'aria-haspopup': 'true'}, '☰'), // trigram for heaven (U+2630)
     ])
     this.childList.update(childElements.elements)

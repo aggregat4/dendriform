@@ -1,4 +1,5 @@
-import {findAndMarkText, countNonTextNodes, getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst} from '../util'
+import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst } from '../util'
+import { toHtml, containsMarkup, markupHtmlMNode} from '../utils/markup'
 import { DateTime } from 'luxon'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
@@ -79,7 +80,7 @@ export interface Highlight {
 }
 
 export interface FilteredFragment {
-  fragment: DocumentFragment,
+  fragment: string,
   filterMatches: boolean
 }
 
@@ -145,51 +146,6 @@ export interface ActivityIndicating {
   getActivityTitle(): string
 }
 
-// TODO: does this belong here?
-const linkRegexp = new RegExp('[^\\s]+://[^\\s]+')
-function createLink(s: string): Element {
-  const el = document.createElement('a')
-  el.setAttribute('href', s)
-  el.setAttribute('class', 'embeddedLink')
-  el.setAttribute('rel', 'noreferrer')
-  el.innerHTML = s
-  return el
-}
-
-const filterRegexp = new RegExp('\\s([@#][\\w-]+)')
-function createFilterLink(s: string): Element {
-  const el = document.createElement('span')
-  el.setAttribute('class', 'filterTag')
-  el.innerHTML = s
-  return el
-}
-
-const boldRegexp = new RegExp('\\*\\*[^\\*]+\\*\\*')
-function createBoldTag(s: string): Element {
-  const el = document.createElement('b')
-  el.innerHTML = s
-  return el
-}
-
-const italicRegexp = new RegExp('_[^_]+_')
-function createItalicTag(s: string): Element {
-  const el = document.createElement('i')
-  el.innerHTML = s
-  return el
-}
-
-// TODO: if we are really going to use this for formatting styles then we need something better than this
-// poor man's markup engine. This makes many passes and nested markup is not possible.
-export function markupHtml(rawHtml: string): DocumentFragment {
-  const fragment = document.createRange().createContextualFragment(rawHtml)
-  // identify links, hashtags and @mentions to autolink
-  findAndMarkText(fragment, linkRegexp, createLink)
-  findAndMarkText(fragment, filterRegexp, createFilterLink)
-  findAndMarkText(fragment, boldRegexp, createBoldTag)
-  findAndMarkText(fragment, italicRegexp, createItalicTag)
-  return fragment
-}
-
 function updateAllEmbeddedLinks(node: Element): void {
   for (const anchor of node.querySelectorAll('a.embeddedLink')) {
     const anchorText = anchor.textContent
@@ -207,14 +163,17 @@ function updateAllEmbeddedLinks(node: Element): void {
  * It will also make sure all the embeddedLink elements have the correct href value.
  */
 export function verifyAndRepairMarkup(el: Element, newText: string): void {
-  const newMarkup = markupHtml(newText)
-  const newTagCount = countNonTextNodes(newMarkup)
-  if (el.textContent === newText && newTagCount === 0) {
-    return
+  if (containsMarkup(newText)) {
+    const newMarkup = markupHtmlMNode(newText)
+    const cursorPos = getCursorPosAcrossMarkup(el)
+    el.innerHTML = toHtml(newMarkup)
+    updateAllEmbeddedLinks(el)
+    setCursorPosAcrossMarkup(el, cursorPos)
+    // const newMarkup = markupHtml(newText)
+    // updateAllEmbeddedLinks(el)
+    // const cursorPos = getCursorPosAcrossMarkup(el)
+    // el.innerHTML = ''
+    // el.appendChild(newMarkup)
+    // setCursorPosAcrossMarkup(el, cursorPos)
   }
-  updateAllEmbeddedLinks(el)
-  const cursorPos = getCursorPosAcrossMarkup(el)
-  el.innerHTML = ''
-  el.appendChild(newMarkup)
-  setCursorPosAcrossMarkup(el, cursorPos)
 }

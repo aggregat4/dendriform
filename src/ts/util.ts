@@ -322,49 +322,6 @@ export function guessOperatingSystem(): OperatingSystem {
   }
 }
 
-/**
- * This implementation for markup has a a workaround for missing lookbehind assertions in JS (coming in ES2018).
- * When a captured group exists we assume that the regex was structured to simulate lookbehind assertions.
- * In that case we only consider the text captured by the group to be linked, and we correct the matching
- * index to allow for the prefix that is not part of a group.
- *
- * This ONLY works if your regex contains mo matching characters AFTER your group! If you need lookahead,
- * then use that.
- */
-export function findAndMarkText(element: any, regex: RegExp, marker: (s) => Element): boolean {
-  let hitFound = false
-  if (element.nodeType === Node.TEXT_NODE) {
-    let searchEl = element
-    let reMatch = null
-    while (searchEl && (reMatch = searchEl.nodeValue.match(regex))) {
-      // The following two lines are a workaround for missing lookbehind assertions in JS (coming in ES2018)
-      const matchedText = reMatch.length > 1 ? reMatch[1] : reMatch[0]
-      const matchedIndex = reMatch.length > 1 ? reMatch.index + reMatch[0].length - reMatch[1].length : reMatch.index
-      const newEl = searchEl.splitText(matchedIndex)
-      searchEl = newEl.splitText(matchedText.length)
-      const markEl = marker(matchedText)
-      element.parentNode.replaceChild(markEl, newEl)
-      hitFound = true
-    }
-  } else if (element.childNodes) {
-    for (const child of element.childNodes) {
-      hitFound = hitFound || findAndMarkText(child, regex, marker)
-    }
-  }
-  return hitFound
-}
-
-export function countNonTextNodes(el: Node): number {
-  let count = 0
-  for (const child of el.childNodes) {
-    if (child.nodeType !== Node.TEXT_NODE) {
-      count++
-    }
-    count += countNonTextNodes(child)
-  }
-  return count
-}
-
 export function parseXML(content: string): Document {
   const parser = new DOMParser()
   const doc = parser.parseFromString(content, 'application/xml')

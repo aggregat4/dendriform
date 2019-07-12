@@ -1,7 +1,6 @@
 import {
   RelativeLinearPosition,
   createNewResolvedRepositoryNodeWithContent,
-  markupHtml,
   verifyAndRepairMarkup,
 } from '../domain/domain'
 import { filterNode } from '../domain/domain-search'
@@ -33,6 +32,7 @@ import {
   unhideToggle,
   getParentNode,
 } from './tree-dom-util'
+import { markupHtml } from '../utils/markup'
 
 export class DomCommandHandler implements CommandHandler {
 

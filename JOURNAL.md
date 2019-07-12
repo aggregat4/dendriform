@@ -866,6 +866,30 @@ Did some code cleanup and refactoring and wrote documentation for dendriform in 
 
 ## 10.7.2019
 
-Did a performance trace of filtering the tree on my 8000 node workflowy import and noticed that about 800ms is spent doing indexeddb stuff, but about 1400ms is spent in marking up the html, a third ot that again is doing createContextualFragment.
+Did a performance trace of filtering the tree on my 8000 node workflowy import and noticed that about 400ms is spent doing indexeddb stuff, but about 1400ms is spent in marking up the html, a third ot that again is doing createContextualFragment.
 
 This seems to imply that my multipass markup may be a bottleneck here and perhaps I can reduce the amount of fragment generation?
+
+I tried some local optimisations to reduce the amount of node creations and it did seem to improve the performance a tiny bit, but not significantly.
+
+It appears that the contextualFragmentCreation, which I have to do for each filtered node is really expensive in aggregate. I am starting a rewrite of this part to use a virtual in memory dom structure, generate HTML from that and then in the end just set innerHtml to the generated value. Let's see if that is faster.
+
+## 12.7.2019
+
+It was more complicated than expected. I had created a new way to markup using in memory pseudo dom elements and string concatenation for generating the html, but performance seemed to be mostly the same.
+
+Turns out I was looking at the wrong method to optimise: the main cause for the time lost were the filter-calls for generating filterednodes which was happening way more often.
+
+I refactored the filtering to also use the new pseudo dom method. This in turn causes the problem that since we no longer have ContextualFragments for the each name and note element but a string with HTML, REDOM can no longer just use that to create HTML elements. It had basically used the strings and escaped them and displayed them. So no more highlighting.
+
+I fixed this by creating two DOM elements by hand and appending them to the REDOM element. This is all in node-component.ts and this is becoming increasingly untennable.
+
+Positive with REDOM is that it can basically deal with whatever, it does not seem to care whether children are REDOM elements, strings or real DOM elements.
+
+Not sure how incremental-dom would deal with that.
+
+Performance is now also much better already: we only spend 375 ms in the markup method as opposed to 1300ms before.
+
+A further optimisation I need to pursue is to make the findAndMarkTextMNode call to allow for multiple regexes at the same time. It could just increment through the string and try all the regexes one after the other and we'd only need "one" pass.
+
+Also interesting is that the performance trace in chrome shows that luxon is now taking a not insignificant amount of time. Apparently the mapEventToRepositoryNode call does something with luxon which in this test takes 100ms in aggregat. May be worth looking into since we don't really need that data until the popup is shown.
