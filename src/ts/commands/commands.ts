@@ -27,7 +27,7 @@ export class Command {
     readonly _synchronous: boolean = false,
   ) {}
 
-  // Whether or not a command should synchronously executed is implicitly true when it requires 
+  // Whether or not a command should synchronously executed is implicitly true when it requires
   // a rerender (because of timing between store and load) or when the user has explicitly requested
   // it
   get synchronous(): boolean {

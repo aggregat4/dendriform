@@ -1,5 +1,5 @@
 import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode, QueryComponent } from './domain'
-import { findAndMarkText, markupHtml, containsMarkup, toHtml, markupHtmlMNode, markupHtmlMNodeWithFilterHits } from '../utils/markup'
+import { containsMarkup, toHtml, markupHtml, markupHtmlWithFilterHits } from '../utils/markup'
 
 const splitRegexp = new RegExp('[,\\.;\\s]+')
 
@@ -9,9 +9,8 @@ export function parseQuery(query: string): QueryComponent[] {
 
 function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
   if (filter) {
-    //let fragment = markupHtml(rawHtml)
     let filterMatches = false
-      // we AND search for all query components
+    // we AND search for all query components
     let hitCount = 0
     const lowerCaseContent = rawHtml.toLowerCase()
     for (const queryComponent of filter.queryComponents) {
@@ -20,31 +19,22 @@ function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
       } else {
         break
       }
-      // if (findAndMarkText(fragment, new RegExp(queryComponent.value, 'i'), createFilterMarker)) {
-      //   hitCount++
-      // } else {
-      //   break
-      // }
     }
     filterMatches = hitCount === filter.queryComponents.length
-    // if we did not find a hit we need to reset the the marked up fragment, we need to optimize this
-    // so we don't constantly remarkup every node
-    // if there was only one querycomponent to match, and we did not find a hit then we can just
-    // use the original fragment, otherwise we need new markup
     if (!filterMatches) {
       return {
-        fragment: containsMarkup(rawHtml) ? toHtml(markupHtmlMNode(rawHtml)) : rawHtml,
+        fragment: containsMarkup(rawHtml) ? toHtml(markupHtml(rawHtml)) : rawHtml,
         filterMatches: false,
       }
     } else {
       return {
-        fragment: toHtml(markupHtmlMNodeWithFilterHits(rawHtml, filter.queryComponents.map(qc => qc.value))),
+        fragment: toHtml(markupHtmlWithFilterHits(rawHtml, filter.queryComponents.map(qc => qc.value))),
         filterMatches: true,
       }
     }
   } else {
     return {
-      fragment: containsMarkup(rawHtml) ? toHtml(markupHtmlMNode(rawHtml)) : rawHtml,
+      fragment: containsMarkup(rawHtml) ? toHtml(markupHtml(rawHtml)) : rawHtml,
       filterMatches: false,
     }
   }

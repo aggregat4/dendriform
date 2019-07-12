@@ -32,7 +32,7 @@ import {
   unhideToggle,
   getParentNode,
 } from './tree-dom-util'
-import { markupHtml } from '../utils/markup'
+import { markupHtml, toHtml } from '../utils/markup'
 
 export class DomCommandHandler implements CommandHandler {
 
@@ -113,8 +113,7 @@ export class DomCommandHandler implements CommandHandler {
   }
 
   private replaceElementWithTaggedContent(el: Element, newName: string): void {
-    el.innerHTML = ''
-    el.appendChild(markupHtml(newName))
+    el.innerHTML = toHtml(markupHtml(newName))
   }
 
   private async createDomNode(id: string, name: string, note: string): Promise<Element> {

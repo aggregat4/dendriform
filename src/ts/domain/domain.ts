@@ -1,5 +1,5 @@
 import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst } from '../util'
-import { toHtml, containsMarkup, markupHtmlMNode} from '../utils/markup'
+import { toHtml, containsMarkup, markupHtml} from '../utils/markup'
 import { DateTime } from 'luxon'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
@@ -164,7 +164,7 @@ function updateAllEmbeddedLinks(node: Element): void {
  */
 export function verifyAndRepairMarkup(el: Element, newText: string): void {
   if (containsMarkup(newText)) {
-    const newMarkup = markupHtmlMNode(newText)
+    const newMarkup = markupHtml(newText)
     const cursorPos = getCursorPosAcrossMarkup(el)
     el.innerHTML = toHtml(newMarkup)
     updateAllEmbeddedLinks(el)
