@@ -893,3 +893,5 @@ Performance is now also much better already: we only spend 375 ms in the markup 
 A further optimisation I need to pursue is to make the findAndMarkTextMNode call to allow for multiple regexes at the same time. It could just increment through the string and try all the regexes one after the other and we'd only need "one" pass.
 
 Also interesting is that the performance trace in chrome shows that luxon is now taking a not insignificant amount of time. Apparently the mapEventToRepositoryNode call does something with luxon which in this test takes 100ms in aggregat. May be worth looking into since we don't really need that data until the popup is shown.
+
+After cleaning up the code and measuring again, I can no longer see the markup code taking any significant time. Really nice. May be worth to look into the luxon thing at some point, deferred parsing may be really worthwhile here.
