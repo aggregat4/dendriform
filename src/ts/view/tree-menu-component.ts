@@ -1,7 +1,7 @@
 import h from 'hyperscript'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { DialogElement } from './dialogs'
-import { DateTime } from 'luxon'
+import { epochSecondsToLocaleString } from '../utils/dateandtime'
 
 export class TreeNodeMenu extends DialogElement {
   constructor(readonly menuItems: TreeNodeMenuItem[]) {
@@ -60,16 +60,12 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
     }
   }
 
-  private formatDate(date: string): string {
-    return DateTime.fromISO(date).toLocaleString(DateTime.DATETIME_MED)
-  }
-
   beforeShow(): void {
     const activeNodeId = this.treeActionContext.transientStateManager.getActiveNodeId()
     if (activeNodeId) {
       this.treeActionContext.treeService.loadNode(activeNodeId)
         .then(node => this.nodeInfoEl.textContent =
-          `Created: ${this.formatDate(node.created)}, Updated: ${this.formatDate(node.updated)}`)
+          `Created: ${epochSecondsToLocaleString(node.created)}, Updated: ${epochSecondsToLocaleString(node.updated)}`)
     }
   }
 

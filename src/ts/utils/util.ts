@@ -262,7 +262,7 @@ export function pasteTextUnformatted(event: ClipboardEvent): void {
   document.execCommand('insertHTML', false, text)
 }
 
-export function findFirst(array: any[], predicate: (any) => boolean): any {
+export function findFirst<T>(array: T[], predicate: (T) => boolean): T {
   for (let i = 0; i < array.length; i++) {
     if (predicate(array[i])) {
       return array[i]
@@ -272,12 +272,11 @@ export function findFirst(array: any[], predicate: (any) => boolean): any {
 }
 
 const fail = Symbol()
-
 export async function filterAsync(arr, callback) {
   return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i => i !== fail)
 }
 
-export async function findFirstAsync(array: any[], predicate: (any) => Promise<boolean>): Promise<any> {
+export async function findFirstAsync<T>(array: T[], predicate: (T) => Promise<boolean>): Promise<T> {
   for (let i = 0; i < array.length; i++) {
     if (await predicate(array[i])) {
       return Promise.resolve(array[i])

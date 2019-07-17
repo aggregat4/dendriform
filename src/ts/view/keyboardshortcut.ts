@@ -1,4 +1,4 @@
-import { OperatingSystem, guessOperatingSystem } from '../util'
+import { OperatingSystem, guessOperatingSystem } from '../utils/util'
 
 export const enum KbdEventType { Input, Keydown, Keypress }
 export enum SemanticShortcutType {

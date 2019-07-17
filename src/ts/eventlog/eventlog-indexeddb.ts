@@ -1,7 +1,7 @@
 // tslint:disable-next-line:max-line-length
 import { DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events, EventPayloadType, ReorderChildNodeEventPayload } from './eventlog'
 import Dexie from 'dexie'
-import { generateUUID } from '../util'
+import { generateUUID } from '../utils/util'
 import { VectorClock } from '../lib/vectorclock'
 import { ActivityIndicating } from '../domain/domain'
 import { LocalEventLogGarbageCollector } from './eventlog-indexeddb-gc'

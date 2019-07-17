@@ -1,5 +1,5 @@
 import {RepositoryNode, LoadedTree, RelativeNodePosition, Subscription} from '../domain/domain'
-import { Predicate } from '../util'
+import { Predicate } from '../utils/util'
 
 export interface Repository {
   createNode(id: string, name: string, content: string, synchronous: boolean): Promise<void>

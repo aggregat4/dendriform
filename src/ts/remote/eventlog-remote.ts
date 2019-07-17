@@ -1,5 +1,5 @@
 import { DEvent, Events } from '../eventlog/eventlog'
-import { assertNonEmptyString } from '../util'
+import { assertNonEmptyString } from '../utils/util'
 import { deserializeServerEvents, serializeServerEvent } from './serialization'
 
 export class RemoteEventLog {

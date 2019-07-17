@@ -1,12 +1,11 @@
 import {Repository} from './repository'
 // tslint:disable-next-line:max-line-length
 import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload, NodeFlags } from '../eventlog/eventlog'
-import { Predicate, debounce, ALWAYS_TRUE } from '../util'
+import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, ResolvedRepositoryNode } from '../domain/domain'
 import { atomIdent } from '../lib/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
-import { DateTime } from 'luxon'
 
 class NodeNotFoundError extends Error {}
 
@@ -298,8 +297,8 @@ export class EventlogRepository implements Repository {
       collapsed: (eventPayload.flags & NodeFlags.collapsed) === NodeFlags.collapsed,
       // tslint:disable-next-line:no-bitwise
       completed: (eventPayload.flags & NodeFlags.completed) === NodeFlags.completed,
-      created: DateTime.fromSeconds(eventPayload.created).toISO(),
-      updated: DateTime.fromSeconds(eventPayload.updated).toISO(),
+      created: eventPayload.created,
+      updated: eventPayload.updated,
     }
   }
 

@@ -1,6 +1,6 @@
 import { KbdEventType, RawKbdShortcut, KeyboardEventTrigger, NodeClassSelector, KbdKey, KbdModifier, KbdModifierType, toRawShortCuts, SemanticShortcut, SemanticShortcutType, AllNodesSelector } from './keyboardshortcut'
 import { getClosestNodeElement, getNodeId, getNodeName, getNodeNote, findPreviousNode, getNameElement, findNextNode, hasChildren, getParentNode, hasParentNode, findLastChildNode, isNodeCompleted } from './tree-dom-util'
-import { getCursorPos, getTextBeforeCursor, getTextAfterCursor, generateUUID, isTextSelected, isCursorAtBeginning, isEmpty, isCursorAtEnd } from '../util'
+import { getCursorPos, getTextBeforeCursor, getTextAfterCursor, generateUUID, isTextSelected, isCursorAtBeginning, isEmpty, isCursorAtEnd } from '../utils/util'
 import { CommandBuilder, RenameNodeByIdCommandPayload, UpdateNoteByIdCommandPayload, SplitNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, MergeNodesByIdCommandPayload, Command, ReparentNodeByIdCommandPayload, UnCompleteNodeByIdCommandPayload, CompleteNodeByIdCommandPayload } from '../commands/commands'
 import { MergeNameOrder } from '../service/service'
 import { TreeNode } from './node-component'

@@ -7,7 +7,7 @@ import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndica
 import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
-import { debounce, isEmpty, pasteTextUnformatted, setCursorPos, Predicate, createCompositeAndPredicate } from '../util'
+import { debounce, isEmpty, pasteTextUnformatted, setCursorPos, Predicate, createCompositeAndPredicate } from '../utils/util'
 import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType } from './keyboardshortcut'
 import { TreeNode } from './node-component'

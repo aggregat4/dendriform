@@ -1,6 +1,6 @@
-import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst } from '../util'
+import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst } from '../utils/util'
 import { toHtml, containsMarkup, markupHtml} from '../utils/markup'
-import { DateTime } from 'luxon'
+import { secondsSinceEpoch } from '../utils/dateandtime'
 
 export const BEGINNING_NODELIST_MARKER = '|-'
 export const END_NODELIST_MARKER = '-|'
@@ -12,8 +12,8 @@ export interface RepositoryNode {
   deleted: boolean,
   collapsed: boolean,
   completed: boolean,
-  created: string, // ISO 8601 timestamp with timezone information, e.g. "2007-04-05T14:30Z"
-  updated: string, // ISO 8601 timestamp with timezone information, e.g. "2007-04-05T14:30Z"
+  created: number, // seconds since the epoch
+  updated: number, // seconds since the epoch
 }
 
 // const NODE_IS_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.deleted
@@ -36,8 +36,8 @@ export function createNewRepositoryNodeWithContent(id: string, name: string, con
     collapsed: false,
     completed: false,
     // as opposed to 'toISOString', the 'format' function renders in the local timezone, which is what we want
-    created: DateTime.local().toISO(),
-    updated: DateTime.local().toISO(),
+    created: secondsSinceEpoch(),
+    updated: secondsSinceEpoch(),
   }
 }
 

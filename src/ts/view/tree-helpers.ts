@@ -1,6 +1,6 @@
 import { Command } from '../commands/commands'
 import { isNameNode, getClosestNodeElement, getNodeId, getNodeName, getNodeNote } from './tree-dom-util'
-import { getCursorPos } from '../util'
+import { getCursorPos } from '../utils/util'
 
 export interface CommandExecutor {
   performWithDom(command: Command): void,

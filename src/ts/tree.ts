@@ -11,7 +11,7 @@ import { LocalEventLog } from './eventlog/eventlog-indexeddb'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
-import { waitForThen } from './util'
+import { waitForThen } from './utils/util'
 // DOM initialisation functions that requre the mounted DOM node
 import { init as opmlInit } from './view/action-opmlimport'
 

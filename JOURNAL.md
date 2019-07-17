@@ -895,3 +895,9 @@ A further optimisation I need to pursue is to make the findAndMarkTextMNode call
 Also interesting is that the performance trace in chrome shows that luxon is now taking a not insignificant amount of time. Apparently the mapEventToRepositoryNode call does something with luxon which in this test takes 100ms in aggregat. May be worth looking into since we don't really need that data until the popup is shown.
 
 After cleaning up the code and measuring again, I can no longer see the markup code taking any significant time. Really nice. May be worth to look into the luxon thing at some point, deferred parsing may be really worthwhile here.
+
+## 17.7.2019
+
+Refactoring the luxon date things: I am just going to store the seconds since epoch in all nodes and will format the date only for display on demand.
+
+This is now implemented.

@@ -1,6 +1,6 @@
 import { el, setAttr, setChildren, list, setStyle, RedomComponent } from 'redom'
 import { RepositoryNode, FilteredRepositoryNode, DeferredArray } from '../domain/domain'
-import { isCursorAtContentEditableBeginning } from '../util'
+import { isCursorAtContentEditableBeginning } from '../utils/util'
 
 export class TreeNode implements RedomComponent {
   private first: boolean

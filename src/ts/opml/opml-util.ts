@@ -1,5 +1,5 @@
 import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent } from '../domain/domain'
-import { generateUUID } from '../util'
+import { generateUUID } from '../utils/util'
 
 /**
  * Parses a DOM tree representing an OPML file into RepositoryNodes. We assume a workflowy

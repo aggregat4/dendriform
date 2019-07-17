@@ -1,4 +1,4 @@
-import { generateUUID, ALWAYS_TRUE, Predicate } from '../util'
+import { generateUUID, ALWAYS_TRUE, Predicate } from '../utils/util'
 import {
   RelativeLinearPosition,
   RepositoryNode,

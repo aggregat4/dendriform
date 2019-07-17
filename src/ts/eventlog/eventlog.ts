@@ -1,7 +1,7 @@
 import { VectorClock } from '../lib/vectorclock'
-import { Predicate } from '../util'
+import { Predicate } from '../utils/util'
 import { atomIdent } from '../lib/logootsequence.js'
-import { DateTime } from 'luxon'
+import { secondsSinceEpoch } from '../utils/dateandtime'
 
 export const enum EventType {
   ADD_OR_UPDATE_NODE,
@@ -35,14 +35,14 @@ export interface AddOrUpdateNodeEventPayload {
   updated: number, // epoch seconds
 }
 
-export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean, completed: boolean, created?: string): AddOrUpdateNodeEventPayload {
+export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean, completed: boolean, created?: number): AddOrUpdateNodeEventPayload {
   return {
     name,
     note,
     // tslint:disable-next-line:no-bitwise
     flags: (deleted ? NodeFlags.deleted : 0) | (collapsed ? NodeFlags.collapsed : 0) | (completed ? NodeFlags.completed : 0),
-    created: Math.trunc(created ? DateTime.fromISO(created).toSeconds() : DateTime.local().toSeconds()),
-    updated: Math.trunc(DateTime.local().toSeconds()),
+    created: created || secondsSinceEpoch(),
+    updated: secondsSinceEpoch(),
   }
 }
 
@@ -99,9 +99,13 @@ export interface DEventSource {
 }
 
 export interface DEventLog extends DEventSource {
-  // A globally unique ID identifying this peer in a multi-peer environment
+  /**
+   *  A globally unique ID identifying this peer in a multi-peer environment
+   */
   getPeerId(): string,
-  // The logical name of the eventlog, for example 'dendriform-tree-structure-events'
+  /**
+   * The logical name of the eventlog, for example 'dendriform-tree-structure-events'
+   */
   getName(): string,
   getCounter(): number,
   insert(events: DEvent[], synchronous: boolean): Promise<EventLogCounter>
