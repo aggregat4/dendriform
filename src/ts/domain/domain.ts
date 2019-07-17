@@ -2,9 +2,6 @@ import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCo
 import { toHtml, containsMarkup, markupHtml} from '../utils/markup'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 
-export const BEGINNING_NODELIST_MARKER = '|-'
-export const END_NODELIST_MARKER = '-|'
-
 export interface RepositoryNode {
   _id: string,
   name: string,
@@ -18,16 +15,11 @@ export interface RepositoryNode {
 
 // const NODE_IS_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.deleted
 export const NODE_IS_NOT_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.deleted
-
-export const NODE_IS_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.completed
 export const NODE_IS_NOT_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.completed
-
 export const NODE_NOT_DELETED_AND_NOT_COMPLETED = createCompositeAndPredicate([NODE_IS_NOT_DELETED, NODE_IS_NOT_COMPLETED])
-
-export const NODE_IS_COLLAPSED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.collapsed
 export const NODE_IS_NOT_COLLAPSED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.collapsed
 
-export function createNewRepositoryNodeWithContent(id: string, name: string, content: string): RepositoryNode {
+function createNewRepositoryNodeWithContent(id: string, name: string, content: string): RepositoryNode {
   return {
     _id: id,
     name,
@@ -39,10 +31,6 @@ export function createNewRepositoryNodeWithContent(id: string, name: string, con
     created: secondsSinceEpoch(),
     updated: secondsSinceEpoch(),
   }
-}
-
-export function createNewRepositoryNode(id: string, name: string): RepositoryNode {
-  return createNewRepositoryNodeWithContent(id, name, null)
 }
 
 export interface DeferredArray<T> {
@@ -62,21 +50,12 @@ export function createNewResolvedRepositoryNodeWithContent(id: string, name: str
   }
 }
 
-export function createNewResolvedRepositoryNode(id: string, name: string): ResolvedRepositoryNode {
-  return createNewResolvedRepositoryNodeWithContent(id, name, null)
-}
-
 export class QueryComponent {
   constructor(readonly value: string) {}
 }
 
 export class Filter {
   constructor(readonly queryComponents: QueryComponent[]) {}
-}
-
-export interface Highlight {
-  pos: number,
-  length: number
 }
 
 export interface FilteredFragment {

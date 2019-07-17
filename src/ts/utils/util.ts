@@ -271,20 +271,6 @@ export function findFirst<T>(array: T[], predicate: (T) => boolean): T {
   return null
 }
 
-const fail = Symbol()
-export async function filterAsync(arr, callback) {
-  return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i => i !== fail)
-}
-
-export async function findFirstAsync<T>(array: T[], predicate: (T) => Promise<boolean>): Promise<T> {
-  for (let i = 0; i < array.length; i++) {
-    if (await predicate(array[i])) {
-      return Promise.resolve(array[i])
-    }
-  }
-  return Promise.resolve(null)
-}
-
 export function assert(condition, message: string): void {
   if (!condition) {
     throw new Error(message || 'Assertion failed')

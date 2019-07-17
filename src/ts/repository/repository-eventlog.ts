@@ -37,7 +37,6 @@ export class EventlogRepository implements Repository {
   private readonly debouncedNotifyNodeChangeSubscribers = debounce(this.notifyNodeChangeSubscribers.bind(this), 5000)
   private readonly debouncedRebuildAndNotify = debounce(this.rebuildAndNotify.bind(this), 5000)
 
-  // TODO: tweak this magic number
   // this is the limit after which we will bulk load all nodes instead of loading a tree incrementally
   private readonly MAX_NODES_TO_LOAD_INDIVIDUALLY = 500
 
@@ -45,11 +44,9 @@ export class EventlogRepository implements Repository {
 
   init(): Promise<EventlogRepository> {
     return this.rebuildTreeStructureMaps().then(() => {
-      // TODO: this is not great: we rebuild the maps, then subscribe and theoretically we could get
+      // This is not great: we rebuild the maps, then subscribe and theoretically we could get
       // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
       // would mean delaying the inital map construction for too long...
-      // TODO: also this is the only subscriber at the moment, we already filter by originator,
-      // but if a ton of remote events would come in we are fucked
       this.eventLog.subscribe({
         notify: this.eventLogListener.bind(this),
         filter: (event) => event.originator !== this.eventLog.getPeerId() })
@@ -102,24 +99,23 @@ export class EventlogRepository implements Repository {
   private async rebuildTreeStructureMaps(): Promise<void> {
     const newChildParentMap = {}
     const newParentChildMap = {}
-    // TODO: perf, redo these in separate calls for each event type (faster because index)
-    const events = await this.eventLog.getEventsSince([EventType.REPARENT_NODE, EventType.REORDER_CHILD], -1)
-    events.events.forEach(event => {
-      if (event.type === EventType.REPARENT_NODE) {
-        const treeEventPayload = event.payload as ReparentNodeEventPayload
-        const nodeId = event.nodeId
-        const parentId = treeEventPayload.parentId
-        newChildParentMap[nodeId] = parentId
-      } else if (event.type === EventType.REORDER_CHILD) {
-        const childOrderEventPayload = event.payload as ReorderChildNodeEventPayload
-        EventlogRepository.insertInParentChildMap(
-          newParentChildMap,
-          childOrderEventPayload.childId,
-          childOrderEventPayload.parentId,
-          childOrderEventPayload.operation,
-          childOrderEventPayload.position,
-          this.eventLog.getPeerId())
-      }
+    const reparentEvents = await this.eventLog.getEventsSince([EventType.REPARENT_NODE], -1)
+    reparentEvents.events.forEach(event => {
+      const treeEventPayload = event.payload as ReparentNodeEventPayload
+      const nodeId = event.nodeId
+      const parentId = treeEventPayload.parentId
+      newChildParentMap[nodeId] = parentId
+    })
+    const reorderEvents = await this.eventLog.getEventsSince([EventType.REORDER_CHILD], -1)
+    reorderEvents.events.forEach(event => {
+      const childOrderEventPayload = event.payload as ReorderChildNodeEventPayload
+      EventlogRepository.insertInParentChildMap(
+        newParentChildMap,
+        childOrderEventPayload.childId,
+        childOrderEventPayload.parentId,
+        childOrderEventPayload.operation,
+        childOrderEventPayload.position,
+        this.eventLog.getPeerId())
     })
     // this is an attempt at an "atomic" update: we only replace the existing maps once we
     // have the new ones, to avoid having intermediate request accessing some weird state

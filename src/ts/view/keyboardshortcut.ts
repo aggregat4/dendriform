@@ -42,13 +42,6 @@ export class NodeClassSelector implements TreeNodeSelector {
   }
 }
 
-export class NodeIdSelector implements TreeNodeSelector {
-  constructor(readonly id: string) {}
-  matches(node: Element): boolean {
-    return node.getAttribute('id') === this.id
-  }
-}
-
 export class AllNodesSelector implements TreeNodeSelector {
   matches(node: Element): boolean {
     return true

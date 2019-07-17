@@ -119,6 +119,9 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
+1. BUG: when highlighting a search hit (like a tag) in a note, all following tags are no longer converted to links
+1. BUG: markup at the beginning of the line is not highlighted
+1. BUG: uppercase filters are not found (assumes lowercase I think)
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Add a feature to quickly move nodes to another parent node. Either with a bunch of fixed targets and automcomplete and remembering the last used? is last used an antipattern since you may need a different one each time? Or based on tags somehow? Or autocomplete on all nodes with last used?
 1. Move garbage collection to a web worker, maybe use comlink?

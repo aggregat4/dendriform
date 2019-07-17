@@ -29,7 +29,6 @@ export class LogootSequenceWrapper<T> {
     if (deletePos >= 0 && deletePos < this.sequence.length) {
       this.sequence.splice(deletePos, 1)
     }
-    // TODO: throw error when index not found?
   }
 
   getAtomIdent(pos: number): atomIdent {

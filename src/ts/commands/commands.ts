@@ -5,7 +5,6 @@ export interface CommandHandler {
   exec(command: Command): Promise<any>
 }
 
-// TODO: make this an abstract class, the other payloads can inherit and save a ton of code
 export interface CommandPayload {
   inverse(): CommandPayload,
   requiresRender(): boolean

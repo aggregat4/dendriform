@@ -96,7 +96,7 @@ const linkMarkup = new Markup(
     s))
 
 const filterMarkup = new Markup(
-  new RegExp('\\s([@#][\\w-]+)'),
+  new RegExp('(?:^|\\s)([@#][\\w-]+)'),
   (s) => new MNode('span', [new MNodeAttribute('class', 'filterTag')], s))
 
 const boldMarkup = new Markup(

@@ -1,7 +1,7 @@
 import { DEvent, AddOrUpdateNodeEventPayload, ReparentNodeEventPayload, ReorderChildNodeEventPayload, EventPayloadType, EventType } from '../eventlog/eventlog'
 import { VectorClock } from '../lib/vectorclock'
 
-export function deserializeEventPayload(event: any): EventPayloadType {
+function deserializeEventPayload(event: any): EventPayloadType {
   if (event.type === EventType.ADD_OR_UPDATE_NODE) {
     return deserializeAddOrUpdateNodeEventPayload(event.payload)
   } else if (event.type === EventType.REPARENT_NODE) {
@@ -75,7 +75,7 @@ export function deserializeServerEvents(events: any[]): DEvent[] {
  * Mapping of server events is dependent on the generic type of this
  * remote event log since that determine the payload of the concrete event.
  */
-export function deserializeServerEvent(serverEvent: any): DEvent {
+function deserializeServerEvent(serverEvent: any): DEvent {
   return new DEvent(
     serverEvent.type,
     serverEvent.originator,
@@ -91,7 +91,7 @@ export function deserializeServerEvent(serverEvent: any): DEvent {
  * @throws An Error when the object from the server does not contain a 'values'
  * property.
  */
-export function deserializeVectorClock(clock: any): VectorClock {
+function deserializeVectorClock(clock: any): VectorClock {
   if ('values' in clock) {
     return new VectorClock(clock.values)
   } else {

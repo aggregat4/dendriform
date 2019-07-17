@@ -33,5 +33,11 @@ describe('markupMNode marks up text correctly', () => {
     const node = markupHtml('foo #foo and @qux bar')
     expect(toHtml(node)).toBe('foo <span class="filterTag">#foo</span> and <span class="filterTag">@qux</span> bar')
   })
-// TODO: test edge cases and combinations
+
+  test('nonempty DOCUMENT with a filter match at beginning of line', () => {
+    const node = markupHtml('#foo bar')
+    expect(toHtml(node)).toBe('<span class="filterTag">#foo</span> bar')
+  })
+
+  // TODO: test edge cases and combinations
 })

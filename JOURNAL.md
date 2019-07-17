@@ -901,3 +901,7 @@ After cleaning up the code and measuring again, I can no longer see the markup c
 Refactoring the luxon date things: I am just going to store the seconds since epoch in all nodes and will format the date only for display on demand.
 
 This is now implemented.
+
+Removed all unused exports by using a new node module to detect these.
+
+Cleaning up todos by listing them with the VSCode plugin. Specifically in rebuildTreeStructureMaps this was a significant change since we now filter by one event type only which should be faster since we can use an index.

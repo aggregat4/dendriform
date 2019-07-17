@@ -13,7 +13,7 @@ function isRootNode(node: Element): boolean {
   return getNodeId(node) === 'ROOT'
 }
 
-export function isNode(element: Element): boolean {
+function isNode(element: Element): boolean {
   return element.classList.contains('node')
 }
 
@@ -45,15 +45,7 @@ export function extractFilterText(element: Element): string {
   return element.textContent
 }
 
-export function isInMenuElement(element: Element): boolean {
-  return !!element.closest('.menu')
-}
-
-export function isCloseButton(element: Element): boolean {
-  return element.classList.contains('closeButton')
-}
-
-export function isNoteElement(element: Element): boolean {
+function isNoteElement(element: Element): boolean {
   return element.classList.contains('note')
 }
 
@@ -169,7 +161,6 @@ export function findLastChildNode(node: Element): Element {
 }
 
 export function findNextNode(node: Element): Element {
-  // TODO: make this more clever, see workflowy, in this case we just need to add the search for OPEN nodes
   if (hasChildren(node) && !isNodeClosed(node)) {
     return getChildrenElement(node).children[0]
   } else if (node.nextElementSibling) {

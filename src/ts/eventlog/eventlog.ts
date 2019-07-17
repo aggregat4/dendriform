@@ -77,17 +77,14 @@ export class DEvent {
   }
 }
 
-export class EventLogError extends Error {}
-export class CounterTooHighError extends EventLogError {}
-
-export type EventListener = (_: DEvent) => void
+export class CounterTooHighError extends Error {}
 
 export interface EventSubscriber {
   notify(events: DEvent[]): void
   filter: Predicate<DEvent>
 }
 
-export type EventLogCounter = number
+type EventLogCounter = number
 
 export interface Events {
   counter: EventLogCounter,
