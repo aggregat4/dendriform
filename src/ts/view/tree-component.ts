@@ -145,7 +145,7 @@ export class Tree implements CommandExecutor, RedomComponent {
     this.reloadTree(this.currentRootNodeId)
   }
 
-  private update(tree: LoadedTree) {
+  update(tree: LoadedTree) {
     setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
     if (tree.status.state === State.ERROR) {
       setChildren(this.contentEl,

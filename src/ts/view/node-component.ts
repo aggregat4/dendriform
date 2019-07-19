@@ -19,6 +19,8 @@ export class TreeNode implements RedomComponent {
     this.first = first
     this.el = el('div',
       this.ncEl = el('div.nc'),
+      // We have to make typescript ignore the following line because it infers the wrong type for the list function, that lambda is ok
+      // @ts-ignore
       this.childList = list('div.children', TreeNode, n => n.node._id)) // key can be a lookup function (thanks finnish dude!)
   }
 
