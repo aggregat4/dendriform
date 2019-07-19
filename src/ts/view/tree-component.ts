@@ -46,6 +46,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   private treeActionContext: TreeActionContext = null
   private dialogs: Dialogs = null
   private config: TreeConfig = new TreeConfig()
+  private currentFilterQuery: string = ''
   // We handle undo and redo internally since they are core functionality we don't want to make generic and overwritable
   private readonly undoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Undo)))
   private readonly redoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Redo)))
@@ -242,8 +243,12 @@ export class Tree implements CommandExecutor, RedomComponent {
     }
   }
 
-  private onQueryChange() {
-    this.rerenderTree()
+  private async onQueryChange(): Promise<void> {
+    const newFilterQuery = (this.searchField.value || '').trim()
+    if (newFilterQuery !== this.currentFilterQuery) {
+      await this.rerenderTree()
+      this.currentFilterQuery = newFilterQuery
+    }
   }
 
   private onShowCompletedToggle() {

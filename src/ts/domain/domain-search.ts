@@ -1,10 +1,11 @@
 import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode, QueryComponent } from './domain'
 import { containsMarkup, toHtml, markupHtml, markupHtmlWithFilterHits } from '../utils/markup'
+import { isEmpty } from '../utils/util'
 
 const splitRegexp = new RegExp('[,\\.;\\s]+')
 
 export function parseQuery(query: string): QueryComponent[] {
-  return query.split(splitRegexp).map(comp => new QueryComponent(comp))
+  return query.split(splitRegexp).filter(s => !isEmpty(s)).map(comp => new QueryComponent(comp))
 }
 
 function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {

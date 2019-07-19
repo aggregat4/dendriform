@@ -82,7 +82,8 @@ function findAndMarkText(node: MNode, markup: Markup): boolean {
     }
   } else {
     for (const child of (node.content as MNode[])) {
-      hitFound = hitFound || findAndMarkText(child, markup)
+      const childHitFound = findAndMarkText(child, markup)
+      hitFound = hitFound || childHitFound
     }
   }
   return hitFound

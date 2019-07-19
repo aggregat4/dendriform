@@ -911,3 +911,7 @@ Cleaning up todos by listing them with the VSCode plugin. Specifically in rebuil
 I fixed a bug where the beginning of a line of note-text was _sometimes_ not actually being highlighted (as a filter or link). This was due to the fact that we match on whitespace boundaries to determine "words" and in this case it was either the beginning of the line or the line was preceded with an HTML tag.
 
 I extended the function to take those two cases into account but noticed that we need to revisit our note rendering and handling. This can now contain random HTML and I am pretty sure that our engine is not correctly dealing with encoding/stripping/marking up that stuff. We need a more robust story with notes and it probably needs to move into some markdown text editing thing where we preserve newlines and stuff and find a way to map that sensibly to contenteditable foibles.
+
+The filter query could be parsed into an array of components that also contained the empty string, and apparently further processing (probably regex) on that empty string caused the browser to hang. I need to investigate this at some point.
+
+For now I made the filter more robust by sanitising and normalising the input more.
