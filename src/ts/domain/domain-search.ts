@@ -4,10 +4,16 @@ import { isEmpty } from '../utils/util'
 
 const splitRegexp = new RegExp('[,\\.;\\s]+')
 
+/**
+ * Splits the query into its consituents, removing whitespace and lowercasing all strings.
+ */
 export function parseQuery(query: string): QueryComponent[] {
-  return query.split(splitRegexp).filter(s => !isEmpty(s)).map(comp => new QueryComponent(comp))
+  return query.split(splitRegexp).filter(s => !isEmpty(s)).map(comp => new QueryComponent(comp.toLowerCase()))
 }
 
+/**
+ * Assumes that filter query components are all lowercase.
+ */
 function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
   if (filter) {
     let filterMatches = false

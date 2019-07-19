@@ -915,3 +915,5 @@ I extended the function to take those two cases into account but noticed that we
 The filter query could be parsed into an array of components that also contained the empty string, and apparently further processing (probably regex) on that empty string caused the browser to hang. I need to investigate this at some point.
 
 For now I made the filter more robust by sanitising and normalising the input more.
+
+The problem that uppercase search strings were not found is also fixed by automatically lowercasing query components in parseQuery.

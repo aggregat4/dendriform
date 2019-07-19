@@ -178,11 +178,11 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   private filterIsActive(): boolean {
-    return !isEmpty(this.searchField.value)
+    return !isEmpty(this.getFilterQuery())
   }
 
   private getFilteredTree(tree: LoadedTree): FilteredRepositoryNode {
-    return filterNode(tree.tree, this.filterIsActive() ? new Filter(parseQuery(this.searchField.value)) : undefined)
+    return filterNode(tree.tree, this.filterIsActive() ? new Filter(parseQuery(this.getFilterQuery())) : undefined)
   }
 
   private async onClick(event: Event): Promise<void> {
@@ -243,8 +243,12 @@ export class Tree implements CommandExecutor, RedomComponent {
     }
   }
 
+  private getFilterQuery(): string {
+    return (this.searchField.value || '').trim()
+  }
+
   private async onQueryChange(): Promise<void> {
-    const newFilterQuery = (this.searchField.value || '').trim()
+    const newFilterQuery = this.getFilterQuery()
     if (newFilterQuery !== this.currentFilterQuery) {
       await this.rerenderTree()
       this.currentFilterQuery = newFilterQuery
