@@ -89,14 +89,14 @@ function findAndMarkText(node: MNode, markup: Markup): boolean {
 }
 
 const linkMarkup = new Markup(
-  new RegExp('[^\\s]+://[^\\s]+'),
+  new RegExp('[^\\s>]+://[^\\s]+'),
   (s) => new MNode(
     'a',
     [new MNodeAttribute('href', s), new MNodeAttribute('class', 'embeddedLink'), new MNodeAttribute('rel', 'noreferrer')],
     s))
 
 const filterMarkup = new Markup(
-  new RegExp('(?:^|\\s)([@#][\\w-]+)'),
+  new RegExp('(?:^|\\s|>)([@#][\\w-]+)'),
   (s) => new MNode('span', [new MNodeAttribute('class', 'filterTag')], s))
 
 const boldMarkup = new Markup(

@@ -905,3 +905,9 @@ This is now implemented.
 Removed all unused exports by using a new node module to detect these.
 
 Cleaning up todos by listing them with the VSCode plugin. Specifically in rebuildTreeStructureMaps this was a significant change since we now filter by one event type only which should be faster since we can use an index.
+
+## 19.7.2019
+
+I fixed a bug where the beginning of a line of note-text was _sometimes_ not actually being highlighted (as a filter or link). This was due to the fact that we match on whitespace boundaries to determine "words" and in this case it was either the beginning of the line or the line was preceded with an HTML tag.
+
+I extended the function to take those two cases into account but noticed that we need to revisit our note rendering and handling. This can now contain random HTML and I am pretty sure that our engine is not correctly dealing with encoding/stripping/marking up that stuff. We need a more robust story with notes and it probably needs to move into some markdown text editing thing where we preserve newlines and stuff and find a way to map that sensibly to contenteditable foibles.
