@@ -52,7 +52,6 @@ export function repositoryNodeToOpmlDocument(node: ResolvedRepositoryNode): Docu
   xmlDoc.documentElement.setAttribute('version', '2.0') // just copied from workflowy, need to check the spec
   const headEl = xmlDoc.createElementNS('', 'head')
   const bodyEl = xmlDoc.createElementNS('', 'body')
-  // TODO: make the choice to export deleted elements optional?
   if (!node.node.deleted) {
     const childEl = createOpmlNode(xmlDoc, node)
     bodyEl.appendChild(childEl)

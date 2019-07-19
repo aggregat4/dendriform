@@ -83,8 +83,6 @@ export class TreeNode implements RedomComponent {
 
   // install event handler to listen for escape (or backspace in the beginning when empty,
   //   or arrow up in beginning, etc)
-  // TODO: I would like to have this code on the node-component but then I would need to put the
-  // event handlers there and I prefer having them globally... what to do?
   static startEditingNote(noteEl: HTMLElement): void {
     // hard assumption that we have two siblings and the last one is the note element
     setAttr(noteEl, { contentEditable: true, class: 'note editing' })

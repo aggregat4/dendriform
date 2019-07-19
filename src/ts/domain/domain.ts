@@ -148,11 +148,5 @@ export function verifyAndRepairMarkup(el: Element, newText: string): void {
     el.innerHTML = toHtml(newMarkup)
     updateAllEmbeddedLinks(el)
     setCursorPosAcrossMarkup(el, cursorPos)
-    // const newMarkup = markupHtml(newText)
-    // updateAllEmbeddedLinks(el)
-    // const cursorPos = getCursorPosAcrossMarkup(el)
-    // el.innerHTML = ''
-    // el.appendChild(newMarkup)
-    // setCursorPosAcrossMarkup(el, cursorPos)
   }
 }

@@ -11,9 +11,6 @@ export interface CommandPayload {
   // idea: add notion of batch vs interactive, in batch case rerender is debounced?
 }
 
-// TODO: consider whether it is worth using a discriminated union type instead of
-// subtypes for the CommandPayload, it would theoretically allow for exhaustiveness
-// checks when switching on it. Probably not worth the effort though.
 export class Command {
   constructor(
     readonly payload: CommandPayload,
@@ -229,7 +226,6 @@ export class CompleteNodeByIdCommandPayload implements CommandPayload {
 
   // In case the tree is set to not show completed nodes, we need a rerender since
   // we need to make sure nodes are removed from the tree afterwards for navigation to work
-  // TODO: we only need rerender if a certain setting is set. Should these maybe be properties of the builder?
   requiresRender() { return true }
 }
 
