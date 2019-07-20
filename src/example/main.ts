@@ -9,9 +9,16 @@ function getRequestedNodeId() {
   return getHashValue('node') || 'ROOT'
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
   mountTree(document.body)
   updateTree(getRequestedNodeId())
-})
+}
+
+// if we are already loaded then DOMContentLoaded will not fire again, just init
+if (document.readyState !== 'loading') {
+  init()
+} else {
+  document.addEventListener('DOMContentLoaded', init)
+}
 
 window.addEventListener('hashchange', () => updateTree(getRequestedNodeId()))

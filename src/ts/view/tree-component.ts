@@ -54,8 +54,6 @@ export class Tree implements CommandExecutor, RedomComponent {
   // For REDOM
   el: HTMLElement
 
-  // TODO: this treeService is ONLY used for rerendering the tree, does this dependency make sense?
-  // should we not only have the command handler?
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
     const activityIndicator = new ActivityIndicator(activityIndicating, 1000)
     this.el = el(`div.tree${this.generateTreeClasses()}`,

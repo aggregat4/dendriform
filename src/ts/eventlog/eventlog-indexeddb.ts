@@ -145,7 +145,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
   }
 
-  // TODO: react to errors better!
   private store(events: DEvent[]): Promise<number> {
     const table = this.db.table('eventlog')
     // console.debug(`Storing event at counter ${this.counter}`)
@@ -214,7 +213,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       }
       return Promise.resolve()
     } catch (err) {
-      // TODO: do something more clever with errors?
       // tslint:disable-next-line:no-console
       console.error(`ERROR occurred during nodeEvent storage: `, err)
     }

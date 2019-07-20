@@ -17,7 +17,6 @@ export const enum NodeFlags {
   completed = 4,
 }
 
-// TODO: this interface is highly linked to RepositoryNode in domain.ts, should we reuse that? Keep separate is better? Anti-Corruption layer?
 /**
  * This represents a node creation or update event, some fields have formats that are optimised
  * for storage and not for querying.
@@ -106,7 +105,6 @@ export interface DEventLog extends DEventSource {
   getName(): string,
   getCounter(): number,
   insert(events: DEvent[], synchronous: boolean): Promise<EventLogCounter>
-  // TODO: consider returning a subscription that can be cancelled
   subscribe(subscriber: EventSubscriber): void
   /**
    * Loads all events that a counter that is higher than the provided number.

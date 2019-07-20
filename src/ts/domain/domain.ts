@@ -119,7 +119,6 @@ export interface Subscription {
   cancel(): void
 }
 
-// TODO: this is not really strictly domain, it is more of a utility generic domain, where to put it?
 export interface ActivityIndicating {
   isActive(): boolean
   getActivityTitle(): string

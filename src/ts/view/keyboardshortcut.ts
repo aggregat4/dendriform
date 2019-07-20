@@ -202,7 +202,7 @@ export class KeyboardEventTrigger {
   private isModifierPresent(modifier: KbdModifier, event: KeyboardEvent): boolean {
     switch (modifier.type) {
       case KbdModifierType.Alt: return !!event.altKey
-      // TODO: this is tricky, according to https://stackoverflow.com/a/5500536/1996 this may or may not work in chrome, need to test
+      // this is tricky, according to https://stackoverflow.com/a/5500536/1996 this may or may not work in chrome
       case KbdModifierType.Command: return !!event.metaKey
       case KbdModifierType.Ctrl: return !!event.ctrlKey
       case KbdModifierType.Shift: return !!event.shiftKey

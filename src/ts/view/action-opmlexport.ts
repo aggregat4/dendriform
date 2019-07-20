@@ -19,6 +19,6 @@ async function onOpmlExport(event: Event, treeActionContext: TreeActionContext) 
     const opmlDocument = repositoryNodeToOpmlDocument(loadedTree.tree)
     const serializer = new XMLSerializer()
     const blob = new Blob(['<?xml version="1.0"?>' + serializer.serializeToString(opmlDocument)], {type: 'text/plain;charset=utf-8'})
-    saveAs(blob, 'dendriform.opml') // TODO: consider alternative name for this file?
+    saveAs(blob, 'dendriform.opml')
   }
 }
