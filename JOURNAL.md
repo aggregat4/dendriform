@@ -926,9 +926,3 @@ Installed rollup with `npm install --global rollup` and then plugins we need:
 * `npm install --save-dev rollup-plugin-node-resolve`
 * `npm install --save-dev rollup-plugin-commonjs`
 * `npm install --save-dev rollup-plugin-off-main-thread`
-
-## 20.7.2019 - Authentication Schemes for the backend
-
-I've been looking at possible external authentication schemes for the backend. I don't want to be in the business of storing and managing user data at all. Sadly it is a complete and utter mess. OpenID Connect is such a trainwreck from a documentation point of view.
-
-For now I think I will make a generic database structure that has Users (as a generic domain construct that just has an ID and relates eventlogs to identities), Identities (ways for a user to authenticate and validate that authentication) and for each type of authentication potentially helper tables to store technically necessary crap.
