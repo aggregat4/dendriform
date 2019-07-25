@@ -134,7 +134,7 @@ There is a periodical garbage collection phase that will collect all nodes that 
 1. Escape should dismiss dialogs
 1. Redesign the menu: trigger it differently on desktop and have an alternative for mobile
 
-1. MAYBE replace dexie with raw indexeddb calls or something smaller (maybe, maybe not, the size is not that bad)
+1. MAYBE replace dexie with raw indexeddb calls or something smaller. It is now half our appl size. Consider using https://github.com/jakearchibald/idb 
 1. Think through the performance of deleting a root node of a huge subtree: what does that mean for client storage? Do we keep any of those events?
 1. Importing OPML first seems to hang in the import dialog before dismissing it, this is probably the DOM update blocking everything, can we avoid that? This is only noticeable for really large imports.
 1. At some point we probably need paging for getting server side events, just to prevent us from crashing when the list of events becomes too large. Maybe one parameter suffices? pageSize=100 maybe?
