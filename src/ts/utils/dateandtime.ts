@@ -1,9 +1,20 @@
-import { DateTime } from 'luxon'
-
 export function secondsSinceEpoch(): number {
-  return Math.trunc(DateTime.local().toSeconds())
+  // we need the time in seconds (less to store), so we cut down from milliseconds
+  return Math.trunc(new Date().getTime() / 1000)
 }
 
+const dateTimeFormatOptions = {
+  weekday: 'short',
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  seconds: 'numeric',
+}
+
+const dateTimeFormatter = Intl.DateTimeFormat(navigator.language, dateTimeFormatOptions)
+
 export function epochSecondsToLocaleString(seconds: number): string {
-  return DateTime.fromSeconds(seconds).toLocaleString(DateTime.DATETIME_MED)
+  return dateTimeFormatter.format(new Date(seconds * 1000), )
 }

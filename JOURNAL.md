@@ -926,3 +926,7 @@ Installed rollup with `npm install --global rollup` and then plugins we need:
 * `npm install --save-dev rollup-plugin-node-resolve`
 * `npm install --save-dev rollup-plugin-commonjs`
 * `npm install --save-dev rollup-plugin-off-main-thread`
+
+## 25.7.2019
+
+Was able to replace Luxon by just native web APIs, Intl is now somewhat widely supported and fully sufficient for the formatting needs I have. Yay!
