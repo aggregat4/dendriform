@@ -3,6 +3,7 @@ import resolve from 'rollup-plugin-node-resolve'
 import typescript from 'rollup-plugin-typescript'
 import OMT from 'rollup-plugin-off-main-thread'
 import { terser } from 'rollup-plugin-terser'
+import visualizer from 'rollup-plugin-visualizer'
 
 module.exports = {
   input: {
@@ -29,6 +30,10 @@ module.exports = {
     // minifier that can do es6
     terser(),
     // off main thread: I just use it so the generated bundles are loadable (missing "define"), but can help with webworkers as well
-    OMT()
+    OMT(),
+    visualizer({
+      filename: 'bundle-size.html',
+      template: 'sunburst',
+    })
   ]
 }
