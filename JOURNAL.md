@@ -930,3 +930,7 @@ Installed rollup with `npm install --global rollup` and then plugins we need:
 ## 25.7.2019
 
 Was able to replace Luxon by just native web APIs, Intl is now somewhat widely supported and fully sufficient for the formatting needs I have. Yay!
+
+Decided to leave both rollup and webpack in the build. I can't really decide at the moment which I prefer. Features seem similar (at least for me), and bundle size seems about the same. Should I use the number/size of the dependencies as a guide? Is the bundle analyzer plugin an argument? Rollup seems to be faster though.
+
+Tree shaking is problably not very effective for me because I have few dependencies, and of those that I have I use most of them. It would be nice if it could strip down dexie but I'm not sure it is able to.
