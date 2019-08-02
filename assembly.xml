@@ -1,3 +1,4 @@
+<!-- Maven assembly xml that configures the zip file containing our distribution -->
 <assembly>
     <id>zip</id>
     <includeBaseDirectory>false</includeBaseDirectory>
