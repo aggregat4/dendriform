@@ -8,6 +8,7 @@
   },
   "main": "main.js",
   "scripts": {
+    "clean": "rm -rf node_modules dist && mkdir dist",
     "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && ./node_modules/.bin/webpack",
     "rbuild": "cp src/css/*.css rdist && cp src/example/*.css rdist && cp src/example/*.html rdist && rollup -c rollup.config.js",
     "build-and-test": "npm run build && npm run test",
