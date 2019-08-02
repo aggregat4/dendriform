@@ -3,3 +3,5 @@ node_modules/
 coverage/
 rdist/
 bundle-size.html
+target/
+node/
