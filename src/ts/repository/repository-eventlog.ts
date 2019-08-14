@@ -99,14 +99,14 @@ export class EventlogRepository implements Repository {
   private async rebuildTreeStructureMaps(): Promise<void> {
     const newChildParentMap = {}
     const newParentChildMap = {}
-    const reparentEvents = await this.eventLog.getEventsSince([EventType.REPARENT_NODE], -1)
+    const reparentEvents = await this.eventLog.getAllEventsFromType(EventType.REPARENT_NODE)
     reparentEvents.events.forEach(event => {
       const treeEventPayload = event.payload as ReparentNodeEventPayload
       const nodeId = event.nodeId
       const parentId = treeEventPayload.parentId
       newChildParentMap[nodeId] = parentId
     })
-    const reorderEvents = await this.eventLog.getEventsSince([EventType.REORDER_CHILD], -1)
+    const reorderEvents = await this.eventLog.getAllEventsFromType(EventType.REORDER_CHILD)
     reorderEvents.events.forEach(event => {
       const childOrderEventPayload = event.payload as ReorderChildNodeEventPayload
       EventlogRepository.insertInParentChildMap(
@@ -336,7 +336,7 @@ export class EventlogRepository implements Repository {
   }
 
   private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode> {
-    const nodeEvents = await this.eventLog.getEventsSince([EventType.ADD_OR_UPDATE_NODE], -1)
+    const nodeEvents = await this.eventLog.getAllEventsFromType(EventType.ADD_OR_UPDATE_NODE)
     const nodeMap: Map<string, RepositoryNode> = new Map()
     for (const nodeEvent of nodeEvents.events) {
       nodeMap.set(nodeEvent.nodeId, this.mapEventToRepositoryNode(nodeEvent.nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload))

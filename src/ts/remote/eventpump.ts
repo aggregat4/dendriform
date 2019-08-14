@@ -1,4 +1,4 @@
-import { DEventLog, DEvent, Events, EventType, ALL_EVENT_TYPES } from '../eventlog/eventlog'
+import { DEventLog, Events, ALL_EVENT_TYPES } from '../eventlog/eventlog'
 // Import without braces needed to make sure it exists under that name!
 import Dexie from 'dexie'
 import { RemoteEventLog } from './eventlog-remote'
@@ -101,7 +101,7 @@ export class EventPump {
    * @throws something on server contact failure
    */
   private async drainLocalEvents(): Promise<any> {
-    const events: Events = await this.localEventLog.getEventsSince(ALL_EVENT_TYPES, this.maxLocalCounter, this.localEventLog.getPeerId())
+    const events: Events = await this.localEventLog.getAllEventsSince(this.localEventLog.getPeerId(), this.maxLocalCounter)
     if (events.events.length > 0) {
       await this.remoteEventLog.publishEvents(events.events)
       this.maxLocalCounter = events.counter

@@ -88,7 +88,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   async init(): Promise<LocalEventLog> {
     this.db.version(1).stores({
       peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
-      eventlog: '++eventid,eventtype,[eventtype+treenodeid]', // see StoredEvent for schema
+      eventlog: '++eventid,eventtype,[eventtype+treenodeid],[treenodeid+eventid]', // see StoredEvent for schema
     })
     await this.db.open()
     await this.loadOrCreateMetadata()
@@ -222,43 +222,51 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     this.subscribers.push(subscriber)
   }
 
-  getEventsSince(eventTypes: EventType[], counter: number, peerId?: string): Promise<Events> {
-    if (counter > this.counter) {
+  getAllEventsSince(peerId: string, fromCounterNotInclusive: number): Promise<Events> {
+    if (fromCounterNotInclusive > this.counter) {
       throw new CounterTooHighError(`The eventlog has a counter of ${this.counter}` +
-        ` but events were requested since ${counter}`)
+        ` but events were requested since ${fromCounterNotInclusive}`)
     }
     const table = this.db.table('eventlog')
-    // Optimisation: in case this method gets called with one event type and -1 for a counter (all events)
-    // we choose a different more optimal query that uses the eventtype index
-    let query = eventTypes.length === 1 && counter < 0
-      ? table.where('eventtype').equals(eventTypes[0])
-      : table.where('eventid').above(counter).and(event => eventTypes.indexOf(event.eventtype) !== -1)
-    if (peerId) {
-      query = query.and(event => event.peerid === peerId)
-    }
-    return query.toArray()
-      .then((events: StoredEvent[]) => {
-        events.sort(storedEventComparator)
-        // This code is a bit of a cop out: we should not need this since this.counter is always
-        // set to the highest stored event id when we insert() it into the database.
-        // However we observed a counter being one off (and lower) than the real max event
-        // and this causes a endless loop of claiming to have new events and pushing it to the
-        // server. This is a sort of sanity check to correct the counter should it be off.
-        // I have no idea why the code in insert() should not suffice.
-        let wasMaxCounterUpdated = false
-        for (const event of events) {
-          if (event.eventid > this.counter) {
-            console.warn(`Unexpected state: local counter is not the max event id in the db, this should not happen (see insert())`)
-            this.counter = event.eventid
-            wasMaxCounterUpdated = true
-          }
+    const localPeerId = this.peeridMapper.externalToInternalPeerId(peerId)
+    // TODO: this currently retrieves ALL events since a certain counter, we will need to move to batching at some point
+    const query = table.where('[treenodeid+eventid]').between(
+      [localPeerId, fromCounterNotInclusive],
+      [localPeerId, Number.MAX_SAFE_INTEGER],
+      false, // do not include lower bound
+      false) // do not include upper bound
+    return this.processRetrievedEvents(query.toArray())
+  }
+
+  getAllEventsFromType(eventType: EventType): Promise<Events> {
+    const table = this.db.table('eventlog')
+    const query = table.where('eventtype').equals(eventType)
+    return this.processRetrievedEvents(query.toArray())
+  }
+
+  private processRetrievedEvents(storedEvents: Promise<StoredEvent[]>): Promise<Events> {
+    return storedEvents.then((events: StoredEvent[]) => {
+      events.sort(storedEventComparator)
+      // This code is a bit of a cop out: we should not need this since this.counter is always
+      // set to the highest stored event id when we insert() it into the database.
+      // However we observed a counter being one off (and lower) than the real max event
+      // and this causes a endless loop of claiming to have new events and pushing it to the
+      // server. This is a sort of sanity check to correct the counter should it be off.
+      // I have no idea why the code in insert() should not suffice.
+      let wasMaxCounterUpdated = false
+      for (const event of events) {
+        if (event.eventid > this.counter) {
+          console.warn(`Unexpected state: local counter is not the max event id in the db, this should not happen (see insert())`)
+          this.counter = event.eventid
+          wasMaxCounterUpdated = true
         }
-        if (wasMaxCounterUpdated) {
-          this.saveMetadata()
-        }
-        return events.map(e => this.peeridMapper.storedEventToDEventMapper(e))
-      })
-      .then((events: DEvent[]) => ({counter: this.counter, events}))
+      }
+      if (wasMaxCounterUpdated) {
+        this.saveMetadata()
+      }
+      return events.map(e => this.peeridMapper.storedEventToDEventMapper(e))
+    })
+    .then((events: DEvent[]) => ({counter: this.counter, events}))
   }
 
   getNodeEvent(nodeId: string): Promise<DEvent> {

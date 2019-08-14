@@ -107,12 +107,18 @@ export interface DEventLog extends DEventSource {
   insert(events: DEvent[], synchronous: boolean): Promise<EventLogCounter>
   subscribe(subscriber: EventSubscriber): void
   /**
-   * Loads all events that a counter that is higher than the provided number.
+   * Loads all events with a counter/eventid that is _higher_ than the provided number.
    * @return An array that is causally sorted by vectorclock and peerid.
    * @throws CounterTooHighError when the provided counter is higher than the max counter
    * of the eventlog.
    */
-  getEventsSince(eventTypes: EventType[], counter: number, peerId?: string): Promise<Events>
+  getAllEventsSince(peerId: string, fromCounterNotInclusive: number): Promise<Events>
+  /**
+   * Loads all events from a specific type.
+   * @return An array that is causally sorted by vectorclock and peerid.
+   */
+  getAllEventsFromType(eventType: EventType): Promise<Events>
+
   /**
    * Gets the current, latest (after GC) structural event for a node, with type
    * EventType.ADD_OR_UPDATE_NODE.

@@ -17,6 +17,7 @@
             <directory>dist</directory>
             <includes>
                 <include>example.bundle.js</include>
+                <include>example.bundle.js.map</include>
             </includes>
             <outputDirectory>/js/</outputDirectory>
         </fileSet>
