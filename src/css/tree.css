@@ -87,6 +87,7 @@
   border-left: none;
   border-right: none;
   height: 2em;
+  background-color: inherit;
 }
 
 .node {
