@@ -86,19 +86,23 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   async init(): Promise<LocalEventLog> {
-    this.db.version(1).stores({
-      peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
-      eventlog: '++eventid,eventtype,[eventtype+treenodeid],[treenodeid+eventid]', // see StoredEvent for schema
-    })
-    await this.db.open()
-    await this.loadOrCreateMetadata()
-    // start async event storage
-    await this.drainStorageQueue()
-    this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db.table('eventlog'))
-    this.garbageCollector.start()
-    this.peeridMapper = new LocalEventLogIdMapper(this.dbName + '-peerid-mapping')
-    await this.peeridMapper.init()
-    return this
+    try {
+      this.db.version(1).stores({
+        peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
+        eventlog: '++eventid,eventtype,[eventtype+treenodeid],[treenodeid+eventid]', // see StoredEvent for schema
+      })
+      await this.db.open()
+      await this.loadOrCreateMetadata()
+      // start async event storage
+      await this.drainStorageQueue()
+      this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db.table('eventlog'))
+      this.garbageCollector.start()
+      this.peeridMapper = new LocalEventLogIdMapper(this.dbName + '-peerid-mapping')
+      await this.peeridMapper.init()
+      return this
+    } catch (error) {
+      console.error(`Error initialising indexeddb eventlog, note that Firefox does not (yet) allow IndexedDB in private browsing mode: `, error)
+    }
   }
 
   /**
