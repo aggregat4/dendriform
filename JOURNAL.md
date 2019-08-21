@@ -938,3 +938,15 @@ Tree shaking is problably not very effective for me because I have few dependenc
 ## 16.8.2019 - Or Why Firefox Threw an Uncaught Exception
 
 Apparently Firefox does not support IndexedDB in private mode. I was using that for testing and was getting a very non-debuggable uncaught exception which turned out to be in Dexie which could not create the IndexedDB databases. This was originally a privacy feature but has been logged as a bug for over 7 years. Apparently they are working on it.
+
+## 21.8.2019
+
+After puzzling over some non functioning indexeddb store code I found out that compound indexeddb indices on an autoincrementing primary key do not work in Chrome and Safari. See also <https://github.com/dfahlander/Dexie.js/issues/751>. The issue for me is the compound index on `[peerId+eventid]` since I use that to determine what events need to be sent to the remote peer (peerId = value and eventid > than whatever the latest ID is I know of the server).
+
+There are only two fixes:
+
+1. I can drop the compound index and just filter by eventid or peerId and then for each result filter out events with the wrong peerdId or eventid. In both cases I would query too much data, perhaps just filtering by eventid and then afterwards throwing away non-matching peerIds is the most sensible since this will converge eventually on the latest eventId and should keep sizes down?
+
+2. I can generate my own unique ids on the client side and not use the autoincrementing feature of indexeddb. Since Javascript is single threaded this should be doable, but I would have to fetch the max id at db initialisation time.
+
+Perhaps I will just implement the first thing and hope that performance is ok?
