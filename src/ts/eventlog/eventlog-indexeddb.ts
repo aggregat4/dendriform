@@ -1,11 +1,20 @@
 // tslint:disable-next-line:max-line-length
-import { DEvent, DEventLog, EventType, EventSubscriber, DEventSource, CounterTooHighError, Events, EventPayloadType, ReorderChildNodeEventPayload } from './eventlog'
+import {
+  DEvent,
+  DEventLog,
+  EventType,
+  EventSubscriber,
+  DEventSource,
+  CounterTooHighError,
+  Events,
+  EventPayloadType,
+} from './eventlog'
 import Dexie from 'dexie'
-import { generateUUID } from '../utils/util'
-import { VectorClock } from '../lib/vectorclock'
-import { ActivityIndicating } from '../domain/domain'
-import { LocalEventLogGarbageCollector } from './eventlog-indexeddb-gc'
-import { LocalEventLogIdMapper } from './eventlog-indexeddb-peerid-mapper'
+import {generateUUID} from '../utils/util'
+import {VectorClock} from '../lib/vectorclock'
+import {ActivityIndicating} from '../domain/domain'
+import {LocalEventLogGarbageCollector} from './eventlog-indexeddb-gc'
+import {LocalEventLogIdMapper} from './eventlog-indexeddb-peerid-mapper'
 
 /**
  * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.
@@ -190,7 +199,12 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     return this.db.table('eventlog')
       .orderBy('eventid')
       .last()
-      .then(lastEvent => this.counter = lastEvent.eventid)
+      .then(lastEvent => {
+        // if the db is empty then the lastevent is undefined
+        if (lastEvent) {
+          this.counter = lastEvent.eventid
+        }
+      })
   }
 
   private saveMetadata(): Promise<any> {

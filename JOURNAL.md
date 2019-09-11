@@ -950,3 +950,15 @@ There are only two fixes:
 2. I can generate my own unique ids on the client side and not use the autoincrementing feature of indexeddb. Since Javascript is single threaded this should be doable, but I would have to fetch the max id at db initialisation time.
 
 Perhaps I will just implement the first thing and hope that performance is ok?
+
+## 11.9.2019 - Fixing the Sync Issue
+
+Back after a vacation. Decided to fix the sync issue by doing my own incrementing ids since that would be most optimal and in theory since we are single threaded it shouldn't be an issue (famous last words).
+
+## 11.9.2019 - Sync Works, Need to Fix Initial Load
+
+So syncing now works. The first load experience is not optimal though: we still have the original problem that on first load it creates an empty node and we then at some point get all the events from the server which get merged with our empty node.
+
+Each new device we log into will trigger this and cause our tree to get messed up.
+
+We need a special, dedicated first launch experience where we detect that we are starting from scratch, inform the user that we're trying to get our initial stuff from the server and wait until we have that. If we do this, make sure to document that we need to deal with this even more intricately once we move to batched event loading.
