@@ -124,6 +124,7 @@ export class TreeService {
     return this.findNode(newSiblingId)
       .then(sibling => {
         if (sibling) {
+          // we need to attempt undelete since this may be an undo operation of a merge, in this case the sibling exists
           return this.undeleteNode(newSiblingId, synchronous)
         } else {
           return this.createNode(newSiblingId, newSiblingName, null, synchronous)

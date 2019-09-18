@@ -132,6 +132,8 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
          timeSinceLastStore > this.STORAGE_QUEUE_MAX_LATENCY_MS)) {
       const drainedEvents = this.storageQueue.splice(0, this.STORAGE_QUEUE_BATCH_SIZE)
       await this.storeEvents(drainedEvents)
+      // TODO: for each event, if the peer is NOT us, update our vector clock to the latest state of the peer (basically call merge)
+      // TODO: save metadata: we need to persist our vectorclock with out updated knowledge about the world
       this.lastStorageTimestamp = currentTime
     }
     window.setTimeout(this.drainStorageQueue.bind(this), this.STORAGE_QUEUE_TIMEOUT_MS)
@@ -157,7 +159,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     const table = this.db.table('eventlog')
     // console.debug(`Storing event at counter ${this.counter}`)
     try {
-      return table.bulkPut(events.map(e => {
+      const mappedEvents = events.map(e => {
         return {
           // We preincrement the counter because our semantics are that counter is always the current
           // highest existing ID in the database
@@ -168,7 +170,11 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
           vectorclock: this.peeridMapper.externalToInternalVectorclock(e.clock),
           payload: e.payload,
         }
-      }))
+      })
+      return table.bulkPut(mappedEvents)
+        .then(lastKey => {
+          console.log(`bulkput some stuff, lastkey: `, lastKey)
+        })
     } catch (error) {
       console.error(`store error: `, error)
     }
@@ -218,6 +224,9 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any> {
+    // TODO: this is massively wrong: I am only incrementing the vectorclock for my own peer, I need to take into account all other peers as well and increment them
+    // TODO: move this to insert (probably), make sure we increment for all peers, and make sure we save metadata afterwards
+    // TODO: maybe saveMetadata should be move to drainstoragequeue? but we might accidentally save too much? maybe increment and save in drainstoragequeue?
     this.vectorClock.increment(this.peerId)
     return this.insert([new DEvent(type, this.peerId, this.vectorClock, nodeId, payload)], synchronous)
   }

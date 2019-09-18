@@ -1,11 +1,11 @@
-import { DEventLog, Events, ALL_EVENT_TYPES } from '../eventlog/eventlog'
+import { DEventLog, Events } from '../eventlog/eventlog'
 // Import without braces needed to make sure it exists under that name!
 import Dexie from 'dexie'
 import { RemoteEventLog } from './eventlog-remote'
 
 /**
  * An event pump connects an event log to a remote server and a local event log
- * and pumpts events back and forth continuosly.
+ * and pumps events back and forth continuously.
  *
  * It filters incoming events to be only those that are NOT
  * originated by the eventlog itself by using the event log's peerid as a filter.

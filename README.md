@@ -119,12 +119,13 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
+1. Safari (mobile) compatibility
 1. We should check with the server what he knows about us, in case he has a lower eventid than what we think he has, we should reset to that value
 1. Try out remote containers in Visual Studio code: could define my dev environment with it and use VS Code as a remote editor
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Add a feature to quickly move nodes to another parent node. Either with a bunch of fixed targets and automcomplete and remembering the last used? is last used an antipattern since you may need a different one each time? Or based on tags somehow? Or autocomplete on all nodes with last used?
 1. Move garbage collection to a web worker, maybe use comlink?
-1. Move event pumping to a web worker?
+1. Move event pumping to a web worker? Maybe not since then storage would be in a web worker and collide with my ID generation for the events?
 1. Put all the standard actions into menuitems for the node popup
 1. As long as we don't support formatting the importer needs to strip all HTML tags and optionally convert some tags to markdown?
 1. make sure that rerendertree is debounced for remote events

@@ -962,3 +962,9 @@ So syncing now works. The first load experience is not optimal though: we still 
 Each new device we log into will trigger this and cause our tree to get messed up.
 
 We need a special, dedicated first launch experience where we detect that we are starting from scratch, inform the user that we're trying to get our initial stuff from the server and wait until we have that. If we do this, make sure to document that we need to deal with this even more intricately once we move to batched event loading.
+
+## 18.9.2019 - Strange sync/gc issues
+
+I've been trying to debug strange sync or gc issues: with two clients open at the same time and just doing updates left, then waiting for right to catch up, then doing updates right and waiting for the other to catch up. At some point updates from the _originating_ node get lost on the originating node itself. Maybe the event is garbage collected where it shouldn't be? Perhaps our vector clock sorting is not working correctly? That's my current feeling at least. I don't think that the updates are not working.
+
+I figured it out: I was using vectorclocks wrong. :facepalm:. I was only incrementing the clock for the local peer, I was never incorporating my knowledge of any other peer. So any event I was generating locally just had the local peer clock. I need to merge the local vectorclock with all remote vector clocks and I need to make sure I persist the vectorclock so we don't lose this information.

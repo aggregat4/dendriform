@@ -7,7 +7,7 @@
     "moduleResolution": "node",
     "paths": {
       // This is the only module that needs to be explicitly specified since I can't use the @types/redom since the definition of the list method is false
-      "redom": ["node_modules/redom/dist/redom"],
+      "redom": ["node_modules/redom/dist/redom"]
     }
   }
 }
