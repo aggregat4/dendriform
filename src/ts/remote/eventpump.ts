@@ -119,6 +119,7 @@ export class EventPump {
   private async drainRemoteEvents(): Promise<any> {
     const events = await this.remoteEventLog.getAllEventsSince(this.maxServerCounter, this.localEventLog.getPeerId())
     if (events.events.length > 0) {
+      // This can be async, the client should see the changes eventually
       await this.localEventLog.insert(events.events, false)
       this.maxServerCounter = events.counter
       return this.saveMetadata()

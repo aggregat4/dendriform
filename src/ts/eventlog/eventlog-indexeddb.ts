@@ -54,7 +54,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   // event storage queue
   private storageQueue: DEvent[] = []
   private lastStorageTimestamp: number = 0
-  private readonly STORAGE_QUEUE_TIMEOUT_MS = 25
+  private readonly STORAGE_QUEUE_TIMEOUT_MS = 150
   private readonly STORAGE_QUEUE_MAX_LATENCY_MS = 250
   /**
    * The max batch size until we start storing, or the value of events we drain from the queue
@@ -105,7 +105,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       await this.loadOrCreateMetadata()
       await this.determineMaxCounter()
       // start async event storage
-      await this.drainStorageQueue()
+      await this.scheduleDrainStorageQueue()
       // start garbage collector
       this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db.table('eventlog'))
       this.garbageCollector.start()
@@ -117,8 +117,17 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
   }
 
+  private async scheduleDrainStorageQueue(): Promise<any> {
+    await this.drainStorageQueue(false)
+    window.setTimeout(this.scheduleDrainStorageQueue.bind(this), this.STORAGE_QUEUE_TIMEOUT_MS)
+  }
+
   /**
    * This method automatically reschedules itself to execute after this.STORAGE_QUEUE_TIMEOUT_MS.
+   * Events are actually really stored immediately when:
+   * - the force parameter is true
+   * - OR the current storage queue is larger than our max batch size (this.STORAGE_QUEUE_BATCH_SIZE)
+   * - OR the time since we last stored something is larger than our maximum storage latency (this.STORAGE_QUEUE_MAX_LATENCY_MS)
    *
    * @param force Whether to force storage or not. When this is true and there are events in
    * the queue, then they will be stored. Can be useful for implementing synchronous storage.
@@ -131,12 +140,15 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
          this.storageQueue.length >= this.STORAGE_QUEUE_BATCH_SIZE ||
          timeSinceLastStore > this.STORAGE_QUEUE_MAX_LATENCY_MS)) {
       const drainedEvents = this.storageQueue.splice(0, this.STORAGE_QUEUE_BATCH_SIZE)
+      // We need to update our knowledge about causality in the world and make sure our vectorclock
+      // updated to the latest state for each peer that is NOT ourselves (see publish())
+      // storeEvents will save metadata
+      drainedEvents
+        .filter(e => e.originator !== this.getPeerId())
+        .forEach(e => this.vectorClock = this.vectorClock.merge(e.clock))
       await this.storeEvents(drainedEvents)
-      // TODO: for each event, if the peer is NOT us, update our vector clock to the latest state of the peer (basically call merge)
-      // TODO: save metadata: we need to persist our vectorclock with out updated knowledge about the world
       this.lastStorageTimestamp = currentTime
     }
-    window.setTimeout(this.drainStorageQueue.bind(this), this.STORAGE_QUEUE_TIMEOUT_MS)
   }
 
   private async storeEvents(events: DEvent[]): Promise<any> {
@@ -172,9 +184,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         }
       })
       return table.bulkPut(mappedEvents)
-        .then(lastKey => {
-          console.log(`bulkput some stuff, lastkey: `, lastKey)
-        })
     } catch (error) {
       console.error(`store error: `, error)
     }
@@ -224,9 +233,12 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any> {
-    // TODO: this is massively wrong: I am only incrementing the vectorclock for my own peer, I need to take into account all other peers as well and increment them
-    // TODO: move this to insert (probably), make sure we increment for all peers, and make sure we save metadata afterwards
-    // TODO: maybe saveMetadata should be move to drainstoragequeue? but we might accidentally save too much? maybe increment and save in drainstoragequeue?
+    // We update the vectorclock for our own peer only in this location since we need a continuously up to date view
+    // on the world. We increment our clock for other peer data in drainStorageQueue() where we only take into account
+    // other peers. This can only happen there since that is the time where we persist the current state of the world
+    // and the vectorclock should represent this.
+    // However, this has a problem: if drainstorageQue happens later than the other peers will be slightly out
+    // of date in our vectorclock. Not sure how to solve this.
     this.vectorClock.increment(this.peerId)
     return this.insert([new DEvent(type, this.peerId, this.vectorClock, nodeId, payload)], synchronous)
   }
