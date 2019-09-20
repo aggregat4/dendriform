@@ -968,3 +968,17 @@ We need a special, dedicated first launch experience where we detect that we are
 I've been trying to debug strange sync or gc issues: with two clients open at the same time and just doing updates left, then waiting for right to catch up, then doing updates right and waiting for the other to catch up. At some point updates from the _originating_ node get lost on the originating node itself. Maybe the event is garbage collected where it shouldn't be? Perhaps our vector clock sorting is not working correctly? That's my current feeling at least. I don't think that the updates are not working.
 
 I figured it out: I was using vectorclocks wrong. :facepalm:. I was only incrementing the clock for the local peer, I was never incorporating my knowledge of any other peer. So any event I was generating locally just had the local peer clock. I need to merge the local vectorclock with all remote vector clocks and I need to make sure I persist the vectorclock so we don't lose this information.
+
+## 20.9.2019 - Sync issues the continuation
+
+I may have fixed the incorrect (missing) vectorclock merging, but I have more problems. I think some are caused by the fact that it can happen that multiple peers have multiple ROOT nodes (because they initialize concurrently and don't wait for each other's updates necessarily). In addition I saw one case where a child was update on one peer and the change not reflected on the other peer. But it was visible after a reload. Maybe it's the same problem? Different ROOT parent?
+
+I will try to special case the ROOT node so that we make sure there is always ONLY one ROOT node created and it is always created locally. We then need to suppress remote events that are trying to create a root node.
+
+Once this is done we no longer need the special logic for initializing an empty tree when there are no nodes (since there always will be). This will then require us to create a button to create at least the initial node since otherwise there is no way to get started.
+
+This then will also fix the issue where we can delete the last node and have no recourse anymore.
+
+Maybe it's all for the best?
+
+I'm still not feeling great about this, I may still have some fundamental problem here. What gives a little bit of hope is that parallel trees seem to behave better if one waits for the other and syncs all its changes...

@@ -8,6 +8,7 @@ import {
   CounterTooHighError,
   Events,
   EventPayloadType,
+  createNewAddOrUpdateNodeEventPayload,
 } from './eventlog'
 import Dexie from 'dexie'
 import {generateUUID} from '../utils/util'
@@ -104,6 +105,11 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       await this.db.open()
       await this.loadOrCreateMetadata()
       await this.determineMaxCounter()
+      // Make sure we have a ROOT node and if not, create it
+      const rootNode = await this.getNodeEvent('ROOT')
+      if (!rootNode) {
+        await this.publish(EventType.ADD_OR_UPDATE_NODE, 'ROOT', createNewAddOrUpdateNodeEventPayload('ROOT', null, false, false, false), true)
+      }
       // start async event storage
       await this.scheduleDrainStorageQueue()
       // start garbage collector
@@ -171,18 +177,22 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     const table = this.db.table('eventlog')
     // console.debug(`Storing event at counter ${this.counter}`)
     try {
-      const mappedEvents = events.map(e => {
-        return {
-          // We preincrement the counter because our semantics are that counter is always the current
-          // highest existing ID in the database
-          eventid: ++this.counter,
-          eventtype: e.type,
-          treenodeid: e.nodeId,
-          peerid: this.peeridMapper.externalToInternalPeerId(e.originator),
-          vectorclock: this.peeridMapper.externalToInternalVectorclock(e.clock),
-          payload: e.payload,
-        }
-      })
+      // This is some (ugly?) special casing: we do not persist and create or update events on the ROOT node
+      // performed by other peers. This is to make sure there is always only one ROOT node on each peer
+      const mappedEvents = events
+        .filter(e => !(e.type === EventType.ADD_OR_UPDATE_NODE && e.nodeId === 'ROOT' && e.originator !== this.peerId))
+        .map(e => {
+          return {
+            // We preincrement the counter because our semantics are that counter is always the current
+            // highest existing ID in the database
+            eventid: ++this.counter,
+            eventtype: e.type,
+            treenodeid: e.nodeId,
+            peerid: this.peeridMapper.externalToInternalPeerId(e.originator),
+            vectorclock: this.peeridMapper.externalToInternalVectorclock(e.clock),
+            payload: e.payload,
+          }
+        })
       return table.bulkPut(mappedEvents)
     } catch (error) {
       console.error(`store error: `, error)
