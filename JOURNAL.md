@@ -982,3 +982,9 @@ This then will also fix the issue where we can delete the last node and have no 
 Maybe it's all for the best?
 
 I'm still not feeling great about this, I may still have some fundamental problem here. What gives a little bit of hope is that parallel trees seem to behave better if one waits for the other and syncs all its changes...
+
+## 20.9.2019 - Sync issues
+
+This is getting tiresome. I now refactored the code to include a fixed ROOT node for each peer. The vector clock should be ok.
+
+BUT in a sync scenario it is really easy to come to the situation that changes of one peer to the structure of the tree will not materialise on the other. Feels like maybe garbage collection is fucked.

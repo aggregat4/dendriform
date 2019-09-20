@@ -18,7 +18,7 @@ export class TreeService {
     return this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren)
       .then((tree) => {
         if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
-          return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren))
+          // return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren))
         } else {
           return tree
         }
@@ -135,7 +135,10 @@ export class TreeService {
       })
       .then(() => this.repo.getChildIds(nodeId))
       .then(childIds => this.reparentNodes(childIds, newSiblingId, synchronous))
-      .then(() => this.renameNode(nodeId, nodeName, synchronous))
+      .then(() => {
+        console.debug(`rename in split`)
+        this.renameNode(nodeId, nodeName, synchronous)
+      })
   }
 
   private findNode(nodeId: string): Promise<RepositoryNode> {

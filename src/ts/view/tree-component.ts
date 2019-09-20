@@ -1,13 +1,13 @@
 import { el, setChildren, RedomElement, RedomComponent } from 'redom'
 import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
-import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload } from '../commands/commands'
+import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload, CreateChildNodeCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
 import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode, NODE_IS_NOT_COLLAPSED, NODE_IS_NOT_COMPLETED } from '../domain/domain'
 import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
-import { debounce, isEmpty, pasteTextUnformatted, setCursorPos, Predicate, createCompositeAndPredicate } from '../utils/util'
+import { debounce, isEmpty, pasteTextUnformatted, setCursorPos, Predicate, createCompositeAndPredicate, generateUUID } from '../utils/util'
 import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType } from './keyboardshortcut'
 import { TreeNode } from './node-component'
@@ -37,6 +37,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   private contentEl: Element
   private breadcrumbsEl: Element
   private dialogOverlayEl: Element
+  private addNodeButtonEl: HTMLElement
   private content: TreeNode
   private searchField: HTMLInputElement
   private showCompletedCheckbox: HTMLInputElement
@@ -69,7 +70,8 @@ export class Tree implements CommandExecutor, RedomComponent {
       this.breadcrumbsEl = el('div.breadcrumbs'),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
       this.dialogOverlayEl = el('div.dialogOverlay'))
-    // We need to bind the event handlers to the class otherwise the scope is the element
+    this.addNodeButtonEl = el('button#addNode', 'Add Node')
+      // We need to bind the event handlers to the class otherwise the scope is the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
     // This means that all event listeners here need to check whether they are triggered on
@@ -81,6 +83,7 @@ export class Tree implements CommandExecutor, RedomComponent {
     this.el.addEventListener('paste', this.onPaste.bind(this))
     this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
     this.showCompletedCheckbox.addEventListener('input', this.onShowCompletedToggle.bind(this))
+    this.addNodeButtonEl.addEventListener('click', this.onAddNodeButtonClick.bind(this))
     // In general we only want to limit ourselves to our component with listener, but for some functions we
     // need the complete document
     document.addEventListener('keydown', this.onDocumentKeydown.bind(this))
@@ -165,7 +168,13 @@ export class Tree implements CommandExecutor, RedomComponent {
     }
   }
 
-  private generateBreadcrumbs(tree: LoadedTree): Element[] {
+  private generateBreadcrumbs(tree: LoadedTree): HTMLElement[] {
+    const breadcrumbNodes = [this.addNodeButtonEl]
+    breadcrumbNodes.concat(this.generateBreadcrumbsNavigation(tree))
+    return breadcrumbNodes
+  }
+
+  private generateBreadcrumbsNavigation(tree: LoadedTree): HTMLElement[] {
     if (!tree.ancestors || tree.tree.node._id === 'ROOT') {
       return []
     } else {
@@ -278,6 +287,16 @@ export class Tree implements CommandExecutor, RedomComponent {
 
   private onKeydown(event: KeyboardEvent): void {
     this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keydown, event, this.treeActionContext)
+  }
+
+  private async onAddNodeButtonClick(event: Event): Promise<void> {
+    const newNodeId = generateUUID()
+    const command = new CommandBuilder(
+      new CreateChildNodeCommandPayload(newNodeId, '', null, this.currentRootNodeId))
+      .isUndoable()
+      .isBatch()
+      .build()
+    await this.performWithDom(command)
   }
 
   private onDocumentKeydown(event: KeyboardEvent): void {

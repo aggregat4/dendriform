@@ -43,6 +43,11 @@ export function registerTreeActions(tree: TreeActionRegistry) {
       'Edit Name'))
   tree.registerKeyboardAction(
     new TreeAction(
+      new KeyboardEventTrigger(KbdEventType.Input, new NodeClassSelector('name')),
+      onNameInput,
+      'Edit Name'))
+  tree.registerKeyboardAction(
+    new TreeAction(
       new KeyboardEventTrigger(KbdEventType.Input, new NodeClassSelector('note')),
       onNoteInput,
       'Edit Note'))
