@@ -67,7 +67,7 @@ export class DEvent {
   constructor(
     readonly type: EventType,
     readonly originator: string,
-    readonly clock: VectorClock,
+    public clock: VectorClock,
     readonly nodeId: string,
     readonly payload: EventPayloadType) {}
 

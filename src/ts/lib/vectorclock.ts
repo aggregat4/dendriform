@@ -36,10 +36,11 @@ export class VectorClock {
 
     this.allKeys(aVals, bVals).forEach((key) => {
       const diff = (aVals[key] || 0) - (bVals[key] || 0)
+      // console.log(`diff for key `, key, ` for `, aVals[key], ` and `, bVals[key], ` is `, diff)
       if (diff > 0) { isGreater = true }
       if (diff < 0) { isLess = true }
     })
-
+    // console.log(`compare a `, aVals, ` b `, bVals, ` isgreater `, isGreater, ` isless `, isLess)
     if (isGreater && isLess) { return 0 }
     if (isLess) { return -1 }
     if (isGreater) { return 1 }

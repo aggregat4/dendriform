@@ -30,7 +30,7 @@ export interface StoredEvent {
 }
 
 export function storedEventComparator(a: StoredEvent, b: StoredEvent): number {
-  const vcComp = VectorClock.compareValues(a.vectorclock, b.vectorclock)
+  const vcComp = a.vectorclock.compare(b.vectorclock)
   if (vcComp === 0) {
     return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
   } else {
@@ -152,7 +152,12 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       // storeEvents will save metadata
       drainedEvents
         .filter(e => e.originator !== this.getPeerId())
-        .forEach(e => this.vectorClock = this.vectorClock.merge(e.clock))
+        .forEach(e => {
+          this.vectorClock.increment(this.peerId)
+          const newClock = this.vectorClock.merge(e.clock)
+          this.vectorClock = new VectorClock(newClock.values)
+          e.clock = new VectorClock(newClock.values)
+        })
       await this.storeEvents(drainedEvents)
       this.lastStorageTimestamp = currentTime
     }
