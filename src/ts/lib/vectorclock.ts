@@ -3,7 +3,7 @@
 export interface NumberVectorClockValues { [k: number]: number }
 export interface StringVectorClockValues { [k: string]: number }
 
-// TODO: as soon as https://stackoverflow.com/questions/13315131/enforcing-the-type-of-the-indexed-members-of-a-typescript-object 
+// TODO: as soon as https://stackoverflow.com/questions/13315131/enforcing-the-type-of-the-indexed-members-of-a-typescript-object
 // is resolved I should be able to also define the key type and to not have to use this weird union. Then I can also
 // make the increment method typesafe
 export class VectorClock<ValuesType extends NumberVectorClockValues|StringVectorClockValues> {
