@@ -12,7 +12,7 @@ import {
 } from './eventlog'
 import Dexie from 'dexie'
 import {generateUUID} from '../utils/util'
-import {VectorClock} from '../lib/vectorclock'
+import {VectorClock, NumberVectorClockValues, StringVectorClockValues} from '../lib/vectorclock'
 import {ActivityIndicating} from '../domain/domain'
 import {LocalEventLogGarbageCollector} from './eventlog-indexeddb-gc'
 import {LocalEventLogIdMapper} from './eventlog-indexeddb-peerid-mapper'
@@ -25,12 +25,12 @@ export interface StoredEvent {
   eventtype: number,
   treenodeid: string,
   peerid: string,
-  vectorclock: VectorClock,
+  vectorclock: NumberVectorClockValues,
   payload: EventPayloadType,
 }
 
 export function storedEventComparator(a: StoredEvent, b: StoredEvent): number {
-  const vcComp = a.vectorclock.compare(b.vectorclock)
+  const vcComp = VectorClock.compareValues(a.vectorclock, b.vectorclock)
   if (vcComp === 0) {
     return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
   } else {
@@ -49,7 +49,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   readonly db: Dexie
   readonly name: string
   private peerId: string
-  private vectorClock: VectorClock
+  private vectorClock: VectorClock<StringVectorClockValues>
   private counter: number
   private subscribers: EventSubscriber[] = []
   // event storage queue
@@ -195,7 +195,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
             eventtype: e.type,
             treenodeid: e.nodeId,
             peerid: this.peeridMapper.externalToInternalPeerId(e.originator),
-            vectorclock: this.peeridMapper.externalToInternalVectorclock(e.clock),
+            vectorclock: this.peeridMapper.externalToInternalVectorclockValues(e.clock.values),
             payload: e.payload,
           }
         })

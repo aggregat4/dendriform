@@ -1,5 +1,5 @@
 import Dexie from 'dexie'
-import { VectorClock } from '../lib/vectorclock'
+import { VectorClock, StringVectorClockValues, NumberVectorClockValues } from '../lib/vectorclock'
 import { StoredEvent } from './eventlog-indexeddb'
 import { DEvent } from './eventlog'
 
@@ -44,7 +44,7 @@ export class LocalEventLogIdMapper {
     return new DEvent(
       ev.eventtype,
       this.internalToExternalPeerId(Number(ev.peerid)),
-      this.internalToExternalVectorclock(ev.vectorclock),
+      new VectorClock(this.internalToExternalVectorclockValues(ev.vectorclock)),
       ev.treenodeid,
       ev.payload)
   }
@@ -85,25 +85,23 @@ export class LocalEventLogIdMapper {
    * @returns A vectorclock where all node ids have been mapped from external UUIDs to
    * internal number ids. This never throws since an unknown nodeId is just added to the map.
    */
-  externalToInternalVectorclock(externalClock: VectorClock): VectorClock {
-    const externalValues = externalClock.values
+  externalToInternalVectorclockValues(externalClockValues: StringVectorClockValues): NumberVectorClockValues {
     const internalValues = {}
-    for (const externalNodeId of Object.keys(externalValues)) {
-      internalValues[this.externalToInternalPeerId(externalNodeId)] = externalValues[externalNodeId]
+    for (const externalNodeId of Object.keys(externalClockValues)) {
+      internalValues[this.externalToInternalPeerId(externalNodeId)] = externalClockValues[externalNodeId]
     }
-    return new VectorClock(internalValues)
+    return internalValues
   }
 
   /**
    * @returns A vectorclock where all node ids have been mapped from internal numbers to
    * external UUIDs. This function throws when the internal id is unknown.
    */
-  private internalToExternalVectorclock(internalClock: VectorClock): VectorClock {
-    const internalValues = internalClock.values
+  private internalToExternalVectorclockValues(internalClockValues: NumberVectorClockValues): StringVectorClockValues {
     const externalValues = {}
-    for (const internalNodeId of Object.keys(internalValues)) {
-      externalValues[this.internalToExternalPeerId(Number(internalNodeId))] = internalValues[internalNodeId]
+    for (const internalNodeId of Object.keys(internalClockValues)) {
+      externalValues[this.internalToExternalPeerId(Number(internalNodeId))] = internalClockValues[internalNodeId]
     }
-    return new VectorClock(externalValues)
+    return externalValues
   }
 }

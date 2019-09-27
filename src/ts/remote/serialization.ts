@@ -1,5 +1,5 @@
 import { DEvent, AddOrUpdateNodeEventPayload, ReparentNodeEventPayload, ReorderChildNodeEventPayload, EventPayloadType, EventType } from '../eventlog/eventlog'
-import { VectorClock } from '../lib/vectorclock'
+import { VectorClock, StringVectorClockValues } from '../lib/vectorclock'
 
 function deserializeEventPayload(event: any): EventPayloadType {
   if (event.type === EventType.ADD_OR_UPDATE_NODE) {
@@ -91,7 +91,7 @@ function deserializeServerEvent(serverEvent: any): DEvent {
  * @throws An Error when the object from the server does not contain a 'values'
  * property.
  */
-function deserializeVectorClock(clock: any): VectorClock {
+function deserializeVectorClock(clock: any): VectorClock<StringVectorClockValues> {
   if ('values' in clock) {
     return new VectorClock(clock.values)
   } else {

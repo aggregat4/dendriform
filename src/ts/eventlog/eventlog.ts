@@ -1,4 +1,4 @@
-import { VectorClock } from '../lib/vectorclock'
+import { VectorClock, StringVectorClockValues } from '../lib/vectorclock'
 import { Predicate } from '../utils/util'
 import { atomIdent } from '../lib/logootsequence.js'
 import { secondsSinceEpoch } from '../utils/dateandtime'
@@ -67,7 +67,7 @@ export class DEvent {
   constructor(
     readonly type: EventType,
     readonly originator: string,
-    public clock: VectorClock,
+    public clock: VectorClock<StringVectorClockValues>,
     readonly nodeId: string,
     readonly payload: EventPayloadType) {}
 

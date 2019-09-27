@@ -988,3 +988,11 @@ I'm still not feeling great about this, I may still have some fundamental proble
 This is getting tiresome. I now refactored the code to include a fixed ROOT node for each peer. The vector clock should be ok.
 
 BUT in a sync scenario it is really easy to come to the situation that changes of one peer to the structure of the tree will not materialise on the other. Feels like maybe garbage collection is fucked.
+
+## 27.9.2019 - Sync Issues, The Conclusion, Maybe
+
+Last time we found out that the weird sync issues that still plagued are (at least also) caused by our misuse of the vectorclock. I thought I was storing VectorClock objects but after storing and loading the object in indexeddb it was just a hash of key and values pairs. This then caused our vectorclock comparison methods to be just comparing garbage. And in JavaScript comparing something to whatever of course returns a result. :facepalm:
+
+Have now further typified the VectorClock type and reduced our StoredEvent interface to just refer to VectorClock values.
+
+This seems to (maybe) have fixed our issue! First tests with two peers syncing seem to work fine. Yes!

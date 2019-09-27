@@ -17,7 +17,7 @@ export class LocalEventLogGarbageCollector {
   constructor(readonly eventLog: DEventLog, readonly eventLogTable: any) {}
 
   start(): void {
-    //window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS)
+    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS)
   }
 
   // TODO: would this not be a perfect use case for a webworker?

@@ -119,9 +119,6 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
-1. BUG: ROOT should not exist more than once, I probably just can't store that and have to treat it special otherwise we may get weird effects once the root gets created multiple times across peers. On the other hand, to special case it is going to complicate the code quite a bit... Maybe I can just suppress incoming add/update events on ROOT? With highly concurrent intialization (our wait is not long enough) I seem to get the effect that multiple peers have different root nodes
-1. BUG: I have observed remote events coming in (like an update event to rename a node) but them not getting applied to the DOM, looks good after reload. This can totally mess with things since then the DOM does not reflect the correct state and further editing could be out of whack.
-1. BUG: should not be able to delete the last node (under the root node)
 1. Safari (mobile) compatibility
 1. We should check with the server what he knows about us, in case he has a lower eventid than what we think he has, we should reset to that value
 1. Try out remote containers in Visual Studio code: could define my dev environment with it and use VS Code as a remote editor
