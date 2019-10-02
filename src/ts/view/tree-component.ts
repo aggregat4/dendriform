@@ -70,7 +70,10 @@ export class Tree implements CommandExecutor, RedomComponent {
       this.breadcrumbsEl = el('div.breadcrumbs'),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
       this.dialogOverlayEl = el('div.dialogOverlay'))
-    this.addNodeButtonEl = el('button#addNode', 'Add Node')
+    // Note: it is unclear whether title and aria-label are both necessary. I need the tooltip for all users
+    // but I also want to make sure that screenreaders only use the full text. This link https://www.deque.com/blog/text-links-practices-screen-readers/
+    // seemed unclear about what takes precedence when.
+    this.addNodeButtonEl = el('button#addNode', { 'aria-label': 'Add Node', 'title': 'Add Node'}, '+')
       // We need to bind the event handlers to the class otherwise the scope is the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
@@ -169,8 +172,7 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   private generateBreadcrumbs(tree: LoadedTree): HTMLElement[] {
-    const breadcrumbNodes = [this.addNodeButtonEl]
-    breadcrumbNodes.concat(this.generateBreadcrumbsNavigation(tree))
+    const breadcrumbNodes = this.generateBreadcrumbsNavigation(tree).concat([this.addNodeButtonEl])
     return breadcrumbNodes
   }
 
@@ -180,7 +182,19 @@ export class Tree implements CommandExecutor, RedomComponent {
     } else {
       // reverse because breadcrumbs need to start at ROOT and go down
       const fullParents = tree.ancestors.reverse()
-      return fullParents.map(repoNode => el('span', el('a', { href: '#node=' + repoNode._id }, repoNode.name)))
+      return fullParents.map(repoNode => 
+        el('span',
+          el('a',
+             { href: '#node=' + repoNode._id, 'data-id': repoNode._id, title: 'Open node "' + repoNode.name + '"' },
+             this.renderNodeName(repoNode.name))))
+    }
+  }
+
+  private renderNodeName(name: string): string {
+    if (name === 'ROOT') {
+      return '¶'
+    } else {
+      return name
     }
   }
 

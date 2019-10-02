@@ -71,6 +71,11 @@
   color: #29526D;
 }
 
+.breadcrumbs a[data-id=ROOT] {
+  font-weight: bold;
+  text-decoration: none;
+}
+
 .searchbox {
   padding: 0;
   margin: 6px 0 12px 0;
