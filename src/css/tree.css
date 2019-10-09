@@ -2,6 +2,7 @@
   --highlight-bgcolor: #5d8fac;
   --highlight-color: white;
   --disabled-text-color: #aaa;
+  --button-color-background: #e0e1e2;
 }
 
 .tree {
@@ -9,16 +10,9 @@
   font-size: 1rem;
   font-family: helvetica, arial, sans-serif;
   line-height: 1.4;
-  margin: 12px auto 12px auto;
-  /* Optimal width of text in a column: https://ux.stackexchange.com/a/3623 
-     75ch + 2*5ch overhead
-  */
-  max-width: 85ch;
-  /* Make sure that we have room for the controls on the left as long as
-     we don't go responsive small */
-  padding-left: 5ch;
-  padding-right: 5ch;
 }
+
+/** ----  Generic Component Restyling ---- */
 
 .tree input {
   /* By default input fields do not inherit font features */
@@ -48,22 +42,52 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+/** ----  Layout ---- */
+
+.tree nav {
+  display: flex;
+  padding: 0 6px 0 6px;
+  margin: 6px 0 12px 0;
+  height: 2.8em;
+  align-items: center;
+}
+
+.tree nav .breadcrumbs {
+  flex: 2;
+}
+
+.tree nav .searchbox {
+  flex: 1;
+}
+
+.tree nav .config {
+  flex: initial;
+}
+
+.tree .content {
+  margin: 12px auto 12px auto;
+  /* Optimal width of text in a column: https://ux.stackexchange.com/a/3623 
+     75ch + 2*5ch overhead
+  */
+  max-width: 85ch;
+  /* Make sure that we have room for the controls on the left as long as
+     we don't go responsive small */
+  padding-left: 5ch;
+  padding-right: 5ch;
+}
+
+/** ----  Actual Content Styles ---- */
+
 .tree fieldset {
   border: none;
   padding: 0;
-  margin: inherit;
 }
 
 .tree fieldset label {
   line-height: 1.4;
 }
 
-.breadcrumbs {
-  padding: 0 6px 0 6px;
-  margin: 6px 0 12px 0;
-}
-
-.breadcrumbs > span::after {
+.breadcrumbs > span:not(:last-child)::after {
   content: ' / ';
 }
 
@@ -77,21 +101,18 @@
 }
 
 .searchbox {
-  padding: 0;
-  margin: 6px 0 12px 0;
   /* Flex layout for the input field and the activity spinner */
   display: flex;
+  margin: 0 12px 0 12px;
+  border: 1px solid var(--button-color-background);
+  border-radius: 3px;
+  max-width: 400px;
 }
 
 .searchbox input[type=search] {
+  border: none;
   flex-grow: 1;
-  margin-right: 6px;
-  border-width: 1px;
-  border-radius: 3px;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-  height: 2em;
+  height: 1.4em;
   background-color: inherit;
 }
 

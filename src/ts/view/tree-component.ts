@@ -3,7 +3,7 @@ import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload, CreateChildNodeCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
-import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode, NODE_IS_NOT_COLLAPSED, NODE_IS_NOT_COMPLETED } from '../domain/domain'
+import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode, NODE_IS_NOT_COLLAPSED, NODE_IS_NOT_COMPLETED, createNewResolvedRepositoryNodeWithContent } from '../domain/domain'
 import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
@@ -58,22 +58,25 @@ export class Tree implements CommandExecutor, RedomComponent {
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
     const activityIndicator = new ActivityIndicator(activityIndicating, 1000)
     this.el = el(`div.tree${this.generateTreeClasses()}`,
-      el('div.searchbox',
-        /* Removing the search button because we don't really need it. Right? Accesibility?
-          this.searchButton = el('button', 'Filter')) */
-        this.searchField = el('input', {type: 'search', placeholder: 'Filter'}) as HTMLInputElement,
-        activityIndicator,
+      el('nav',
+        this.breadcrumbsEl = el('div.breadcrumbs'),
+        el('div.searchbox',
+          /* Removing the search button because we don't really need it. Right? Accesibility?
+            this.searchButton = el('button', 'Filter')) */
+          this.searchField = el('input', {type: 'search', placeholder: 'Filter'}) as HTMLInputElement,
+          activityIndicator),
         el('fieldset.config',
           el('label',
             this.showCompletedCheckbox = el('input', this.config.showCompleted ? {type: 'checkbox', checked: ''} : {type: 'checkbox'}),
-            'Show Completed'))),
-      this.breadcrumbsEl = el('div.breadcrumbs'),
+            'Show Completed')),
+      ),
+      // Note: it is unclear whether title and aria-label are both necessary. I need the tooltip for all users
+      // but I also want to make sure that screenreaders only use the full text. This link https://www.deque.com/blog/text-links-practices-screen-readers/
+      // seemed unclear about what takes precedence when.
+      this.addNodeButtonEl = el('button#addNode', { 'aria-label': 'Add Node', 'title': 'Add Node'}, '+'),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
-      this.dialogOverlayEl = el('div.dialogOverlay'))
-    // Note: it is unclear whether title and aria-label are both necessary. I need the tooltip for all users
-    // but I also want to make sure that screenreaders only use the full text. This link https://www.deque.com/blog/text-links-practices-screen-readers/
-    // seemed unclear about what takes precedence when.
-    this.addNodeButtonEl = el('button#addNode', { 'aria-label': 'Add Node', 'title': 'Add Node'}, '+')
+      this.dialogOverlayEl = el('div.dialogOverlay'),
+    )
       // We need to bind the event handlers to the class otherwise the scope is the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
@@ -172,22 +175,22 @@ export class Tree implements CommandExecutor, RedomComponent {
   }
 
   private generateBreadcrumbs(tree: LoadedTree): HTMLElement[] {
-    const breadcrumbNodes = this.generateBreadcrumbsNavigation(tree).concat([this.addNodeButtonEl])
-    return breadcrumbNodes
-  }
-
-  private generateBreadcrumbsNavigation(tree: LoadedTree): HTMLElement[] {
-    if (!tree.ancestors || tree.tree.node._id === 'ROOT') {
-      return []
-    } else {
-      // reverse because breadcrumbs need to start at ROOT and go down
-      const fullParents = tree.ancestors.reverse()
-      return fullParents.map(repoNode => 
-        el('span',
-          el('a',
-             { href: '#node=' + repoNode._id, 'data-id': repoNode._id, title: 'Open node "' + repoNode.name + '"' },
-             this.renderNodeName(repoNode.name))))
+    // reverse because breadcrumbs need to start at ROOT and go down
+    const fullParents = (tree.ancestors || []).reverse().concat(tree.tree.node)
+    const breadCrumbs = []
+    for (let i = 0; i < fullParents.length; i++) {
+      const repoNode = fullParents[i]
+      if (i !== fullParents.length - 1) {
+        breadCrumbs.push(
+          el('span',
+            el('a',
+              { href: '#node=' + repoNode._id, 'data-id': repoNode._id, title: 'Open node "' + repoNode.name + '"' },
+                this.renderNodeName(repoNode.name))))
+      } else {
+        breadCrumbs.push(el('span', this.renderNodeName(repoNode.name)))
+      }
     }
+    return breadCrumbs
   }
 
   private renderNodeName(name: string): string {
