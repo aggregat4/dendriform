@@ -119,7 +119,10 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
-1. Move the "Show Completed" to a menu or something, that does not need to be toplevel (right? or some icon toggle thing)
+1. Layout: find a good place for the "add" button, would fit in the node menu, but what with the root node?
+1. Layout: find a graceful way to resize the breadcrumbs
+1. Layout: Move the "Show Completed" to a menu or something, that does not need to be toplevel (right? or some icon toggle thing)
+1. Transferring events should happen in batches (N events) for performance and transfer reasons. Test with large documents and with a remote server.
 1. We should check with the server what he knows about us, in case he has a lower eventid than what we think he has, we should reset to that value
 1. Try out remote containers in Visual Studio code: could define my dev environment with it and use VS Code as a remote editor
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
