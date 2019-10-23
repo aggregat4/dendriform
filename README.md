@@ -119,6 +119,8 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
+1. BUG/FEATURE: we need to figure out how to corretly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it?
+1. Figure out whether Rollup and sourcemaps works well in firefox and chrome and if so, move to Rollup
 1. Layout: find a good place for the "add" button, would fit in the node menu, but what with the root node?
 1. Layout: find a graceful way to resize the breadcrumbs
 1. Layout: Move the "Show Completed" to a menu or something, that does not need to be toplevel (right? or some icon toggle thing)
