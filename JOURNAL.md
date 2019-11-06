@@ -1033,3 +1033,7 @@ I have basically two strategies to implement multi-document capabilities:
 2. Or I allow for dynamic switching between documents in which case I need to deinit all the appropriate things and reinitialize them afterwards.
 
 I want to give the seconds strategy a go. Starting in tree.ts it needs to manage the document id as a parameter from the outside and react appropriately to update requests where the id may be a different one. Not having looked at this in detail I hope I can "just" leave the Tree object initialized and "just" switch out the underlying treeservice/commandhandler/eventlog.
+
+Maybe I can do something about the fact that Tree gets the treeservice as well as the command handler injected? Can I factor those treeservice related bits out?
+
+TreeService is also in the TreeActionContext... not nice.
