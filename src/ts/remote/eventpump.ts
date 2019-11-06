@@ -32,6 +32,11 @@ export class EventPump {
   private remoteEventPump = new Pump(5000)
 
   private maxServerCounter: number
+  /**
+   * This is the counter of the last locally originated event that the server has seen.
+   * We use it to determine what to send the server. Should the server reset its state
+   * in some way we may need to correct this number.
+   */
   private maxLocalCounter: number
 
   constructor(private readonly localEventLog: DEventLog,
@@ -159,7 +164,7 @@ class Pump {
       this.scheduledFunctionExecuted = true
       // when we fail do some backoff and retry later
       if (this.retryDelayMs < this.MAX_DELAY_MS) {
-        this.retryDelayMs = this.retryDelayMs * 2
+        this.retryDelayMs = this.calcBackoffTimeout(this.retryDelayMs)
       } else {
         this.retryDelayMs = this.MAX_DELAY_MS
       }
@@ -168,6 +173,17 @@ class Pump {
     // schedule the next drain
     const delay = this.pumping ? this.retryDelayMs : this.INACTIVE_DELAY
     window.setTimeout(() => this.schedule(name, fun), delay)
+  }
+
+  /**
+   * This function calculates the new timeout by doing exponential backoff and by
+   * applying some random jitter (somewhere between 0 and 1 second).
+   *
+   * @param currentTimeoutMs The current timeout in milliseconds.
+   * @returns The new timeout in milliseconds.
+   */
+  private calcBackoffTimeout(currentTimeoutMs: number): number {
+    return (currentTimeoutMs * 2) + (1000 * Math.random())
   }
 
   stop() {
