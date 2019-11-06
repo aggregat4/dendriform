@@ -996,3 +996,40 @@ Last time we found out that the weird sync issues that still plagued are (at lea
 Have now further typified the VectorClock type and reduced our StoredEvent interface to just refer to VectorClock values.
 
 This seems to (maybe) have fixed our issue! First tests with two peers syncing seem to work fine. Yes!
+
+## 6.11.2019 - Delete is Hard Now
+
+As this gets more and more feature complete it becomes clear that it is becoming hard to delete anything in this system: as long as some peer still has the events, it will all sync and replicate across the server and to other clients.
+
+This is of course by design, but it makes it non-trivial to implement use cases like a user _wanting_ to delete everything because he wants to start over.
+
+We also do not have a story for dealing with multiple accounts on one server in one browser. In the current implementation, because it is the same origin and therefore the same storage in the browser it just uses the same data storage. And that may not be what we want.
+
+This is partially caused by the fact that the server side component is "tacked on", the driver has been the client app so far and there is no notion of the client somehow negotiating with the server what documents it "has" and which ones it should sync to the server and in fact _display_ to the user.
+
+Realistically we need something like an ability to associate an eventlog with an account on the server as an optional thing.
+
+When dendriform is hosted (by me) this could be an initialization configuration passed to dendriform itself to tell it what document(s) to sync and display. In this way dendriform, when used without a server could just manage its own documents and when it _is_ managed by a server it will be configured with the set of documents to use initially. This way the server can start dendriform and make sure that the initial document is always something unique, tied to the account of the user (hashed username+UUID or something).
+
+So we need two general features:
+
+* An approach to delete everyhting in an eventlog (Is it a special event that indicates that from this point on all the past events are to be considered deleted? Or is it just marking that eventlog as "deleted" and starting a new one?)
+* A notions of multiple documents and the ability to configure a dendriform client to use a "set" of documents initially. When logging into the server it checks whether you have any eventlogs and if so provides that set to the client, otherwise it will initialise and empty one unique to your account and give that to the client.
+
+This means:
+
+* We need an initial set of documents to manage
+* We need a document switcher
+* We need the current document id in the URL
+* We need the ability to mark a document as "deleted" (soft delete) (BUT how do we send that to the server and have correct concurrent updates for this!? Do we need events especially to manage metadata? This would be really elegant and solve the concurrency issue)
+
+The hardest bit here is going to be to go multi document, I knew I should have done that from the start.
+
+## 6.11.2019 - Makine Dendriform Multi-Document capable
+
+I have basically two strategies to implement multi-document capabilities: 
+
+1. Either I assume and enforce that the page is always reloaded for each new document so I don't have to implement any kind of shutdown and reinit.
+2. Or I allow for dynamic switching between documents in which case I need to deinit all the appropriate things and reinitialize them afterwards.
+
+I want to give the seconds strategy a go. Starting in tree.ts it needs to manage the document id as a parameter from the outside and react appropriately to update requests where the id may be a different one. Not having looked at this in detail I hope I can "just" leave the Tree object initialized and "just" switch out the underlying treeservice/commandhandler/eventlog.
