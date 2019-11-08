@@ -439,8 +439,8 @@ function onBackspaceInName(event: Event, treeActionContext: TreeActionContext) {
 
 function onDeleteInName(event: Event, treeActionContext: TreeActionContext) {
   if (!isTextSelected() &&
-    isCursorAtEnd(event) &&
-    getClosestNodeElement(event.target as Element).nextElementSibling) {
+      isCursorAtEnd(event) &&
+      getClosestNodeElement(event.target as Element).nextElementSibling) {
     event.preventDefault()
     const sourceNode = getClosestNodeElement(event.target as Element)
     const targetNode = sourceNode.nextElementSibling

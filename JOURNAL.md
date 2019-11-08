@@ -1027,7 +1027,7 @@ The hardest bit here is going to be to go multi document, I knew I should have d
 
 ## 6.11.2019 - Makine Dendriform Multi-Document capable
 
-I have basically two strategies to implement multi-document capabilities: 
+I have basically two strategies to implement multi-document capabilities:
 
 1. Either I assume and enforce that the page is always reloaded for each new document so I don't have to implement any kind of shutdown and reinit.
 2. Or I allow for dynamic switching between documents in which case I need to deinit all the appropriate things and reinitialize them afterwards.

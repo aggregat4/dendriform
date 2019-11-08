@@ -12,7 +12,7 @@ import { RemoteEventLog } from './remote/eventlog-remote'
 import { EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
 import { waitForThen } from './utils/util'
-// DOM initialisation functions that requre the mounted DOM node
+// DOM initialisation functions that require the mounted DOM node
 import { init as opmlInit } from './view/action-opmlimport'
 
 const localEventLog = new LocalEventLog('dendriform-eventlog')
@@ -20,6 +20,7 @@ const remoteEventLog = new RemoteEventLog('/', 'dendriform-eventlog')
 const eventPump = new EventPump(localEventLog, remoteEventLog)
 const repository = new EventlogRepository(localEventLog)
 const treeService = new TreeService(repository)
+
 const treeServiceCommandHandler = new TreeServiceCommandHandler(treeService)
 const commandHandler = new UndoableCommandHandler(treeServiceCommandHandler)
 const treeActionRegistry = new TreeActionRegistry()
