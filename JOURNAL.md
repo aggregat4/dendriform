@@ -1037,3 +1037,9 @@ I want to give the seconds strategy a go. Starting in tree.ts it needs to manage
 Maybe I can do something about the fact that Tree gets the treeservice as well as the command handler injected? Can I factor those treeservice related bits out?
 
 TreeService is also in the TreeActionContext... not nice.
+
+## 8.11.2019 - Multi-Document thoughts
+
+Thinking about multi-document. Seems like the document switcher component needs to be in the dendriform client since it needs to get its own metadata events in order to identify things like name and whether it is active or not?
+
+This does not need to be a graphical component but at the very least a service of some kind. Maybe this is then also the manager to initialize the GUI component new when switching? Does this mean we need dynamic on the fly switching? Which means shutting down all processes etc?
