@@ -13,11 +13,20 @@ export class LocalEventLogGarbageCollector {
    * is higher than the last counter we do gc, otherwise we just sleep.
    */
   private lastGcCounter = -1
+  private garbageCollector: JobScheduler = new JobScheduler(this.GC_TIMEOUT_MS, this.gc.bind(this))
 
   constructor(readonly eventLog: DEventLog, readonly eventLogTable: any) {}
 
   start(): void {
-    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS)
+    this.garbageCollector.start(false)
+  }
+
+  stop(): void {
+    this.garbageCollector.stop()
+  }
+
+  stopAndWaitUntilDone(): Promise<void> {
+    return this.garbageCollector.stopAndWaitUntilDone()
   }
 
   // TODO: would this not be a perfect use case for a webworker?
@@ -26,6 +35,10 @@ export class LocalEventLogGarbageCollector {
       const gcCandidates = await this.findGcCandidates()
       const gcBatch = gcCandidates.splice(0, this.GC_MAX_BATCH_SIZE)
       for (const candidate of gcBatch) {
+        if (! this.garbageCollector.isScheduled()) {
+          // if we were stopped while doing this query then make sure we abort
+          return
+        }
         await this.garbageCollect(candidate)
       }
       // if we were able to gc all candidates this round, set our counter variable to the current counter
@@ -34,7 +47,6 @@ export class LocalEventLogGarbageCollector {
         this.lastGcCounter = this.eventLog.getCounter()
       }
     }
-    window.setTimeout(this.gc.bind(this), this.GC_TIMEOUT_MS)
   }
 
   /**
@@ -94,6 +106,10 @@ export class LocalEventLogGarbageCollector {
         // based on the eventtype we may need to partition the events for a node even further
         const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(nodeEvents, candidate.eventtype)
         for (const pruneCandidates of arraysToPrune) {
+          if (! this.garbageCollector.isScheduled()) {
+            // make sure to abort processing when we have been stopped
+            return
+          }
           const eventsToDelete = this.findEventsToPrune(pruneCandidates)
           if (eventsToDelete.length > 0) {
             // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)

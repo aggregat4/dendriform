@@ -1043,3 +1043,13 @@ TreeService is also in the TreeActionContext... not nice.
 Thinking about multi-document. Seems like the document switcher component needs to be in the dendriform client since it needs to get its own metadata events in order to identify things like name and whether it is active or not?
 
 This does not need to be a graphical component but at the very least a service of some kind. Maybe this is then also the manager to initialize the GUI component new when switching? Does this mean we need dynamic on the fly switching? Which means shutting down all processes etc?
+
+## 13.11.2019 - Started Implementing Deinit of Everything
+
+Started implementing the rampdown phases of all components. Had to build a little infrastructure to manage jobs running scheduled with setTimeout so we can reliably stop those scheduled jobs and clear all the timers.
+
+Need a unit test for the JobScheduler to verify that it really does what I want it to. Since it is async it may be non-trivial to do.
+
+Also refactored tree.ts a bit to get rid of some old code. We had to wait for the first server contact if at all possible so we wouldn't create an empty node and thus just proliferate empty nodes, but since we no longer create the empty node this is not an issue anymore.
+
+Next step is to allow stop and deinit on the eventpump. `tree.ts` still needs more work to really have a mount/unmount API to the outside world. Instead of just functions we probably need to export a class (like a TreeManager).

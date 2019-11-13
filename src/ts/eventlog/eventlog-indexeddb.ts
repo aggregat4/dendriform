@@ -69,6 +69,8 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   // DEBUG
   private lastStoreMeasurement: number = 0
   private storeCount: number = 0
+  private storageQueueDrainer: JobScheduler = new JobScheduler(
+    this.STORAGE_QUEUE_TIMEOUT_MS, this.drainStorageQueUnforced.bind(this))
 
   constructor(readonly dbName: string) {
     this.db = new Dexie(dbName)
@@ -114,7 +116,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         await this.publish(EventType.ADD_OR_UPDATE_NODE, 'ROOT', createNewAddOrUpdateNodeEventPayload('ROOT', null, false, false, false), true)
       }
       // start async event storage
-      await this.scheduleDrainStorageQueue()
+      this.storageQueueDrainer.start(true)
       // start garbage collector
       this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db.table('eventlog'))
       this.garbageCollector.start()
@@ -124,9 +126,15 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
   }
 
-  private async scheduleDrainStorageQueue(): Promise<any> {
-    await this.drainStorageQueue(false)
-    window.setTimeout(this.scheduleDrainStorageQueue.bind(this), this.STORAGE_QUEUE_TIMEOUT_MS)
+  async deinit(): Promise<void> {
+    await this.garbageCollector.stopAndWaitUntilDone()
+    await this.storageQueueDrainer.stopAndWaitUntilDone()
+    this.peeridMapper.deinit()
+    this.db.close()
+  }
+
+  private async drainStorageQueUnforced(): Promise<void> {
+    return this.drainStorageQueue(false)
   }
 
   /**

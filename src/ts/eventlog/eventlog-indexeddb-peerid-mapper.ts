@@ -20,6 +20,10 @@ export class LocalEventLogIdMapper {
     await this.loadPeerIdMapping()
   }
 
+  deinit(): void {
+    this.db.close()
+  }
+
   private async loadPeerIdMapping() {
     return this.db.table('peerid_mapping').toArray().then(mappings => {
       this.externalToInternalIdMap = new Map()
