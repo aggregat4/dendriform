@@ -195,7 +195,7 @@ export class Tree implements CommandExecutor, RedomComponent {
 
   private renderNodeName(name: string): string {
     if (name === 'ROOT') {
-      return '¶'
+      return 'Root'
     } else {
       return name
     }

@@ -47,8 +47,8 @@
 .tree nav {
   display: flex;
   padding: 0 6px 0 6px;
-  margin: 6px 0 12px 0;
-  height: 2.8em;
+  margin: 6px 6px 12px 6px;
+  min-height: 2.8em;
   align-items: center;
 }
 
