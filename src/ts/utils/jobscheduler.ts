@@ -1,4 +1,4 @@
-class JobScheduler {
+export class JobScheduler {
   private scheduled = false
   private runningPromise: Promise<void> = null
   private timerHandle: number = null

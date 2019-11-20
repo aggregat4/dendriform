@@ -1,4 +1,3 @@
-// tslint:disable-next-line:max-line-length
 import {
   DEvent,
   DEventLog,
@@ -16,6 +15,7 @@ import {VectorClock, NumberVectorClockValues, StringVectorClockValues} from '../
 import {ActivityIndicating} from '../domain/domain'
 import {LocalEventLogGarbageCollector} from './eventlog-indexeddb-gc'
 import {LocalEventLogIdMapper} from './eventlog-indexeddb-peerid-mapper'
+import {JobScheduler} from '../utils/jobscheduler'
 
 /**
  * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.
@@ -36,6 +36,12 @@ export function storedEventComparator(a: StoredEvent, b: StoredEvent): number {
   } else {
     return vcComp
   }
+}
+
+interface PeerMetadata {
+  eventlogid: string,
+  vectorclock: any,
+  counter: number,
 }
 
 /**
@@ -138,7 +144,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   /**
-   * This method automatically reschedules itself to execute after this.STORAGE_QUEUE_TIMEOUT_MS.
    * Events are actually really stored immediately when:
    * - the force parameter is true
    * - OR the current storage queue is larger than our max batch size (this.STORAGE_QUEUE_BATCH_SIZE)
@@ -161,6 +166,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       drainedEvents
         .filter(e => e.originator !== this.getPeerId())
         .forEach(e => {
+          console.debug(`foreign event, incrementing clock`)
           this.vectorClock.increment(this.peerId)
           const newClock = this.vectorClock.merge(e.clock)
           this.vectorClock = new VectorClock(newClock.values)
@@ -216,6 +222,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   private loadOrCreateMetadata(): Promise<void> {
     return this.db.table('peer').toArray().then(metadata => {
       if (!metadata || metadata.length === 0) {
+        console.log(`create new metadata`)
         this.peerId = generateUUID()
         this.vectorClock = new VectorClock()
         // always start a new vectorclock on 1 for the current peer
@@ -226,9 +233,10 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         this.counter = 0
         return this.saveMetadata()
       } else {
-        const md = metadata[0]
+        console.log(`load existing metadata`)
+        const md = metadata[0] as PeerMetadata
         this.peerId = md.eventlogid
-        this.vectorClock = new VectorClock(md.vectorClock)
+        this.vectorClock = new VectorClock(md.vectorclock)
         this.counter = md.counter
       }
     })
@@ -247,7 +255,8 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   private saveMetadata(): Promise<any> {
-    const metadata = {
+    console.debug(`saving metadata`)
+    const metadata: PeerMetadata = {
       eventlogid: this.peerId,
       vectorclock: this.vectorClock.values,
       counter: this.counter,

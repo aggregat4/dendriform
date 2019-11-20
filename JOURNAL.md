@@ -1053,3 +1053,25 @@ Need a unit test for the JobScheduler to verify that it really does what I want 
 Also refactored tree.ts a bit to get rid of some old code. We had to wait for the first server contact if at all possible so we wouldn't create an empty node and thus just proliferate empty nodes, but since we no longer create the empty node this is not an issue anymore.
 
 Next step is to allow stop and deinit on the eventpump. `tree.ts` still needs more work to really have a mount/unmount API to the outside world. Instead of just functions we probably need to export a class (like a TreeManager).
+
+## 20.11.2019 - It's All Broken
+
+Apparently everything broke. I was fiddling with the styles to see if the breadcrumbs look right and created a larger list and then indented it and renamed some nodes to larger texts to check how it behaves. Upon reload it now has duplicated bits of the indented tree multiple times and no longer seems to be able to relate the children to the correct parent.
+
+What _is_ this!?
+
+Apparently the child parent relationship and the logoot sequence for the children of a node get out of order: the parent to child relationships are out of whack.
+
+With 3 consecutive nodes a, b and c when moving c under b and b under a, in the end the relationship from b to ROOT remains and not the new b to a child-parent relationship. Is this a problem with our garbage collector? With the vectorclock sorting?
+
+Further investigation shows that after storing a and b, and then indenting b to be a child of a, the vector clock somehow resets and starts counting at 3 again !? And does not seem to increase anymore.
+
+I found it. Our own peer's vectorclock was resetting to a low value after each reload. The reason for this was that we _were_ indeed saving our metadata, including the vectorclock values. But when we loaded the vectorclock we were accessing the property `vectorClock` and not `vectorclock` on the saved metadata. Note the `c`.
+
+AAAAAAAAAAAAAAAAAAH! Javascript!
+
+I fixed it and now it seems to work.
+
+Everything that is not type checked and/or tested is basically broken.
+
+I should have a Typescript interface there too.
