@@ -47,7 +47,7 @@ export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
 }
 
 export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
-  readonly nodeInfoEl: Element = h('span.content', 'No node selected.')
+  readonly nodeInfoEl: Element = h('span.infoContent', 'No node selected.')
 
   constructor(readonly treeActionContext: TreeActionContext) {
     super()

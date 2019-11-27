@@ -183,9 +183,8 @@
 }
 
 .nc > a, .nc > a:hover, .nc > a:active, .nc > a:visited {
-  color: #  /* Need to align the baseline, otherwise the text
-  is not really centered vertically */
-
+  color: #666;
+}
 
 .nc > a:before {
   content: '●'; /* BLACK CIRCLE, 25CF */
@@ -267,9 +266,8 @@
   word-wrap: break-word;
   /* min-width (or a similar trick) is required to make the cursor show in Chrome when the element is empty */
   min-width: 20px;
-  /* leaves s  /* Need to align the baseline, otherwise the text
-     is not really centered vertically */
- calc(2ch + 6px); /* bullet width + the padding */
+  /* leaves space for the bullet since that is positioned absolute */
+  margin-left: calc(2ch + 6px); /* bullet width + the padding */
   padding-right: 6px;
   padding-left: 2px;
 }
