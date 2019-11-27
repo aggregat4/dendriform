@@ -24,11 +24,11 @@ async function initTree(treeName: string): Promise<Tree> {
   const commandHandler = new UndoableCommandHandler(treeServiceCommandHandler)
   const treeActionRegistry = new TreeActionRegistry()
   registerTreeActions(treeActionRegistry)
-  return localEventLog.init()
-    .then(() => eventPump.init())
-    .then(() => eventPump.start())
-    .then(() => repository.init())
-    .then(() => new Tree(commandHandler, treeService, treeActionRegistry, localEventLog))
+  await localEventLog.init()
+  await eventPump.init()
+  eventPump.start()
+  await repository.init()
+  return new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
 }
 
 const initPromise = initTree('dendriform-eventlog')
