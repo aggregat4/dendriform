@@ -2,6 +2,7 @@ import { VectorClock, StringVectorClockValues } from '../lib/vectorclock'
 import { Predicate } from '../utils/util'
 import { atomIdent } from '../lib/logootsequence.js'
 import { secondsSinceEpoch } from '../utils/dateandtime'
+import { Subscription } from '../domain/domain'
 
 export const enum EventType {
   ADD_OR_UPDATE_NODE,
@@ -105,7 +106,7 @@ export interface DEventLog extends DEventSource {
   getName(): string,
   getCounter(): number,
   insert(events: DEvent[], synchronous: boolean): Promise<EventLogCounter>
-  subscribe(subscriber: EventSubscriber): void
+  subscribe(subscriber: EventSubscriber): Subscription
   /**
    * Loads all events with a counter/eventid that is _higher_ than the provided number.
    * @return An array that is causally sorted by vectorclock and peerid.

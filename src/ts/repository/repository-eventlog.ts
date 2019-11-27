@@ -33,6 +33,7 @@ export class EventlogRepository implements Repository {
   private parentChildMap = {}
   private childParentMap = {}
   private changeSubscriptions: NodeChangedSubscription[] = []
+  private eventLogSubscription: Subscription = null
 
   private readonly debouncedNotifyNodeChangeSubscribers = debounce(this.notifyNodeChangeSubscribers.bind(this), 5000)
   private readonly debouncedRebuildAndNotify = debounce(this.rebuildAndNotify.bind(this), 5000)
@@ -42,15 +43,21 @@ export class EventlogRepository implements Repository {
 
   constructor(readonly eventLog: DEventLog) {}
 
-  init(): Promise<EventlogRepository> {
-    return this.rebuildTreeStructureMaps().then(() => {
-      // This is not great: we rebuild the maps, then subscribe and theoretically we could get
-      // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
-      // would mean delaying the inital map construction for too long...
-      this.eventLog.subscribe({
-        notify: this.eventLogListener.bind(this),
-        filter: (event) => event.originator !== this.eventLog.getPeerId() })
-      }).then(() => this)
+  async init(): Promise<void> {
+    await this.rebuildTreeStructureMaps()
+    // This is not great: we rebuild the maps, then subscribe and theoretically we could get
+    // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
+    // would mean delaying the inital map construction for too long...
+    this.eventLogSubscription = this.eventLog.subscribe({
+      notify: this.eventLogListener.bind(this),
+      filter: (event) => event.originator !== this.eventLog.getPeerId(),
+    })
+  }
+
+  deinit(): void {
+    if (this.eventLogSubscription) {
+      this.eventLogSubscription.cancel()
+    }
   }
 
   /**

@@ -24,7 +24,7 @@ import { RemoteEventLog } from './eventlog-remote'
  */
 export class EventPump {
 
-  private readonly db: Dexie
+  private db: Dexie
   private readonly dbName: string
 
   private initialised = false
@@ -42,10 +42,10 @@ export class EventPump {
   constructor(private readonly localEventLog: DEventLog,
               private readonly remoteEventLog: RemoteEventLog) {
     this.dbName = localEventLog.getName() + '-eventpump'
-    this.db = new Dexie(this.dbName)
   }
 
   async init(): Promise<any> {
+    this.db = new Dexie(this.dbName)
     this.db.version(1).stores({
       metadata: 'id', // columns: id, maxlocalcounter, maxservercounter (the id is synthetic, we just need it to identify the rows)
     })
@@ -55,6 +55,14 @@ export class EventPump {
     this.localEventPump.schedule(`drainLocalEvents-${this.dbName}`, this.drainLocalEvents.bind(this))
     this.remoteEventPump.schedule(`drainRemoteEvents-${this.dbName}`, this.drainRemoteEvents.bind(this))
     return this
+  }
+
+  async deinit(): Promise<void> {
+    if (this.db) {
+      await this.saveMetadata()
+      await this.db.close()
+      this.db = null
+    }
   }
 
   private async loadOrCreateMetadata(): Promise<void> {
