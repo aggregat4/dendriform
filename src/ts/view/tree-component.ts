@@ -60,6 +60,10 @@ export class Tree implements CommandExecutor, RedomComponent {
     this.el = el(`div.tree${this.generateTreeClasses()}`,
       el('nav',
         this.breadcrumbsEl = el('div.breadcrumbs'),
+        // Note: it is unclear whether title and aria-label are both necessary. I need the tooltip for all users
+        // but I also want to make sure that screenreaders only use the full text. This link https://www.deque.com/blog/text-links-practices-screen-readers/
+        // seemed unclear about what takes precedence when.
+        this.addNodeButtonEl = el('button#addNode', { 'aria-label': 'Add Node', 'title': 'Add Node'}, '+'),
         el('div.searchbox',
           /* Removing the search button because we don't really need it. Right? Accesibility?
             this.searchButton = el('button', 'Filter')) */
@@ -67,13 +71,11 @@ export class Tree implements CommandExecutor, RedomComponent {
           activityIndicator),
         el('fieldset.config',
           el('label',
-            this.showCompletedCheckbox = el('input', this.config.showCompleted ? {type: 'checkbox', checked: ''} : {type: 'checkbox'}),
-            'Show Completed')),
+            this.showCompletedCheckbox = el('input', this.config.showCompleted ? {id: 'showCompleted', type: 'checkbox', checked: ''} : {id: 'showCompleted', type: 'checkbox'}),
+            el('span', 'Show Completed'),
+          ),
+        ),
       ),
-      // Note: it is unclear whether title and aria-label are both necessary. I need the tooltip for all users
-      // but I also want to make sure that screenreaders only use the full text. This link https://www.deque.com/blog/text-links-practices-screen-readers/
-      // seemed unclear about what takes precedence when.
-      this.addNodeButtonEl = el('button#addNode', { 'aria-label': 'Add Node', 'title': 'Add Node'}, '+'),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
       this.dialogOverlayEl = el('div.dialogOverlay'),
     )
