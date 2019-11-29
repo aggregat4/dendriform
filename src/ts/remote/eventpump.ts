@@ -2,6 +2,8 @@ import { DEventLog, Events } from '../eventlog/eventlog'
 // Import without braces needed to make sure it exists under that name!
 import Dexie from 'dexie'
 import { RemoteEventLog } from './eventlog-remote'
+import { Initializeable } from '../domain/domain'
+import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobscheduler'
 
 /**
  * An event pump connects an event log to a remote server and a local event log
@@ -22,14 +24,17 @@ import { RemoteEventLog } from './eventlog-remote'
  * the fetch of all local events and the start of our subscription. That seems too
  * hard for now. Instead this implementation polls the client and it polls the server.
  */
-export class EventPump {
+export class EventPump implements Initializeable {
 
   private db: Dexie
   private readonly dbName: string
+  private readonly DEFAULT_DELAY_MS = 5000
+  private readonly MAX_DELAY_MS = 60 * 1000
 
-  private initialised = false
-  private localEventPump = new Pump(5000)
-  private remoteEventPump = new Pump(5000)
+  private localEventPump = new JobScheduler(
+    new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS), this.drainLocalEvents.bind(this))
+  private remoteEventPump = new JobScheduler(
+    new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS), this.drainRemoteEvents.bind(this))
 
   private maxServerCounter: number
   /**
@@ -44,24 +49,26 @@ export class EventPump {
     this.dbName = localEventLog.getName() + '-eventpump'
   }
 
-  async init(): Promise<any> {
+  async init(): Promise<void> {
+    await this.localEventLog.init()
     this.db = new Dexie(this.dbName)
     this.db.version(1).stores({
       metadata: 'id', // columns: id, maxlocalcounter, maxservercounter (the id is synthetic, we just need it to identify the rows)
     })
     await this.db.open()
     await this.loadOrCreateMetadata()
-    this.initialised = true
-    this.localEventPump.schedule(`drainLocalEvents-${this.dbName}`, this.drainLocalEvents.bind(this))
-    this.remoteEventPump.schedule(`drainRemoteEvents-${this.dbName}`, this.drainRemoteEvents.bind(this))
-    return this
+    this.localEventPump.start(true)
+    this.remoteEventPump.start(true)
   }
 
   async deinit(): Promise<void> {
     if (this.db) {
+      await this.localEventPump.stopAndWaitUntilDone()
+      await this.remoteEventPump.stopAndWaitUntilDone()
       await this.saveMetadata()
-      await this.db.close()
+      this.db.close()
       this.db = null
+      await this.localEventLog.deinit()
     }
   }
 
@@ -89,23 +96,6 @@ export class EventPump {
     } catch (error) {
       throw Error(`Error saving metadata: ${error}`)
     }
-  }
-
-  start() {
-    if (! this.initialised) {
-      throw Error('EventPump was not initialised, can not start')
-    }
-    this.localEventPump.start()
-    this.remoteEventPump.start()
-  }
-
-  stop() {
-    this.localEventPump.stop()
-    this.remoteEventPump.stop()
-  }
-
-  hasTriedToContactServerOnce(): boolean {
-    return this.remoteEventPump.isScheduledFunctionExecuted()
   }
 
   /**
@@ -141,64 +131,4 @@ export class EventPump {
     }
   }
 
-}
-
-class Pump {
-  private pumping = false
-  private retryDelayMs: number
-  // when not actually pumping we want to be able to react to changes in our state quickly so we set a low delay in that case
-  private readonly INACTIVE_DELAY = 50
-  // One minute is the maximum delay we want to have in case of backoff
-  private readonly MAX_DELAY_MS = 60 * 1000
-
-  private scheduledFunctionExecuted: boolean = false
-
-  constructor(private readonly defaultDelayInMs: number) {}
-
-  start() {
-    this.pumping = true
-  }
-
-  async schedule(name: string, fun: () => Promise<any>) {
-    try {
-      if (this.pumping) {
-        await fun()
-        this.scheduledFunctionExecuted = true
-        // we successfully executed the function, so we can reset the retry delay to the default
-        this.retryDelayMs = this.defaultDelayInMs
-        console.debug(`Successful server request, resetting backoff delay to default for ${name}`)
-      }
-    } catch (e) {
-      this.scheduledFunctionExecuted = true
-      // when we fail do some backoff and retry later
-      if (this.retryDelayMs < this.MAX_DELAY_MS) {
-        this.retryDelayMs = this.calcBackoffTimeout(this.retryDelayMs)
-      } else {
-        this.retryDelayMs = this.MAX_DELAY_MS
-      }
-      console.debug(`Performing backoff because server not reached, delaying for ${this.retryDelayMs}ms for ${name}`)
-    }
-    // schedule the next drain
-    const delay = this.pumping ? this.retryDelayMs : this.INACTIVE_DELAY
-    window.setTimeout(() => this.schedule(name, fun), delay)
-  }
-
-  /**
-   * This function calculates the new timeout by doing exponential backoff and by
-   * applying some random jitter (somewhere between 0 and 1 second).
-   *
-   * @param currentTimeoutMs The current timeout in milliseconds.
-   * @returns The new timeout in milliseconds.
-   */
-  private calcBackoffTimeout(currentTimeoutMs: number): number {
-    return (currentTimeoutMs * 2) + (1000 * Math.random())
-  }
-
-  stop() {
-    this.pumping = false
-  }
-
-  isScheduledFunctionExecuted(): boolean {
-    return this.scheduledFunctionExecuted
-  }
 }

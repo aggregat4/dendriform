@@ -11,39 +11,57 @@ import { LocalEventLog } from './eventlog/eventlog-indexeddb'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
-// DOM initialisation functions that require the mounted DOM node
-import { init as opmlInit } from './view/action-opmlimport'
 
-async function initTree(treeName: string): Promise<Tree> {
-  const localEventLog = new LocalEventLog(treeName)
-  const remoteEventLog = new RemoteEventLog('/', treeName)
-  const eventPump = new EventPump(localEventLog, remoteEventLog)
-  const repository = new EventlogRepository(localEventLog)
-  const treeService = new TreeService(repository)
-  const treeServiceCommandHandler = new TreeServiceCommandHandler(treeService)
-  const commandHandler = new UndoableCommandHandler(treeServiceCommandHandler)
-  const treeActionRegistry = new TreeActionRegistry()
-  registerTreeActions(treeActionRegistry)
-  await localEventLog.init()
-  await eventPump.init()
-  eventPump.start()
-  await repository.init()
-  return new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
-}
+export class TreeManager {
+  private currentEventPump: EventPump = null
+  private currentTree: Promise<Tree> = null
 
-const initPromise = initTree('dendriform-eventlog')
+  private async createAndInitTree(treeName: string): Promise<Tree> {
+    if (this.currentEventPump !== null) {
+      await this.currentEventPump.deinit()
+      this.currentEventPump = null
+      const oldTree = await this.currentTree
+      oldTree.deinit()
+      this.currentTree = null
+    }
+    const localEventLog = new LocalEventLog(treeName)
+    const remoteEventLog = new RemoteEventLog('/', treeName)
+    this.currentEventPump = new EventPump(localEventLog, remoteEventLog)
+    const repository = new EventlogRepository(localEventLog)
+    const treeService = new TreeService(repository)
+    const treeServiceCommandHandler = new TreeServiceCommandHandler(treeService)
+    const commandHandler = new UndoableCommandHandler(treeServiceCommandHandler)
+    const treeActionRegistry = new TreeActionRegistry()
+    registerTreeActions(treeActionRegistry)
+    const tree = new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
+    this.currentTree = tree.init().then(() => tree)
+    this.currentEventPump.init()
+    return this.currentTree
+  }
 
-export function updateTree(nodeId: string) {
-  initPromise.then((tree) => tree.loadNode(nodeId))
-}
+  loadNode(nodeId: string) {
+    this.currentTree.then((tree) => tree.loadNode(nodeId))
+  }
 
-/**
- * Make sure to call mountTree only when DOMContentLoaded.
- * @param el The element to mount the tree component to.
- */
-export function mountTree(el: HTMLElement): void {
-  initPromise.then((tree) => {
-    mount(el, tree)
-    opmlInit(tree.getTreeElement())
-  })
+  /**
+   * Initialises the tree with the given name and mounts it to the given
+   * DOM element. It will deinitialise any previously initialised tree.
+   *
+   * Make sure to call mountTree only when DOMContentLoaded.
+   *
+   * @param el The element to mount the tree component to.
+   */
+  mountTree(el: HTMLElement, treeName: string): void {
+    this.createAndInitTree(treeName).then((tree) => mount(el, tree))
+  }
+
+  getAvailableTrees(): Promise<string[]> {
+    // TODO: try to get available trees from the server and in the fallback case
+    // at least return the default base tree that is always there (?? Maybe? or
+    // rather find out which ones we have locally? this would mean having a table
+    // with all trees locally as well and initialising that if it is empty with the
+    // default tree)
+    return Promise.resolve(['dendriform-eventlog'])
+  }
+
 }

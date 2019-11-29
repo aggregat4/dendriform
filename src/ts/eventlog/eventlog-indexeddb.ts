@@ -12,10 +12,10 @@ import {
 import Dexie from 'dexie'
 import {generateUUID} from '../utils/util'
 import {VectorClock, NumberVectorClockValues, StringVectorClockValues} from '../lib/vectorclock'
-import {ActivityIndicating, Subscription} from '../domain/domain'
+import {ActivityIndicating, Subscription, Initializeable} from '../domain/domain'
 import {LocalEventLogGarbageCollector} from './eventlog-indexeddb-gc'
 import {LocalEventLogIdMapper} from './eventlog-indexeddb-peerid-mapper'
-import {JobScheduler} from '../utils/jobscheduler'
+import {JobScheduler, FixedTimeoutStrategy} from '../utils/jobscheduler'
 
 /**
  * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.
@@ -60,7 +60,7 @@ class EventSubscription implements Subscription {
  *
  * TODO: do we need to make this multi document capable? Currently assumes one log, one document
  */
-export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicating {
+export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicating, Initializeable {
 
   private db: Dexie
   private readonly name: string
@@ -86,7 +86,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   private lastStoreMeasurement: number = 0
   private storeCount: number = 0
   private storageQueueDrainer: JobScheduler = new JobScheduler(
-    this.STORAGE_QUEUE_TIMEOUT_MS, this.drainStorageQueUnforced.bind(this))
+    new FixedTimeoutStrategy(this.STORAGE_QUEUE_TIMEOUT_MS), this.drainStorageQueUnforced.bind(this))
 
   constructor(readonly dbName: string) {
     this.name = dbName
@@ -112,7 +112,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     return this.counter
   }
 
-  async init(): Promise<LocalEventLog> {
+  async init(): Promise<void> {
     try {
       this.db = new Dexie(this.dbName)
       this.db.version(1).stores({
@@ -136,7 +136,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       // start garbage collector
       this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db.table('eventlog'))
       this.garbageCollector.start()
-      return this
     } catch (error) {
       console.error(`Error initialising indexeddb eventlog, note that Firefox does not (yet) allow IndexedDB in private browsing mode: `, error)
     }

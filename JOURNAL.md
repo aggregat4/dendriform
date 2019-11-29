@@ -1075,3 +1075,15 @@ I fixed it and now it seems to work.
 Everything that is not type checked and/or tested is basically broken.
 
 I should have a Typescript interface there too.
+
+## 2019-11-29 - Initialisation Lifecycle Done
+
+I now have a TreeManager that can create and initialise a new tree. This initialisation and deinitialisation cycle has been implemented on all relevant components.
+
+Was able to replace the custom Pump implementation by the new JobScheduler by adding the concept of backoff strategies for timeouts to it. Very nice.
+
+The manager is now hardcoded to know about one tree only, but really this should probably be extended with an indexeddb database that can be queried to get the available local trees and to merge that with the list of trees from the server.
+
+What I am unsure about there is how to deal with the initial request: if we can't contact the server even once, do we just create a tree with a default name? Does that mean that the server should also do this? Should we prevent any local trees from being created without even the initial server request?
+
+The latter would make things more consistent and to initially load and install dendriform you _need_ access to the server and therefore this requirement is not too onerous.

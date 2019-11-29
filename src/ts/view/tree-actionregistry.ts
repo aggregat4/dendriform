@@ -7,7 +7,7 @@ import { TreeNode } from './node-component'
 import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import { CommandExecutor } from './tree-helpers'
 import { TreeAction, TreeActionContext } from './tree-actions'
-import { importOpmlAction } from './action-opmlimport'
+import { importOpmlAction, mount as opmlMount, unmount as opmlUnmount } from './action-opmlimport'
 
 export class TreeActionRegistry {
   private readonly keyboardActions: Map<KbdEventType, TreeAction[]> = new Map()
@@ -27,6 +27,16 @@ export class TreeActionRegistry {
         action.handler(event, treeActionContext)
       }
     }
+  }
+
+  // TODO: this needs to be modeled better: some actions need acces to the dom to initialise themselves
+  // for example for creating a dialog or something
+  mountDialogs(element: Element): void {
+    opmlMount(element)
+  }
+
+  unmountDialogs(element: Element): void {
+    opmlUnmount(element)
   }
 
 }

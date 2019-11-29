@@ -2,7 +2,7 @@ import { VectorClock, StringVectorClockValues } from '../lib/vectorclock'
 import { Predicate } from '../utils/util'
 import { atomIdent } from '../lib/logootsequence.js'
 import { secondsSinceEpoch } from '../utils/dateandtime'
-import { Subscription } from '../domain/domain'
+import { Subscription, Initializeable } from '../domain/domain'
 
 export const enum EventType {
   ADD_OR_UPDATE_NODE,
@@ -95,7 +95,7 @@ export interface DEventSource {
   publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any>
 }
 
-export interface DEventLog extends DEventSource {
+export interface DEventLog extends DEventSource, Initializeable {
   /**
    *  A globally unique ID identifying this peer in a multi-peer environment
    */

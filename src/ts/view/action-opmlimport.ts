@@ -138,8 +138,12 @@ const opmlImportMenu = new OpmlImportDialog()
 // it can register custom elements and can put things under the root DOM node (for
 // dialogs for example)
 // TODO: do we like this? We need something like it but can we make it more general?
-export function init(rootElement: Element) {
+export function mount(rootElement: Element) {
   rootElement.appendChild(opmlImportMenu)
+}
+
+export function unmount(rootElement: Element) {
+  rootElement.removeChild(opmlImportMenu)
 }
 
 // show dialog with: File Upload button, Import button (no copy paste yet, or start with that?)

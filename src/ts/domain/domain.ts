@@ -2,6 +2,11 @@ import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCo
 import { toHtml, containsMarkup, markupHtml} from '../utils/markup'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 
+export interface Initializeable {
+  init(): Promise<void>
+  deinit(): Promise<void>
+}
+
 export interface RepositoryNode {
   _id: string,
   name: string,

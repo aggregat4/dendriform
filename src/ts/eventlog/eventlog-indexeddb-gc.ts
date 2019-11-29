@@ -1,6 +1,6 @@
 import { StoredEvent, storedEventComparator } from './eventlog-indexeddb'
 import { EventType, ReorderChildNodeEventPayload, DEventLog } from './eventlog'
-import { JobScheduler } from '../utils/jobscheduler'
+import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 
 class GcCandidate {
   constructor(readonly nodeId: string, readonly eventtype: EventType) {}
@@ -14,7 +14,7 @@ export class LocalEventLogGarbageCollector {
    * is higher than the last counter we do gc, otherwise we just sleep.
    */
   private lastGcCounter = -1
-  private garbageCollector: JobScheduler = new JobScheduler(this.GC_TIMEOUT_MS, this.gc.bind(this))
+  private garbageCollector: JobScheduler = new JobScheduler(new FixedTimeoutStrategy(this.GC_TIMEOUT_MS), this.gc.bind(this))
 
   constructor(readonly eventLog: DEventLog, readonly eventLogTable: any) {}
 

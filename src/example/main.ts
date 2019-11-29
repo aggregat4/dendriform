@@ -1,4 +1,4 @@
-import {updateTree, mountTree} from '../ts/tree'
+import {TreeManager} from '../ts/tree'
 
 function getHashValue(key: string): string {
   const matches = window.location.hash.match(new RegExp(`${key}=([^&]*)?`))
@@ -9,9 +9,12 @@ function getRequestedNodeId() {
   return getHashValue('node') || 'ROOT'
 }
 
+const treeManager = new TreeManager()
+
 function init() {
-  mountTree(document.body)
-  updateTree(getRequestedNodeId())
+  treeManager.getAvailableTrees()
+    .then(trees => treeManager.mountTree(document.body, trees[0]))
+    .then(() => treeManager.loadNode(getRequestedNodeId()))
 }
 
 // if we are already loaded then DOMContentLoaded will not fire again, just init
@@ -21,4 +24,4 @@ if (document.readyState !== 'loading') {
   document.addEventListener('DOMContentLoaded', init)
 }
 
-window.addEventListener('hashchange', () => updateTree(getRequestedNodeId()))
+window.addEventListener('hashchange', () => treeManager.loadNode(getRequestedNodeId()))

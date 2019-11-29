@@ -7,12 +7,21 @@ import {
   RelativeNodePosition,
   NODE_IS_NOT_DELETED,
   Subscription,
+  Initializeable,
 } from '../domain/domain'
 import { Repository } from '../repository/repository'
 import { MergeNameOrder } from './service'
 
-export class TreeService {
+export class TreeService implements Initializeable {
   constructor(readonly repo: Repository) {}
+
+  async init(): Promise<void> {
+    await this.repo.init()
+  }
+
+  async deinit(): Promise<void> {
+    await this.repo.deinit()
+  }
 
   loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<LoadedTree> {
     return this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren)

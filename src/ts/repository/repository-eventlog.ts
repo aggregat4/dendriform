@@ -3,7 +3,7 @@ import {Repository} from './repository'
 import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload, NodeFlags } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, ResolvedRepositoryNode } from '../domain/domain'
+import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, ResolvedRepositoryNode, Initializeable } from '../domain/domain'
 import { atomIdent } from '../lib/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 
@@ -28,7 +28,7 @@ class NodeChangedSubscription implements Subscription {
  * This is a repository implementation that uses an event log. It can be synchronised with a remote eventlog
  * to provide an offline capable, eventually consistent, multi-peer storage backend.
  */
-export class EventlogRepository implements Repository {
+export class EventlogRepository implements Repository, Initializeable {
 
   private parentChildMap = {}
   private childParentMap = {}
@@ -44,6 +44,7 @@ export class EventlogRepository implements Repository {
   constructor(readonly eventLog: DEventLog) {}
 
   async init(): Promise<void> {
+    await this.eventLog.init()
     await this.rebuildTreeStructureMaps()
     // This is not great: we rebuild the maps, then subscribe and theoretically we could get
     // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
@@ -54,9 +55,11 @@ export class EventlogRepository implements Repository {
     })
   }
 
-  deinit(): void {
+  async deinit(): Promise<void> {
     if (this.eventLogSubscription) {
       this.eventLogSubscription.cancel()
+      this.eventLogSubscription = null
+      await this.eventLog.deinit()
     }
   }
 
