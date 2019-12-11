@@ -3,7 +3,7 @@ import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload, CreateChildNodeCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
-import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode, NODE_IS_NOT_COLLAPSED, NODE_IS_NOT_COMPLETED, createNewResolvedRepositoryNodeWithContent, Initializeable } from '../domain/domain'
+import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode, NODE_IS_NOT_COLLAPSED, NODE_IS_NOT_COMPLETED, createNewResolvedRepositoryNodeWithContent, LifecycleAware } from '../domain/domain'
 import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
@@ -31,7 +31,7 @@ class TreeConfig {
   showCompleted: boolean = false
 }
 
-export class Tree implements CommandExecutor, RedomComponent, Initializeable {
+export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
   private readonly domCommandHandler = new DomCommandHandler()
   private currentRootNodeId: string
   private contentEl: Element

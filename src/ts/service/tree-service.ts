@@ -7,12 +7,12 @@ import {
   RelativeNodePosition,
   NODE_IS_NOT_DELETED,
   Subscription,
-  Initializeable,
+  LifecycleAware,
 } from '../domain/domain'
 import { Repository } from '../repository/repository'
 import { MergeNameOrder } from './service'
 
-export class TreeService implements Initializeable {
+export class TreeService implements LifecycleAware {
   constructor(readonly repo: Repository) {}
 
   async init(): Promise<void> {
@@ -27,7 +27,7 @@ export class TreeService implements Initializeable {
     return this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren)
       .then((tree) => {
         if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
-          // return this.initializeEmptyTree().then(() => this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren))
+          // TODO: handle this better. Is this an exception? this used to be initialize empty tree
         } else {
           return tree
         }

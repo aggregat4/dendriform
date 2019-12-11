@@ -1,7 +1,7 @@
-import {RepositoryNode, LoadedTree, RelativeNodePosition, Subscription, Initializeable} from '../domain/domain'
+import {RepositoryNode, LoadedTree, RelativeNodePosition, Subscription, LifecycleAware} from '../domain/domain'
 import { Predicate } from '../utils/util'
 
-export interface Repository extends Initializeable {
+export interface Repository extends LifecycleAware {
   createNode(id: string, name: string, content: string, synchronous: boolean): Promise<void>
   updateNode(node: RepositoryNode, synchronous: boolean): Promise<void>
   reparentNode(childId: string, parentId: string, position: RelativeNodePosition, synchronous: boolean): Promise<void>

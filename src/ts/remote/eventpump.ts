@@ -2,7 +2,7 @@ import { DEventLog, Events } from '../eventlog/eventlog'
 // Import without braces needed to make sure it exists under that name!
 import Dexie from 'dexie'
 import { RemoteEventLog } from './eventlog-remote'
-import { Initializeable } from '../domain/domain'
+import { LifecycleAware } from '../domain/domain'
 import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobscheduler'
 
 /**
@@ -24,7 +24,7 @@ import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobsche
  * the fetch of all local events and the start of our subscription. That seems too
  * hard for now. Instead this implementation polls the client and it polls the server.
  */
-export class EventPump implements Initializeable {
+export class EventPump implements LifecycleAware {
 
   private db: Dexie
   private readonly dbName: string

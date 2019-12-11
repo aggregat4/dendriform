@@ -12,7 +12,7 @@ import {
 import Dexie from 'dexie'
 import {generateUUID} from '../utils/util'
 import {VectorClock, NumberVectorClockValues, StringVectorClockValues} from '../lib/vectorclock'
-import {ActivityIndicating, Subscription, Initializeable} from '../domain/domain'
+import {ActivityIndicating, Subscription, LifecycleAware} from '../domain/domain'
 import {LocalEventLogGarbageCollector} from './eventlog-indexeddb-gc'
 import {LocalEventLogIdMapper} from './eventlog-indexeddb-peerid-mapper'
 import {JobScheduler, FixedTimeoutStrategy} from '../utils/jobscheduler'
@@ -60,7 +60,7 @@ class EventSubscription implements Subscription {
  *
  * TODO: do we need to make this multi document capable? Currently assumes one log, one document
  */
-export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicating, Initializeable {
+export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicating, LifecycleAware {
 
   private db: Dexie
   private readonly name: string
