@@ -21,7 +21,7 @@ export class TreeManager {
       await this.currentEventPump.deinit()
       this.currentEventPump = null
       const oldTree = await this.currentTree
-      oldTree.deinit()
+      await oldTree.deinit()
       this.currentTree = null
     }
     const localEventLog = new LocalEventLog(treeName)
