@@ -1093,3 +1093,11 @@ The latter would make things more consistent and to initially load and install d
 Thinking about the previous entry, perhaps we need to make the mode on how to operate in dendriform configurable: whatever integrates dendriform can decide whether it is just purely offline with some default eventlogname or whether preliminary contact to the server is needed.
 
 This would support all use cases I think.
+
+## 2019-12-11 - Rollup and ESM modules
+
+As I think about how to implement the configurability for the treemanager I realized that we need to have our own javascript on the dendriform server to instantiate and configure the tree.
+
+This brings up the question on how to consume the tree.bundle.js file from that page.
+
+I started looking into pure ESM deployments and using script type=module to load those. The rollup configuration to split along node_modules boundaries is done but I am unsure on how to manage those imports in the index.html (manually?) and I still havce trouble debugging typescript in Chrome and Firefox using the rollup generated bundles and sourcemaps (not seeing variables correctly).
