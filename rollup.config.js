@@ -1,3 +1,4 @@
+import path from 'path'
 import commonjs from 'rollup-plugin-commonjs'
 import resolve from 'rollup-plugin-node-resolve'
 import typescript from 'rollup-plugin-typescript'
@@ -11,10 +12,18 @@ module.exports = {
     tree: 'src/ts/tree.ts'
   },
   output: {
-    dir: 'rdist',
-    entryFileNames: '[name].bundle.js',
-    format: 'amd',
+    dir: 'dist',
+    entryFileNames: '[name].[hash].mjs',
+    format: 'esm',
     sourcemap: true
+  },
+  manualChunks(id) {
+    if (id.includes('node_modules')) {
+      // Return the directory name following the last `node_modules`.
+      // Usually this is the package, but it could also be the scope.
+      const dirs = id.split(path.sep);
+      return dirs[dirs.lastIndexOf('node_modules') + 1];
+    }
   },
   plugins: [
     // for resolving node_modules dependencies
@@ -28,12 +37,12 @@ module.exports = {
     }),
     typescript(),
     // minifier that can do es6
-    terser(),
-    // off main thread: I just use it so the generated bundles are loadable (missing "define"), but can help with webworkers as well
+    terser()
+/*    // off main thread: I just use it so the generated bundles are loadable (missing "define"), but can help with webworkers as well
     OMT(),
     visualizer({
       filename: 'bundle-size.html',
       template: 'sunburst',
-    })
+    }) */
   ]
 }
