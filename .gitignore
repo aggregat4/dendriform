@@ -5,3 +5,5 @@ rdist/
 bundle-size.html
 target/
 node/
+.settings/
+.project
