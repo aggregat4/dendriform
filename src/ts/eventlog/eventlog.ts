@@ -1,6 +1,6 @@
 import { VectorClock, StringVectorClockValues } from '../lib/vectorclock'
 import { Predicate } from '../utils/util'
-import { atomIdent } from '../lib/logootsequence.js'
+import { atomIdent } from '../lib/logootsequence.mjs'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 import { Subscription, LifecycleAware } from '../domain/domain'
 

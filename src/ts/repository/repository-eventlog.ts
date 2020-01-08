@@ -4,7 +4,7 @@ import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPay
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
 // tslint:disable-next-line:max-line-length
 import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, ResolvedRepositoryNode, LifecycleAware } from '../domain/domain'
-import { atomIdent } from '../lib/logootsequence.js'
+import { atomIdent } from '../lib/logootsequence.mjs'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 
 class NodeNotFoundError extends Error {}

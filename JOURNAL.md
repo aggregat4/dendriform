@@ -1133,3 +1133,11 @@ Then all of a sudden rollup is no longer available. Maybe that is an effect of u
 Instead of having this installed globally I wanted to use npx to run the rollup binary from the node_modules folder and started refactoring the build scripts in package.json.
 
 I got stuck there because if I invoke rollup with npx I get a weird `Cannot read property 'include' of null`.
+
+Ok, so that works now, maybe just an npm ci was missing. Not sure.
+
+Now the problem is that while node 13 (also 12) does understand modules out of the box, it only treats .mjs files as modules or js files that have a package.json next to them identifying them as modules.
+
+This is a problem because apparently Typescript does NOT understand the .mjs extension. <sigh>
+
+Not sure what to do now. I could move all the js files that are modules into a subdirectory and add a package.json file?
