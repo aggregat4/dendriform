@@ -1,7 +1,7 @@
 import Dexie from 'dexie'
 import { VectorClock, StringVectorClockValues, NumberVectorClockValues } from '../lib/vectorclock'
-import { StoredEvent } from './eventlog-indexeddb'
 import { DEvent } from './eventlog'
+import { StoredEvent } from './eventlog-storedevent'
 
 export class LocalEventLogIdMapper {
   readonly db: Dexie

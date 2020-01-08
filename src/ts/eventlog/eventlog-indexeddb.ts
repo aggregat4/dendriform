@@ -10,33 +10,13 @@ import {
   createNewAddOrUpdateNodeEventPayload,
 } from './eventlog'
 import Dexie from 'dexie'
-import {generateUUID} from '../utils/util'
-import {VectorClock, NumberVectorClockValues, StringVectorClockValues} from '../lib/vectorclock'
-import {ActivityIndicating, Subscription, LifecycleAware} from '../domain/domain'
-import {LocalEventLogGarbageCollector} from './eventlog-indexeddb-gc'
-import {LocalEventLogIdMapper} from './eventlog-indexeddb-peerid-mapper'
-import {JobScheduler, FixedTimeoutStrategy} from '../utils/jobscheduler'
-
-/**
- * "Database Schema" for events stored in the 'eventlog' table in the indexeddb.
- */
-export interface StoredEvent {
-  eventid: number,
-  eventtype: number,
-  treenodeid: string,
-  peerid: string,
-  vectorclock: NumberVectorClockValues,
-  payload: EventPayloadType,
-}
-
-export function storedEventComparator(a: StoredEvent, b: StoredEvent): number {
-  const vcComp = VectorClock.compareValues(a.vectorclock, b.vectorclock)
-  if (vcComp === 0) {
-    return a.peerid < b.peerid ? -1 : (a.peerid > b.peerid ? 1 : 0)
-  } else {
-    return vcComp
-  }
-}
+import { generateUUID } from '../utils/util'
+import { VectorClock, StringVectorClockValues } from '../lib/vectorclock'
+import { ActivityIndicating, Subscription, LifecycleAware } from '../domain/domain'
+import { LocalEventLogGarbageCollector } from './eventlog-indexeddb-gc'
+import { LocalEventLogIdMapper } from './eventlog-indexeddb-peerid-mapper'
+import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
+import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
 
 interface PeerMetadata {
   eventlogid: string,

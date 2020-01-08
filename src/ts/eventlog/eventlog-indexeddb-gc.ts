@@ -1,6 +1,6 @@
-import { StoredEvent, storedEventComparator } from './eventlog-indexeddb'
 import { EventType, ReorderChildNodeEventPayload, DEventLog } from './eventlog'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
+import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
 
 class GcCandidate {
   constructor(readonly nodeId: string, readonly eventtype: EventType) {}
