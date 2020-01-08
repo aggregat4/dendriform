@@ -1104,15 +1104,17 @@ I started looking into pure ESM deployments and using script type=module to load
 
 ## 2019-12-18 - Debugging ESM Deployment
 
-Got a bit further with direct ES Module deployment: the approach to split on node_modules boundaries seems to work in rollup. The thirdparties all get their own hashed file and both tree and example from me are converted to an mjs file that is basically an ES6 module. Those entrypoints also have relative imports to the other dependencies. If I now change the reference in index.html to the example entrypoint (with a type of module) it seems to load fine in Firefox. And the app works.
+Got a bit further with direct ES Module deployment: the approach to split on node_modules boundaries seems to work in rollup. The thirdparties all get their own hashed file and both the tree and example entry points are converted to an mjs file that is basically an ES6 module.
+
+Those entrypoints also have relative imports to the other dependencies. If I now change the reference in index.html to the example entrypoint (with a type of module) it seems to load fine in Firefox. And the app works.
 
 I also figured out why debugging is fucked in Chrome and Firefox: the terser plugin in rollup apparently interferes with the build. When I leave out terser I can debug the app fine. Will investigate.
 
-ES6 Support in browsers: <https://kangax.github.io/compat-table/es6/>.
+ES6 Support in browsers: <https://kangax.github.io/compat-table/es6/>. Seems like modern browsers including mobile are all fine with ES6.
 
-Typescript compiler options, for reference when editing tsconfig.json: <https://www.typescriptlang.org/docs/handbook/compiler-options.html>.
+Typescript compiler options for reference when editing tsconfig.json: <https://www.typescriptlang.org/docs/handbook/compiler-options.html>.
 
-I removed all traces of babel and webpack from my build rebuilt the package-lock file to reflect that. Will investigate some alternative minification but I'm not sure it is worth it when we consider gzip compression.
+I removed all traces of babel and webpack from my build and rebuilt the package-lock file to reflect that. Will investigate some alternative minification but I'm not sure it is worth it when we consider gzip compression.
 
 Minification for ES6 still seems to be pretty raw. Terser always pops up as the main choice but it does not work for me. Uglify is not an option and there is a babel minifier that is in beta.
 
