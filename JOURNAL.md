@@ -1119,3 +1119,17 @@ I removed all traces of babel and webpack from my build and rebuilt the package-
 Minification for ES6 still seems to be pretty raw. Terser always pops up as the main choice but it does not work for me. Uglify is not an option and there is a babel minifier that is in beta.
 
 Will remain unminified for now and assume that gzip is fine.
+
+## 2020-01-08 : Continuing the Build Process Cleanup
+
+Continuing where I left off. Cleaned up some dependencies and made the project issue free.
+
+When trying to run tests I ran into the problem that jest requires babel to convert js files, this is triggered by the `transform` configuration in the jest.config.js. I tried removing this but that caused the same problem when node encountered export or import since node before version 12 has no concept of ES modules.
+
+So I decided to upgrade to node 12 and in the process wanted to make sure I make my build environment a bit more explicit. So I added constraints to the package.json to specify what versions I require. Then I used nvm to install node 12 and then I wanted to build my project.
+
+Then all of a sudden rollup is no longer available. Maybe that is an effect of using nvm?
+
+Instead of having this installed globally I wanted to use npx to run the rollup binary from the node_modules folder and started refactoring the build scripts in package.json.
+
+I got stuck there because if I invoke rollup with npx I get a weird `Cannot read property 'include' of null`.

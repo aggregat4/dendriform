@@ -6,12 +6,17 @@
     "type": "git",
     "url": "https://github.com/aggregat4/dendriform"
   },
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.13.0"
+  },
   "main": "main.js",
   "scripts": {
     "clean": "rm -rf node_modules dist && mkdir dist",
-    "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && rollup -c rollup.config.js",
+    "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && npx rollup -c rollup.config.js",
     "build-and-test": "npm run build && npm run test",
     "serve": "http-server -p 9090 dist/",
+    "watchold": "onchange './src/**/*.*' './*.*' -i -- npm run build-and-test -s",
     "watch": "onchange './src/**/*.*' './*.*' -i -- npm run build-and-test -s",
     "sloc": "node_modules/.bin/sloc src",
     "test": "npx jest",
@@ -22,6 +27,7 @@
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "Apache-2.0",
   "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.7.5",
     "@types/dexie": "^1.3.1",
     "@types/file-saver": "^2.0.1",
     "@types/hyperscript": "0.0.3",
@@ -31,6 +37,7 @@
     "lodash": ">=4.17.15",
     "onchange": "^6.1.0",
     "parallelshell": "^3.0.2",
+    "rollup": "^1.28.0",
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-off-main-thread": "^1.1.0",

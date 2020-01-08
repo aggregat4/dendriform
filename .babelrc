@@ -1,0 +1,9 @@
+// As per https://stackoverflow.com/a/52224329/1996 , this is needed to make jest use babel 
+// to transpile es6 so it can run its tests
+{
+  "env": {
+    "test": {
+      "plugins": ["@babel/plugin-transform-modules-commonjs"]
+    }
+  }
+}
