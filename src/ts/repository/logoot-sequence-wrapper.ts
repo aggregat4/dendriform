@@ -1,4 +1,4 @@
-import {atomIdent, emptySequence, insertAtom, genAtomIdent, compareAtomIdents} from '../lib/logootsequence.mjs'
+import {atomIdent, emptySequence, insertAtom, genAtomIdent, compareAtomIdents} from '../lib/modules/logootsequence.js'
 
 function insertMut(sequence, index, atom) {
   sequence.splice(index, 0, atom)

@@ -1138,6 +1138,10 @@ Ok, so that works now, maybe just an npm ci was missing. Not sure.
 
 Now the problem is that while node 13 (also 12) does understand modules out of the box, it only treats .mjs files as modules or js files that have a package.json next to them identifying them as modules.
 
-This is a problem because apparently Typescript does NOT understand the .mjs extension. <sigh>
+This is a problem because apparently Typescript does NOT understand the .mjs extension. sigh
 
 Not sure what to do now. I could move all the js files that are modules into a subdirectory and add a package.json file?
+
+## 2020-01-10 - Reverting To Jest
+
+I have reverted to jest with babel to run tests since I could not get the combination of typescript + javascript + modules + node + jest to work otherwise. I could not identify any alternative testing framework that would work well with this combo out of the box. Bit sad.
