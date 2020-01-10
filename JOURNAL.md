@@ -1145,3 +1145,8 @@ Not sure what to do now. I could move all the js files that are modules into a s
 ## 2020-01-10 - Reverting To Jest
 
 I have reverted to jest with babel to run tests since I could not get the combination of typescript + javascript + modules + node + jest to work otherwise. I could not identify any alternative testing framework that would work well with this combo out of the box. Bit sad.
+
+## 2020-01-10 - Investigation Into IDB
+
+I want to try moving to use IDB instead of Dexie. It looks like a nice library, it is tiny and the API is more explicit and clearer I think. But maybe not so convenient. A plus is the native Typescript support with typed schemas.
+
