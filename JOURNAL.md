@@ -1150,3 +1150,4 @@ I have reverted to jest with babel to run tests since I could not get the combin
 
 I want to try moving to use IDB instead of Dexie. It looks like a nice library, it is tiny and the API is more explicit and clearer I think. But maybe not so convenient. A plus is the native Typescript support with typed schemas.
 
+I also want to try out lit-html. It looks neat, can probably do what I want, has escaping of content (I think) and it has no dependencies. Hyperscript has an annoying html-element dependency that I don't really need.
