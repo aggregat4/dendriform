@@ -11,15 +11,18 @@
     "npm": ">=6.13.0"
   },
   "main": "main.js",
+  "watch": {
+    "build-and-test": "./src/**/*.*"
+  },
   "scripts": {
     "clean": "rm -rf node_modules dist && mkdir dist",
     "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && npx rollup -c rollup.config.js",
     "build-and-test": "npm run build && npm run test",
-    "watch": "npx onchange './src/**/*.*' './*.*' -i -- npm run build-and-test -s",
-    "sloc": "npx sloc src",
+    "watch": "npm-watch",
     "test": "npx jest",
     "testcoverage": "npx jest --coverage",
     "test-watch": "npx jest --watch",
+    "sloc": "npx sloc src",
     "unused-exports": "npx ts-unused-exports tsconfig.json"
   },
   "author": "Boris Terzic <boris@terzic.be>",
@@ -35,6 +38,7 @@
     "babel-jest": "^24.9.0",
     "jest": "^24.9.0",
     "lodash": ">=4.17.15",
+    "npm-watch": "^0.6.0",
     "onchange": "^6.1.0",
     "parallelshell": "^3.0.2",
     "rollup": "^1.29.0",
@@ -56,6 +60,7 @@
     "dexie": "^2.0.4",
     "file-saver": "^2.0.2",
     "hyperscript": "^2.0.2",
+    "idb": "^5.0.0",
     "redom": "^3.24.3"
   }
 }
