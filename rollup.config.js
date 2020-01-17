@@ -1,7 +1,8 @@
 import path from 'path'
 import commonjs from 'rollup-plugin-commonjs'
 import resolve from 'rollup-plugin-node-resolve'
-import typescript from 'rollup-plugin-typescript'
+//import typescript from 'rollup-plugin-typescript2'
+import ts from '@wessberg/rollup-plugin-ts'
 //import OMT from 'rollup-plugin-off-main-thread'
 import visualizer from 'rollup-plugin-visualizer'
 
@@ -34,7 +35,7 @@ module.exports = {
         'node_modules/file-saver/dist/FileSaver.min.js': [ 'saveAs' ]
       }
     }),
-    typescript(),
+    ts(),
     visualizer({
       filename: 'bundle-size.html',
       template: 'treemap',

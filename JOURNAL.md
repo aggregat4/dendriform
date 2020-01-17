@@ -1151,3 +1151,9 @@ I have reverted to jest with babel to run tests since I could not get the combin
 I want to try moving to use IDB instead of Dexie. It looks like a nice library, it is tiny and the API is more explicit and clearer I think. But maybe not so convenient. A plus is the native Typescript support with typed schemas.
 
 I also want to try out lit-html. It looks neat, can probably do what I want, has escaping of content (I think) and it has no dependencies. Hyperscript has an annoying html-element dependency that I don't really need.
+
+## 2020-01-17 - Conversion to IDB
+
+Finished converting the first file to idb, looks nice so far, have not tried to run anything concretely yet. Getting weird type errors when I try to import the idb library with async iterators. I hope this won't cause trouble later.
+
+Also the rollup typescript plugin does not output any type errors!? It's basically useless in build for getting warnings or errors. I switched to a different version but I'm not sure whether that produces sensible output.

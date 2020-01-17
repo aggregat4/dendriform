@@ -1,6 +1,7 @@
 import { EventType, ReorderChildNodeEventPayload, DEventLog } from './eventlog'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
-import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
+import { StoredEvent, storedEventComparator, EventStoreSchema } from './eventlog-storedevent'
+import { IDBPDatabase } from 'idb'
 
 class GcCandidate {
   constructor(readonly nodeId: string, readonly eventtype: EventType) {}
@@ -16,7 +17,7 @@ export class LocalEventLogGarbageCollector {
   private lastGcCounter = -1
   private garbageCollector: JobScheduler = new JobScheduler(new FixedTimeoutStrategy(this.GC_TIMEOUT_MS), this.gc.bind(this))
 
-  constructor(readonly eventLog: DEventLog, readonly eventLogTable: any) {}
+  constructor(readonly eventLog: DEventLog, readonly db: IDBPDatabase<EventStoreSchema>) {}
 
   start(): void {
     this.garbageCollector.start(false)
