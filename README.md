@@ -119,6 +119,7 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
+1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
 1. BUG: The popup menu does not take into account window borders, especially the bottom is a problem. It gets hidden by the browser window when it is opened near the bottom.
 1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it?
 1. Try out lit-html as an alternative to hyperscript for templating (does event handlers as well as efficient dom updates)

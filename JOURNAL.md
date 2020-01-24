@@ -1157,3 +1157,19 @@ I also want to try out lit-html. It looks neat, can probably do what I want, has
 Finished converting the first file to idb, looks nice so far, have not tried to run anything concretely yet. Getting weird type errors when I try to import the idb library with async iterators. I hope this won't cause trouble later.
 
 Also the rollup typescript plugin does not output any type errors!? It's basically useless in build for getting warnings or errors. I switched to a different version but I'm not sure whether that produces sensible output.
+
+## 2020-01-24 - Continuing with IDB
+
+I need to continue converting code to use IDB but I have run into the fact that the current garbage collection code is woefully inefficient. It seems to work so far so maybe I can just leave it, but it nags me.
+
+Let's just do the conversion first. Bite through this.
+
+Converted all Dexie code to IDB and very happy with it. If the bulk add and delete implementions I made are working then I think this is superior to dexie. Especially the support for types through schemas is really nice.
+
+Additionally cleaned up some dependencies (removed Dexie).
+
+Found out that rollup is finally building a typescript plugin that is sensible with support for type errors. This means that as soon as <https://github.com/rollup/plugins/issues/105> is resolved I should be able to migrate to the official plugin. That issue also confirmed that my current choice for the `@wessberg/rollup-plugin-ts` plugin was correct.
+
+Our bundle size is now reduced to 210 KB. Next up would replacing hyperscript with lit-html.
+
+Also an idea: rename the 2 javascript third party deps I have to .ts and treat them as typescript files. This may make jest work without babel?
