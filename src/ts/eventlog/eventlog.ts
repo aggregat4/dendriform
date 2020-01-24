@@ -10,8 +10,6 @@ export const enum EventType {
   REORDER_CHILD,
 }
 
-export const ALL_EVENT_TYPES = [EventType.ADD_OR_UPDATE_NODE, EventType.REORDER_CHILD, EventType.REPARENT_NODE]
-
 export const enum NodeFlags {
   deleted = 1,
   collapsed = 2,

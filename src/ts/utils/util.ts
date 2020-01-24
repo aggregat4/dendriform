@@ -271,16 +271,14 @@ export function findFirst<T>(array: T[], predicate: (T) => boolean): T {
   return null
 }
 
-export function assert(condition, message: string): void {
+function assert(condition: boolean, message: string): void {
   if (!condition) {
     throw new Error(message || 'Assertion failed')
   }
 }
 
 export function assertNonEmptyString(str: string): void {
-  if (str === undefined || str === null || str === '' ) {
-    throw new Error('String must no be empty')
-  }
+  return assert(str === undefined || str === null || str === '', 'String must no be empty')
 }
 
 const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K']
@@ -312,12 +310,4 @@ export function parseXML(content: string): Document {
   const doc = parser.parseFromString(content, 'application/xml')
   // TODO: DOMParser returns an error document instead of throwing an exception on parsing, catch that
   return doc
-}
-
-export function waitForThen(condition: () => boolean, action: () => void, delay: number) {
-  if (condition()) {
-    action()
-  } else {
-    window.setTimeout(() => { waitForThen(condition, action, delay) }, delay)
-  }
 }

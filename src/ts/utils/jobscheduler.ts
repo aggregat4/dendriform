@@ -2,7 +2,7 @@ export interface TimeoutStrategy {
   calcNewTimeout(success: boolean): number
 }
 
-export class FixedTimeoutStrategy {
+export class FixedTimeoutStrategy implements TimeoutStrategy {
   constructor(readonly timeout: number) {}
 
   calcNewTimeout(success: boolean) {
@@ -10,7 +10,7 @@ export class FixedTimeoutStrategy {
   }
 }
 
-export class BackoffWithJitterTimeoutStrategy {
+export class BackoffWithJitterTimeoutStrategy implements TimeoutStrategy {
   private previousTimeout: number
 
   constructor(readonly timeout: number, readonly maxTimeout: number) {

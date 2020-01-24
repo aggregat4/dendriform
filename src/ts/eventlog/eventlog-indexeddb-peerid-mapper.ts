@@ -1,22 +1,36 @@
-import Dexie from 'dexie'
 import { VectorClock, StringVectorClockValues, NumberVectorClockValues } from '../lib/vectorclock'
 import { DEvent } from './eventlog'
 import { StoredEvent } from './eventlog-storedevent'
+import { DBSchema, IDBPDatabase, openDB } from 'idb'
+
+interface PeerIdMapping {
+  externalid: string,
+  internalid: number,
+}
+
+interface PeerIdMappingSchema extends DBSchema {
+  'peerid-mapping': {
+    key: string,
+    value: PeerIdMapping,
+  }
+}
 
 export class LocalEventLogIdMapper {
-  readonly db: Dexie
+  private db: IDBPDatabase<PeerIdMappingSchema>
   private externalToInternalIdMap: Map<string, number>
   private internalToExternalIdMap: Map<number, string>
 
-  constructor(readonly dbName: string) {
-    this.db = new Dexie(dbName)
-  }
+  constructor(readonly dbName: string) {}
 
   async init(): Promise<void> {
-    this.db.version(1).stores({
-      peerid_mapping: 'externalid', // columns: externalid, internalid
+    this.db = await openDB<PeerIdMappingSchema>(this.dbName, 1, {
+      upgrade(db) {
+        db.createObjectStore('peerid-mapping', {
+          keyPath: 'externalid',
+          autoIncrement: false,
+        })
+      },
     })
-    await this.db.open()
     await this.loadPeerIdMapping()
   }
 
@@ -25,7 +39,7 @@ export class LocalEventLogIdMapper {
   }
 
   private async loadPeerIdMapping() {
-    return this.db.table('peerid_mapping').toArray().then(mappings => {
+    return this.db.getAll('peerid-mapping').then(mappings => {
       this.externalToInternalIdMap = new Map()
       this.internalToExternalIdMap = new Map()
       for (const mapping of mappings) {
@@ -38,10 +52,10 @@ export class LocalEventLogIdMapper {
   private async savePeerIdMapping() {
     const mappings = []
     for (const [key, value] of this.externalToInternalIdMap.entries()) {
-      mappings.push({externalid: key, internalid: value})
+      const mapping = {externalid: key, internalid: value}
+      mappings.push(mapping)
+      await this.db.put('peerid-mapping', mapping)
     }
-    return this.db.table('peerid_mapping').bulkPut(mappings)
-      .catch(error => console.error(`savePeerIdMapping error: `, error))
   }
 
   storedEventToDEventMapper(ev: StoredEvent): DEvent {

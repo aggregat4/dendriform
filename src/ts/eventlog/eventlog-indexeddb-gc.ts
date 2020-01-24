@@ -65,7 +65,7 @@ export class LocalEventLogGarbageCollector {
     const gcCandidates = []
     // toArray() seems to be significantly (10x?) faster than .each() but
     // it does load everything in memory, is this ok?
-    return this.eventLogTable.toArray().then(events => {
+    return this.db.getAll('events').then(events => {
       for (const ev of events) {
         const key = this.keyForEvent(ev)
         eventCounter[key] = eventCounter[key] ? eventCounter[key] + 1 : 1
@@ -102,8 +102,8 @@ export class LocalEventLogGarbageCollector {
     }
   }
 
-  private garbageCollect(candidate: GcCandidate): Promise<any> {
-    return this.eventLogTable.where('[eventtype+treenodeid]').equals([candidate.eventtype, candidate.nodeId]).toArray()
+  private async garbageCollect(candidate: GcCandidate): Promise<any> {
+    return this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [candidate.eventtype, candidate.nodeId])
       .then((nodeEvents: StoredEvent[]) => {
         // based on the eventtype we may need to partition the events for a node even further
         const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(nodeEvents, candidate.eventtype)
@@ -115,7 +115,18 @@ export class LocalEventLogGarbageCollector {
           const eventsToDelete = this.findEventsToPrune(pruneCandidates)
           if (eventsToDelete.length > 0) {
             // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
-            return this.eventLogTable.bulkDelete(eventsToDelete.map((e) => e.eventid))
+            const tx = this.db.transaction('events', 'readwrite')
+            try {
+              // This is an efficient bulk delete that does not wait for the success callback, inspired by
+              // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
+              let i = 0
+              for (; i < eventsToDelete.length; i++) {
+                tx.store.delete(eventsToDelete[i].eventid)
+              }
+              return tx.done
+            } catch (error) {
+              console.error(`store error: `, error)
+            }
           }
         }
       })

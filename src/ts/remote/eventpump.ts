@@ -1,9 +1,21 @@
 import { DEventLog, Events } from '../eventlog/eventlog'
-// Import without braces needed to make sure it exists under that name!
-import Dexie from 'dexie'
 import { RemoteEventLog } from './eventlog-remote'
 import { LifecycleAware } from '../domain/domain'
 import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobscheduler'
+import { IDBPDatabase, DBSchema, openDB } from 'idb'
+
+interface EventPumpMetadata {
+  id: string,
+  maxlocalcounter: number,
+  maxservercounter: number,
+}
+
+interface EventPumpSchema extends DBSchema {
+  'metadata': {
+    key: string,
+    value: EventPumpMetadata,
+  }
+}
 
 /**
  * An event pump connects an event log to a remote server and a local event log
@@ -26,7 +38,7 @@ import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobsche
  */
 export class EventPump implements LifecycleAware {
 
-  private db: Dexie
+  private db: IDBPDatabase<EventPumpSchema>
   private readonly dbName: string
   private readonly DEFAULT_DELAY_MS = 5000
   private readonly MAX_DELAY_MS = 60 * 1000
@@ -51,11 +63,14 @@ export class EventPump implements LifecycleAware {
 
   async init(): Promise<void> {
     await this.localEventLog.init()
-    this.db = new Dexie(this.dbName)
-    this.db.version(1).stores({
-      metadata: 'id', // columns: id, maxlocalcounter, maxservercounter (the id is synthetic, we just need it to identify the rows)
+    this.db = await openDB<EventPumpSchema>(this.dbName, 1, {
+      upgrade(db) {
+        db.createObjectStore('metadata', {
+          keyPath: 'id',
+          autoIncrement: false,
+        })
+      },
     })
-    await this.db.open()
     await this.loadOrCreateMetadata()
     this.localEventPump.start(true)
     this.remoteEventPump.start(true)
@@ -72,8 +87,8 @@ export class EventPump implements LifecycleAware {
     }
   }
 
-  private async loadOrCreateMetadata(): Promise<void> {
-    const metadata = await this.db.table('metadata').toArray()
+  private async loadOrCreateMetadata(): Promise<any> {
+    const metadata = await this.db.getAll('metadata')
     if (!metadata || metadata.length === 0) {
       this.maxServerCounter = -1
       this.maxLocalCounter = -1
@@ -85,14 +100,14 @@ export class EventPump implements LifecycleAware {
     }
   }
 
-  private async saveMetadata(): Promise<void> {
+  private async saveMetadata(): Promise<any> {
     const metadata = {
       id: this.dbName,
       maxservercounter: this.maxServerCounter,
       maxlocalcounter: this.maxLocalCounter,
     }
     try {
-      return this.db.table('metadata').put(metadata)
+      return this.db.put('metadata', metadata)
     } catch (error) {
       throw Error(`Error saving metadata: ${error}`)
     }
