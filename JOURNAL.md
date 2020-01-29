@@ -1173,3 +1173,15 @@ Found out that rollup is finally building a typescript plugin that is sensible w
 Our bundle size is now reduced to 210 KB. Next up would replacing hyperscript with lit-html.
 
 Also an idea: rename the 2 javascript third party deps I have to .ts and treat them as typescript files. This may make jest work without babel?
+
+## 2020-01-29 - Testing IDB
+
+Testing the idb integration and found some issues. I did have code that was expecting async iterators but you need the extra idb package that I can not currently import correctly. This is ok since that would reduce my browser compatibility significantly.
+
+Rewrote the async iterator code to just use a cursor.
+
+Trying to test the new idb implementation I realized I would have to manually modify the index.html each time I build the code because the filenames for all entries now contain hashes. I went looking for rollup plugins to do this and had to weed through 2 other more common google hits that were worthless before I came across `rollup-plugin-html2` which even allows for injecting the script tag as a module.
+
+I had to add an http server to the npm scripts because with the `./` syntax of the module imports in index.html Chrome would no longer load the js files because of cross origin errors.
+
+And the application seems to work, merging this into master.
