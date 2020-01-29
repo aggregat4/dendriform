@@ -4,8 +4,9 @@ import resolve from 'rollup-plugin-node-resolve'
 import ts from '@wessberg/rollup-plugin-ts'
 //import OMT from 'rollup-plugin-off-main-thread'
 import visualizer from 'rollup-plugin-visualizer'
+import html2 from 'rollup-plugin-html2'
 
-module.exports = {
+export default {
   input: {
     example: 'src/example/main.ts',
     tree: 'src/ts/tree.ts'
@@ -25,6 +26,15 @@ module.exports = {
     }
   },
   plugins: [
+    // adds the generated bundles as es6 modules to our index.html (because names contain content hashes)
+    html2({
+      template: 'src/example/index.html',
+      file: 'index.html',
+      modules: true,
+      // This plugin always starts the path of the file with / which is the root context and causes the resolution to fail
+      // This is a workaround for that.
+      onlinePath: '.',
+    }),
     // for resolving node_modules dependencies
     resolve(),
     // for old schoold modules that are not es6
@@ -40,6 +50,6 @@ module.exports = {
     visualizer({
       filename: 'bundle-size.html',
       template: 'treemap',
-    })
+    }),
   ]
 }

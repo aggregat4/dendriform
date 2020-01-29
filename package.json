@@ -12,11 +12,11 @@
   },
   "main": "main.js",
   "watch": {
-    "build-and-test": "./src/**/*.*"
+    "build-test": "./src/**/*.*"
   },
   "scripts": {
     "clean": "rm -rf dist && mkdir dist",
-    "build": "cp src/css/*.css dist && cp src/example/*.css dist && cp src/example/*.html dist && npx rollup -c rollup.config.js",
+    "build": "cp src/css/*.css dist && cp src/example/*.css dist && npx rollup -c rollup.config.js",
     "test": "npx jest",
     "build-test": "npm run build && npm run test",
     "clean-build-test": "npm run clean && npm run build && npm run test",
@@ -24,7 +24,8 @@
     "testcoverage": "npx jest --coverage",
     "test-watch": "npx jest --watch",
     "sloc": "npx sloc src",
-    "unused-exports": "npx ts-unused-exports tsconfig.json"
+    "unused-exports": "npx ts-unused-exports tsconfig.json",
+    "serve": "npx http-server dist"
   },
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "Apache-2.0",
@@ -42,6 +43,7 @@
     "npm-watch": "0.6.0",
     "rollup": "1.29.1",
     "rollup-plugin-commonjs": "10.1.0",
+    "rollup-plugin-html2": "^0.6.0",
     "rollup-plugin-node-resolve": "5.2.0",
     "rollup-plugin-off-main-thread": "1.1.0",
     "rollup-plugin-typescript": "1.0.1",
