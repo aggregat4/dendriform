@@ -104,7 +104,7 @@ export class LocalEventLogGarbageCollector {
 
   private async garbageCollect(candidate: GcCandidate): Promise<any> {
     return this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [candidate.eventtype, candidate.nodeId])
-      .then((nodeEvents: StoredEvent[]) => {
+      .then(async (nodeEvents: StoredEvent[]) => {
         // based on the eventtype we may need to partition the events for a node even further
         const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(nodeEvents, candidate.eventtype)
         for (const pruneCandidates of arraysToPrune) {
@@ -121,7 +121,7 @@ export class LocalEventLogGarbageCollector {
               // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
               let i = 0
               for (; i < eventsToDelete.length; i++) {
-                tx.store.delete(eventsToDelete[i].eventid)
+                await tx.store.delete(eventsToDelete[i].eventid)
               }
               return tx.done
             } catch (error) {

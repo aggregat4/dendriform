@@ -212,7 +212,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       let i = 0
       for (; i < mappedEvents.length; i++) {
         // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
-        tx.store.add(mappedEvents[i])
+        await tx.store.add(mappedEvents[i])
       }
       return tx.done
     } catch (error) {
@@ -244,11 +244,11 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
 
   private async determineMaxCounter(): Promise<void> {
     const tx = this.db.transaction('events', 'readonly')
-    const eventidIndex = tx.store.index('eventid')
+    const cursor = await tx.store.index('eventid').openCursor(null, 'prev')
     // TODO: verify that 'prev' here really works!
-    return eventidIndex.iterate(null, 'prev')
-      .next()
-      .then(lastIdCursor => this.counter = lastIdCursor.value || this.counter)
+    if (cursor) {
+      this.counter = cursor.value.eventid
+    }
   }
 
   private async saveMetadata(): Promise<any> {
@@ -258,7 +258,11 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       counter: this.counter,
     }
     const tx = this.db.transaction('peer', 'readwrite')
-    return tx.store.add(metadata)
+    try {
+      return tx.store.put(metadata)
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any> {

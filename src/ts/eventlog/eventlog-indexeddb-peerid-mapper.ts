@@ -38,7 +38,7 @@ export class LocalEventLogIdMapper {
     this.db.close()
   }
 
-  private async loadPeerIdMapping() {
+  private async loadPeerIdMapping(): Promise<any> {
     return this.db.getAll('peerid-mapping').then(mappings => {
       this.externalToInternalIdMap = new Map()
       this.internalToExternalIdMap = new Map()
@@ -49,7 +49,7 @@ export class LocalEventLogIdMapper {
     })
   }
 
-  private async savePeerIdMapping() {
+  private async savePeerIdMapping(): Promise<any> {
     const mappings = []
     for (const [key, value] of this.externalToInternalIdMap.entries()) {
       const mapping = {externalid: key, internalid: value}

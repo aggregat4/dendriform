@@ -133,7 +133,6 @@ export class TreeService implements LifecycleAware {
       .then(() => this.repo.getChildIds(nodeId))
       .then(childIds => this.reparentNodes(childIds, newSiblingId, synchronous))
       .then(() => {
-        console.debug(`rename in split`)
         this.renameNode(nodeId, nodeName, synchronous)
       })
   }
