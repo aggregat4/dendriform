@@ -1185,3 +1185,12 @@ Trying to test the new idb implementation I realized I would have to manually mo
 I had to add an http server to the npm scripts because with the `./` syntax of the module imports in index.html Chrome would no longer load the js files because of cross origin errors.
 
 And the application seems to work, merging this into master.
+
+Found that you can set a specific word wrapping configuration for specific file types in visual studio code. Word wrapping in markdown for example:
+
+```javascript
+  "[markdown]": {
+    "editor.wordWrapColumn": 80,
+    "editor.wordWrap": "wordWrapColumn"
+  }
+```
