@@ -1194,3 +1194,9 @@ Found that you can set a specific word wrapping configuration for specific file 
     "editor.wordWrap": "wordWrapColumn"
   }
 ```
+
+## 2020-01-31 incremental-dom
+
+Having a go at replacing redom with incremental-dom. Since we don't really use redom other than as a convenient replacement for creating manual dom elements this could be a real benefit. In particular redom doesn't incrementally update our tree, we basically rerender it all when we do a backend update.
+
+Did a bunch of reading and I think that lit-html actually does a similar thing to incremental-dom and it would also be a replacement for hyperscript. So I'm going to try that first.

@@ -1,4 +1,4 @@
-import { el, setChildren, RedomElement, RedomComponent } from 'redom'
+import { el, setChildren, RedomComponent } from 'redom'
 import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload, CreateChildNodeCommandPayload } from '../commands/commands'
@@ -7,10 +7,9 @@ import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndica
 import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
-import { debounce, isEmpty, pasteTextUnformatted, setCursorPos, Predicate, createCompositeAndPredicate, generateUUID } from '../utils/util'
+import { debounce, isEmpty, pasteTextUnformatted, Predicate, createCompositeAndPredicate, generateUUID, setCursorPosAcrossMarkup } from '../utils/util'
 import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType } from './keyboardshortcut'
-import { TreeNode } from './node-component'
 // tslint:disable-next-line:max-line-length
 import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
@@ -22,6 +21,7 @@ import { ActivityIndicator } from './activity-indicator-component'
 
 import { importOpmlAction } from './action-opmlimport'
 import { exportOpmlExportAction } from './action-opmlexport'
+import { startEditingNote, renderNode } from './node-component'
 
 customElements.define('treenode-menu', TreeNodeMenu)
 customElements.define('treenode-menuitem-action', TreeNodeActionMenuItem)
@@ -38,7 +38,6 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
   private breadcrumbsEl: Element
   private dialogOverlayEl: Element
   private addNodeButtonEl: HTMLElement
-  private content: TreeNode
   private searchField: HTMLInputElement
   private showCompletedCheckbox: HTMLInputElement
   private treeChangeSubscription: Subscription
@@ -173,16 +172,7 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
       setChildren(this.contentEl, [el('div.error', `Loading tree...`)])
     } else if (tree.status.state === State.LOADED) {
       this.currentRootNodeId = tree.tree.node._id
-      // TODO: this is currently redoing the complete tree component for each update
-      // from another peer. We need this because our RE:DOM components were getting out
-      // of sync with the DOM when we do local direct DOM manipulation.
-      // The nicer solution is probably to replace RE:DOM with something like
-      // incremental DOM and have a complete update of the tree but really incrementally
-      // and with patches
-      this.content = new TreeNode(true)
-      setChildren(this.contentEl, [this.content])
-      const filteredTree = this.getFilteredTree(tree)
-      this.content.update(filteredTree)
+      renderNode(this.getFilteredTree(tree), true, this.contentEl)
     }
   }
 
@@ -244,17 +234,15 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
         // When we open the node we need to load the subtree on demand and patch it
         const nodeId = getNodeId(node)
         const loadedTree = await this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate(), this.shouldCollapsedChildrenBeLoaded())
-        const filteredTree = await this.getFilteredTree(loadedTree)
-        const newOpenedNode = new TreeNode(false)// can it be that we update the first node? No it's always open (right?)
-        await newOpenedNode.update(filteredTree)
-        node.parentElement.replaceChild(newOpenedNode.getElement(), node)
+        const filteredTree = this.getFilteredTree(loadedTree)
+        renderNode(filteredTree, true, this.contentEl)
       }
     } else if (isInNoteElement(clickedElement)) {
       // for a note we need to take into account that a note may have its own markup (hence isInNoteElement)
       const noteElement = findNoteElementAncestor(clickedElement) as HTMLElement
       if (! noteElement.isContentEditable) {
         event.preventDefault()
-        TreeNode.startEditingNote(noteElement as HTMLElement)
+        startEditingNote(noteElement as HTMLElement)
       }
     }
     // Handle clicking on links inside of names and notes
@@ -388,7 +376,7 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
       const nameElement: HTMLElement = getNameElement(element) as HTMLElement
       nameElement.focus()
       if (charPos > -1) {
-        setCursorPos(nameElement, charPos)
+        setCursorPosAcrossMarkup(nameElement, charPos)
       }
     }
   }

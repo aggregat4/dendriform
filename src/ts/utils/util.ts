@@ -134,8 +134,12 @@ function isCursorAtContentEditableFirstLine(focusNode: Element, outerElementClas
   }
 }
 
-// NOTE this assumes that the element has only one textContent child as child 0, no rich content!
-export function setCursorPos(el: Element, charPos: number): void {
+/**
+ * NOTE this assumes that the element has only one textContent child as child 0, no rich content!
+ * Because of this extreme naivity, it is no longer used, see setCursorPosAcrossMarkup for something
+ * more robust.
+ */
+function setCursorPos(el: Element, charPos: number): void {
   if (!el.childNodes[0]) {
     return
   }

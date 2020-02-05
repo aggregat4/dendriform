@@ -3,11 +3,11 @@ import { getClosestNodeElement, getNodeId, getNodeName, getNodeNote, findPreviou
 import { getCursorPos, getTextBeforeCursor, getTextAfterCursor, generateUUID, isTextSelected, isCursorAtBeginning, isEmpty, isCursorAtEnd } from '../utils/util'
 import { CommandBuilder, RenameNodeByIdCommandPayload, UpdateNoteByIdCommandPayload, SplitNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, MergeNodesByIdCommandPayload, Command, ReparentNodeByIdCommandPayload, UnCompleteNodeByIdCommandPayload, CompleteNodeByIdCommandPayload } from '../commands/commands'
 import { MergeNameOrder } from '../service/service'
-import { TreeNode } from './node-component'
 import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import { CommandExecutor } from './tree-helpers'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { importOpmlAction, mount as opmlMount, unmount as opmlUnmount } from './action-opmlimport'
+import { startEditingNote } from './node-component'
 
 export class TreeActionRegistry {
   private readonly keyboardActions: Map<KbdEventType, TreeAction[]> = new Map()
@@ -245,7 +245,7 @@ function onNodeSplit(event: Event, treeActionContext: TreeActionContext) {
 function onStartNoteEdit(evt: Event, treeActionContext: TreeActionContext) {
   event.preventDefault()
   const noteEl = (event.target as Element).nextElementSibling.nextElementSibling as HTMLElement
-  TreeNode.startEditingNote(noteEl)
+  startEditingNote(noteEl)
 }
 
 function onMoveNodeUp(event: Event, treeActionContext: TreeActionContext) {

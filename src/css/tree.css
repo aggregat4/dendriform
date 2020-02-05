@@ -277,9 +277,11 @@
    firefox collapses the element and messes up our layout. Here we just insert a bogus character
    when the element is empty.
 */
-.node .name:empty:before {
+.node .name:empty:before,
+.node .note:empty:before {
   content: ' ';
 }
+
 
 .node .name:focus, .node .note:focus {
   outline: none;

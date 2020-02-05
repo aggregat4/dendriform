@@ -63,6 +63,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     new FixedTimeoutStrategy(this.STORAGE_QUEUE_TIMEOUT_MS), this.drainStorageQueUnforced.bind(this))
 
   constructor(readonly dbName: string) {
+    console.debug(`ctor LocalEventLog`)
     this.name = dbName
   }
 
@@ -110,6 +111,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       await this.peeridMapper.init()
       // NOTE: we need a peeridMapper to store events! It is used to translate the ids!
       // Make sure we have a ROOT node and if not, create it
+      console.debug(`about to get root node`)
       const rootNode = await this.getNodeEvent('ROOT')
       if (!rootNode) {
         await this.publish(EventType.ADD_OR_UPDATE_NODE, 'ROOT', createNewAddOrUpdateNodeEventPayload('ROOT', null, false, false, false), true)

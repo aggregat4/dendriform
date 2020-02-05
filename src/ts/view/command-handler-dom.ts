@@ -21,7 +21,6 @@ import {
   UnCompleteNodeByIdCommandPayload,
 } from '../commands/commands'
 import {MergeNameOrder} from '../service/service'
-import {TreeNode} from './node-component'
 import {
   getChildrenElement,
   getChildrenElementOrCreate,
@@ -33,6 +32,7 @@ import {
   getParentNode,
 } from './tree-dom-util'
 import { markupHtml, toHtml } from '../utils/markup'
+import { renderNode } from './node-component'
 
 export class DomCommandHandler implements CommandHandler {
 
@@ -118,9 +118,9 @@ export class DomCommandHandler implements CommandHandler {
 
   private async createDomNode(id: string, name: string, note: string): Promise<Element> {
     const newNode = createNewResolvedRepositoryNodeWithContent(id, name, note)
-    const newTreeNode = new TreeNode()
-    await newTreeNode.update(filterNode(newNode))
-    return newTreeNode.getElement()
+    const el = document.createElement('div')
+    renderNode(filterNode(newNode), false, el)
+    return el.firstElementChild
   }
 
   /**

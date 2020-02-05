@@ -119,6 +119,8 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
+1. BUG: still getting the problem that at startup with the initialisation of the eventlog, we still _sometimes_ have an uinitialised localIdToExternalId Map object. This happens in the call to publish a root element AFTER we actually initialise the peer mappings. It is as if the await does not work? Maybe add some console.logs to see order of calls when this happens?
+1. BUG: when navigating with the cursor keys (up and down) we run into a null error on one of the node finding algorithms
 1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
 1. BUG: The popup menu does not take into account window borders, especially the bottom is a problem. It gets hidden by the browser window when it is opened near the bottom.
 1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it?

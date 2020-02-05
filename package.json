@@ -43,7 +43,7 @@
     "npm-watch": "0.6.0",
     "rollup": "1.29.1",
     "rollup-plugin-commonjs": "10.1.0",
-    "rollup-plugin-html2": "^0.6.0",
+    "rollup-plugin-html2": "0.6.0",
     "rollup-plugin-node-resolve": "5.2.0",
     "rollup-plugin-off-main-thread": "1.1.0",
     "rollup-plugin-typescript": "1.0.1",
@@ -61,6 +61,7 @@
     "file-saver": "2.0.2",
     "hyperscript": "2.0.2",
     "idb": "5.0.0",
+    "lit-html": "1.1.2",
     "redom": "3.25.1"
   }
 }
