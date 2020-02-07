@@ -37,7 +37,7 @@ export default {
     }),
     // for resolving node_modules dependencies
     resolve(),
-    // for old schoold modules that are not es6
+    // for old school modules that are not es6
     commonjs({
       namedExports: {
         // apparently this can't be resolved?
