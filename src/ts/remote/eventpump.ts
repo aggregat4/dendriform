@@ -62,7 +62,6 @@ export class EventPump implements LifecycleAware {
   }
 
   async init(): Promise<void> {
-    await this.localEventLog.init()
     this.db = await openDB<EventPumpSchema>(this.dbName, 1, {
       upgrade(db) {
         db.createObjectStore('metadata', {
@@ -83,7 +82,6 @@ export class EventPump implements LifecycleAware {
       await this.saveMetadata()
       this.db.close()
       this.db = null
-      await this.localEventLog.deinit()
     }
   }
 
