@@ -1,5 +1,4 @@
 // DOM Utilities for working with Node Elements and its structure
-import { el } from 'redom'
 import * as sanitize from '../lib/modules/sanitize'
 
 // Checks whether the current node has a parent
@@ -67,7 +66,8 @@ export function getChildrenElement(node: Element): Element {
 
 export function getChildrenElementOrCreate(node: Element): Element {
   if (node.children.length <= 1) {
-    const newChildrenEl = el('div.children')
+    const newChildrenEl = document.createElement('div')
+    newChildrenEl.classList.add('children')
     node.appendChild(newChildrenEl)
     return newChildrenEl
   } else {

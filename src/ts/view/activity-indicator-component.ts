@@ -1,19 +1,19 @@
-import h from 'hyperscript'
+import { html, render } from 'lit-html'
 import { ActivityIndicating } from '../domain/domain'
 
 export class ActivityIndicator extends HTMLElement {
   private spinner: HTMLElement = null
   private timerId = null
+  private readonly template = html`<div class="spinner"></div>`
+  private _activityIndicating: ActivityIndicating = null
 
-  constructor(readonly activityIndicating: ActivityIndicating, readonly delayMs: number = 1000) {
+  constructor() {
     super()
   }
 
   connectedCallback() {
-    if (!this.spinner) {
-      this.spinner = h('div.spinner')
-      this.append(this.spinner)
-    }
+    render(this.template, this)
+    this.spinner = this.firstElementChild as HTMLElement
     if (! this.timerId) {
       this.timerId = setInterval(() => {
         this.updateActivityStatus()
@@ -22,14 +22,46 @@ export class ActivityIndicator extends HTMLElement {
     }
   }
 
+  set activityIndicating(activityIndicating: ActivityIndicating) {
+    this._activityIndicating = activityIndicating
+  }
+
+  get activityIndicating() {
+    return this._activityIndicating
+  }
+
+  get delayMs(): number {
+    const delayAttr = this.getAttribute('delayms')
+    return delayAttr ? parseInt(delayAttr, 10) : 1000
+  }
+
+  get activityIndicatingId(): string {
+    return this.getAttribute('refid')
+  }
+
+  // private findActivityIndicatingEl(): ActivityIndicating {
+  //   let activityIndicatingEl = null
+  //   const activityIndicatingId = this.activityIndicatingId
+  //   if (activityIndicatingId) {
+  //     activityIndicatingEl = document.getElementById(activityIndicatingId)
+  //   } else {
+  //     activityIndicatingEl = this.closest('.activityindicating')
+  //   }
+  //   return activityIndicatingEl as unknown as ActivityIndicating
+  // }
+
   updateActivityStatus(): void {
+    const activityIndicating = this.activityIndicating
+    if (! activityIndicating) {
+      return
+    }
     const currentDisplay = this.spinner.style.display
-    if (this.activityIndicating.isActive()) {
+    if (activityIndicating.isActive()) {
       if (currentDisplay !== 'block') {
         this.installPreventCloseWindowHandler()
         this.spinner.style.display = 'block'
       }
-      this.spinner.title = this.activityIndicating.getActivityTitle() || 'Working...' // TODO: i18n
+      this.spinner.title = activityIndicating.getActivityTitle() || 'Working...' // TODO: i18n
     } else {
       if (currentDisplay !== 'none') {
         this.uninstallPreventCloseWindowHandler()

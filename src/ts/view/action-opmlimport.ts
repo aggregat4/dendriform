@@ -32,12 +32,15 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
   connectedCallback() {
     super.maybeInit(() => {
       this.classList.add('opmlImportPopup')
+      this.classList.add('activityindicating')
       // <input type="file" id="input" onchange="handleFiles(this.files)">
       this.errorElement = h('div.error', 'error')
       this.successElement = h('div.success', 'success')
       this.uploadButton = h('input.uploadOpml', {type: 'file'}, 'Select OPML File')
       this.importButton = h('button.import.primary', {disabled: true}, 'Import File')
-      this.spinner = new ActivityIndicator(this, 250)
+      this.spinner = new ActivityIndicator()
+      this.spinner.setAttribute('delayms', '250')
+      this.spinner.activityIndicating = this
       const wrapper = h('section',
         h('header', h('h1', 'Import OPML')),
         this.errorElement,

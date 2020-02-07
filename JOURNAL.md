@@ -1200,3 +1200,27 @@ Found that you can set a specific word wrapping configuration for specific file 
 Having a go at replacing redom with incremental-dom. Since we don't really use redom other than as a convenient replacement for creating manual dom elements this could be a real benefit. In particular redom doesn't incrementally update our tree, we basically rerender it all when we do a backend update.
 
 Did a bunch of reading and I think that lit-html actually does a similar thing to incremental-dom and it would also be a replacement for hyperscript. So I'm going to try that first.
+
+## 2020-02-06
+
+Refactored `node-component.ts` completely to lit-html and it definitely looks better. Much more understandable and it's shorter because there isn't so much dom API kvetching.
+
+Some downsides are that debugging is way too arcane: when you make a mistake in the template the error messages at runtime are almost unusable. You need to then visually inspect the html and try to figure out what is up.
+
+lit-html also assumes it is basically rendering everything. For the use case where a new node is added as a child of the current node in a particular position I am now rendering this using lit-html as a child of an artificial dom node and then hanging it in the correct position. This seems unnecessary.
+
+lit-html also generates synthetic comment tags `<!---->` at various places in the dom, I think to mark certain areas as potentially dynamic content. This makes the tree harder to read and of course makes it so my dom operations need to be more robust in the face of this spurious markup.
+
+Still don't know whether performance is any good or not. I will have to run my 8000 node experiment again and see where the rendering time goes.
+
+`blogpost`
+
+A "problem" when using declarative templating is that you are not using code to construct your dom tree and therefore you can not use custom elements as object (AFAIK) but you must declare them using html.
+
+This forces two patterns:
+* expose all your configuration parameters as attributes
+* expose all your dependency injection requirements (like what funcion or object do you require to operate) as properties
+
+When the element has been added we must make sure to inject all the required dependencies before using it. This seems a little bit more unsafe, but allows for the declarative approach and it seems to work. See `a4-spinner` usages in tree-component.
+
+I use an additionaly technique where the spinner will find the component it has to show activity for by looking for a class in its ancestor tree and to select the closest match. This is the reverse of injecting the object to observe and used as an alternative that does not require injection.

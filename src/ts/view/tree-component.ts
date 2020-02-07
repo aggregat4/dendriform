@@ -1,3 +1,4 @@
+import { html, render } from 'lit-html'
 import { el, setChildren, RedomComponent } from 'redom'
 import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
@@ -54,9 +55,30 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
   // For REDOM
   el: HTMLElement
 
+  // private readonly treeTemplate = html`
+  //   <div class="tree activityindicating">
+  //     <nav>
+  //       <div class="breadcrumbs"></div>
+  //       <button id="addNode" aria-label="Add Node" title="Add Node">+</button>
+  //       <div class="searchbox">
+  //         <input type="search" placeholder="Filter">
+  //         <a4-spinner delayms="1000"/>
+  //       </div>
+  //       <fieldset class="config">
+  //         <label>
+  //           <input id="showCompleted" type="checkbox" ?checked=${this.config.showCompleted}>
+  //           <span>Show Completed</span>
+  //         </label>
+  //       </fieldset>
+  //     </nav>
+  //     <div class="content">
+  //       <div class="error">Loading tree...</div>
+  //       <div class="dialogOverlay"></div>
+  //     </div>
+  //   </div>`
+
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
-    const activityIndicator = new ActivityIndicator(activityIndicating, 1000)
-    this.el = el(`div.tree${this.generateTreeClasses()}`,
+    this.el = el(`div.tree.activityindicating`,
       el('nav',
         this.breadcrumbsEl = el('div.breadcrumbs'),
         // Note: it is unclear whether title and aria-label are both necessary. I need the tooltip for all users
@@ -67,7 +89,7 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
           /* Removing the search button because we don't really need it. Right? Accesibility?
             this.searchButton = el('button', 'Filter')) */
           this.searchField = el('input', {type: 'search', placeholder: 'Filter'}) as HTMLInputElement,
-          activityIndicator),
+          el('a4-spinner', {delayms: 1000})),
         el('fieldset.config',
           el('label',
             this.showCompletedCheckbox = el('input', this.config.showCompleted ? {id: 'showCompleted', type: 'checkbox', checked: ''} : {id: 'showCompleted', type: 'checkbox'}),
@@ -77,7 +99,9 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
       ),
       this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
       this.dialogOverlayEl = el('div.dialogOverlay'),
-    )
+    );
+    // We need this dependency injection since we are declaratively using the custom element
+    (this.el.querySelector('a4-spinner') as ActivityIndicator).activityIndicating = activityIndicating
       // We need to bind the event handlers to the class otherwise the scope is the element
     // the event was received on. Javascript! <rolls eyes>
     // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
@@ -117,10 +141,6 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
   async deinit(): Promise<void> {
     this.treeActionRegistry.unmountDialogs(this.getTreeElement())
     await this.treeService.deinit()
-  }
-
-  private generateTreeClasses(): string {
-    return ''
   }
 
   getTreeElement(): Element {
