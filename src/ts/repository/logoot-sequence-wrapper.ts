@@ -1,8 +1,8 @@
-import {atomIdent, emptySequence, insertAtom, genAtomIdent, compareAtomIdents} from '../lib/modules/logootsequence.js'
+import {atomIdent, emptySequence, insertAtom, genAtomIdent, compareAtomIdents, sequence, atom} from '../lib/modules/logootsequence'
 
-function insertMut(sequence, index, atom) {
-  sequence.splice(index, 0, atom)
-  return sequence
+function insertMut(seq: sequence, index: number, anAtom: atom) {
+  seq.splice(index, 0, anAtom)
+  return seq
 }
 
 /**
@@ -10,24 +10,24 @@ function insertMut(sequence, index, atom) {
  * we may use it to cache locations of items in the sequence for fast insertion.
  */
 export class LogootSequenceWrapper<T> {
-  private sequence = emptySequence()
+  private seq: sequence = emptySequence()
 
   constructor(readonly peerId: string) {}
 
   insertAtAtomIdent(item: T, pos: atomIdent): void {
-    insertAtom(this.sequence, [pos, item], insertMut)
+    insertAtom(this.seq, [pos, item], insertMut)
   }
 
   deleteAtAtomIdent(pos: atomIdent): void {
     let deletePos = -1
-    for (let i = 1; i < this.sequence.length - 1; i++) {
-      if (compareAtomIdents(pos, this.sequence[i][0]) === 0) {
+    for (let i = 1; i < this.seq.length - 1; i++) {
+      if (compareAtomIdents(pos, this.seq[i][0]) === 0) {
         deletePos = i
         break
       }
     }
-    if (deletePos >= 0 && deletePos < this.sequence.length) {
-      this.sequence.splice(deletePos, 1)
+    if (deletePos >= 0 && deletePos < this.seq.length) {
+      this.seq.splice(deletePos, 1)
     }
   }
 
@@ -35,7 +35,7 @@ export class LogootSequenceWrapper<T> {
     if (pos < 0 || pos >= this.length()) {
       throw new Error(`Invalid positionn ${pos}`)
     }
-    return this.sequence[pos + 1][0]
+    return this.seq[pos + 1][0]
   }
 
   /**
@@ -56,28 +56,28 @@ export class LogootSequenceWrapper<T> {
       ? genAtomIdent(
         this.peerId,
         peerClock,
-        this.sequence[this.sequence.length - 2][0],
-        this.sequence[this.sequence.length - 1][0])
+        this.seq[this.seq.length - 2][0],
+        this.seq[this.seq.length - 1][0])
       : genAtomIdent(
         this.peerId,
         peerClock,
-        this.sequence[pos][0],
-        this.sequence[pos + 1][0])
+        this.seq[pos][0],
+        this.seq[pos + 1][0])
   }
 
   deleteAtIndex(pos: number): void {
     if (pos < 0 || pos >= this.length()) {
       throw new Error(`Trying to remove element at pos ${pos} which is out of bounds for this logootsequence`)
     }
-    this.sequence.splice(pos + 1, 1)
+    this.seq.splice(pos + 1, 1)
   }
 
   length(): number {
-    return this.sequence.length - 2
+    return this.seq.length - 2
   }
 
   toArray(): T[] {
     // cut off the marker items at the beginning and the end
-    return this.sequence.slice(1, -1).map(atom => atom[1])
+    return this.seq.slice(1, -1).map(anAtom => anAtom[1])
   }
 }

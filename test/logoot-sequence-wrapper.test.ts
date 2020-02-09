@@ -1,6 +1,9 @@
-import {LogootSequenceWrapper} from './logoot-sequence-wrapper'
+import { test } from './tizzytest'
+import expect from 'ceylon'
 
-describe('logoot sequences have invariants', () => {
+import {LogootSequenceWrapper} from '../src/ts/repository/logoot-sequence-wrapper'
+
+// describe('logoot sequences have invariants', () => {
 
   test('empty sequences are empty', () => {
     const seq = new LogootSequenceWrapper('a')
@@ -12,9 +15,8 @@ describe('logoot sequences have invariants', () => {
     expect(seq.length()).toEqual(0)
   })
 
-})
 
-describe('logoot sequences can be modified with atomIdents', () => {
+// describe('logoot sequences can be modified with atomIdents', () => {
   test('inserting one element in an empty sequence', () => {
     const seq = new LogootSequenceWrapper('a')
     const atomIdent = seq.getAtomIdentForInsertionIndex(0, 1)
@@ -63,9 +65,8 @@ describe('logoot sequences can be modified with atomIdents', () => {
     expect(seq.toArray()).toEqual(['bar'])
   })
 
-})
 
-describe('logoot sequences can be modified with indices', () => {
+// describe('logoot sequences can be modified with indices', () => {
 
   test('inserting one element in an empty sequence', () => {
     const seq = new LogootSequenceWrapper('a')
@@ -96,4 +97,3 @@ describe('logoot sequences can be modified with indices', () => {
     expect(seq.toArray()).toEqual(['foo'])
   })
 
-})

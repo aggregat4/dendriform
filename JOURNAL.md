@@ -1224,3 +1224,8 @@ This forces two patterns:
 When the element has been added we must make sure to inject all the required dependencies before using it. This seems a little bit more unsafe, but allows for the declarative approach and it seems to work. See `a4-spinner` usages in tree-component.
 
 I use an additionaly technique where the spinner will find the component it has to show activity for by looking for a class in its ancestor tree and to select the closest match. This is the reverse of injecting the object to observe and used as an alternative that does not require injection.
+
+Maybe I want to try to port https://github.com/volument/baretest/blob/master/baretest.js to typescript and to es6 modules and arrow functions and try to use that to test my code?
+
+## 2020-02-09
+

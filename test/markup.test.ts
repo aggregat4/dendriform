@@ -1,17 +1,20 @@
-import { toHtml, markupHtml, markupHtmlWithFilterHits } from './markup'
+import { test } from './tizzytest'
+import expect from 'ceylon'
 
-describe('markupMNode marks up text correctly', () => {
+import { toHtml, markupHtml, markupHtmlWithFilterHits } from '../src/ts/utils/markup'
+
+// describe('markupMNode marks up text correctly', () => {
 
   test('empty DOCUMENT node markup', () => {
     const node = markupHtml('')
     expect(node.content).toBe('')
-    expect(node.attributes).toStrictEqual([])
+    expect(node.attributes).toEqual([])
   })
 
   test('nonempty DOCUMENT node markup with NO match', () => {
     const node = markupHtml('foobar')
     expect(node.content).toBe('foobar')
-    expect(node.attributes).toStrictEqual([])
+    expect(node.attributes).toEqual([])
   })
 
   test('a link match', () => {
@@ -49,4 +52,3 @@ describe('markupMNode marks up text correctly', () => {
     expect(toHtml(node)).toBe('<span class="filterTag">@me</span> <mark>findme</mark> <span class="filterTag">#foo</span> bar')
   })
   // TODO: test edge cases and combinations
-})

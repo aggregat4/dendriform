@@ -13,7 +13,11 @@ const dateTimeFormatOptions = {
   seconds: 'numeric',
 }
 
-const dateTimeFormatter = Intl.DateTimeFormat(navigator.language, dateTimeFormatOptions)
+function getLanguage() {
+  return navigator ? navigator.language : 'en'
+}
+
+const dateTimeFormatter = Intl.DateTimeFormat(getLanguage(), dateTimeFormatOptions)
 
 export function epochSecondsToLocaleString(seconds: number): string {
   return dateTimeFormatter.format(new Date(seconds * 1000))

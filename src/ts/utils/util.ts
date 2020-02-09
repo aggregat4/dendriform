@@ -292,8 +292,8 @@ const iosPlatforms = ['iPhone', 'iPad', 'iPod']
 export const enum OperatingSystem { MacOs = 'MacOs', Linux = 'Linux', Windows = 'Windows', Android = 'Android', Ios = 'Ios' }
 
 export function guessOperatingSystem(): OperatingSystem {
-  const userAgent = window.navigator.userAgent
-  const platform = window.navigator.platform
+  const userAgent = window?.navigator?.userAgent || ''
+  const platform = window?.navigator?.platform || ''
   if (macosPlatforms.indexOf(platform) !== -1) {
     return OperatingSystem.MacOs
   } else if (iosPlatforms.indexOf(platform) !== -1) {
