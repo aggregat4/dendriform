@@ -1,10 +1,9 @@
 import { html, render } from 'lit-html'
-import { el, setChildren, RedomComponent } from 'redom'
 import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 // tslint:disable-next-line:max-line-length
 import { CloseNodeByIdCommandPayload, Command, CommandBuilder, OpenNodeByIdCommandPayload, CreateChildNodeCommandPayload } from '../commands/commands'
 // tslint:disable-next-line:max-line-length
-import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, NODE_NOT_DELETED_AND_NOT_COMPLETED, RepositoryNode, NODE_IS_NOT_COLLAPSED, NODE_IS_NOT_COMPLETED, createNewResolvedRepositoryNodeWithContent, LifecycleAware } from '../domain/domain'
+import { FilteredRepositoryNode, LoadedTree, State, Subscription, ActivityIndicating, Filter, NODE_IS_NOT_DELETED, RepositoryNode, NODE_IS_NOT_COMPLETED, LifecycleAware, ResolvedRepositoryNode, Status } from '../domain/domain'
 import { filterNode, parseQuery } from '../domain/domain-search'
 import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
@@ -12,14 +11,12 @@ import { debounce, isEmpty, pasteTextUnformatted, Predicate, createCompositeAndP
 import { DomCommandHandler } from './command-handler-dom'
 import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType } from './keyboardshortcut'
 // tslint:disable-next-line:max-line-length
-import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNameNode, isNodeClosed, isToggleElement, isMenuTriggerElement, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
+import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNodeClosed, isToggleElement, isMenuTriggerElement, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientState } from './tree-helpers'
-import { TreeNodeMenu, TreeNodeActionMenuItem, TreeNodeInfoMenuItem } from './tree-menu-component'
+import { TreeNodeActionMenuItem, TreeNodeInfoMenuItem, TreeNodeMenu } from './tree-menu-component'
 import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog } from './dialogs'
-import { ActivityIndicator } from './activity-indicator-component'
-
 import { importOpmlAction } from './action-opmlimport'
 import { exportOpmlExportAction } from './action-opmlexport'
 import { startEditingNote, renderNode } from './node-component'
@@ -32,187 +29,76 @@ class TreeConfig {
   showCompleted: boolean = false
 }
 
-export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
+export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware {
   private readonly domCommandHandler = new DomCommandHandler()
-  private currentRootNodeId: string
-  private contentEl: Element
-  private breadcrumbsEl: Element
-  private dialogOverlayEl: Element
-  private addNodeButtonEl: HTMLElement
-  private searchField: HTMLInputElement
-  private showCompletedCheckbox: HTMLInputElement
+
+  private treeStatus: Status = { state: State.LOADING }
+  private treeAncestors: RepositoryNode[] = []
+  private filteredTreeRoot: FilteredRepositoryNode
+
   private treeChangeSubscription: Subscription
+
   private readonly transientStateManager = new TransientState()
-  private treeNodeMenu: TreeNodeMenu = null
   private treeActionContext: TreeActionContext = null
   private dialogs: Dialogs = null
   private config: TreeConfig = new TreeConfig()
   private currentFilterQuery: string = ''
+
   // We handle undo and redo internally since they are core functionality we don't want to make generic and overwritable
   private readonly undoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Undo)))
   private readonly redoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Redo)))
 
-  // For REDOM
-  el: HTMLElement
+  private readonly treeTemplate = () => html`
+    <div class="tree activityindicating"
+      @input=${this.onInput.bind(this)}
+      @keypress=${this.onKeypress.bind(this)}
+      @keydown=${this.onKeydown.bind(this)}
+      @click=${this.onClick.bind(this)}
+      @paste=${this.onPaste.bind(this)} >
+      <nav>
+        <div class="breadcrumbs">
+          ${this.getFullParents().map(parent => html`
+          <span>
+            <a href="#node=${parent._id}" data-id="${parent._id}" title="Open node '${parent.name}'">${this.renderNodeName(parent.name)}</a>
+          </span>`)}
+        </div>
+        <button id="addNode" aria-label="Add Node" title="Add Node" @click=${this.onAddNodeButtonClick.bind(this)}>+</button>
+        <div class="searchbox">
+          <input class="searchField" type="search" placeholder="Filter" @input=${debounce(this.onQueryChange.bind(this), 150)}>
+          <a4-spinner delayms="1000"/>
+        </div>
+        <fieldset class="config">
+          <label>
+            <input class="showCompleted" type="checkbox" ?checked=${this.config.showCompleted} @input=${this.onShowCompletedToggle.bind(this)}>
+            <span>Show Completed</span>
+          </label>
+        </fieldset>
+      </nav>
+      <div class="content">
+        ${this.renderTreeNodes()}
+      </div>
+      <div class="dialogOverlay"></div>
+      <treenode-menu class="node-menu">
+        <treenode-menuitem-action class="import-opml-action-menuitem" />
+        <treenode-menuitem-action class="export-opml-action-menuitem" />
+        <treenode-menuitem-info class="info-menuitem"/>
+      </treenode-menu>
+    </div>`
 
-  // private readonly treeTemplate = html`
-  //   <div class="tree activityindicating">
-  //     <nav>
-  //       <div class="breadcrumbs"></div>
-  //       <button id="addNode" aria-label="Add Node" title="Add Node">+</button>
-  //       <div class="searchbox">
-  //         <input type="search" placeholder="Filter">
-  //         <a4-spinner delayms="1000"/>
-  //       </div>
-  //       <fieldset class="config">
-  //         <label>
-  //           <input id="showCompleted" type="checkbox" ?checked=${this.config.showCompleted}>
-  //           <span>Show Completed</span>
-  //         </label>
-  //       </fieldset>
-  //     </nav>
-  //     <div class="content">
-  //       <div class="error">Loading tree...</div>
-  //       <div class="dialogOverlay"></div>
-  //     </div>
-  //   </div>`
-
-  constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
-    this.el = el(`div.tree.activityindicating`,
-      el('nav',
-        this.breadcrumbsEl = el('div.breadcrumbs'),
-        // Note: it is unclear whether title and aria-label are both necessary. I need the tooltip for all users
-        // but I also want to make sure that screenreaders only use the full text. This link https://www.deque.com/blog/text-links-practices-screen-readers/
-        // seemed unclear about what takes precedence when.
-        this.addNodeButtonEl = el('button#addNode', { 'aria-label': 'Add Node', 'title': 'Add Node'}, '+'),
-        el('div.searchbox',
-          /* Removing the search button because we don't really need it. Right? Accesibility?
-            this.searchButton = el('button', 'Filter')) */
-          this.searchField = el('input', {type: 'search', placeholder: 'Filter'}) as HTMLInputElement,
-          el('a4-spinner', {delayms: 1000})),
-        el('fieldset.config',
-          el('label',
-            this.showCompletedCheckbox = el('input', this.config.showCompleted ? {id: 'showCompleted', type: 'checkbox', checked: ''} : {id: 'showCompleted', type: 'checkbox'}),
-            el('span', 'Show Completed'),
-          ),
-        ),
-      ),
-      this.contentEl = el('div.content', el('div.error', `Loading tree...`)),
-      this.dialogOverlayEl = el('div.dialogOverlay'),
-    );
-    // We need this dependency injection since we are declaratively using the custom element
-    (this.el.querySelector('a4-spinner') as ActivityIndicator).activityIndicating = activityIndicating
-      // We need to bind the event handlers to the class otherwise the scope is the element
-    // the event was received on. Javascript! <rolls eyes>
-    // Using one listeners for all nodes to reduce memory usage and the chance of memory leaks
-    // This means that all event listeners here need to check whether they are triggered on
-    // a relevant node
-    this.el.addEventListener('input', this.onInput.bind(this))
-    this.el.addEventListener('keypress', this.onKeypress.bind(this))
-    this.el.addEventListener('keydown', this.onKeydown.bind(this))
-    this.el.addEventListener('click', this.onClick.bind(this))
-    this.el.addEventListener('paste', this.onPaste.bind(this))
-    this.searchField.addEventListener('input', debounce(this.onQueryChange.bind(this), 150))
-    this.showCompletedCheckbox.addEventListener('input', this.onShowCompletedToggle.bind(this))
-    this.addNodeButtonEl.addEventListener('click', this.onAddNodeButtonClick.bind(this))
-    // In general we only want to limit ourselves to our component with listener, but for some functions we
-    // need the complete document
-    document.addEventListener('keydown', this.onDocumentKeydown.bind(this))
-
-    this.transientStateManager.registerSelectionChangeHandler()
-    this.dialogs = new Dialogs(this.el as HTMLElement, this.dialogOverlayEl as HTMLElement)
-    this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.dialogs, this.treeService)
-    // TODO: tree actions should have IDs, they are registered centrally and we should be able to look
-    // them up so we can just reference them here instead of instantiating them
-    this.treeNodeMenu = new TreeNodeMenu([
-      new TreeNodeActionMenuItem(importOpmlAction, this.treeActionContext),
-      new TreeNodeActionMenuItem(exportOpmlExportAction, this.treeActionContext),
-      new TreeNodeInfoMenuItem(this.treeActionContext),
-    ])
-    this.el.appendChild(this.treeNodeMenu)
-    this.dialogs.registerDialog(new Dialog('menuTrigger', this.treeNodeMenu))
-  }
-
-  async init(): Promise<void> {
-    await this.treeService.init()
-    this.treeActionRegistry.mountDialogs(this.getTreeElement())
-  }
-
-  async deinit(): Promise<void> {
-    this.treeActionRegistry.unmountDialogs(this.getTreeElement())
-    await this.treeService.deinit()
-  }
-
-  getTreeElement(): Element {
-    return this.el
-  }
-
-  loadNode(nodeId: string): Promise<any> {
-    if (!nodeId) {
-      return Promise.resolve()
-    }
-    if (this.treeChangeSubscription) {
-      this.treeChangeSubscription.cancel()
-      this.treeChangeSubscription = null
-    }
-    return this.reloadTree(nodeId)
-      .then(() => this.treeChangeSubscription = this.treeService.subscribeToChanges(nodeId, this.onBackgroundTreeChange.bind(this)))
-  }
-
-  private getNodeVisibilityPredicate(): Predicate<RepositoryNode> {
-    // consider three properties for visibility of a node:
-    // - deleted: never show deleted so add NODE_IS_NOT_DELETED
-    // - showCompleted: if false then add NODE_NOT_COMPLETED
-    const filters = [NODE_IS_NOT_DELETED]
-    if (! this.config.showCompleted) {
-      filters.push(NODE_IS_NOT_COMPLETED)
-    }
-    return createCompositeAndPredicate(filters)
-  }
-
-  private shouldCollapsedChildrenBeLoaded(): boolean {
-    return this.filterIsActive()
-  }
-
-  private reloadTree(nodeId: string): Promise<any> {
-    return this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate(), this.shouldCollapsedChildrenBeLoaded())
-      .then(loadedTree => this.update(loadedTree))
-  }
-
-  private onBackgroundTreeChange(): void {
-    this.reloadTree(this.currentRootNodeId)
-  }
-
-  update(tree: LoadedTree) {
-    setChildren(this.breadcrumbsEl, this.generateBreadcrumbs(tree))
-    if (tree.status.state === State.ERROR) {
-      setChildren(this.contentEl,
-        [el('div.error', `Can not load tree from backing store: ${tree.status.msg}`)])
-    } else if (tree.status.state === State.LOADING) {
-      setChildren(this.contentEl, [el('div.error', `Loading tree...`)])
-    } else if (tree.status.state === State.LOADED) {
-      this.currentRootNodeId = tree.tree.node._id
-      renderNode(this.getFilteredTree(tree), true, this.contentEl)
+  private renderTreeNodes() {
+    if (this.treeStatus.state === State.ERROR) {
+      return html`<div class="error">Can not load tree from backing store: ${this.treeStatus.msg}</div>`
+    } else if (this.treeStatus.state === State.LOADING) {
+      return html`<div class="error">Loading tree...</div>`
+    } else if (this.treeStatus.state === State.LOADED) {
+      // this assumes that when state is loaded we also have a filtered tree root
+      return renderNode(this.filteredTreeRoot, true)
     }
   }
 
-  private generateBreadcrumbs(tree: LoadedTree): HTMLElement[] {
-    // reverse because breadcrumbs need to start at ROOT and go down
-    const fullParents = (tree.ancestors || []).reverse().concat(tree.tree.node)
-    const breadCrumbs = []
-    for (let i = 0; i < fullParents.length; i++) {
-      const repoNode = fullParents[i]
-      if (i !== fullParents.length - 1) {
-        breadCrumbs.push(
-          el('span',
-            el('a',
-              { href: '#node=' + repoNode._id, 'data-id': repoNode._id, title: 'Open node "' + repoNode.name + '"' },
-                this.renderNodeName(repoNode.name))))
-      } else {
-        breadCrumbs.push(el('span', this.renderNodeName(repoNode.name)))
-      }
-    }
-    return breadCrumbs
+  private getFullParents(): RepositoryNode[] {
+    const ancestors = (this.treeAncestors || []).reverse()
+    return this.filteredTreeRoot ? ancestors.concat(this.filteredTreeRoot.node) : ancestors
   }
 
   private renderNodeName(name: string): string {
@@ -223,12 +109,100 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
     }
   }
 
+  constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
+    super()
+    render(this.treeTemplate(), this)
+    // In general we only want to limit ourselves to our component with listener, but for some functions we
+    // need the complete document
+    document.addEventListener('keydown', this.onDocumentKeydown.bind(this))
+
+    const dialogOverlayEl = this.querySelector('.dialogOverlay')
+    this.transientStateManager.registerSelectionChangeHandler()
+    this.dialogs = new Dialogs(this, dialogOverlayEl as HTMLElement)
+    this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.dialogs, this.treeService)
+
+    const importOpmlActionMenuItem = this.querySelector('.import-opml-action-menuitem') as unknown as TreeNodeActionMenuItem
+    importOpmlActionMenuItem.treeAction = importOpmlAction
+    importOpmlActionMenuItem.treeActionContext = this.treeActionContext
+
+    const exportOpmlActionMenuItem = this.querySelector('.export-opml-action-menuitem') as unknown as TreeNodeActionMenuItem
+    exportOpmlActionMenuItem.treeAction = exportOpmlExportAction
+    exportOpmlActionMenuItem.treeActionContext = this.treeActionContext
+
+    const infoMenuItem = this.querySelector('.info-menuitem') as unknown as TreeNodeActionMenuItem
+    infoMenuItem.treeActionContext = this.treeActionContext
+
+    const treeNodeMenu = this.querySelector('.node-menu') as unknown as TreeNodeMenu
+    this.dialogs.registerDialog(new Dialog('menuTrigger', treeNodeMenu))
+  }
+
+  async init(): Promise<void> {
+    await this.treeService.init()
+    this.treeActionRegistry.mountDialogs(this)
+  }
+
+  async deinit(): Promise<void> {
+    this.treeActionRegistry.unmountDialogs(this)
+    await this.treeService.deinit()
+  }
+
+  async loadNode(nodeId: string): Promise<any> {
+    if (!nodeId) {
+      return Promise.resolve()
+    }
+    if (this.treeChangeSubscription) {
+      this.treeChangeSubscription.cancel()
+      this.treeChangeSubscription = null
+    }
+    const loadedTree = await this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate(), this.shouldCollapsedChildrenBeLoaded())
+    await this.update(loadedTree)
+    this.treeChangeSubscription = this.treeService.subscribeToChanges(nodeId, this.onBackgroundTreeChange.bind(this))
+  }
+
+  private getNodeVisibilityPredicate(): Predicate<RepositoryNode> {
+    // consider three properties for visibility of a node:
+    // - deleted: never show deleted so add NODE_IS_NOT_DELETED
+    // - showCompleted: if false then add NODE_NOT_COMPLETED
+    const filters = [NODE_IS_NOT_DELETED]
+    if (!this.config.showCompleted) {
+      filters.push(NODE_IS_NOT_COMPLETED)
+    }
+    return createCompositeAndPredicate(filters)
+  }
+
+  private shouldCollapsedChildrenBeLoaded(): boolean {
+    return this.filterIsActive()
+  }
+
+  private rerenderTree(): Promise<any> {
+    return this.loadNode(this.filteredTreeRoot.node._id)
+  }
+
+  private onBackgroundTreeChange(): void {
+    this.rerenderTree()
+  }
+
+  update(tree: LoadedTree) {
+    this.treeStatus = tree.status
+    this.treeAncestors = tree.ancestors
+    this.filteredTreeRoot = this.getFilteredTree(tree.tree)
+    render(this.treeTemplate(), this)
+  }
+
   private filterIsActive(): boolean {
     return !isEmpty(this.getFilterQuery())
   }
 
-  private getFilteredTree(tree: LoadedTree): FilteredRepositoryNode {
-    return filterNode(tree.tree, this.filterIsActive() ? new Filter(parseQuery(this.getFilterQuery())) : undefined)
+  private getFilteredTree(node: ResolvedRepositoryNode): FilteredRepositoryNode {
+    return filterNode(node, this.filterIsActive() ? new Filter(parseQuery(this.getFilterQuery())) : undefined)
+  }
+
+  private getSearchFieldElement(): HTMLInputElement {
+    return this.querySelector('.searchField')
+  }
+
+  private getCompletedCheckboxElement(): HTMLInputElement {
+    return this.querySelector('.showCompleted')
   }
 
   private async onClick(event: Event): Promise<void> {
@@ -251,16 +225,15 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
           .isSynchronous() // we need this to be a synchronous update so we can immediately reload the node afterwards
           .build())
       if (nodeClosed) {
-        // When we open the node we need to load the subtree on demand and patch it
-        const nodeId = getNodeId(node)
-        const loadedTree = await this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate(), this.shouldCollapsedChildrenBeLoaded())
-        const filteredTree = this.getFilteredTree(loadedTree)
-        renderNode(filteredTree, true, this.contentEl)
+        // this should be efficient: we _are_ loading the entire tree but that node should be opned now and update
+        // NOTE: we used to only load the subtree here, that was definitely more efficient. Theoretically we could
+        // still do this and patch the loadedtree model
+        this.rerenderTree()
       }
     } else if (isInNoteElement(clickedElement)) {
       // for a note we need to take into account that a note may have its own markup (hence isInNoteElement)
       const noteElement = findNoteElementAncestor(clickedElement) as HTMLElement
-      if (! noteElement.isContentEditable) {
+      if (!noteElement.isContentEditable) {
         event.preventDefault()
         startEditingNote(noteElement as HTMLElement)
       }
@@ -270,8 +243,9 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
       if (isEmbeddedLink(clickedElement)) {
         window.open(clickedElement.getAttribute('href'), '_blank')
       } else if (isFilterTag(clickedElement)) {
-        const oldValue = this.searchField.value
-        this.searchField.value = isEmpty(oldValue)
+        const searchField = this.getSearchFieldElement()
+        const oldValue = searchField.value
+        searchField.value = isEmpty(oldValue)
           ? extractFilterText(clickedElement)
           : oldValue + ' ' + extractFilterText(clickedElement)
         this.onQueryChange() // trigger a filter operation
@@ -288,7 +262,7 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
   }
 
   private getFilterQuery(): string {
-    return (this.searchField.value || '').trim()
+    return (this.getSearchFieldElement().value || '').trim()
   }
 
   private async onQueryChange(): Promise<void> {
@@ -300,19 +274,15 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
   }
 
   private onShowCompletedToggle() {
-    this.config.showCompleted = !! this.showCompletedCheckbox.checked
+    this.config.showCompleted = !!this.getCompletedCheckboxElement().checked
     this.rerenderTree()
-  }
-
-  private rerenderTree(): Promise<any> {
-    return this.loadNode(this.currentRootNodeId)
   }
 
   private onInput(event: Event) {
     // apparently we can get some fancy newfangled input events we may want to ignore
     // see https://www.w3.org/TR/input-events-1/
     if ((event as any).inputType === 'historyUndo' ||
-        (event as any).inputType === 'historyRedo') {
+      (event as any).inputType === 'historyRedo') {
       return
     }
     this.treeActionRegistry.executeKeyboardActions(KbdEventType.Input, event, this.treeActionContext)
@@ -329,7 +299,7 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
   private async onAddNodeButtonClick(event: Event): Promise<void> {
     const newNodeId = generateUUID()
     const command = new CommandBuilder(
-      new CreateChildNodeCommandPayload(newNodeId, '', null, this.currentRootNodeId))
+      new CreateChildNodeCommandPayload(newNodeId, '', null, this.filteredTreeRoot.node._id))
       .isUndoable()
       .isBatch()
       .build()
@@ -340,9 +310,10 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
     if (event.key === 'Escape') {
       // Escape should clear the searchfield and blur the focus when we have an active query
       if (this.filterIsActive()) {
-        this.searchField.value = ''
-        if (document.activeElement === this.searchField) {
-          this.searchField.blur()
+        const searchField = this.getSearchFieldElement()
+        searchField.value = ''
+        if (document.activeElement === searchField) {
+          searchField.blur()
         }
         this.onQueryChange()
       }
@@ -372,13 +343,13 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
         const renderFunction = command.batch ? this.debouncedRerender : this.rerenderTree.bind(this)
         commandPromise.then(renderFunction).then(() => {
           if (command.afterFocusNodeId) {
-            this.focus(command.afterFocusNodeId, command.afterFocusPos)
+            this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
           }
         })
-      } else  {
+      } else {
         commandPromise.then(() => {
           if (command.afterFocusNodeId) {
-            this.focus(command.afterFocusNodeId, command.afterFocusPos)
+            this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
           }
         })
       }
@@ -388,7 +359,7 @@ export class Tree implements CommandExecutor, RedomComponent, LifecycleAware {
     }
   }
 
-  private focus(nodeId: string, charPos: number) {
+  private focusNode(nodeId: string, charPos: number) {
     const element = document.getElementById(nodeId)
     // tslint:disable-next-line:no-console
     // console.log(`focusing on node ${nodeId} at ${charPos}, exists?`, element)

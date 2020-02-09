@@ -1,7 +1,6 @@
 /*
  * This file wires everything together for the dendriform tree.
  */
-import { mount } from 'redom'
 import { TreeService } from './service/tree-service'
 import { TreeServiceCommandHandler } from './commands/command-handler-tree-service'
 import { UndoableCommandHandler } from './commands/command-handler-undoable'
@@ -11,6 +10,8 @@ import { LocalEventLog } from './eventlog/eventlog-indexeddb'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
+
+customElements.define('dendriform-tree', Tree)
 
 export class TreeManager {
   private currentEventPump: EventPump = null
@@ -52,7 +53,7 @@ export class TreeManager {
    * @param el The element to mount the tree component to.
    */
   mountTree(el: HTMLElement, treeName: string): void {
-    this.createAndInitTree(treeName).then((tree) => mount(el, tree))
+    this.createAndInitTree(treeName).then((tree) => el.appendChild(tree))
   }
 
   getAvailableTrees(): Promise<string[]> {

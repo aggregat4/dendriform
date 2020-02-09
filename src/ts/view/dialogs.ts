@@ -1,4 +1,4 @@
-import h from 'hyperscript'
+import { html, render } from 'lit-html'
 
 export class Position {
   constructor(readonly x: number, readonly y: number) {}
@@ -10,18 +10,25 @@ export abstract class DialogElement extends HTMLElement {
   private closeButton: HTMLElement
   private dialogCloseObserver: DialogCloseObserver = null
 
+  private readonly dialogTemplate = () => html`<div class="closeButton"></div><div class="dialogContents"></div>`
+
   constructor() {
     super()
   }
 
-  maybeInit(initializer: () => void) {
+  protected getContainer(): HTMLElement {
+    return this.querySelector('.dialogContents') as HTMLElement
+  }
+
+  connectedCallback() {
     if (!this.closeButton) {
       this.setAttribute('class', 'dialog')
-      this.closeButton = h('div.closeButton')
-      this.append(this.closeButton)
-      initializer()
+      render(this.dialogTemplate(), this)
+      this.initDialogContents()
     }
   }
+
+  protected abstract initDialogContents()
 
   getCloseButton(): HTMLElement {
     return this.closeButton

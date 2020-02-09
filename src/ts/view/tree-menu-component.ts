@@ -1,72 +1,91 @@
-import h from 'hyperscript'
+import { html, render } from 'lit-html'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { DialogElement } from './dialogs'
 import { epochSecondsToLocaleString } from '../utils/dateandtime'
 
 export class TreeNodeMenu extends DialogElement {
-  constructor(readonly menuItems: TreeNodeMenuItem[]) {
+
+  constructor() {
     super()
   }
 
-  connectedCallback() {
-    this.maybeInit(() => {
-      for (const menuItem of this.menuItems) {
-        this.append(menuItem)
-      }
-    })
+  protected initDialogContents() {
+    // NOOP
   }
 
   beforeShow(): void {
-    for (const menuItem of this.menuItems) {
+    const menuItems = this.querySelectorAll('.menuItem') as unknown as TreeNodeMenuItem[]
+    for (const menuItem of menuItems) {
       menuItem.beforeShow()
     }
   }
 }
 
 abstract class TreeNodeMenuItem extends HTMLElement {
+  private _treeActionContext: TreeActionContext
+
+  set treeActionContext(treeActionContext: TreeActionContext) {
+    this._treeActionContext = treeActionContext
+  }
+
+  get treeActionContext(): TreeActionContext {
+    return this._treeActionContext
+  }
+
   beforeShow(): void {
     // no default action
   }
 }
 
 export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
-  constructor(readonly treeAction: TreeAction, readonly treeActionContext: TreeActionContext) {
-    super()
+  private _treeAction: TreeAction
+  private readonly template = () => html`
+    <div class="menuItem" @click=${this.onClick}>
+      <span class="name">${this.treeAction?.name || ''}<span>
+      <kbd>${this.treeAction?.trigger.toString() || ''}</kbd>
+    </div>`
+
+  set treeAction(treeAction: TreeAction) {
+    this._treeAction = treeAction
+  }
+
+  get treeAction(): TreeAction {
+    return this._treeAction
+  }
+
+  private onClick(e) {
+    return this._treeAction.handler(e, this.treeActionContext)
   }
 
   connectedCallback() {
-    if (this.childElementCount <= 0) {
-      this.setAttribute('class', 'menuItem')
-      this.append(h('span.name', this.treeAction.name))
-      this.append(h('kbd', this.treeAction.trigger.toString()))
-      this.addEventListener('click', e => {
-        this.treeAction.handler(e, this.treeActionContext)
-      })
-    }
+    render(this.template(), this)
   }
 }
 
 export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
-  readonly nodeInfoEl: Element = h('span.infoContent', 'No node selected.')
-
-  constructor(readonly treeActionContext: TreeActionContext) {
-    super()
-  }
+  private readonly DEFAULT_INFO_TEXT = 'No node selected.'
+  private readonly template = () => html`
+    <div class="menuItem disabled">
+      <span class="infoContent">${this.getInfoContent()}</span>
+    </div>
+    `
 
   connectedCallback() {
-    if (this.childElementCount <= 0) {
-      this.setAttribute('class', 'menuItem disabled')
-      this.append(this.nodeInfoEl)
+    render(this.template(), this)
+  }
+
+  private async getInfoContent() {
+    const activeNodeId = this.treeActionContext?.transientStateManager.getActiveNodeId()
+    if (activeNodeId) {
+      const activeNode = await this.treeActionContext.treeService.loadNode(activeNodeId)
+      return `Created: ${epochSecondsToLocaleString(activeNode.created)}, Updated: ${epochSecondsToLocaleString(activeNode.updated)}`
+    } else {
+      return this.DEFAULT_INFO_TEXT
     }
   }
 
-  beforeShow(): void {
-    const activeNodeId = this.treeActionContext.transientStateManager.getActiveNodeId()
-    if (activeNodeId) {
-      this.treeActionContext.treeService.loadNode(activeNodeId)
-        .then(node => this.nodeInfoEl.textContent =
-          `Created: ${epochSecondsToLocaleString(node.created)}, Updated: ${epochSecondsToLocaleString(node.updated)}`)
-    }
+  async beforeShow(): Promise<void> {
+    render(this.template, this)
   }
 
 }

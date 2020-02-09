@@ -33,6 +33,7 @@ import {
 } from './tree-dom-util'
 import { markupHtml, toHtml } from '../utils/markup'
 import { renderNode } from './node-component'
+import { render } from 'lit-html'
 
 export class DomCommandHandler implements CommandHandler {
 
@@ -119,7 +120,7 @@ export class DomCommandHandler implements CommandHandler {
   private async createDomNode(id: string, name: string, note: string): Promise<Element> {
     const newNode = createNewResolvedRepositoryNodeWithContent(id, name, note)
     const el = document.createElement('div')
-    renderNode(filterNode(newNode), false, el)
+    render(renderNode(filterNode(newNode), false), el)
     return el.firstElementChild
   }
 

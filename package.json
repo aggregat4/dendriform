@@ -30,7 +30,6 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/file-saver": "2.0.1",
-    "@types/hyperscript": "0.0.3",
     "@wessberg/rollup-plugin-ts": "1.2.16",
     "barecolor": "^1.0.1",
     "ceylon": "^0.9.1",
@@ -48,9 +47,7 @@
   },
   "dependencies": {
     "file-saver": "2.0.2",
-    "hyperscript": "2.0.2",
     "idb": "5.0.1",
-    "lit-html": "1.1.2",
-    "redom": "3.25.1"
+    "lit-html": "1.1.2"
   }
 }

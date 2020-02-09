@@ -20,7 +20,7 @@ export class TreeActionRegistry {
     existingActions.push(action)
   }
 
-  executeKeyboardActions(eventType: KbdEventType, event: Event, treeActionContext: TreeActionContext, treeNodeId?: string): void {
+  executeKeyboardActions(eventType: KbdEventType, event: Event, treeActionContext: TreeActionContext): void {
     const actions = this.keyboardActions.get(eventType) || []
     for (const action of actions) {
       if (action.trigger.isTriggered(eventType, event)) {

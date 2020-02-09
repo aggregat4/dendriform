@@ -1,4 +1,4 @@
-import h from 'hyperscript'
+import { html, render } from 'lit-html'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
 import { DialogElement } from './dialogs'
@@ -6,7 +6,6 @@ import { ResolvedRepositoryNode, ActivityIndicating } from '../domain/domain'
 import { parseXML } from '../utils/util'
 import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/commands'
 import { CommandExecutor } from './tree-helpers'
-import { ActivityIndicator } from './activity-indicator-component'
 import { opmlDocumentToRepositoryNodes } from '../opml/opml-util'
 
 // TODO: not sure we need a keyboard trigger for this, perhaps we need a NoOp keyboard trigger?
@@ -17,50 +16,44 @@ export const importOpmlAction = new TreeAction(
   'Import OPML')
 
 class OpmlImportDialog extends DialogElement implements ActivityIndicating {
-  private uploadButton: HTMLInputElement
-  private importButton: HTMLInputElement
   private treeActionContext: TreeActionContext
-  private errorElement: HTMLElement
-  private successElement: HTMLElement
-  private spinner: ActivityIndicator
   private importing: boolean = false
+  private success = null
+  private error = null
+  private disabled = true
+
+  private readonly importTemplate = () => html`
+    <div class="opmlImportPopup activityIndicating">
+      <section>
+        <header>
+          <h1>Import OPML</h1>
+        </header>
+        ${this.error ? html`<div class="error">${this.error}</div>` : ''}
+        ${this.success ? html`<div class="success">${this.success}</div>` : ''}
+        <input class="uploadOpml" type="file" @change=${this.handleFilesChanged.bind(this)}>Select OPML File</input>
+        <button class="import primary" disabled="${this.disabled}" @click=${this.importFile.bind(this)}>Import File</button>
+        <a4-spinner delayMs="250"/>
+      </section>
+    </div>`
 
   constructor() {
     super()
   }
 
-  connectedCallback() {
-    super.maybeInit(() => {
-      this.classList.add('opmlImportPopup')
-      this.classList.add('activityindicating')
-      // <input type="file" id="input" onchange="handleFiles(this.files)">
-      this.errorElement = h('div.error', 'error')
-      this.successElement = h('div.success', 'success')
-      this.uploadButton = h('input.uploadOpml', {type: 'file'}, 'Select OPML File')
-      this.importButton = h('button.import.primary', {disabled: true}, 'Import File')
-      this.spinner = new ActivityIndicator()
-      this.spinner.setAttribute('delayms', '250')
-      this.spinner.activityIndicating = this
-      const wrapper = h('section',
-        h('header', h('h1', 'Import OPML')),
-        this.errorElement,
-        this.successElement,
-        this.uploadButton,
-        this.importButton,
-        this.spinner)
-      this.append(wrapper)
-      this.uploadButton.addEventListener('change', this.handleFilesChanged.bind(this), false)
-      this.importButton.addEventListener('click', this.importFile.bind(this), false)
-    })
+  private rerender() {
+    render(this.importTemplate(), this.getContainer())
+  }
+
+  private getUploadInput(): HTMLInputElement {
+    return this.querySelector('input.upload') as HTMLInputElement
+  }
+
+  protected initDialogContents() {
+    this.rerender()
   }
 
   destroy(): void {
-    this.uploadButton.value = null
-    this.importButton.disabled = true
-    this.successElement.innerText = ''
-    this.successElement.style.display = 'none'
-    this.errorElement.innerText = ''
-    this.errorElement.style.display = 'none'
+    this.rerender()
   }
 
   isActive(): boolean {
@@ -74,12 +67,14 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
   private handleFilesChanged(event: Event): void {
     const files: FileList = (event.target as any).files as FileList
     if (files && files.length > 0) {
-      this.importButton.disabled = false
+      this.disabled = false
     }
+    this.rerender()
   }
 
   private importFile(event: Event): void {
-    const files: FileList = this.uploadButton.files as FileList
+    const uploadInput = this.getUploadInput()
+    const files: FileList = uploadInput.files as FileList
     if (files && files.length > 0) {
       const reader = new FileReader()
       reader.onload = async (e) => {
@@ -88,30 +83,27 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
           const rootNodes = opmlDocumentToRepositoryNodes(doc)
           const parentId = this.treeActionContext.transientStateManager.getActiveNodeId()
           // disable import button to prevent duplicate clicks
-          this.importButton.disabled = true
+          this.disabled = true
           // make sure the spinner starts spinning
           this.importing = true
-          // TODO: this doesn't actually appear, the following operations maybe block the UI thread when doing large imports?
-          this.spinner.updateActivityStatus()
+          this.rerender()
           for (const node of rootNodes) {
             await this.createNode(this.treeActionContext.commandExecutor, node, parentId)
           }
         } catch (error) {
           console.error(error)
-          this.errorElement.style.display = 'block'
-          this.successElement.style.display = 'none'
-          this.errorElement.innerText = error.message
+          this.error = error.message
+          this.rerender()
           return
         } finally {
           this.importing = false
         }
-        this.errorElement.style.display = 'none'
-        this.successElement.style.display = 'block'
-        this.successElement.innerText = 'Successfully imported OPML file'
+        this.success = 'Successfully imported OPML file'
         this.close()
       }
       reader.readAsText(files[0])
     }
+    this.rerender()
   }
 
   private async createNode(commandExecutor: CommandExecutor, node: ResolvedRepositoryNode, parentId: string): Promise<void> {

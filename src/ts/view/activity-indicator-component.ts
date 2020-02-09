@@ -4,7 +4,7 @@ import { ActivityIndicating } from '../domain/domain'
 export class ActivityIndicator extends HTMLElement {
   private spinner: HTMLElement = null
   private timerId = null
-  private readonly template = html`<div class="spinner"></div>`
+  private readonly template = () => html`<div class="spinner"></div>`
   private _activityIndicating: ActivityIndicating = null
 
   constructor() {
@@ -12,7 +12,7 @@ export class ActivityIndicator extends HTMLElement {
   }
 
   connectedCallback() {
-    render(this.template, this)
+    render(this.template(), this)
     this.spinner = this.firstElementChild as HTMLElement
     if (! this.timerId) {
       this.timerId = setInterval(() => {

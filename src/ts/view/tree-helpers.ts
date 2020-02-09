@@ -29,6 +29,7 @@ export class TransientState {
   registerSelectionChangeHandler() {
     // We need to track when the selection changes so we can store the current
     // cursor position (needed for UNDO)
+    // TODO: doing this on document is uncool when we want to have multiple trees, but I did this for a reason to capture more clicks?
     document.addEventListener('selectionchange', this.selectionChangeHandler.bind(this))
   }
 

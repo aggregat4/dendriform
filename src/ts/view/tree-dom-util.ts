@@ -80,7 +80,8 @@ export function getNoteElement(node: Element): Element {
 }
 
 export function getClosestNodeElement(nodeChildElement: Element): Element {
-  return nodeChildElement.closest('.node')
+  const nodeEl = nodeChildElement.closest('.node')
+  return nodeEl
 }
 
 // TODO should we fail fast here by throwing exception after checking hasParentNode?
@@ -140,7 +141,7 @@ export function findNoteElementAncestor(element: Element): Element {
 
 // TODO add search for OPEN nodes, not just any node
 export function findPreviousNode(node: Element): Element {
-  if (node.previousSibling) {
+  if (node.previousElementSibling) {
     return findLastChildNode(node.previousElementSibling)
   } else if (hasParentNode(node)) {
     return getParentNode(node)

@@ -1225,7 +1225,59 @@ When the element has been added we must make sure to inject all the required dep
 
 I use an additionaly technique where the spinner will find the component it has to show activity for by looking for a class in its ancestor tree and to select the closest match. This is the reverse of injecting the object to observe and used as an alternative that does not require injection.
 
-Maybe I want to try to port https://github.com/volument/baretest/blob/master/baretest.js to typescript and to es6 modules and arrow functions and try to use that to test my code?
+Maybe I want to try to port <https://github.com/volument/baretest/blob/master/baretest.js> to typescript and to es6 modules and arrow functions and try to use that to test my code?
 
-## 2020-02-09
+## 2020-02-09 Moving the test framework to tizzytest
 
+`blogpost`
+
+Inspired by <https://github.com/volument/baretest/blob/master/baretest.js> I wanted to move my testing setup from jest to something similarly minimal.
+
+We use jest at work and it works fine, but it is an enormous project with many dependencies. In my personal project it was the last thing holding me back from removing babel as a dependency. baretest's incredible simplicity motivated me to try to replace jest with something similar.
+
+I transformed baretest into typescript and added it to my project. Since I still need some form of assertions in my tests I decided to use Cylon (TODO link) as a more or less drop in replacement for the jest assertions.
+
+Since we no longer have jest doing all kinds of magic we can't just have tests sprinkled over the workspace and automatically gathered and executed. Instead we now have a manual test suite that gathers the individual test files and runs them:
+
+```javascript
+
+// Set up a fake dom environment for tests since we are not in the browser (see https://github.com/rstacruz/jsdom-global)
+import 'jsdom-global/register'
+
+import { trun } from './tizzytest'
+
+// All the tests
+import './vectorclock.test'
+import './domain-search.test'
+import './keyboardshortcut.test'
+import './logoot-sequence-wrapper.test'
+import './markup.test'
+import './util.test'
+
+// Run tests async since the trun is async
+;(async () => await trun('All Tests'))()
+``` 
+
+`tizzytest` is my typescript conversion of baretest. I run this file with `npx ts-node test/runtests.ts`.
+
+Doing this conversion I stumbled on a few interesting issues:
+
+`ts-node` spat out "navigator is undefined" as an error message. This was typescript complaining about code that was using browser APIs and in a node environment those are not available. Presumably jest provides all this out of the box. Some googling made cleat that the typical solution is to use `jsdom` as a headless dom implementation and more specifically `jsdom-global` has a register module that sets up a basic browser environment for exactly these cases.
+
+This explains the top line in the `runtests.ts` file I included:
+
+```javascript
+import 'jsdom-global/register'
+```
+
+The second issue was ts-node having trouble loading pure javascript files and treating them as es6 modules. This is a known issue with node. You can work around it by renaming the file to .mjs which makes node see it as an ES6 module, but typescript doesn't currently support this exetension for loading dependencies.
+
+My fix for this was to simply rename the file to .ts and treat it as a typescript file. This is always an option since Typescript is just a superset of Javascript.
+
+In this particular case I think running the tests with my own simple runner is absolutely worth it. This does not mean that using something like jest is a bad idea. At work we use it and it makes sense. As soon as you need more of the many features it provides and you have a team of people working with the technology that has support, issues and documentation then it may well be worth to depend on something that is a bit more heavy weight.
+
+This is the same trade-off one has with all libraries and frameworks: when does it make sense for me to use it and when should I maybe try to do something myself. There is no one size fits all answer to this question. But it is always worth asking these questions and discussing them.
+
+## 2020-02-09 lit-html refactoring done
+
+redom and hyperscript have been removed from the project and everything renders with lit-html. Had to fix a few errors that were there regardless of the rendering approach. For the moment everything works except for the popup menu.

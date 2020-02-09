@@ -1,6 +1,6 @@
 import { RepositoryNode, FilteredRepositoryNode, DeferredArray } from '../domain/domain'
 import { isCursorAtContentEditableBeginning } from '../utils/util'
-import { html, render } from 'lit-html'
+import { html, render, TemplateResult } from 'lit-html'
 import { unsafeHTML } from 'lit-html/directives/unsafe-html'
 
 /**
@@ -20,8 +20,8 @@ const nodeTemplate = (node: FilteredRepositoryNode, children: DeferredArray<Filt
     </div>
   </div>`
 
-export function renderNode(node: FilteredRepositoryNode, first: boolean, el: Element) {
-  render(nodeTemplate(node, getChildElements(node), first), el)
+export function renderNode(node: FilteredRepositoryNode, first: boolean): TemplateResult {
+  return nodeTemplate(node, getChildElements(node), first)
 }
 
 function getChildElements(treeNode: FilteredRepositoryNode): DeferredArray<FilteredRepositoryNode> {
