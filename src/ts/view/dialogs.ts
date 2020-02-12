@@ -10,22 +10,27 @@ export abstract class DialogElement extends HTMLElement {
   private closeButton: HTMLElement
   private dialogCloseObserver: DialogCloseObserver = null
 
-  private readonly dialogTemplate = () => html`<div class="closeButton"></div><div class="dialogContents"></div>`
+  private readonly dialogTemplate = () => html`
+    <div class="closeButton"></div>
+    <div class="dialogContents"></div>`
 
   constructor() {
     super()
   }
 
-  protected getContainer(): HTMLElement {
-    return this.querySelector('.dialogContents') as HTMLElement
+  connectedCallback() {
+    this.setAttribute('class', 'dialog')
+    const children = Array.from(this.querySelectorAll('*'))
+    render(this.dialogTemplate(), this)
+    const container = this.getContainer()
+    for (const child of children) {
+      container.appendChild(child)
+    }
+    this.initDialogContents()
   }
 
-  connectedCallback() {
-    if (!this.closeButton) {
-      this.setAttribute('class', 'dialog')
-      render(this.dialogTemplate(), this)
-      this.initDialogContents()
-    }
+  protected getContainer(): HTMLElement {
+    return this.querySelector('.dialogContents') as HTMLElement
   }
 
   protected abstract initDialogContents()

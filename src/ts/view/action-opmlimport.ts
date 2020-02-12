@@ -1,21 +1,30 @@
 import { html, render } from 'lit-html'
-import { TreeAction, TreeActionContext } from './tree-actions'
-import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
+import { TreeActionContext, TreeAction } from './tree-actions'
 import { DialogElement } from './dialogs'
 import { ResolvedRepositoryNode, ActivityIndicating } from '../domain/domain'
 import { parseXML } from '../utils/util'
 import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/commands'
 import { CommandExecutor } from './tree-helpers'
 import { opmlDocumentToRepositoryNodes } from '../opml/opml-util'
+import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
+import { findTreeRoot } from './tree-dom-util'
 
 // TODO: not sure we need a keyboard trigger for this, perhaps we need a NoOp keyboard trigger?
-// TODO: move these into the registry proper identifiable by some name?
 export const importOpmlAction = new TreeAction(
   new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name')),
   onOpmlImport,
   'Import OPML')
 
-class OpmlImportDialog extends DialogElement implements ActivityIndicating {
+function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
+  console.debug(`clicked on OPML import action`)
+  const clickedElement = event.target as HTMLElement
+  const treeElement = findTreeRoot(clickedElement)
+  if (treeElement) {
+    treeActionContext.dialogs.showTransientDialog(clickedElement, treeElement.querySelector('opmlimport-dialog'))
+  }
+}
+
+export class OpmlImportDialog extends DialogElement implements ActivityIndicating {
   private treeActionContext: TreeActionContext
   private importing: boolean = false
   private success = null
@@ -126,28 +135,4 @@ class OpmlImportDialog extends DialogElement implements ActivityIndicating {
   }
 }
 
-customElements.define('tree-opmlimport-dialog', OpmlImportDialog)
-const opmlImportMenu = new OpmlImportDialog()
-
-// A general init function (that we probably need for each component) to make sure
-// it can register custom elements and can put things under the root DOM node (for
-// dialogs for example)
-// TODO: do we like this? We need something like it but can we make it more general?
-export function mount(rootElement: Element) {
-  rootElement.appendChild(opmlImportMenu)
-}
-
-export function unmount(rootElement: Element) {
-  rootElement.removeChild(opmlImportMenu)
-}
-
-// show dialog with: File Upload button, Import button (no copy paste yet, or start with that?)
-// upload client side and parse the opml
-// create that tree as a child of the current node (how do I programmatically create nodes in batch!?)
-function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
-  console.debug(`clicked on OPML import action`)
-  const clickedElement = event.target as HTMLElement
-  // since the dialog is already on the page we need to set the correct context for the current action
-  opmlImportMenu.setTreeActionContext(treeActionContext)
-  treeActionContext.dialogs.showTransientDialog(clickedElement, opmlImportMenu)
-}
+customElements.define('opmlimport-dialog', OpmlImportDialog)

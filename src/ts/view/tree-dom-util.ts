@@ -212,3 +212,18 @@ const sanitizer = new sanitize.Sanitize({
 function sanitizeContent(element: HTMLElement): HTMLElement {
   return sanitizer.clean_node(element)
 }
+
+/**
+ * If the given element is either the root of the tree component (not the root node, but the
+ * container element) or it is inside the root of the tree then this will return that node.
+ * Otherwise it will return null.
+ */
+export function findTreeRoot(element: HTMLElement): HTMLElement {
+  if (element.classList.contains('tree')) {
+    return element
+  } else if (element.parentElement) {
+    return findTreeRoot(element.parentElement)
+  } else {
+    return null
+  }
+}

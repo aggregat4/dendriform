@@ -24,6 +24,10 @@ export class TreeNodeMenu extends DialogElement {
 abstract class TreeNodeMenuItem extends HTMLElement {
   private _treeActionContext: TreeActionContext
 
+  constructor() {
+    super()
+  }
+
   set treeActionContext(treeActionContext: TreeActionContext) {
     this._treeActionContext = treeActionContext
   }
@@ -44,6 +48,10 @@ export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
       <span class="name">${this.treeAction?.name || ''}<span>
       <kbd>${this.treeAction?.trigger.toString() || ''}</kbd>
     </div>`
+
+  constructor() {
+    super()
+  }
 
   set treeAction(treeAction: TreeAction) {
     this._treeAction = treeAction
@@ -69,6 +77,9 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
       <span class="infoContent">${this.getInfoContent()}</span>
     </div>
     `
+  constructor() {
+    super()
+  }
 
   connectedCallback() {
     render(this.template(), this)
@@ -89,3 +100,7 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
   }
 
 }
+
+customElements.define('treenode-menu', TreeNodeMenu)
+customElements.define('treenode-menuitem-action', TreeNodeActionMenuItem)
+customElements.define('treenode-menuitem-info', TreeNodeInfoMenuItem)

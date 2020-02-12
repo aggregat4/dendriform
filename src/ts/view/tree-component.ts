@@ -9,21 +9,17 @@ import { TreeService } from '../service/tree-service'
 // tslint:disable-next-line:max-line-length
 import { debounce, isEmpty, pasteTextUnformatted, Predicate, createCompositeAndPredicate, generateUUID, setCursorPosAcrossMarkup } from '../utils/util'
 import { DomCommandHandler } from './command-handler-dom'
-import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType } from './keyboardshortcut'
+import { KbdEventType, KeyboardEventTrigger, AllNodesSelector, toRawShortCuts, SemanticShortcut, SemanticShortcutType, NodeClassSelector } from './keyboardshortcut'
 // tslint:disable-next-line:max-line-length
 import { findNoteElementAncestor, getNameElement, getClosestNodeElement, getNodeId, isInNoteElement, isNodeClosed, isToggleElement, isMenuTriggerElement, isEmbeddedLink, isInNameNode, isFilterTag, extractFilterText } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientState } from './tree-helpers'
-import { TreeNodeActionMenuItem, TreeNodeInfoMenuItem, TreeNodeMenu } from './tree-menu-component'
+import { TreeNodeActionMenuItem, TreeNodeMenu } from './tree-menu-component'
 import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog } from './dialogs'
-import { importOpmlAction } from './action-opmlimport'
 import { exportOpmlExportAction } from './action-opmlexport'
 import { startEditingNote, renderNode } from './node-component'
-
-customElements.define('treenode-menu', TreeNodeMenu)
-customElements.define('treenode-menuitem-action', TreeNodeActionMenuItem)
-customElements.define('treenode-menuitem-info', TreeNodeInfoMenuItem)
+import { OpmlImportDialog, importOpmlAction } from './action-opmlimport'
 
 class TreeConfig {
   showCompleted: boolean = false
@@ -82,7 +78,9 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         <treenode-menuitem-action class="import-opml-action-menuitem" />
         <treenode-menuitem-action class="export-opml-action-menuitem" />
         <treenode-menuitem-info class="info-menuitem"/>
+        <div class="foobar">foo</div>
       </treenode-menu>
+      <opmlimport-dialog/>
     </div>`
 
   private renderTreeNodes() {
@@ -102,11 +100,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
   }
 
   private renderNodeName(name: string): string {
-    if (name === 'ROOT') {
-      return 'Root'
-    } else {
-      return name
-    }
+    return name === 'ROOT' ? 'Root' : name
   }
 
   constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
@@ -124,6 +118,8 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     const importOpmlActionMenuItem = this.querySelector('.import-opml-action-menuitem') as unknown as TreeNodeActionMenuItem
     importOpmlActionMenuItem.treeAction = importOpmlAction
     importOpmlActionMenuItem.treeActionContext = this.treeActionContext
+    const opmlImportDialog = this.querySelector('opmlimport-dialog') as unknown as OpmlImportDialog
+    opmlImportDialog.setTreeActionContext(this.treeActionContext)
 
     const exportOpmlActionMenuItem = this.querySelector('.export-opml-action-menuitem') as unknown as TreeNodeActionMenuItem
     exportOpmlActionMenuItem.treeAction = exportOpmlExportAction
@@ -138,11 +134,9 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
 
   async init(): Promise<void> {
     await this.treeService.init()
-    this.treeActionRegistry.mountDialogs(this)
   }
 
   async deinit(): Promise<void> {
-    this.treeActionRegistry.unmountDialogs(this)
     await this.treeService.deinit()
   }
 

@@ -1281,3 +1281,7 @@ This is the same trade-off one has with all libraries and frameworks: when does 
 ## 2020-02-09 lit-html refactoring done
 
 redom and hyperscript have been removed from the project and everything renders with lit-html. Had to fix a few errors that were there regardless of the rendering approach. For the moment everything works except for the popup menu.
+
+## 2020-02-12
+
+Realized dialogs do not work. Refactored a bunch of code around. Then noticed that I misunderstood something fundamental about custom elements: you don't have access to children defined inside of the custom element in the HTML. At least not just like that. I'd rather not go shadow dom and templates and slots so I need to find another way to embed the menu items into the menu.

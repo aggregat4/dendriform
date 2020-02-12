@@ -1,13 +1,13 @@
 import { KbdEventType, RawKbdShortcut, KeyboardEventTrigger, NodeClassSelector, KbdKey, KbdModifier, KbdModifierType, toRawShortCuts, SemanticShortcut, SemanticShortcutType, AllNodesSelector } from './keyboardshortcut'
-import { getClosestNodeElement, getNodeId, getNodeName, getNodeNote, findPreviousNode, getNameElement, findNextNode, hasChildren, getParentNode, hasParentNode, findLastChildNode, isNodeCompleted } from './tree-dom-util'
+import { getClosestNodeElement, getNodeId, getNodeName, getNodeNote, findPreviousNode, getNameElement, findNextNode, hasChildren, getParentNode, hasParentNode, findLastChildNode, isNodeCompleted, findTreeRoot } from './tree-dom-util'
 import { getCursorPos, getTextBeforeCursor, getTextAfterCursor, generateUUID, isTextSelected, isCursorAtBeginning, isEmpty, isCursorAtEnd } from '../utils/util'
 import { CommandBuilder, RenameNodeByIdCommandPayload, UpdateNoteByIdCommandPayload, SplitNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, MergeNodesByIdCommandPayload, Command, ReparentNodeByIdCommandPayload, UnCompleteNodeByIdCommandPayload, CompleteNodeByIdCommandPayload } from '../commands/commands'
 import { MergeNameOrder } from '../service/service'
 import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import { CommandExecutor } from './tree-helpers'
 import { TreeAction, TreeActionContext } from './tree-actions'
-import { importOpmlAction, mount as opmlMount, unmount as opmlUnmount } from './action-opmlimport'
 import { startEditingNote } from './node-component'
+import { importOpmlAction } from './action-opmlimport'
 
 export class TreeActionRegistry {
   private readonly keyboardActions: Map<KbdEventType, TreeAction[]> = new Map()
@@ -27,16 +27,6 @@ export class TreeActionRegistry {
         action.handler(event, treeActionContext)
       }
     }
-  }
-
-  // TODO: this needs to be modeled better: some actions need acces to the dom to initialise themselves
-  // for example for creating a dialog or something
-  mountDialogs(element: Element): void {
-    opmlMount(element)
-  }
-
-  unmountDialogs(element: Element): void {
-    opmlUnmount(element)
   }
 
 }
