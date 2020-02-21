@@ -1,7 +1,7 @@
 // Set up a fake dom environment for tests since we are not in the browser (see https://github.com/rstacruz/jsdom-global)
 import 'jsdom-global/register'
 
-import { trun } from './tizzytest'
+import { run } from './tizzytest'
 
 // All the tests
 import './vectorclock.test'
@@ -12,4 +12,4 @@ import './markup.test'
 import './util.test'
 
 // Run tests async since the trun is async
-;(async () => await trun('All Tests'))()
+;(async () => await run('All Tests'))()

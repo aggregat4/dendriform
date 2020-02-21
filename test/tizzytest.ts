@@ -1,38 +1,38 @@
 import rgb from 'barecolor'
 
 const suite = []
-const before = []
-const after = []
-const only = []
+const beforeTests = []
+const afterTests = []
+const onlyTests = []
 
 export function test(name, fn) {
   suite.push({ name, fn })
 }
 
-export function tonly(name, fn) {
-  only.push({ name, fn })
+export function only(name, fn) {
+  onlyTests.push({ name, fn })
 }
 
-export function tbefore(fn) { before.push(fn) }
-export function tafter(fn) { after.push(fn)  }
-export function tskip(fn) {}
+export function before(fn) { beforeTests.push(fn) }
+export function after(fn) { afterTests.push(fn)  }
+export function skip(fn) {}
 
-export async function trun(headline) {
-  const tests = only[0] ? only : suite
+export async function run(headline) {
+  const tests = onlyTests[0] ? onlyTests : suite
   rgb.cyan(headline + ' ')
   for (const t of tests) {
     try {
-      for (const fn of before) await fn()
+      for (const fn of beforeTests) await fn()
       await t.fn()
       rgb.gray('• ')
     } catch(e) {
-      for (const fn of after) await fn()
+      for (const fn of afterTests) await fn()
       rgb.red(`\n\n! ${test.name} \n\n`)
       prettyError(e)
       return false
     }
   }
-  for (const fn of after) await fn()
+  for (const fn of afterTests) await fn()
   rgb.greenln(`✓ ${ tests.length }`)
   console.info('\n')
 }
