@@ -103,7 +103,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     return name === 'ROOT' ? 'Root' : name
   }
 
-  constructor(readonly commandHandler: UndoableCommandHandler, readonly treeService: TreeService, readonly treeActionRegistry: TreeActionRegistry, readonly activityIndicating: ActivityIndicating) {
+  constructor() {
     super()
     render(this.treeTemplate(), this)
     // In general we only want to limit ourselves to our component with listener, but for some functions we
@@ -113,6 +113,25 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     const dialogOverlayEl = this.querySelector('.dialogOverlay')
     this.transientStateManager.registerSelectionChangeHandler()
     this.dialogs = new Dialogs(this, dialogOverlayEl as HTMLElement)
+
+    const treeNodeMenu = this.querySelector('.node-menu') as unknown as TreeNodeMenu
+    this.dialogs.registerDialog(new Dialog('menuTrigger', treeNodeMenu))
+  }
+
+  set commandHandler(commandHandler: UndoableCommandHandler) {
+    this.commandHandler = commandHandler
+  }
+
+  set treeActionRegistry(treeActionRegistry: TreeActionRegistry) {
+    this.treeActionRegistry = treeActionRegistry
+  }
+
+  set activityIndicating(activityIndicating: ActivityIndicating) {
+    this.activityIndicating = activityIndicating
+  }
+
+  set treeService(treeService: TreeService) {
+    this.treeService = treeService
     this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.dialogs, this.treeService)
 
     const importOpmlActionMenuItem = this.querySelector('.import-opml-action-menuitem') as unknown as TreeNodeActionMenuItem
@@ -127,9 +146,6 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
 
     const infoMenuItem = this.querySelector('.info-menuitem') as unknown as TreeNodeActionMenuItem
     infoMenuItem.treeActionContext = this.treeActionContext
-
-    const treeNodeMenu = this.querySelector('.node-menu') as unknown as TreeNodeMenu
-    this.dialogs.registerDialog(new Dialog('menuTrigger', treeNodeMenu))
   }
 
   async init(): Promise<void> {

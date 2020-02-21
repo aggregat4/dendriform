@@ -34,7 +34,11 @@ export class TreeManager {
     const commandHandler = new UndoableCommandHandler(treeServiceCommandHandler)
     const treeActionRegistry = new TreeActionRegistry()
     registerTreeActions(treeActionRegistry)
-    const tree = new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
+    const tree = new Tree()
+    tree.commandHandler = commandHandler
+    tree.treeService = treeService
+    tree.treeActionRegistry = treeActionRegistry
+    tree.activityIndicating = localEventLog
     this.currentTree = tree.init().then(() => tree)
     this.currentEventPump.init()
     return this.currentTree
