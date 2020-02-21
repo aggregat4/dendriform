@@ -30,20 +30,20 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/file-saver": "2.0.1",
-    "@wessberg/rollup-plugin-ts": "1.2.16",
-    "barecolor": "^1.0.1",
-    "ceylon": "^0.9.1",
-    "jsdom": "^16.1.0",
-    "jsdom-global": "^3.0.2",
+    "@wessberg/rollup-plugin-ts": "1.2.17",
+    "barecolor": "1.0.1",
+    "ceylon": "0.9.1",
+    "jsdom": "16.2.0",
+    "jsdom-global": "3.0.2",
     "npm-watch": "0.6.0",
-    "rollup": "1.31.0",
+    "rollup": "1.31.1",
     "rollup-plugin-commonjs": "10.1.0",
     "rollup-plugin-html2": "0.7.0",
     "rollup-plugin-node-resolve": "5.2.0",
     "rollup-plugin-visualizer": "3.3.1",
     "ts-unused-exports": "6.0.0",
     "tslint": "6.0.0",
-    "typescript": "3.7.5"
+    "typescript": "3.8.2"
   },
   "dependencies": {
     "file-saver": "2.0.2",
