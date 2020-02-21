@@ -15,7 +15,9 @@ export function only(name, fn) {
 
 export function before(fn) { beforeTests.push(fn) }
 export function after(fn) { afterTests.push(fn)  }
-export function skip(fn) {}
+export function skip(fn) {
+  // intentionally left blank, this function is just a helper for the client to identify skips
+}
 
 export async function run(headline) {
   const tests = onlyTests[0] ? onlyTests : suite
