@@ -1,31 +1,14 @@
 import { html, render } from 'lit-html'
+import {until} from 'lit-html/directives/until'
 import { TreeAction, TreeActionContext } from './tree-actions'
-import { DialogElement } from './dialogs'
 import { epochSecondsToLocaleString } from '../utils/dateandtime'
-
-export class TreeNodeMenu extends DialogElement {
-
-  constructor() {
-    super()
-  }
-
-  protected initDialogContents() {
-    // NOOP
-  }
-
-  beforeShow(): void {
-    const menuItems = this.querySelectorAll('.menuItem') as unknown as TreeNodeMenuItem[]
-    for (const menuItem of menuItems) {
-      menuItem.beforeShow()
-    }
-  }
-}
 
 abstract class TreeNodeMenuItem extends HTMLElement {
   private _treeActionContext: TreeActionContext
 
   constructor() {
     super()
+    this.attachShadow({mode: 'open'})
   }
 
   set treeActionContext(treeActionContext: TreeActionContext) {
@@ -36,17 +19,42 @@ abstract class TreeNodeMenuItem extends HTMLElement {
     return this._treeActionContext
   }
 
-  beforeShow(): void {
-    // no default action
+  protected get menuItemStyle() {
+    return html`<style>
+    .menuItem {
+      display: block;
+      padding: 6px 12px 6px 12px;
+      max-width: 300px;
+    }
+
+    .menuItem:hover {
+      background-color: var(--highlight-bgcolor);
+      color: var(--highlight-color);
+      cursor: pointer;
+    }
+
+    .menuItem.disabled,
+    .menuItem.disabled:hover {
+      background-color: inherit;
+      color: var(--disabled-text-color);
+      cursor: inherit;
+    }
+    </style>`
   }
+
+  // beforeShow(): void {
+  //   // no default action
+  // }
 }
 
 export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
   private _treeAction: TreeAction
   private readonly template = () => html`
+    ${this.menuItemStyle}
     <div class="menuItem" @click=${this.onClick}>
       <span class="name">${this.treeAction?.name || ''}<span>
       <kbd>${this.treeAction?.trigger.toString() || ''}</kbd>
+      <slot></slot>
     </div>`
 
   constructor() {
@@ -66,23 +74,26 @@ export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
   }
 
   connectedCallback() {
-    render(this.template(), this)
+    render(this.template(), this.shadowRoot)
   }
 }
+
+customElements.define('df-menuitem-action', TreeNodeActionMenuItem)
 
 export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
   private readonly DEFAULT_INFO_TEXT = 'No node selected.'
   private readonly template = () => html`
+    ${this.menuItemStyle}
     <div class="menuItem disabled">
-      <span class="infoContent">${this.getInfoContent()}</span>
-    </div>
-    `
+      <span class="infoContent">${until(this.getInfoContent(), '...')}</span>
+    </div>`
+
   constructor() {
     super()
   }
 
   connectedCallback() {
-    render(this.template(), this)
+    render(this.template(), this.shadowRoot)
   }
 
   private async getInfoContent() {
@@ -96,11 +107,9 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
   }
 
   async beforeShow(): Promise<void> {
-    render(this.template, this)
+    render(this.template, this.shadowRoot)
   }
 
 }
 
-customElements.define('treenode-menu', TreeNodeMenu)
-customElements.define('treenode-menuitem-action', TreeNodeActionMenuItem)
-customElements.define('treenode-menuitem-info', TreeNodeInfoMenuItem)
+customElements.define('df-menuitem-info', TreeNodeInfoMenuItem)

@@ -1285,3 +1285,41 @@ redom and hyperscript have been removed from the project and everything renders 
 ## 2020-02-12
 
 Realized dialogs do not work. Refactored a bunch of code around. Then noticed that I misunderstood something fundamental about custom elements: you don't have access to children defined inside of the custom element in the HTML. At least not just like that. I'd rather not go shadow dom and templates and slots so I need to find another way to embed the menu items into the menu.
+
+## 2020-02-21
+
+Trying to make something work with shadow dom: i want nested custom elements.
+
+I think what I want to try is to have a `<df-dialog>` element that can then be filled with things like the opml thing or the treenode-menuitems. So the dialog as a slot and the children slot into that. Maybe.
+
+It seems like the tree-menu-component.ts is not being included in the build!? Why? Where should I put my code statements like the customeElements.define calls. Are those not executed? Is import not enough?
+
+## 2020-02-26
+
+`blogpost`
+
+Figured out why the `tree-menu-component.ts` file was not being included. For Typescript that file was not being actually used in any way that was relevant to the emitted Javascript and therefore it dropped it. This is explained in <https://github.com/Microsoft/TypeScript/wiki/FAQ#why-are-imports-being-elided-in-my-emit>.
+
+Typescript was not wrong, but it does not detect that the module has side effects - defining custom elements - that are importatnt.
+
+The workaround is to explicitly import the module file.
+
+## 2020-02-26
+
+I got custom elements to work: the key was using the `<slot>` element to make child elements appear. Then we have the option of rendering with and without shadow dom: with lit-html this just means the difference between rendering with a target of `this` or `this.shadowRoot`.
+
+I decided to go with shadow dom for the reusable components such as the dialog and for the treeMenuItems that are of course specific to dendriform but let's see.
+
+`blogpost`
+
+I installed the lit-html visual studio code plugin that offers CSS and HTML syntax highlighting inside of lit-html templates. Very helpful.
+
+`blogpost`
+
+BTW it is possible to use Promises inside lit-html templates: there are a few constructs to deal with them, the most basic is the `until` function that will replace a default placeholder content piece with the real content when it resolves. Nice.
+
+## 2020-02-26
+
+`blogpost`
+
+Dialogs got nicer with the containment: I feel like using shadow dom and local styles made me think more about encapsulation and where the logic should be. That's a benefit.

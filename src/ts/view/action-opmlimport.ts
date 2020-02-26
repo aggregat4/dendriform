@@ -50,7 +50,7 @@ export class OpmlImportDialog extends DialogElement implements ActivityIndicatin
   }
 
   private rerender() {
-    render(this.importTemplate(), this.getContainer())
+    render(this.importTemplate(), this.shadowRoot)
   }
 
   private getUploadInput(): HTMLInputElement {
