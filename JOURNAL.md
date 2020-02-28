@@ -1323,3 +1323,9 @@ BTW it is possible to use Promises inside lit-html templates: there are a few co
 `blogpost`
 
 Dialogs got nicer with the containment: I feel like using shadow dom and local styles made me think more about encapsulation and where the logic should be. That's a benefit.
+
+## 2020-02-28
+
+`blogpost`
+
+You can reach the child elements inside a custom element using shadow DOM by getting the respective `slot` element and then calling `asssignedNodes()` on it.

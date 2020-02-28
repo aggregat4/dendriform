@@ -130,6 +130,14 @@ export class DialogElement extends HTMLElement {
     }
     dialogElement.style.transform = 'none'
     dialogElement.style.display = 'block'
+    if (this.getViewportWidth() >= 576 && !this.isInViewPort(dialogElement)) {
+      // This moves the dialog up by the height of the dialog relative to the y position
+      // where it should be shown: this means that instead of dropping down from the
+      // position it will drop up. This is not entirely correct because some of the
+      // elements of the dialog may render asynchronously and they will not be
+      // accounted for in the clientHeight here. Close enough though.
+      dialogElement.style.top = (position.y - dialogElement.clientHeight) + 'px'
+    }
   }
 
   showCentered() {
@@ -151,6 +159,16 @@ export class DialogElement extends HTMLElement {
 
   private getViewportHeight() {
     return Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+  }
+
+  private isInViewPort(el: Element): boolean {
+    const bounding = el.getBoundingClientRect()
+    return (
+      bounding.top >= 0 &&
+      bounding.left >= 0 &&
+      bounding.bottom <= this.getViewportHeight() &&
+      bounding.right <= this.getViewportWidth()
+    )
   }
 
   connectedCallback() {
