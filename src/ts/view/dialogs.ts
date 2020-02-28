@@ -4,12 +4,19 @@ class Position {
   constructor(readonly x: number, readonly y: number) {}
 }
 
+export interface DialogLifecycleAware {
+  beforeShow(): void
+}
+
+function isDialogLifecycleAware(obj: any): obj is DialogLifecycleAware {
+  return typeof obj.beforeShow === 'function'
+}
+
 export type DialogCloseObserver = () => void
 
 export class DialogElement extends HTMLElement {
   private closeButton: HTMLElement
   private dialogCloseObserver: DialogCloseObserver = null
-  // private shadowRoot
 
   private readonly dialogTemplate = () => html`
     <style>
@@ -105,13 +112,13 @@ export class DialogElement extends HTMLElement {
   }
 
   dismiss() {
-    this.destroy()
     this.setDialogCloseObserver(null)
     this.dialogElement.style.display = 'none'
     this.overlayElement.style.display = 'none'
   }
 
   showAtPos(position: Position) {
+    this.beforeShow()
     const dialogElement = this.dialogElement
     if (this.getViewportWidth() < 576) {
       // this means we are fullscreen, no positioning necessary
@@ -126,6 +133,7 @@ export class DialogElement extends HTMLElement {
   }
 
   showCentered() {
+    this.beforeShow()
     const dialogElement = this.dialogElement
     if (this.getViewportWidth() < 576) {
       // this means we are fullscreen, no positioning necessary
@@ -147,20 +155,10 @@ export class DialogElement extends HTMLElement {
 
   connectedCallback() {
     render(this.dialogTemplate(), this.shadowRoot)
-    // const children = Array.from(this.querySelectorAll('*'))
-    // const container = this.getContainer()
-    // for (const child of children) {
-    //   container.appendChild(child)
-    // }
-    // this.initDialogContents()
   }
 
   getCloseButton(): HTMLElement {
     return this.closeButton
-  }
-
-  destroy(): void {
-    // NOOP
   }
 
   protected close(): void {
@@ -171,9 +169,14 @@ export class DialogElement extends HTMLElement {
     this.dialogCloseObserver = dialogCloseObserver
   }
 
-  // beforeShow(): void {
-  //   // NOOP
-  // }
+  beforeShow(): void {
+    // "assignedNodes" is a special property on a slot to get child elements
+    this.shadowRoot.querySelector('slot').assignedNodes().forEach(dialogItem => {
+      if (isDialogLifecycleAware(dialogItem)) {
+        dialogItem.beforeShow()
+      }
+    })
+  }
 }
 
 customElements.define('df-dialog', DialogElement)

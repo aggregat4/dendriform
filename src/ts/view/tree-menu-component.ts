@@ -2,6 +2,7 @@ import { html, render } from 'lit-html'
 import {until} from 'lit-html/directives/until'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { epochSecondsToLocaleString } from '../utils/dateandtime'
+import { DialogLifecycleAware } from './dialogs'
 
 abstract class TreeNodeMenuItem extends HTMLElement {
   private _treeActionContext: TreeActionContext
@@ -42,9 +43,6 @@ abstract class TreeNodeMenuItem extends HTMLElement {
     </style>`
   }
 
-  // beforeShow(): void {
-  //   // no default action
-  // }
 }
 
 export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
@@ -80,7 +78,7 @@ export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
 
 customElements.define('df-menuitem-action', TreeNodeActionMenuItem)
 
-export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
+export class TreeNodeInfoMenuItem extends TreeNodeMenuItem implements DialogLifecycleAware {
   private readonly DEFAULT_INFO_TEXT = 'No node selected.'
   private readonly template = () => html`
     ${this.menuItemStyle}
@@ -106,8 +104,8 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem {
     }
   }
 
-  async beforeShow(): Promise<void> {
-    render(this.template, this.shadowRoot)
+  beforeShow(): void {
+    render(this.template(), this.shadowRoot)
   }
 
 }
