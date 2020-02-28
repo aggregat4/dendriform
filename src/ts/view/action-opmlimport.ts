@@ -17,6 +17,8 @@ export const importOpmlAction = new TreeAction(
 
 function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
   console.debug(`clicked on OPML import action`)
+  // TODO: fix all this: can't go out of shadow dom, could I use another Dialogs element here? Something transient and local?
+  // In fact why is the OPML IMPORT DIALOG not triggered by the menu item like all other dialogs?
   const clickedElement = event.target as HTMLElement
   const treeElement = findTreeRoot(clickedElement)
   if (treeElement) {

@@ -49,7 +49,7 @@ export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
   private _treeAction: TreeAction
   private readonly template = () => html`
     ${this.menuItemStyle}
-    <div class="menuItem" @click=${this.onClick}>
+    <div class="menuItem" @click=${this.onClick.bind(this)}>
       <span class="name">${this.treeAction?.name || ''}<span>
       <kbd>${this.treeAction?.trigger.toString() || ''}</kbd>
       <slot></slot>

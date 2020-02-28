@@ -106,13 +106,11 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
   constructor() {
     super()
     render(this.treeTemplate(), this)
-    // In general we only want to limit ourselves to our component with listener, but for some functions we
+    // In general we only want to limit ourselves to our own component with listeners, but for some functions we
     // need the complete document
     document.addEventListener('keydown', this.onDocumentKeydown.bind(this))
-
     this.transientStateManager.registerSelectionChangeHandler()
     this.dialogs = new Dialogs(this)
-
     const treeNodeMenu = this.querySelector('.node-menu') as unknown as DialogElement
     this.dialogs.registerDialog(new Dialog('menuTrigger', treeNodeMenu))
   }
