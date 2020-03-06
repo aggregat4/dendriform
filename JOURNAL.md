@@ -1316,7 +1316,7 @@ I installed the lit-html visual studio code plugin that offers CSS and HTML synt
 
 `blogpost`
 
-BTW it is possible to use Promises inside lit-html templates: there are a few constructs to deal with them, the most basic is the `until` function that will replace a default placeholder content piece with the real content when it resolves. Nice.
+It is possible to use Promises inside lit-html templates: there are a few constructs to deal with them, the most basic is the `until` function that will replace a default placeholder content piece with the real content when it resolves. Nice.
 
 ## 2020-02-26
 
@@ -1329,3 +1329,7 @@ Dialogs got nicer with the containment: I feel like using shadow dom and local s
 `blogpost`
 
 You can reach the child elements inside a custom element using shadow DOM by getting the respective `slot` element and then calling `asssignedNodes()` on it.
+
+## 2020-03-04
+
+Due to the refactoring of the dialogs I've drifted to a different design for the tree actions. This does not feel wrong, but not sure it is final. I will have to refactor all the actions in the tree-actionregistry and then we'll see.
