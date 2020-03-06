@@ -7,6 +7,7 @@ import { CommandExecutor } from './tree-helpers'
 import { opmlDocumentToRepositoryNodes } from '../opml/opml-util'
 import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
 import { DialogElement } from './dialogs'
+import './activity-indicator-component' // for side effects
 
 export class OpmlImportAction extends TreeAction {
   constructor(readonly dialogElement: DialogElement) {
@@ -68,7 +69,7 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
         ${this.success ? html`<div class="success">${this.success}</div>` : ''}
         <input class="uploadOpml" type="file" @change=${this.handleFilesChanged.bind(this)}>Select OPML File</input>
         <button class="import primary" disabled="${this.disabled}" @click=${this.importFile.bind(this)}>Import File</button>
-        <a4-spinner delayMs="250"/>
+        <df-spinner delayMs="250"/>
       </section>
     </div>`
 

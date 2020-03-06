@@ -18,6 +18,7 @@ import { startEditingNote, renderNode } from './node-component'
 import './action-opmlimport' // direct import to trigger side effects (custom element registration)
 import { OpmlImportAction } from './action-opmlimport'
 import { OpmlExportAction } from './action-opmlexport'
+import './activity-indicator-component' // for side effects
 
 class TreeConfig {
   showCompleted: boolean = false
@@ -63,7 +64,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         <button id="addNode" aria-label="Add Node" title="Add Node" @click=${this.onAddNodeButtonClick.bind(this)}>+</button>
         <div class="searchbox">
           <input class="searchField" type="search" placeholder="Filter" @input=${debounce(this.onQueryChange.bind(this), 150)}>
-          <a4-spinner delayms="1000"/>
+          <df-spinner delayms="1000"/>
         </div>
         <fieldset class="config">
           <label>

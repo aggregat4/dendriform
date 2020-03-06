@@ -4,15 +4,59 @@ import { ActivityIndicating } from '../domain/domain'
 export class ActivityIndicator extends HTMLElement {
   private spinner: HTMLElement = null
   private timerId = null
-  private readonly template = () => html`<div class="spinner"></div>`
   private _activityIndicating: ActivityIndicating = null
+  private readonly template = () => html`
+    <style>
+    .spinner {
+      display: none;
+    }
+
+    .spinner,
+    .spinner:after {
+      border-radius: 50%;
+      width: 1em;
+      height: 1em;
+    }
+
+    .spinner {
+      font-size: 10px;
+      position: relative;
+      text-indent: -9999em;
+      border-top: 0.5em solid rgba(0, 0, 0, 0.2);
+      border-right: 0.5em solid rgba(0, 0, 0, 0.2);
+      border-bottom: 0.5em solid rgba(0, 0, 0, 0.2);
+      border-left: 0.5em solid #ffffff;
+      transform: translateZ(0);
+      animation: load8 1.1s infinite linear;
+    }
+
+    @-webkit-keyframes load8 {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes load8 {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    </style>
+    <div class="spinner"></div>`
 
   constructor() {
     super()
+    this.attachShadow({mode: 'open'})
   }
 
   connectedCallback() {
-    render(this.template(), this)
+    render(this.template(), this.shadowRoot)
     this.spinner = this.firstElementChild as HTMLElement
     if (! this.timerId) {
       this.timerId = setInterval(() => {
@@ -99,4 +143,4 @@ export class ActivityIndicator extends HTMLElement {
 
 }
 
-customElements.define('a4-spinner', ActivityIndicator)
+customElements.define('df-spinner', ActivityIndicator)
