@@ -242,7 +242,6 @@ export class Dialogs {
           return
         } else {
           event.stopPropagation()
-          event.preventDefault()
           this.showDialogRelative(dialog, clickedElement)
           return
         }
