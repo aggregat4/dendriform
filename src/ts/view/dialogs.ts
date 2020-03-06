@@ -214,10 +214,11 @@ class ActiveDialog {
 export class Dialogs {
   private dialogs: Dialog[] = []
   private activeDialog: ActiveDialog = null
+  private readonly onDocumentClickedListener
 
   constructor(root: HTMLElement) {
     root.addEventListener('click', this.onInRootClicked.bind(this))
-    document.addEventListener('click', this.onDocumentClicked.bind(this))
+    this.onDocumentClickedListener = this.onDocumentClicked.bind(this)
   }
 
   registerDialog(dialog: Dialog): void {
@@ -240,7 +241,10 @@ export class Dialogs {
         if (this.isDialogActive()) {
           return
         } else {
+          event.stopPropagation()
+          event.preventDefault()
           this.showDialogRelative(dialog, clickedElement)
+          return
         }
       }
     }
@@ -260,6 +264,8 @@ export class Dialogs {
     }
     this.activeDialog = activeDialog
     this.activeDialog.dialog.dialogElement.setDialogCloseObserver(this.activeDialogCloseHandler.bind(this))
+    // we register a global handler to track dismiss clicks outside of the dialog
+    document.addEventListener('click', this.onDocumentClickedListener)
   }
 
   private onDocumentClicked(event: Event) {
@@ -273,20 +279,22 @@ export class Dialogs {
   }
 
   private dismissDialog(dialog: ActiveDialog): void {
+    document.removeEventListener('click', this.onDocumentClickedListener)
     dialog.dialog.dialogElement.dismiss()
-    dialog.trigger.setAttribute('aria-expanded', 'false')
+    // Trigger is optional (for example with a centered dialog triggered by keyboard or something)
+    dialog.trigger?.setAttribute('aria-expanded', 'false')
     this.activeDialog = null
   }
 
   private showDialogRelative(dialog: Dialog, triggerEl: HTMLElement): void {
     const left = triggerEl.getBoundingClientRect().left
     const top = triggerEl.getBoundingClientRect().top + triggerEl.getBoundingClientRect().height
-    this.showDialogAtPos(dialog, triggerEl, new Position(left, top))
+    this.showDialogAtPos(dialog, new Position(left, top), triggerEl)
   }
 
-  private showDialogAtPos(dialog: Dialog, triggerEl: HTMLElement, position: Position): void {
+  private showDialogAtPos(dialog: Dialog, position: Position, triggerEl?: HTMLElement): void {
     this.setActiveDialog(new ActiveDialog(dialog, triggerEl))
-    triggerEl.setAttribute('aria-expanded', 'true')
+    triggerEl?.setAttribute('aria-expanded', 'true')
     dialog.dialogElement.showAtPos(position)
   }
 
@@ -294,9 +302,9 @@ export class Dialogs {
     this.dismissDialog(this.getActiveDialog())
   }
 
-  private showDialogCentered(dialog: Dialog, triggerEl: HTMLElement): void {
+  private showDialogCentered(dialog: Dialog, triggerEl?: HTMLElement): void {
     this.setActiveDialog(new ActiveDialog(dialog, triggerEl))
-    triggerEl.setAttribute('aria-expanded', 'true')
+    triggerEl?.setAttribute('aria-expanded', 'true')
     dialog.dialogElement.showCentered()
   }
 

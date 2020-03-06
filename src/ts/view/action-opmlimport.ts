@@ -17,6 +17,7 @@ export class OpmlImportAction extends TreeAction {
 
   handle(event: Event, treeActionContext: TreeActionContext) {
     console.debug(`clicked on OPML import action`)
+    event.stopPropagation()
     treeActionContext.dialogs.showTransientDialog(null, this.dialogElement)
   }
 }
@@ -78,20 +79,16 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
     this.attachShadow({mode: 'open'})
   }
 
+  connectedCallback() {
+    this.rerender()
+  }
+
   private rerender() {
     render(this.importTemplate(), this.shadowRoot)
   }
 
   private getUploadInput(): HTMLInputElement {
     return this.querySelector('input.upload') as HTMLInputElement
-  }
-
-  protected initDialogContents() {
-    this.rerender()
-  }
-
-  destroy(): void {
-    this.rerender()
   }
 
   isActive(): boolean {
