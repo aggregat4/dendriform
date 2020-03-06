@@ -68,7 +68,7 @@ export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
   }
 
   private onClick(e) {
-    return this._treeAction.handler(e, this.treeActionContext)
+    return this._treeAction.handle(e, this.treeActionContext)
   }
 
   connectedCallback() {

@@ -14,9 +14,10 @@ import './tree-menu-component' // direct import because of side effects in that 
 import { TreeNodeActionMenuItem } from './tree-menu-component'
 import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog, DialogElement } from './dialogs'
-import { exportOpmlExportAction } from './action-opmlexport'
 import { startEditingNote, renderNode } from './node-component'
-import { OpmlImportDialog, importOpmlAction } from './action-opmlimport'
+import './action-opmlimport' // direct import to trigger side effects (custom element registration)
+import { OpmlImportAction } from './action-opmlimport'
+import { OpmlExportAction } from './action-opmlexport'
 
 class TreeConfig {
   showCompleted: boolean = false
@@ -79,9 +80,10 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         <df-menuitem-action class="export-opml-action-menuitem"></df-menuitem-action>
         <df-menuitem-info class="info-menuitem"></df-menuitem-info>
       </df-dialog>
+      <df-dialog class="opml-import-dialog">
+        <df-omplimportdialog></df-omplimportdialog>
+      </df-dialog>
     </div>`
-
-//       <opmlimport-dialog/>
 
   private renderTreeNodes() {
     if (this.treeStatus.state === State.ERROR) {
@@ -109,7 +111,9 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     // In general we only want to limit ourselves to our own component with listeners, but for some functions we
     // need the complete document
     document.addEventListener('keydown', this.onDocumentKeydown.bind(this))
+
     this.transientStateManager.registerSelectionChangeHandler()
+
     this.dialogs = new Dialogs(this)
     const treeNodeMenu = this.querySelector('.node-menu') as unknown as DialogElement
     this.dialogs.registerDialog(new Dialog('menuTrigger', treeNodeMenu))
@@ -143,15 +147,13 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     this._treeService = treeService
     this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.dialogs, this.treeService)
 
+    const opmlImportDialog = this.querySelector('.opml-import-dialog') as unknown as DialogElement
     const importOpmlActionMenuItem = this.querySelector('.import-opml-action-menuitem') as unknown as TreeNodeActionMenuItem
-    importOpmlActionMenuItem.treeAction = importOpmlAction
+    importOpmlActionMenuItem.treeAction = new OpmlImportAction(opmlImportDialog)
     importOpmlActionMenuItem.treeActionContext = this.treeActionContext
-    // TODO: fix and reactivate
-    // const opmlImportDialog = this.querySelector('opmlimport-dialog') as unknown as OpmlImportDialog
-    // opmlImportDialog.setTreeActionContext(this.treeActionContext)
 
     const exportOpmlActionMenuItem = this.querySelector('.export-opml-action-menuitem') as unknown as TreeNodeActionMenuItem
-    exportOpmlActionMenuItem.treeAction = exportOpmlExportAction
+    exportOpmlActionMenuItem.treeAction = new OpmlExportAction()
     exportOpmlActionMenuItem.treeActionContext = this.treeActionContext
 
     const infoMenuItem = this.querySelector('.info-menuitem') as unknown as TreeNodeActionMenuItem

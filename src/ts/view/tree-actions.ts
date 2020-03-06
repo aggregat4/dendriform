@@ -3,12 +3,13 @@ import { KeyboardEventTrigger } from './keyboardshortcut'
 import { Dialogs } from './dialogs'
 import { TreeService } from '../service/tree-service'
 
-export class TreeAction {
+export abstract class TreeAction {
   constructor(
     readonly trigger: KeyboardEventTrigger,
-    readonly handler: (event: Event, treeActionContext: TreeActionContext) => void,
-    // TODO: i18n
-    readonly name: string) {}
+    readonly name: string) // TODO: i18n
+  {}
+
+  abstract handle(event: Event, treeActionContext: TreeActionContext): void
 }
 
 export class TreeActionContext {

@@ -371,36 +371,6 @@ a.embeddedLink {
   display: none;
 }
 
-/* ---------- OPML Import component ---------- */ 
-tree-opmlimport-dialog {
-  width: 400px;
-  padding: 6px;
-}
-  /* Need to align the baseline, otherwise the text
-     is not really centered vertically */
-
-tree-opmlimport-dialog .error {
-  color: red;
-  display: none;
-}
-
-tree-opmlimport-dialog .success {
-  color: green;
-  display: none;
-}
-
-tree-opmlimport-dialog input.uploadOpml {
-  max-width: 350px;
-}
-
-tree-opmlimport-dialog div.error,
-tree-opmlimport-dialog div.success,
-tree-opmlimport-dialog input.uploadOpml,
-tree-opmlimport-dialog button.import,
-tree-opmlimport-dialog h1 {
-  margin: 6px 12px 6px 12px;
-}
-
 /* Spinner Component */
 
 .spinner {

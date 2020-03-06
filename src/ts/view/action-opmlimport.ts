@@ -1,32 +1,26 @@
 import { html, render } from 'lit-html'
 import { TreeActionContext, TreeAction } from './tree-actions'
-import { DialogElement } from './dialogs'
 import { ResolvedRepositoryNode, ActivityIndicating } from '../domain/domain'
 import { parseXML } from '../utils/util'
 import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/commands'
 import { CommandExecutor } from './tree-helpers'
 import { opmlDocumentToRepositoryNodes } from '../opml/opml-util'
 import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
-import { findTreeRoot } from './tree-dom-util'
+import { DialogElement } from './dialogs'
 
-// TODO: not sure we need a keyboard trigger for this, perhaps we need a NoOp keyboard trigger?
-export const importOpmlAction = new TreeAction(
-  new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name')),
-  onOpmlImport,
-  'Import OPML')
+export class OpmlImportAction extends TreeAction {
+  constructor(readonly dialogElement: DialogElement) {
+    super(new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name')),
+      'Import OPML')
+  }
 
-function onOpmlImport(event: Event, treeActionContext: TreeActionContext) {
-  console.debug(`clicked on OPML import action`)
-  // TODO: fix all this: can't go out of shadow dom, could I use another Dialogs element here? Something transient and local?
-  // In fact why is the OPML IMPORT DIALOG not triggered by the menu item like all other dialogs?
-  const clickedElement = event.target as HTMLElement
-  const treeElement = findTreeRoot(clickedElement)
-  if (treeElement) {
-    treeActionContext.dialogs.showTransientDialog(clickedElement, treeElement.querySelector('opmlimport-dialog'))
+  handle(event: Event, treeActionContext: TreeActionContext) {
+    console.debug(`clicked on OPML import action`)
+    treeActionContext.dialogs.showTransientDialog(null, this.dialogElement)
   }
 }
 
-export class OpmlImportDialog extends DialogElement implements ActivityIndicating {
+export class OpmlImportDialog extends HTMLElement implements ActivityIndicating {
   private treeActionContext: TreeActionContext
   private importing: boolean = false
   private success = null
@@ -34,7 +28,38 @@ export class OpmlImportDialog extends DialogElement implements ActivityIndicatin
   private disabled = true
 
   private readonly importTemplate = () => html`
-    <div class="opmlImportPopup activityIndicating">
+    <style>
+      /* ---------- OPML Import component ---------- */
+      .opml-import-dialog {
+        width: 400px;
+        padding: 6px;
+      }
+        /* Need to align the baseline, otherwise the text
+          is not really centered vertically */
+
+      .opml-import-dialog .error {
+        color: red;
+        display: none;
+      }
+
+      .opml-import-dialog .success {
+        color: green;
+        display: none;
+      }
+
+      .opml-import-dialog input.uploadOpml {
+        max-width: 350px;
+      }
+
+      .opml-import-dialog div.error,
+      .opml-import-dialog div.success,
+      .opml-import-dialog input.uploadOpml,
+      .opml-import-dialog button.import,
+      .opml-import-dialog h1 {
+        margin: 6px 12px 6px 12px;
+      }
+    </style>
+    <div class="opml-import-dialog activityIndicating">
       <section>
         <header>
           <h1>Import OPML</h1>
@@ -49,6 +74,7 @@ export class OpmlImportDialog extends DialogElement implements ActivityIndicatin
 
   constructor() {
     super()
+    this.attachShadow({mode: 'open'})
   }
 
   private rerender() {
@@ -110,7 +136,6 @@ export class OpmlImportDialog extends DialogElement implements ActivityIndicatin
           this.importing = false
         }
         this.success = 'Successfully imported OPML file'
-        this.close()
       }
       reader.readAsText(files[0])
     }
@@ -137,4 +162,4 @@ export class OpmlImportDialog extends DialogElement implements ActivityIndicatin
   }
 }
 
-customElements.define('opmlimport-dialog', OpmlImportDialog)
+customElements.define('df-omplimportdialog', OpmlImportDialog)
