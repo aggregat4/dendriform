@@ -11,16 +11,13 @@
     "npm": ">=6.13.0"
   },
   "main": "main.js",
-  "watch": {
-    "build-test": "./src/**/*.*"
-  },
   "scripts": {
     "clean": "rm -rf dist && mkdir dist",
-    "build": "cp src/css/*.css dist && cp src/example/*.css dist && npx rollup -c rollup.config.js",
+    "build": "npx rollup -c rollup.config.js",
     "test": "npx ts-node test/runtests.ts",
-    "build-test": "npm run build && npm run test",
-    "clean-build-test": "npm run clean && npm run build && npm run test",
-    "watch": "npm-watch",
+    "bt": "npm run build && npm run test",
+    "cbt": "npm run clean && npm run build && npm run test",
+    "watch": "npx rollup -c rollup.config.js -w",
     "sloc": "npx sloc src",
     "unused-exports": "npx ts-unused-exports tsconfig.json",
     "serve": "npx http-server dist",
@@ -30,20 +27,20 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/file-saver": "2.0.1",
-    "@wessberg/rollup-plugin-ts": "1.2.17",
+    "@wessberg/rollup-plugin-ts": "1.2.21",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
-    "jsdom": "16.2.0",
+    "jsdom": "16.2.1",
     "jsdom-global": "3.0.2",
-    "npm-watch": "0.6.0",
-    "rollup": "1.31.1",
+    "rollup": "2.0.3",
     "rollup-plugin-commonjs": "10.1.0",
-    "rollup-plugin-html2": "0.7.0",
+    "rollup-plugin-copy": "^3.3.0",
+    "rollup-plugin-html2": "1.0.0",
     "rollup-plugin-node-resolve": "5.2.0",
     "rollup-plugin-visualizer": "3.3.1",
-    "ts-unused-exports": "6.0.0",
+    "ts-unused-exports": "6.1.0",
     "tslint": "6.0.0",
-    "typescript": "3.8.2"
+    "typescript": "3.8.3"
   },
   "dependencies": {
     "file-saver": "2.0.2",
