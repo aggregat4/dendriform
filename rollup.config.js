@@ -26,6 +26,9 @@ export default {
       return dirs[dirs.lastIndexOf('node_modules') + 1];
     }
   },
+  // watch: {
+  //   include: 'src/css/tree.css'
+  // },
   plugins: [
     copy({
       targets: [
