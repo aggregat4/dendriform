@@ -1333,3 +1333,11 @@ You can reach the child elements inside a custom element using shadow DOM by get
 ## 2020-03-04
 
 Due to the refactoring of the dialogs I've drifted to a different design for the tree actions. This does not feel wrong, but not sure it is final. I will have to refactor all the actions in the tree-actionregistry and then we'll see.
+
+## 2020-03-11
+
+The actions look good like this, more contained.
+
+Upgraded to rollup2 and I removed my manual css copying phase and replaced that with the rollup `copy` plugin. Together with the built-in watch mode for rollup (using `chokidar`) I can also remove the npm-watch dependency and let rollup do that. Won't work for css though?
+
+It doesn't work for css. It's strange, the rollup watch mode can be configured with a glob pattern on what files to watch but for some reason it only takes into account ts and js files. Does it only consider files it is bundling and that match the glob?
