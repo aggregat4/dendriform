@@ -6,8 +6,9 @@ import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/comma
 import { CommandExecutor } from './tree-helpers'
 import { opmlDocumentToRepositoryNodes } from '../opml/opml-util'
 import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboardshortcut'
-import { DialogElement } from './dialogs'
+import { DialogElement, DialogLifecycleAware } from './dialogs'
 import './activity-indicator-component' // for side effects
+import { sharedCommonStyles } from './shared-styles'
 
 export class OpmlImportAction extends TreeAction {
   constructor(readonly dialogElement: DialogElement) {
@@ -21,7 +22,7 @@ export class OpmlImportAction extends TreeAction {
   }
 }
 
-export class OpmlImportDialog extends HTMLElement implements ActivityIndicating {
+export class OpmlImportDialog extends HTMLElement implements ActivityIndicating, DialogLifecycleAware {
   private _treeActionContext: TreeActionContext
   private importing: boolean = false
   private success = null
@@ -29,6 +30,7 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
   private disabled = true
 
   private readonly importTemplate = () => html`
+    ${sharedCommonStyles}
     <style>
       /* ---------- OPML Import component ---------- */
       .opml-import-dialog {
@@ -40,12 +42,10 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
 
       .opml-import-dialog .error {
         color: red;
-        display: none;
       }
 
       .opml-import-dialog .success {
         color: green;
-        display: none;
       }
 
       .opml-import-dialog input.uploadOpml {
@@ -79,6 +79,13 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
   }
 
   connectedCallback() {
+    this.rerender()
+  }
+
+  beforeShow() {
+    this.resetFileSelector()
+    this.success = null
+    this.error = null
     this.rerender()
   }
 
@@ -126,6 +133,10 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
             await this.createNode(this._treeActionContext.commandExecutor, node, parentId)
           }
           console.log(`done creating root nodes after opml import`)
+          this.success = 'Successfully imported OPML file'
+          this.disabled = true
+          this.resetFileSelector()
+          this.rerender()
         } catch (error) {
           console.error(error)
           this.error = error.message
@@ -134,11 +145,14 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
         } finally {
           this.importing = false
         }
-        this.success = 'Successfully imported OPML file'
       }
       reader.readAsText(files[0])
     }
     this.rerender()
+  }
+
+  private resetFileSelector() {
+    (this.shadowRoot.querySelector('.uploadOpml') as HTMLInputElement).value = ''
   }
 
   private async createNode(commandExecutor: CommandExecutor, node: ResolvedRepositoryNode, parentId: string): Promise<void> {

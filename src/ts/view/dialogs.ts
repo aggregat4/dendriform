@@ -285,6 +285,10 @@ export class Dialogs {
     this.activeDialog = null
   }
 
+  private activeDialogCloseHandler(): void {
+    this.dismissDialog(this.getActiveDialog())
+  }
+
   private showDialogRelative(dialog: Dialog, triggerEl: HTMLElement): void {
     const left = triggerEl.getBoundingClientRect().left
     const top = triggerEl.getBoundingClientRect().top + triggerEl.getBoundingClientRect().height
@@ -295,10 +299,6 @@ export class Dialogs {
     this.setActiveDialog(new ActiveDialog(dialog, triggerEl))
     triggerEl?.setAttribute('aria-expanded', 'true')
     dialog.dialogElement.showAtPos(position)
-  }
-
-  private activeDialogCloseHandler(): void {
-    this.dismissDialog(this.getActiveDialog())
   }
 
   private showDialogCentered(dialog: Dialog, triggerEl?: HTMLElement): void {
