@@ -3,8 +3,8 @@ import { isNameNode, getClosestNodeElement, getNodeId, getNodeName, getNodeNote 
 import { getCursorPos } from '../utils/util'
 
 export interface CommandExecutor {
-  performWithDom(command: Command): void,
-  performWithoutDom(command: Command)
+  performWithDom(command: Command): Promise<void>,
+  performWithoutDom(command: Command): Promise<void>
 }
 
 export class TransientState {

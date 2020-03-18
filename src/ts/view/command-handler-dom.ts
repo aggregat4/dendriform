@@ -37,7 +37,7 @@ import { render } from 'lit-html'
 
 export class DomCommandHandler implements CommandHandler {
 
-  exec(command: Command): Promise<any> {
+  async exec(command: Command): Promise<any> {
     const cmd = command.payload
     if (cmd instanceof SplitNodeByIdCommandPayload) {
       return this.domSplitNode(

@@ -16,7 +16,7 @@ import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog, DialogElement } from './dialogs'
 import { startEditingNote, renderNode } from './node-component'
 import './action-opmlimport' // direct import to trigger side effects (custom element registration)
-import { OpmlImportAction } from './action-opmlimport'
+import { OpmlImportAction, OpmlImportDialog } from './action-opmlimport'
 import { OpmlExportAction } from './action-opmlexport'
 import './activity-indicator-component' // for side effects
 
@@ -147,6 +147,9 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
   set treeService(treeService: TreeService) {
     this._treeService = treeService
     this.treeActionContext = new TreeActionContext(this, this.transientStateManager, this.dialogs, this.treeService)
+
+    const opmlImportElement = this.querySelector('df-omplimportdialog') as unknown as OpmlImportDialog
+    opmlImportElement.treeActionContext = this.treeActionContext
 
     const opmlImportDialog = this.querySelector('.opml-import-dialog') as unknown as DialogElement
     const importOpmlActionMenuItem = this.querySelector('.import-opml-action-menuitem') as unknown as TreeNodeActionMenuItem
@@ -351,13 +354,13 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     }
   }
 
-  performWithoutDom(command: Command): void {
-    this.commandHandler.exec(command)
+  performWithoutDom(command: Command): Promise<void> {
+    return this.commandHandler.exec(command)
   }
 
   private readonly debouncedRerender = debounce(this.rerenderTree, 5000).bind(this)
 
-  performWithDom(command: Command): Promise<void> {
+  async performWithDom(command: Command): Promise<void> {
     if (command) {
       const commandPromise = this.domCommandHandler.exec(command)
         .then(() => this.commandHandler.exec(command))

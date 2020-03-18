@@ -19,7 +19,7 @@ import {TreeService} from '../service/tree-service'
 export class TreeServiceCommandHandler implements CommandHandler {
   constructor(readonly treeService: TreeService) {}
 
-  exec(command: Command): Promise<any> {
+  async exec(command: Command): Promise<any> {
     return Promise.resolve(this.toAction(command)())
   }
 

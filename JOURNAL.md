@@ -1341,3 +1341,9 @@ The actions look good like this, more contained.
 Upgraded to rollup2 and I removed my manual css copying phase and replaced that with the rollup `copy` plugin. Together with the built-in watch mode for rollup (using `chokidar`) I can also remove the npm-watch dependency and let rollup do that. Won't work for css though?
 
 It doesn't work for css. It's strange, the rollup watch mode can be configured with a glob pattern on what files to watch but for some reason it only takes into account ts and js files. Does it only consider files it is bundling and that match the glob?
+
+## 2020-03-13
+
+The dialog for opml import does not work right yet. We do not give an indication when the import itself is done. Closing of dialogs is wonky. And there is no indication that the storing of the events is still ongoing.
+
+Also the GC times after the import are way too long. I need either webworker or some optimisation and probably both.
