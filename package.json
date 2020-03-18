@@ -12,6 +12,7 @@
   },
   "main": "main.js",
   "scripts": {
+    "copycss": "cp src/css/tree.css dist",
     "clean": "rm -rf dist && mkdir dist",
     "build": "npx rollup -c rollup.config.js",
     "test": "npx ts-node test/runtests.ts",

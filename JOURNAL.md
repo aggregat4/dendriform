@@ -1347,3 +1347,9 @@ It doesn't work for css. It's strange, the rollup watch mode can be configured w
 The dialog for opml import does not work right yet. We do not give an indication when the import itself is done. Closing of dialogs is wonky. And there is no indication that the storing of the events is still ongoing.
 
 Also the GC times after the import are way too long. I need either webworker or some optimisation and probably both.
+
+## 2020-03-18
+
+`blogpost`
+
+It seems like common shared styles for web components are not completely solved generically. There is a cavalcade of sort of maybe options as discussed on <https://www.smashingmagazine.com/2016/12/styling-web-components-using-a-shared-style-sheet/>. The two "best" options at the moment seem to be the inclusion of a `<link>` element before your inline styles for the web component that points to a shared stylesheet or to actually inline all the shared styles. I have currently opted for the latter, but will try the former.
