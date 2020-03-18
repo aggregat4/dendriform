@@ -16,14 +16,13 @@ export class OpmlImportAction extends TreeAction {
   }
 
   handle(event: Event, treeActionContext: TreeActionContext) {
-    console.debug(`clicked on OPML import action`)
     event.stopPropagation()
     treeActionContext.dialogs.showTransientDialog(null, this.dialogElement)
   }
 }
 
 export class OpmlImportDialog extends HTMLElement implements ActivityIndicating {
-  private treeActionContext: TreeActionContext
+  private _treeActionContext: TreeActionContext
   private importing: boolean = false
   private success = null
   private error = null
@@ -69,7 +68,7 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
         ${this.error ? html`<div class="error">${this.error}</div>` : ''}
         ${this.success ? html`<div class="success">${this.success}</div>` : ''}
         <input class="uploadOpml" type="file" @change=${this.handleFilesChanged.bind(this)}>Select OPML File</input>
-        <button class="import primary" disabled="${this.disabled}" @click=${this.importFile.bind(this)}>Import File</button>
+        <button class="import primary" ?disabled=${this.disabled} @click=${this.importFile.bind(this)}>Import File</button>
         <df-spinner delayMs="250"/>
       </section>
     </div>`
@@ -88,7 +87,7 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
   }
 
   private getUploadInput(): HTMLInputElement {
-    return this.querySelector('input.upload') as HTMLInputElement
+    return this.shadowRoot.querySelector('input.uploadOpml') as HTMLInputElement
   }
 
   isActive(): boolean {
@@ -116,15 +115,17 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
         try {
           const doc = parseXML(reader.result as string)
           const rootNodes = opmlDocumentToRepositoryNodes(doc)
-          const parentId = this.treeActionContext.transientStateManager.getActiveNodeId()
+          const parentId = this._treeActionContext.transientStateManager.getActiveNodeId()
           // disable import button to prevent duplicate clicks
           this.disabled = true
           // make sure the spinner starts spinning
           this.importing = true
           this.rerender()
+          console.log(`starting to create root nodes for opml import`)
           for (const node of rootNodes) {
-            await this.createNode(this.treeActionContext.commandExecutor, node, parentId)
+            await this.createNode(this._treeActionContext.commandExecutor, node, parentId)
           }
+          console.log(`done creating root nodes after opml import`)
         } catch (error) {
           console.error(error)
           this.error = error.message
@@ -155,8 +156,8 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating 
     }
   }
 
-  setTreeActionContext(treeActionContext: TreeActionContext): void {
-    this.treeActionContext = treeActionContext
+  set treeActionContext(treeActionContext: TreeActionContext) {
+    this._treeActionContext = treeActionContext
   }
 }
 

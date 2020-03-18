@@ -15,8 +15,7 @@ function isDialogLifecycleAware(obj: any): obj is DialogLifecycleAware {
 export type DialogCloseObserver = () => void
 
 export class DialogElement extends HTMLElement {
-  private closeButton: HTMLElement
-  private dialogCloseObserver: DialogCloseObserver = null
+  private _dialogCloseObserver: DialogCloseObserver = null
 
   private readonly dialogTemplate = () => html`
     <style>
@@ -57,7 +56,6 @@ export class DialogElement extends HTMLElement {
       position: absolute;
       top: 0;
       right: 0;
-      display: none;
       padding: 6px;
       color: #aaa;
       font-size: 1.5rem;
@@ -93,7 +91,7 @@ export class DialogElement extends HTMLElement {
     }
     </style>
     <div class="dialog">
-      <div class="closeButton"></div>
+      <div class="closeButton" @click=${this.close.bind(this)}></div>
       <slot></slot>
     </div>
     <div class="dialogOverlay"></div>`
@@ -112,7 +110,7 @@ export class DialogElement extends HTMLElement {
   }
 
   dismiss() {
-    this.setDialogCloseObserver(null)
+    this.dialogCloseObserver = null
     this.dialogElement.style.display = 'none'
     this.overlayElement.style.display = 'none'
   }
@@ -176,15 +174,17 @@ export class DialogElement extends HTMLElement {
   }
 
   getCloseButton(): HTMLElement {
-    return this.closeButton
+    return this.shadowRoot.querySelector('.closeButton')
   }
 
   protected close(): void {
-    this.dialogCloseObserver()
+    if (this._dialogCloseObserver) {
+      this._dialogCloseObserver()
+    }
   }
 
-  setDialogCloseObserver(dialogCloseObserver: DialogCloseObserver): void {
-    this.dialogCloseObserver = dialogCloseObserver
+  set dialogCloseObserver(dialogCloseObserver: DialogCloseObserver) {
+    this._dialogCloseObserver = dialogCloseObserver
   }
 
   beforeShow(): void {
@@ -262,7 +262,7 @@ export class Dialogs {
       throw new Error(`Setting an active dialog when one is already active`)
     }
     this.activeDialog = activeDialog
-    this.activeDialog.dialog.dialogElement.setDialogCloseObserver(this.activeDialogCloseHandler.bind(this))
+    this.activeDialog.dialog.dialogElement.dialogCloseObserver = this.activeDialogCloseHandler.bind(this)
     // we register a global handler to track dismiss clicks outside of the dialog
     document.addEventListener('click', this.onDocumentClickedListener)
   }
