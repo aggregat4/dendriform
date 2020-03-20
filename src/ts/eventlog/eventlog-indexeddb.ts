@@ -191,9 +191,9 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   private async store(events: DEvent[]): Promise<void> {
-    // This is some (ugly?) special casing: we do not persist and create or update events on the ROOT node
-    // performed by other peers. This is to make sure there is always only one ROOT node on each peer
     const mappedEvents = events
+      // This is some (ugly?) special casing: we do not persist and create or update events on the ROOT node
+      // performed by other peers. This is to make sure there is always only one ROOT node on each peer
       .filter(e => !(e.type === EventType.ADD_OR_UPDATE_NODE && e.nodeId === 'ROOT' && e.originator !== this.peerId))
       .map(e => {
         return {
@@ -215,6 +215,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       for (; i < mappedEvents.length; i++) {
         // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
         await tx.store.add(mappedEvents[i])
+        this.garbageCollector.countEvent(mappedEvents[i])
       }
       return tx.done
     } catch (error) {

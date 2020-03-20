@@ -3,7 +3,7 @@ import { html } from 'lit-html'
 /**
  * Based on https://www.smashingmagazine.com/2016/12/styling-web-components-using-a-shared-style-sheet/
  * this seems like the currently only sensible approach to have some shared styles in web components?
- * 
+ *
  * Maybe having a <link> tag to an external extra stylesheet? But that seems like mixing global knowledge
  * with local knowledge?
  */

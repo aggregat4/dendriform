@@ -2,6 +2,7 @@ import { EventType, ReorderChildNodeEventPayload, DEventLog } from './eventlog'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { StoredEvent, storedEventComparator, EventStoreSchema } from './eventlog-storedevent'
 import { IDBPDatabase } from 'idb'
+import { after } from 'test/tizzytest'
 
 class GcCandidate {
   constructor(readonly nodeId: string, readonly eventtype: EventType) {}
@@ -16,6 +17,7 @@ export class LocalEventLogGarbageCollector {
    */
   private lastGcCounter = -1
   private garbageCollector: JobScheduler = new JobScheduler(new FixedTimeoutStrategy(this.GC_TIMEOUT_MS), this.gc.bind(this))
+  private histogram: Map<string, number> = null
 
   constructor(readonly eventLog: DEventLog, readonly db: IDBPDatabase<EventStoreSchema>) {}
 
@@ -31,64 +33,58 @@ export class LocalEventLogGarbageCollector {
     return this.garbageCollector.stopAndWaitUntilDone()
   }
 
-  // TODO: would this not be a perfect use case for a webworker?
-  private async gc(): Promise<any> {
-    if (this.lastGcCounter < this.eventLog.getCounter()) {
-      const gcCandidates = await this.findGcCandidates()
-      const gcBatch = gcCandidates.splice(0, this.GC_MAX_BATCH_SIZE)
-      for (const candidate of gcBatch) {
-        if (! this.garbageCollector.isScheduled()) {
-          // if we were stopped while doing this query then make sure we abort
-          return
-        }
-        await this.garbageCollect(candidate)
-      }
-      // if we were able to gc all candidates this round, set our counter variable to the current counter
-      // this allows us to skip gc when there is nothing to do
-      if (gcBatch.length === gcCandidates.length) {
-        this.lastGcCounter = this.eventLog.getCounter()
-      }
+  countEvent(event: StoredEvent): void {
+    this.modifyEventCount(event, 1)
+  }
+
+  private modifyEventCount(event: StoredEvent, count: number): void {
+    const key = this.keyForEvent(event)
+    const currentCount = this.histogram.get(key) || 0
+    if (count < 0 && Math.abs(count) > currentCount) {
+      console.warn(`trying to decrease event counter for GC to a value that is lower (${count}) than the current count (${currentCount})`)
+      this.histogram.delete(key)
+    } else {
+      this.histogram.set(key, currentCount + count)
     }
   }
 
-  /**
-   * Goes through all stored events and counts how many events exist for a specific discriminator.
-   * A discriminator is typically nodeid+eventtype but some events may require a more specific
-   * discriminator.
-   * For all descriminators that occur more than once we have a garbage collection candidate and
-   * we just store the candidate in our list.
-   * TODO: not implement this with strings? Or is this the best choice since it is pragmatic?
-   */
-  private async findGcCandidates(): Promise<GcCandidate[]> {
-    const startOfGcFind = Date.now()
-    const eventCounter = {}
-    const gcCandidates = []
-    // toArray() seems to be significantly (10x?) faster than .each() but
-    // it does load everything in memory, is this ok?
-    return this.db.getAll('events').then(events => {
-      for (const ev of events) {
-        const key = this.keyForEvent(ev)
-        eventCounter[key] = eventCounter[key] ? eventCounter[key] + 1 : 1
+  // TODO: would this not be a perfect use case for a webworker?
+  private async gc(): Promise<any> {
+    const startTime = Date.now()
+    if (! this.histogram) {
+      await this.createEventGcHistogram()
+    }
+    const afterCreateHistogramTime = Date.now()
+    for (const entry of this.histogram.entries()) {
+      const count = entry[1]
+      if (count > 1) {
+        await this.garbageCollect(this.toGcCandidate(entry[0]))
       }
-    })
-    .then(() => {
-      const buildCounterTime = Date.now()
-      for (const key of Object.keys(eventCounter)) {
-        if (eventCounter[key] > 1) {
-          const firstIndexOfColon = key.indexOf(':')
-          const secondIndexOfColon = key.indexOf(':', firstIndexOfColon + 1)
-          gcCandidates.push(
-            new GcCandidate(
-              key.slice(0, firstIndexOfColon),
-              Number(key.slice(firstIndexOfColon + 1, secondIndexOfColon)),
-            ),
-          )
-        }
+      if (! this.garbageCollector.isScheduled()) {
+        // if we were stopped while doing this query then make sure we abort
+        return
       }
-      // TODO: move this into a generic metrics thing
-      console.debug(`Determined GC candidates in ${Date.now() - startOfGcFind}ms, about ${buildCounterTime - startOfGcFind}ms was needed to build the map`)
-      return gcCandidates
-    })
+    }
+    console.debug(`GC took ${Date.now() - startTime}ms, of that ${afterCreateHistogramTime - startTime}ms in histogram creation`)
+  }
+
+  private async createEventGcHistogram(): Promise<void> {
+    const allEvents = await this.db.getAll('events')
+    this.histogram = new Map()
+    for (const ev of allEvents) {
+      const key = this.keyForEvent(ev)
+      const curVal = this.histogram.get(key)
+      this.histogram.set(key, curVal ? curVal + 1 : 1)
+    }
+  }
+
+  private toGcCandidate(key: string): GcCandidate {
+    const firstIndexOfColon = key.indexOf(':')
+    const secondIndexOfColon = key.indexOf(':', firstIndexOfColon + 1)
+    return new GcCandidate(
+      key.slice(0, firstIndexOfColon),
+      Number(key.slice(firstIndexOfColon + 1, secondIndexOfColon)),
+    )
   }
 
   private keyForEvent(storedEvent: StoredEvent): string {
@@ -114,7 +110,7 @@ export class LocalEventLogGarbageCollector {
           }
           const eventsToDelete = this.findEventsToPrune(pruneCandidates)
           if (eventsToDelete.length > 0) {
-            // console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
+            console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
             const tx = this.db.transaction('events', 'readwrite')
             try {
               // This is an efficient bulk delete that does not wait for the success callback, inspired by
@@ -123,6 +119,7 @@ export class LocalEventLogGarbageCollector {
               for (; i < eventsToDelete.length; i++) {
                 await tx.store.delete(eventsToDelete[i].eventid)
               }
+              this.modifyEventCount(eventsToDelete[i], - eventsToDelete.length)
               return tx.done
             } catch (error) {
               console.error(`store error: `, error)

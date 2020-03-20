@@ -144,11 +144,11 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
           return
         } finally {
           this.importing = false
+          this.rerender()
         }
       }
       reader.readAsText(files[0])
     }
-    this.rerender()
   }
 
   private resetFileSelector() {
