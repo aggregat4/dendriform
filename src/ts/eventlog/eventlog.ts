@@ -111,7 +111,7 @@ export interface DEventLog extends DEventSource, LifecycleAware {
    * @throws CounterTooHighError when the provided counter is higher than the max counter
    * of the eventlog.
    */
-  getAllEventsSince(peerId: string, fromCounterNotInclusive: number): Promise<Events>
+  getEventsSince(peerId: string, fromCounterNotInclusive: number, batchSize: number): Promise<Events>
   /**
    * Loads all events from a specific type.
    * @return An array that is causally sorted by vectorclock and peerid.

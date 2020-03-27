@@ -42,6 +42,7 @@ export class EventPump implements LifecycleAware {
   private readonly dbName: string
   private readonly DEFAULT_DELAY_MS = 5000
   private readonly MAX_DELAY_MS = 60 * 1000
+  private readonly EVENT_TRANSMISSION_BATCH_SIZE = 250
 
   private localEventPump = new JobScheduler(
     new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS), this.drainLocalEvents.bind(this))
@@ -117,7 +118,8 @@ export class EventPump implements LifecycleAware {
    * @throws something on server contact failure
    */
   private async drainLocalEvents(): Promise<any> {
-    const events: Events = await this.localEventLog.getAllEventsSince(this.localEventLog.getPeerId(), this.maxLocalCounter)
+    const events: Events = await this.localEventLog.getEventsSince(
+      this.localEventLog.getPeerId(), this.maxLocalCounter, this.EVENT_TRANSMISSION_BATCH_SIZE)
     if (events.events.length > 0) {
       await this.remoteEventLog.publishEvents(events.events)
       this.maxLocalCounter = events.counter
@@ -133,7 +135,7 @@ export class EventPump implements LifecycleAware {
    * @throws something on server contact failure
    */
   private async drainRemoteEvents(): Promise<any> {
-    const events = await this.remoteEventLog.getAllEventsSince(this.maxServerCounter, this.localEventLog.getPeerId())
+    const events = await this.remoteEventLog.getEventsSince(this.maxServerCounter, this.localEventLog.getPeerId(), this.EVENT_TRANSMISSION_BATCH_SIZE)
     if (events.events.length > 0) {
       // This can be async, the client should see the changes eventually
       await this.localEventLog.insert(events.events, false)

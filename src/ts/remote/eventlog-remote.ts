@@ -36,13 +36,11 @@ export class RemoteEventLog {
   /**
    * TODO: error handling!
    */
-  async getAllEventsSince(counter: number, peerIdExclusionFilter: string): Promise<Events> {
+  async getEventsSince(counter: number, peerIdExclusionFilter: string, batchSize: number): Promise<Events> {
     assertNonEmptyString(peerIdExclusionFilter)
-    return fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/?since=${counter}&notForOriginator=${peerIdExclusionFilter}`)
-      .then((response) => {
-        return response.json()
-      })
-      .then((serverEvents) => {
+    return fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/?since=${counter}&notForOriginator=${peerIdExclusionFilter}&batchSize=${batchSize}`)
+      .then(response => response.json())
+      .then(serverEvents => {
         return {
           counter: serverEvents.counter,
           events: deserializeServerEvents(serverEvents.events),

@@ -313,15 +313,14 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     return subscription
   }
 
-  // TODO: this currently retrieves ALL events since a certain counter, we will need to move to batching at some point
-  async getAllEventsSince(peerId: string, fromCounterNotInclusive: number): Promise<Events> {
+  async getEventsSince(peerId: string, fromCounterNotInclusive: number, batchSize: number): Promise<Events> {
     if (fromCounterNotInclusive > this.counter) {
       throw new CounterTooHighError(`The eventlog has a counter of ${this.counter}` +
         ` but events were requested since ${fromCounterNotInclusive}`)
     }
     const localPeerId = this.peeridMapper.externalToInternalPeerId(peerId)
     const lowerBound = [localPeerId, fromCounterNotInclusive]
-    const upperBound = [localPeerId, Number.MAX_SAFE_INTEGER]
+    const upperBound = [localPeerId, fromCounterNotInclusive + batchSize]
     const range = IDBKeyRange.bound(lowerBound, upperBound, true, true) // do not include lower and upper bounds themselves (open interval)
     const events = await this.db.getAllFromIndex('events', 'peerid-and-eventid', range)
     return this.processRetrievedEvents(events)
