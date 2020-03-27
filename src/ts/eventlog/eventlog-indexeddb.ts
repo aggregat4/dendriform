@@ -212,10 +212,12 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       // This is an efficient bulk add that does not wait for the success callback, inspired by
       // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
       let i = 0
+      let lastEvent = null
       for (; i < mappedEvents.length; i++) {
+        lastEvent = mappedEvents[i]
         // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
-        await tx.store.add(mappedEvents[i])
-        this.garbageCollector.countEvent(mappedEvents[i])
+        await tx.store.add(lastEvent)
+        this.garbageCollector.countEvent(lastEvent)
       }
       return tx.done
     } catch (error) {
