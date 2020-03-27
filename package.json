@@ -33,19 +33,19 @@
     "ceylon": "0.9.1",
     "jsdom": "16.2.1",
     "jsdom-global": "3.0.2",
-    "rollup": "2.0.3",
+    "rollup": "2.2.0",
     "rollup-plugin-commonjs": "10.1.0",
     "rollup-plugin-copy": "^3.3.0",
     "rollup-plugin-html2": "1.0.0",
     "rollup-plugin-node-resolve": "5.2.0",
-    "rollup-plugin-visualizer": "3.3.1",
-    "ts-unused-exports": "6.1.0",
-    "tslint": "6.0.0",
+    "rollup-plugin-visualizer": "3.3.2",
+    "ts-unused-exports": "6.1.1",
+    "tslint": "6.1.0",
     "typescript": "3.8.3"
   },
   "dependencies": {
     "file-saver": "2.0.2",
     "idb": "5.0.1",
-    "lit-html": "1.1.2"
+    "lit-html": "1.2.1"
   }
 }
