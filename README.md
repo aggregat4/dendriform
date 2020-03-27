@@ -119,6 +119,7 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
+1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
 1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
 1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it?
 1. Transferring events should happen in batches (N events) for performance and transfer reasons. Test with large documents and with a remote server.

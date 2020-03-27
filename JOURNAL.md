@@ -1353,3 +1353,19 @@ Also the GC times after the import are way too long. I need either webworker or 
 `blogpost`
 
 It seems like common shared styles for web components are not completely solved generically. There is a cavalcade of sort of maybe options as discussed on <https://www.smashingmagazine.com/2016/12/styling-web-components-using-a-shared-style-sheet/>. The two "best" options at the moment seem to be the inclusion of a `<link>` element before your inline styles for the web component that points to a shared stylesheet or to actually inline all the shared styles. I have currently opted for the latter, but will try the former.
+
+## 2020-03-27
+
+I think I've fixed the GC performance issue, mostly. I switched to a histogram based approach: on startup I count how many events there are for a given discriminator key. This means that all counts larger than 1 indicate that some events can be garbage collected for that key. In the regular GC cycle I go over the historgram, gather deletion candidates and bulk delete them.
+
+The histogram generation requires all stored events and builds a large map in memory. The downside is that this takes quite a bit of time (around 1.5 s for 10 000 events in the workflowy export) and quite a bit of memory. On the other hand there is only the up front cost and each real GC phase afterwards is much faster because it is so efficient to determine candidates.
+
+Originally this initial histogram building time was blocking the UI but I've moved to an approach to use a cursor to iterate over the indexeddb events and to read only batches events scheduled in a requestAnimationFrame (RAF) call. I try to automatically adjust the batch size based on the time required and to stay under the 16ms between frames. This is not yet perfect, especially my batch size determining algorithm is suboptimal, but it is much better and it basically prevents any pauses. FPS only drops to 40 or so while running.
+
+Two remaining optimisations I could do:
+* Do the actual GC calls with the same approach: when a lot of events need to be GCed (lot of editing in the tree) this GC time can also ramp up to more than 100ms
+* Do the batch size determination more robustly, in fact instead of determining the batch size, I should just check the time
+
+I implemented the time based windowing, that does work more stable. During the histogram building I still get a lot of dips in FPS that seem to contain only JIT and GC work from the browser. Am I generating too much garbage?
+
+But it seems a bit better.

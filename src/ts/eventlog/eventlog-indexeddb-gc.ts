@@ -1,7 +1,7 @@
 import { EventType, ReorderChildNodeEventPayload, DEventLog } from './eventlog'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { StoredEvent, storedEventComparator, EventStoreSchema } from './eventlog-storedevent'
-import { IDBPDatabase } from 'idb'
+import { IDBPDatabase, IDBPCursor, IDBPCursorWithValue } from 'idb'
 import { after } from 'test/tizzytest'
 
 class GcCandidate {
@@ -11,6 +11,7 @@ class GcCandidate {
 export class LocalEventLogGarbageCollector {
   private readonly GC_TIMEOUT_MS = 10000
   private readonly GC_MAX_BATCH_SIZE = 500
+  private readonly MAX_SLICE_TIME = 15
   /**
    * An optimization to avoid doing gc when no changes were made: as soon as the current counter
    * is higher than the last counter we do gc, otherwise we just sleep.
@@ -38,6 +39,10 @@ export class LocalEventLogGarbageCollector {
   }
 
   private modifyEventCount(event: StoredEvent, count: number): void {
+    if (! this.histogram) {
+      // we may not yet have a histogram, in that case just ignore this
+      return
+    }
     const key = this.keyForEvent(event)
     const currentCount = this.histogram.get(key) || 0
     if (count < 0 && Math.abs(count) > currentCount) {
@@ -69,9 +74,41 @@ export class LocalEventLogGarbageCollector {
   }
 
   private async createEventGcHistogram(): Promise<void> {
-    const allEvents = await this.db.getAll('events')
     this.histogram = new Map()
-    for (const ev of allEvents) {
+    const increment = (timestamp) => this.histogramIncrement(-1, this.MAX_SLICE_TIME)
+    window.requestAnimationFrame(increment)
+  }
+
+  private async histogramIncrement(currentKey: number, maxSliceTimeInMs: number): Promise<void> {
+    const t0 = window.performance.now()
+    let counter = 0
+    let iterateCursor = await this.db.transaction('events').store.openCursor(IDBKeyRange.lowerBound(currentKey, true))
+    let lastKey = currentKey
+    const currentSlice = []
+    while (iterateCursor) {
+      const event = iterateCursor.value
+      lastKey = event.eventid
+      currentSlice.push(event)
+      iterateCursor = await iterateCursor.continue()
+      counter += 1
+      if (counter % 5 === 0) {
+        const time = window.performance.now()
+        if (time - t0 > maxSliceTimeInMs) {
+          break
+        }
+      }
+    }
+    if (currentSlice.length === 0) {
+      return
+    }
+    this.addToHistogram(currentSlice)
+    const t1 = window.performance.now()
+    // console.debug(`RAF GC Slice ${t1 - t0}ms for ${counter} events`)
+    window.requestAnimationFrame((timestamp) => this.histogramIncrement(lastKey, maxSliceTimeInMs))
+  }
+
+  private addToHistogram(events: StoredEvent[]): void {
+    for (const ev of events) {
       const key = this.keyForEvent(ev)
       const curVal = this.histogram.get(key)
       this.histogram.set(key, curVal ? curVal + 1 : 1)
@@ -116,10 +153,14 @@ export class LocalEventLogGarbageCollector {
               // This is an efficient bulk delete that does not wait for the success callback, inspired by
               // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
               let i = 0
+              let lastEvent = null
               for (; i < eventsToDelete.length; i++) {
-                await tx.store.delete(eventsToDelete[i].eventid)
+                lastEvent = eventsToDelete[i]
+                await tx.store.delete(lastEvent.eventid)
               }
-              this.modifyEventCount(eventsToDelete[i], - eventsToDelete.length)
+              if (lastEvent) {
+                this.modifyEventCount(lastEvent, - eventsToDelete.length)
+              }
               return tx.done
             } catch (error) {
               console.error(`store error: `, error)
