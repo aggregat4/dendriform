@@ -3,7 +3,7 @@
     <id>dendriform-client-zip</id>
     <includeBaseDirectory>false</includeBaseDirectory>
     <formats>
-        <format>zip</format>
+        <format>tar.gz</format>
     </formats>
     <fileSets>
         <fileSet>
@@ -16,8 +16,10 @@
         <fileSet>
             <directory>dist</directory>
             <includes>
-                <include>example.bundle.js</include>
-                <include>example.bundle.js.map</include>
+                <include>*.js</include>
+                <include>*.js.map</include>
+                <include>*.mjs</include>
+                <include>*.mjs.map</include>
             </includes>
             <outputDirectory>/js/</outputDirectory>
         </fileSet>
