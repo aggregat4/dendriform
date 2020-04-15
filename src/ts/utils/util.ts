@@ -2,7 +2,7 @@ export type Predicate<T> = (_: T) => boolean
 
 export const ALWAYS_TRUE: Predicate<any> = (foo: any) => true
 
-export function createCompositeAndPredicate<T>(predicates: Array<Predicate<T>>): Predicate<T> {
+export function createCompositeAndPredicate<T>(predicates: Predicate<T>[]): Predicate<T> {
   return (value: T) => {
     for (const predicate of predicates) {
       if (!predicate(value)) {
