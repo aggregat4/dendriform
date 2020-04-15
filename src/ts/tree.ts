@@ -15,15 +15,15 @@ customElements.define('dendriform-tree', Tree)
 
 export class TreeManager {
   private currentEventPump: EventPump = null
-  private currentTree: Promise<Tree> = null
+  private currentInitializer: Promise<Tree>
 
   private async createAndInitTree(treeName: string): Promise<Tree> {
     if (this.currentEventPump !== null) {
       await this.currentEventPump.deinit()
       this.currentEventPump = null
-      const oldTree = await this.currentTree
+      const oldTree = await this.currentInitializer
       await oldTree.deinit()
-      this.currentTree = null
+      this.currentInitializer = null
     }
     const localEventLog = new LocalEventLog(treeName)
     const remoteEventLog = new RemoteEventLog('/', treeName)
@@ -39,13 +39,15 @@ export class TreeManager {
     tree.treeService = treeService
     tree.treeActionRegistry = treeActionRegistry
     tree.activityIndicating = localEventLog
-    this.currentTree = tree.init().then(() => tree)
+    await tree.init()
     this.currentEventPump.init()
-    return this.currentTree
+    return tree
   }
 
   loadNode(nodeId: string) {
-    this.currentTree.then((tree) => tree.loadNode(nodeId))
+    if (this.currentInitializer) {
+      this.currentInitializer.then(tree => tree.loadNode(nodeId))
+    }
   }
 
   /**
@@ -56,8 +58,9 @@ export class TreeManager {
    *
    * @param el The element to mount the tree component to.
    */
-  mountTree(el: HTMLElement, treeName: string): void {
-    this.createAndInitTree(treeName).then((tree) => el.appendChild(tree))
+  async mountTree(el: HTMLElement, treeName: string): Promise<any> {
+    this.currentInitializer = this.createAndInitTree(treeName).then((tree) => el.appendChild(tree))
+    return this.currentInitializer
   }
 
   getAvailableTrees(): Promise<string[]> {

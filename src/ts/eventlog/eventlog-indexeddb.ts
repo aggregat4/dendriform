@@ -107,6 +107,8 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       })
       await this.loadOrCreateMetadata()
       await this.determineMaxCounter()
+      // must be initialised before storagequeuedrainer and before publishing because that may call store()
+      this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db)
       this.peeridMapper = new LocalEventLogIdMapper(this.dbName + '-peerid-mapping')
       await this.peeridMapper.init()
       // NOTE: we need a peeridMapper to store events! It is used to translate the ids!
@@ -118,8 +120,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       }
       // start async event storage
       this.storageQueueDrainer.start(true)
-      // start garbage collector
-      this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db)
       this.garbageCollector.start()
     } catch (error) {
       console.error(`Error initialising indexeddb eventlog, note that Firefox does not (yet) allow IndexedDB in private browsing mode: `, error)

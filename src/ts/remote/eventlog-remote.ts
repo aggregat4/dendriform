@@ -38,14 +38,12 @@ export class RemoteEventLog {
    */
   async getEventsSince(counter: number, peerIdExclusionFilter: string, batchSize: number): Promise<Events> {
     assertNonEmptyString(peerIdExclusionFilter)
-    return fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/?since=${counter}&notForOriginator=${peerIdExclusionFilter}&batchSize=${batchSize}`)
-      .then(response => response.json())
-      .then(serverEvents => {
-        return {
-          counter: serverEvents.counter,
-          events: deserializeServerEvents(serverEvents.events),
-        }
-      })
+    const response = await fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/?since=${counter}&notForOriginator=${peerIdExclusionFilter}&batchSize=${batchSize}`)
+    const serverEvents = await response.json()
+    return {
+      counter: serverEvents.counter,
+      events: deserializeServerEvents(serverEvents.events),
+    }
   }
 
 }
