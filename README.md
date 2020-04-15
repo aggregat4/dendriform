@@ -8,7 +8,7 @@ This application is inspired by [Workflowy](http://workflowy.com), the most eleg
 
 ## Development
 
-This project uses npm and webpack to build. To get started, do the following:
+This project uses npm and rollup to build. To get started, do the following:
 
 1. clone the repository
 2. perform an `npm install`
@@ -67,13 +67,11 @@ This starts all _active_ components in the correct order:
 
 ## Architectural Strategies
 
-### Direct DOM Manipulation
+### View Layer
 
-The view layer consists of direct DOM manipulation with some assitance by RE:DOM to render the main components. The program started out with a virtual DOM based diffing approach (using Maquette) but that turned out to have unpredictable performance characteristics and did not offer the amount of control over selection and cursor placement that we required.
+The view layer uses (lit-html)[http://example.com] to render components. This approach does not use virtual dom and instead uses on the fly diffing against the actual dom to incrementally update it. The program started out with a virtual DOM based diffing approach (using Maquette) but that turned out to have unpredictable performance characteristics and did not offer the amount of control over selection and cursor placement that we required.
 
 This program is special in that it is basically a giant tree based structural text editor. Everything is directly editable and can be manipulated and responses need to be as fast as possible so as not to get into the way of the editing experience.
-
-We may move to an even lower level approach than RE:DOM as we currently don't have efficient in-place updates for large changes to the tree. We will investigate using `incremental-dom` for this.
 
 View code is all in `src/ts/view`. The main component is the tree itself in `tree-component.ts`, it consists of recursively nested nodes that are rendered with `node-component.ts`.
 
@@ -89,11 +87,11 @@ Actions do not modify the datastore or the DOM directly, they just construct the
 
 ### Commands
 
-All mutating GUI actions are modelled as commands in order to support full undo for all operations. User events trigger commands that are both handled locally for updating the DOM directly and are also dispatched to the backend to make sure changes are persisted.
+All mutating GUI actions are modeled as commands in order to support full undo for all operations. User events trigger commands that are both handled locally for updating the DOM directly and are also dispatched to the "backend" to persist them.
 
-Commands always have an inverse command that can be constructed automatically fromm the original command and used for undoing the operation. This can be continued ad nauseam by creating the reverse of a reverse command for a redo operation for example.
+Commands always have an inverse command that can be constructed automatically from the original command and used for undoing the operation. This can be continued ad nauseam by creating the reverse of a reverse command for a redo operation for example.
 
-Commands and the necessary infrastructure are in `src/ts/commands`.
+Commands and their infrastructure are in `src/ts/commands`.
 
 ### Offline First
 
@@ -111,7 +109,7 @@ There are 3 types of events that each represent a CRDT managed data structure:
 
 * The node contents themselves are modeled as a set of things
 * The parent-child relationships between nodes are managed as a set of parent-child relationship tuples
-* The ordering of the children of a parent is modeled as a set of logoot sequences with one logoot sequence per parent
+* The ordering of the children of a parent is modeled as a set of "logoot" sequences with one logoot sequence per parent
 
 No data is actively deleted, all "deleted" nodes remain in the set as tombstones.
 
@@ -119,6 +117,7 @@ There is a periodical garbage collection phase that will collect all nodes that 
 
 ## TODOs
 
+1. BUG: after opml import you can not expand (or collapse) the newly imported nodes
 1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
 1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
 1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it?
