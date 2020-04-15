@@ -282,7 +282,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 export function assertNonEmptyString(str: string): void {
-  return assert(str === undefined || str === null || str === '', 'String must no be empty')
+  return assert(!(str === undefined || str === null || str === ''), 'String must not be empty')
 }
 
 const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K']
