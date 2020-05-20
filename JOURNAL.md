@@ -1369,3 +1369,43 @@ Two remaining optimisations I could do:
 I implemented the time based windowing, that does work more stable. During the histogram building I still get a lot of dips in FPS that seem to contain only JIT and GC work from the browser. Am I generating too much garbage?
 
 But it seems a bit better.
+
+## 2020-04-22
+
+We've come to the point where we need to resolve the last (?) big open question in our solution: who is authoritative regarding what events are the truth? Or to put it differently: who decides what the right amount of events are and how do we synchronize the state?
+
+Some reading on the internet leads me to believe that to reliably sync the state of all peers with each other over the server we would need something like a merkle trie based approach. This would be quite complicated to implement however, and I might consider moving to a state based CRDT with merkle updates as described in <https://hal.inria.fr/hal-02303490/document> then anyway. This may be something for some future implementation.
+
+The alternative is to make some assumptions:
+* The peer is authoratative on what events exist from that peer. It will incrementally synchronize them to the server by asking it what the last eventid is it knows (assuming they are monotonically increasing) and sending newer ones if they exist.
+* The server is authoritative on what events exist for all other peers.
+
+There are some massive constraints we need to take into account with this approach:
+* This only works if the server is the real source of truth: as soon as the server DB gets deleted, all clients should also delete their state since we can no longer guarantee it will be consistent otherwise. This is probably even true when the server state is deleted for the peer itself. It would have to delete itself as well?
+
+Writing this down like this I'm not sure we can make this tradeoff. We could make the tradeoff for a short time so we just have something up and running but it does not seem viable for the longer term.
+
+In the longer term we probably need a robust approach for the client reliably and incrementally replicate its event log to the server and the other way around for the server to reliably and incrementally replicate the event logs of the other peers to the client.
+
+## 2020-05-20
+
+Thinking how I can implement event synchronization between client and server.
+
+I need the concept of authority: a peer is authoritative over its events and the server is authoratative over all other peers (for that particluar client). This allows us to do something like use merkle trees to efficiently compare who has what state and to figure out from whom we need to download/upload things from/to.
+
+If we do use merkle trees then I feel like we need to limit our merkle trees in depth to prevent humongous memory requirements and this then means large leaf node buckets for events.
+
+Now if I want to generate hashes for those leaves then either my hash function must be associative (order is unimportant) or I need a stable ordering for those events. Currently I have no cross-peer approach to do this since I don't store the localId in the database. I may have to add this, or find an associative hash function that is sufficiently robust.
+
+Another problem is that I currently delete nodes when garbage collecting. This means that I will throw away received nodes which will change the event list and cause me to synchronize those events all the time. I will need to change delete to a soft delete and have efficient ways of ignoring those nodes when querying. Associative hash functions are not a thing AFAIK. So I need ordering which means the localId from DEvent?
+
+Concrete base changes required:
+- Keep tombstones for deleted events and allow for efficient filtering
+- store the full UUID localId property for each event to allow for ordering
+- I need a way to filter by originator (index) as well since merkle trees need to be calculated for each originator id separately
+
+The same needs to happen on the server, BTW.
+
+<sigh>
+
+This will never end, will it.
