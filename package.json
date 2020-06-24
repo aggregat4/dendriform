@@ -28,24 +28,32 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/file-saver": "2.0.1",
-    "@wessberg/rollup-plugin-ts": "1.2.21",
+    "@typescript-eslint/eslint-plugin": "^3.4.0",
+    "@typescript-eslint/parser": "^3.4.0",
+    "@wessberg/rollup-plugin-ts": "1.2.26",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
-    "jsdom": "16.2.1",
+    "eslint": "^7.3.1",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-import": "^2.21.2",
+    "eslint-plugin-jsdoc": "^28.5.1",
+    "eslint-plugin-prefer-arrow": "^1.2.1",
+    "jsdom": "16.2.2",
     "jsdom-global": "3.0.2",
-    "rollup": "2.2.0",
+    "rollup": "2.18.0",
     "rollup-plugin-commonjs": "10.1.0",
     "rollup-plugin-copy": "^3.3.0",
-    "rollup-plugin-html2": "1.0.0",
+    "rollup-plugin-eslint": "^7.0.0",
+    "rollup-plugin-html2": "1.1.0",
     "rollup-plugin-node-resolve": "5.2.0",
-    "rollup-plugin-visualizer": "3.3.2",
-    "ts-unused-exports": "6.1.1",
-    "tslint": "6.1.0",
-    "typescript": "3.8.3"
+    "rollup-plugin-visualizer": "4.0.4",
+    "ts-unused-exports": "6.2.1",
+    "tslint": "6.1.2",
+    "typescript": "3.9.5"
   },
   "dependencies": {
     "file-saver": "2.0.2",
-    "idb": "5.0.1",
+    "idb": "5.0.4",
     "lit-html": "1.2.1"
   }
 }
