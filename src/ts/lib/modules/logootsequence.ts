@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/no-explicit-any: off */
 /**
  * A sequence of atoms identified by atom identifiers.
  *
@@ -20,7 +21,7 @@ export type comparisonResult = -1 | 0 | 1
  *
  * The site identifier may be any comparable value.
  */
-export type ident = [number, any]
+export type ident = [number, string | number]
 
 /**
  * A list of `ident`s.
@@ -78,7 +79,7 @@ export function emptySequence(): sequence {
  * @param prevAtomIdent The atom identify before the new one
  * @param nextAtomIdent The atom identify after the new one
  */
-export function genAtomIdent(siteID: any, clock: number, prevAtomIdent: atomIdent, nextAtomIdent: atomIdent): atomIdent {
+export function genAtomIdent(siteID: string | number, clock: number, prevAtomIdent: atomIdent, nextAtomIdent: atomIdent): atomIdent {
   return [genPosition(siteID, prevAtomIdent[0], nextAtomIdent[0]), clock]
 }
 
@@ -168,7 +169,7 @@ function compareIdents([identAInt, identASite]: ident, [identBInt, identBSite]: 
  * @param prevPos The position before the new one
  * @param nextPos The position after the new one
  */
-function genPosition(siteID: any, prevPos: position, nextPos: position): position {
+function genPosition(siteID: string | number, prevPos: position, nextPos: position): position {
   prevPos = prevPos.length > 0 ? prevPos : min[0]
   nextPos = nextPos.length > 0 ? nextPos : max[0]
 
@@ -176,7 +177,7 @@ function genPosition(siteID: any, prevPos: position, nextPos: position): positio
   const nextHead = nextPos[0]
 
   const [prevInt, prevSiteID] = prevHead
-  const [nextInt, _nextSiteID] = nextHead
+  const nextInt = nextHead[0]
 
   switch (compareIdents(prevHead, nextHead)) {
     case -1: {

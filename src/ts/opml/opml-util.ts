@@ -18,7 +18,7 @@ export function opmlDocumentToRepositoryNodes(doc: Document): ResolvedRepository
   if (!rootOutlines || rootOutlines.length === 0) {
     throw new Error('OPML document is empty')
   }
-  const repositoryNodes = []
+  const repositoryNodes: ResolvedRepositoryNode[] = []
   for (const rootOutline of rootOutlines) {
     const potentialRepositoryNode = opmlOutlineNodeToRepositoryNode(rootOutline)
     if (potentialRepositoryNode) {

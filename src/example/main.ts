@@ -1,7 +1,7 @@
 import {TreeManager} from '../ts/tree'
 
 function getHashValue(key: string): string {
-  const matches = window.location.hash.match(new RegExp(`${key}=([^&]*)?`))
+  const matches = window.location.hash.match(RegExp.exec(`${key}=([^&]*)?`))
   return matches && matches.length >= 2 ? matches[1] : null
 }
 

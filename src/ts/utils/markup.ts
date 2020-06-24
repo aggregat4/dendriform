@@ -5,7 +5,8 @@ export class MNodeAttribute {
 }
 
 export class MNode {
-  private _content = undefined
+  private _content: MNodeContent = undefined
+
   constructor(readonly tagName: string, readonly attributes: MNodeAttribute[], content?: MNodeContent) {
     this._content = content
   }
@@ -44,9 +45,9 @@ function getEndTag(node: MNode): string {
 
 function getContent(node: MNode): string {
   if (typeof node.content === 'string') {
-    return node.content as string
+    return node.content
   } else {
-    const children = node.content as MNode[]
+    const children = node.content
     let value = ''
     for (const child of children) {
       value += toHtml(child)
@@ -67,9 +68,9 @@ function findAndMarkText(node: MNode, markup: Markup): boolean {
   let hitFound = false
   if (typeof node.content === 'string') {
     let searchEl = node
-    let reMatch = null
-    let searchText = null
-    while (searchEl && (searchText = (searchEl.content as string)) && searchText.length > 0 && (reMatch = searchText.match(markup.regex))) {
+    let reMatch: string[] = null
+    let searchText: string = null
+    while (searchEl && (searchText = (searchEl.content as string)) && searchText.length > 0 && (reMatch = markup.regex.exec(searchText))) {
       // The following two lines are a workaround for missing lookbehind assertions in JS (coming in ES2018)
       const matchedText = reMatch.length > 1 ? reMatch[1] : reMatch[0]
       const matchedIndex = reMatch.length > 1 ? reMatch.index + reMatch[0].length - reMatch[1].length : reMatch.index

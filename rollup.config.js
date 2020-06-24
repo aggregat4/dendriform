@@ -6,6 +6,7 @@ import ts from '@wessberg/rollup-plugin-ts'
 import visualizer from 'rollup-plugin-visualizer'
 import html2 from 'rollup-plugin-html2'
 import copy from 'rollup-plugin-copy'
+import { eslint } from 'rollup-plugin-eslint'
 
 export default {
   input: {
@@ -52,6 +53,7 @@ export default {
         'node_modules/file-saver/dist/FileSaver.min.js': [ 'saveAs' ]
       }
     }),
+    eslint(),
     ts({
       browserslist: false,
     }),
