@@ -1401,7 +1401,7 @@ Another problem is that I currently delete nodes when garbage collecting. This m
 
 Concrete base changes required:
 - Keep tombstones for deleted events and allow for efficient filtering
-- store the full UUID localId property for each event to allow for ordering
+- Store the full UUID localId property for each event to allow for ordering (and hashing)
 - I need a way to filter by originator (index) as well since merkle trees need to be calculated for each originator id separately
 
 The same needs to happen on the server, BTW.
@@ -1409,3 +1409,50 @@ The same needs to happen on the server, BTW.
 <sigh>
 
 This will never end, will it.
+
+## 2020-06-03 - merkle trees and how to synchronize them
+
+Let's assume a fixed depth merkle tree so we don't run out of memory. This means the leaf nodes contain hashes of a range of events. There is one tree per originator.
+
+The events are ordered monotonically using their originator ID and the local integer event ID.
+
+The tree is always of the same depth. Meaning that even if there is only one event in the tree, it will live at whatever configured depth and the tree will be a highly imbalanced tree with one branch going to full depth.
+
+This is done so we remain more or less stable when adding events: when you append new events (see ordering above) you at most change one leaf node (and with it the path to the the root).
+
+The synchronisation algorithm would be:
+- start at depth = 0
+- authoratative party sends all nodes at depth
+- receiving party sends back whether those nodes match or whether it does not know some of them
+- authoratative party stops sync when all node known, otherwise it will go one level deeper and repeat the process
+- when reaching a leaf node that is unknown by the receiving party all events in that node are sent to the receiving party (TODO this could get big? is there even a way to prevent this? batching?)
+
+The complete synchronisation runs constantly and when no changes are present only the root tree nodes are compared.
+
+We need a merkle tree per originator, both on client and server.
+
+Do we need to persist the merkle trees? On the server we can't keep them in memory, so yes. On the client we need to keep it in memory but I don't know how big they can get and how slow they are so maybe also yes.
+
+Maybe we just persist the leaf nodes with the hashes of event ranges and rebuild the rest of the tree in memory when needed?
+
+Since a leaf node hash is a hash of a range of nodes LH = H(Nn, H(Nn-1, H(Nn-2, ...))) and therefore can be incrementally updated when new events arrive. We probably also need to be able to O(1) identify the leaf-node-range to update by dividing the event id by the number of elements in one range and just forming buckets like this.
+
+Building the tree layers on top of the leaf layers just consists of iterating through leaf nodes in order and building new nodes for every pair of leaf nodes and then to repeat that for the next layer.
+
+The question is what do we do on the server? Persist leaf nodes and then use a caache with a fixed size for the rest of the nodes and then recompute on demand? It could work: if you get a request for a non leaf node you can just ask the cache and it can compute it on the fly by requesting the hashes of two child nodes, etc.
+
+The only good news about all of this is that we can work with the local integer IDs of each event instead of the UUIDs. Yay.
+
+BTW I currently have a collision with localId and the id I would need for this thing: I currently use the localId for all nodes and increment it on the client. Do I need a second localOriginatorId that just reflects the locally generated ID? But then I need two counters? Can't I refactor to using originator ID + localId or do I already use localId extensively?
+
+## 2020-06-24 Giving up on Merkle Trees For Now
+
+After spending a few fruitless sessions thinking about how to make merkle trees work for our event distribution mechanism I have decided to abandon it for now. I still don't see a good way to extend "normal" merkle trees to be efficient when constantly updating them concurrently: the tree itself is constantly changing and you don't limit changes to some localized part of the tree itself.
+
+Approaches such as the INRIA fast search trees would work but they kind of presuppose a completely different storage and potentially CRDT structure and that is too big a change for me to make right now.
+
+I will revert to a simpler approach where I _do_ keep track of authoratative authors for events (basically the originator is always authoratative) and then track per authoratative source what the max event ID is and which I don't have yet. I will send the local clients missing events to the server (batched) and will receive them from the server per other originator.
+
+This is far from optimal but it is simple and I think it may be sufficient for my pedestrian needs.
+
+At some point in the future I would like to have a better approach for incremental synchronization that is totally robust.

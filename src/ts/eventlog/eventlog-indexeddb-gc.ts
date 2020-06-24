@@ -1,8 +1,7 @@
 import { EventType, ReorderChildNodeEventPayload, DEventLog } from './eventlog'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { StoredEvent, storedEventComparator, EventStoreSchema } from './eventlog-storedevent'
-import { IDBPDatabase, IDBPCursor, IDBPCursorWithValue } from 'idb'
-import { after } from 'test/tizzytest'
+import { IDBPDatabase } from 'idb'
 
 class GcCandidate {
   constructor(readonly nodeId: string, readonly eventtype: EventType) {}
