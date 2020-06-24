@@ -59,6 +59,7 @@ export class LocalEventLogIdMapper {
 
   storedEventToDEventMapper(ev: StoredEvent): DEvent {
     return new DEvent(
+      ev.localId,
       ev.eventtype,
       this.internalToExternalPeerId(Number(ev.peerid)),
       new VectorClock(this.internalToExternalVectorclockValues(ev.vectorclock)),

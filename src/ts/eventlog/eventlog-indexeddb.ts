@@ -196,10 +196,13 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       // performed by other peers. This is to make sure there is always only one ROOT node on each peer
       .filter(e => !(e.type === EventType.ADD_OR_UPDATE_NODE && e.nodeId === 'ROOT' && e.originator !== this.peerId))
       .map(e => {
+        // We preincrement the counter because our semantics are that counter is always the current
+        // highest existing ID in the database
+        const newId = ++this.counter
         return {
-          // We preincrement the counter because our semantics are that counter is always the current
-          // highest existing ID in the database
-          eventid: ++this.counter,
+          eventid: newId,
+          // the local id exists when the DEvent comes from outside but it is -1 when it originates on this client
+          localId: e.localId !== -1 ? e.localId : newId,
           eventtype: e.type,
           treenodeid: e.nodeId,
           peerid: this.peeridMapper.externalToInternalPeerId(e.originator),
@@ -250,7 +253,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   private async determineMaxCounter(): Promise<void> {
     const tx = this.db.transaction('events', 'readonly')
     const cursor = await tx.store.index('eventid').openCursor(null, 'prev')
-    // TODO: verify that 'prev' here really works!
     if (cursor) {
       this.counter = cursor.value.eventid
     }
@@ -278,7 +280,8 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     // However, this has a problem: if drainstorageQue happens later than the other peers will be slightly out
     // of date in our vectorclock. Not sure how to solve this.
     this.vectorClock.increment(this.peerId)
-    return this.insert([new DEvent(type, this.peerId, this.vectorClock, nodeId, payload)], synchronous)
+    // Locally generated events have no localId _yet_, it is filled with the current maxCounter when storing the event
+    return this.insert([new DEvent(-1, type, this.peerId, this.vectorClock, nodeId, payload)], synchronous)
   }
 
   /**

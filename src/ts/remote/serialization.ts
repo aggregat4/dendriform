@@ -77,6 +77,7 @@ export function deserializeServerEvents(events: any[]): DEvent[] {
  */
 function deserializeServerEvent(serverEvent: any): DEvent {
   return new DEvent(
+    serverEvent.localId,
     serverEvent.type,
     serverEvent.originator,
     deserializeVectorClock(serverEvent.clock),

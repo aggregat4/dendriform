@@ -64,15 +64,13 @@ export type EventPayloadType = AddOrUpdateNodeEventPayload | ReparentNodeEventPa
 
 export class DEvent {
   constructor(
+    // This id is only guaranteed to be unique together with the originator
+    readonly localId: number,
     readonly type: EventType,
     readonly originator: string,
     public clock: VectorClock<StringVectorClockValues>,
     readonly nodeId: string,
     readonly payload: EventPayloadType) {}
-
-  isIdentical(other: DEvent): boolean {
-    return this.type === other.type && this.clock.isIdentical(other.clock)
-  }
 }
 
 export class CounterTooHighError extends Error {}
