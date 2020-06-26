@@ -1,6 +1,6 @@
 import { DEvent, Events } from '../eventlog/eventlog'
 import { assertNonEmptyString } from '../utils/util'
-import { deserializeServerEvents, serializeServerEvent } from './serialization'
+import { deserializeServerEvents, serializeServerEvent, ServerEvents } from './serialization'
 
 export class RemoteEventLog {
 
@@ -39,7 +39,7 @@ export class RemoteEventLog {
   async getEventsSince(counter: number, peerIdExclusionFilter: string, batchSize: number): Promise<Events> {
     assertNonEmptyString(peerIdExclusionFilter)
     const response = await fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/?since=${counter}&notForOriginator=${peerIdExclusionFilter}&batchSize=${batchSize}`)
-    const serverEvents = await response.json()
+    const serverEvents = await response.json() as ServerEvents
     return {
       counter: serverEvents.counter,
       events: deserializeServerEvents(serverEvents.events),

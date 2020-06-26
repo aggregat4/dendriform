@@ -5,7 +5,8 @@ export interface TimeoutStrategy {
 export class FixedTimeoutStrategy implements TimeoutStrategy {
   constructor(readonly timeout: number) {}
 
-  calcNewTimeout(success: boolean) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  calcNewTimeout(success: boolean): number {
     return this.timeout
   }
 }
@@ -17,7 +18,7 @@ export class BackoffWithJitterTimeoutStrategy implements TimeoutStrategy {
     this.previousTimeout = this.timeout
   }
 
-  calcNewTimeout(success: boolean) {
+  calcNewTimeout(success: boolean): number {
     if (success) {
       this.previousTimeout = this.timeout
     } else {
@@ -50,12 +51,12 @@ export class JobScheduler {
     if (immediate) {
       return this.runAndScheduleJob()
     } else {
-      this.scheduleJob(this.timeoutStrategy.calcNewTimeout(true))
+      return this.scheduleJob(this.timeoutStrategy.calcNewTimeout(true))
     }
   }
 
   private scheduleJob(timeout: number): void {
-    this.timerHandle = window.setTimeout(this.runAndScheduleJob.bind(this), timeout)
+    this.timerHandle = window.setTimeout(() => void this.runAndScheduleJob(), timeout)
   }
 
   private async runAndScheduleJob(): Promise<void> {

@@ -68,7 +68,7 @@ function findAndMarkText(node: MNode, markup: Markup): boolean {
   let hitFound = false
   if (typeof node.content === 'string') {
     let searchEl = node
-    let reMatch: string[] = null
+    let reMatch: RegExpExecArray = null
     let searchText: string = null
     while (searchEl && (searchText = (searchEl.content as string)) && searchText.length > 0 && (reMatch = markup.regex.exec(searchText))) {
       // The following two lines are a workaround for missing lookbehind assertions in JS (coming in ES2018)
@@ -82,7 +82,7 @@ function findAndMarkText(node: MNode, markup: Markup): boolean {
       hitFound = true
     }
   } else {
-    for (const child of (node.content as MNode[])) {
+    for (const child of node.content) {
       const childHitFound = findAndMarkText(child, markup)
       hitFound = hitFound || childHitFound
     }

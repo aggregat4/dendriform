@@ -1,7 +1,7 @@
 import {TreeManager} from '../ts/tree'
 
 function getHashValue(key: string): string {
-  const matches = window.location.hash.match(RegExp.exec(`${key}=([^&]*)?`))
+  const matches = RegExp(`${key}=([^&]*)?`).exec(window.location.hash)
   return matches && matches.length >= 2 ? matches[1] : null
 }
 
@@ -12,7 +12,7 @@ function getRequestedNodeId() {
 const treeManager = new TreeManager()
 
 function init() {
-  treeManager.getAvailableTrees()
+  void treeManager.getAvailableTrees()
     .then(trees => treeManager.mountTree(document.body, trees[0]))
     .then(() => treeManager.loadNode(getRequestedNodeId()))
 }

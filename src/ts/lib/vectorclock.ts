@@ -1,26 +1,24 @@
 // from https://github.com/mixu/vectorclock
 
-export interface NumberVectorClockValues { [k: number]: number }
-export interface StringVectorClockValues { [k: string]: number }
+export type VectorClockValuesType = {
+  [key in string | number]: number
+}
 
-// TODO: as soon as https://stackoverflow.com/questions/13315131/enforcing-the-type-of-the-indexed-members-of-a-typescript-object
-// is resolved I should be able to also define the key type and to not have to use this weird union. Then I can also
-// make the increment method typesafe
-export class VectorClock<ValuesType extends NumberVectorClockValues|StringVectorClockValues> {
-  readonly values: ValuesType = {} as ValuesType
+export class VectorClock {
+  readonly values: VectorClockValuesType = {}
 
-  constructor(values?: ValuesType) {
+  constructor(values?: VectorClockValuesType) {
     if (values) {
       this.values = values
     }
   }
 
   // increments the counter for nodeId
-  increment(nodeId): void {
+  increment(nodeId: string): void {
     this.values[nodeId] = (typeof this.values[nodeId] === 'undefined' ? 1 : this.values[nodeId] + 1)
   }
 
-  static allKeys<T extends NumberVectorClockValues|StringVectorClockValues>(a: T, b: T): any[] {
+  static allKeys(a: VectorClockValuesType, b: VectorClockValuesType): string[] {
     let last = null
     return Object.keys(a)
       .concat(Object.keys(b))
@@ -33,7 +31,7 @@ export class VectorClock<ValuesType extends NumberVectorClockValues|StringVector
       })
   }
 
-  static compareValues<T extends NumberVectorClockValues|StringVectorClockValues>(aVals: T, bVals: T): number {
+  static compareValues(aVals: VectorClockValuesType, bVals: VectorClockValuesType): number {
     let isGreater = false
     let isLess = false
 
@@ -55,7 +53,7 @@ export class VectorClock<ValuesType extends NumberVectorClockValues|StringVector
   // if a == b: 0
   // if a > b: 1
   // E.g. if used to sort an array of keys, will order them in ascending order (1, 2, 3 ..)
-  compare(b: VectorClock<ValuesType>): number {
+  compare(b: VectorClock): number {
     return VectorClock.compareValues(this.values, b.values)
   }
 
@@ -69,12 +67,12 @@ export class VectorClock<ValuesType extends NumberVectorClockValues|StringVector
 // };
 
   // equal, or not less and not greater than
-  isConcurrent(b: VectorClock<ValuesType>): boolean {
+  isConcurrent(b: VectorClock): boolean {
     return !!(this.compare(b) === 0)
   }
 
   // identical
-  isIdentical(b: VectorClock<ValuesType>): boolean {
+  isIdentical(b: VectorClock): boolean {
     return VectorClock.allKeys(this.values, b.values).every((key) => {
       if (typeof this.values[key] === 'undefined' || typeof b.values[key] === 'undefined') { return false }
       return (this.values[key] - b.values[key]) === 0
@@ -83,8 +81,8 @@ export class VectorClock<ValuesType extends NumberVectorClockValues|StringVector
 
   // given two vector clocks, returns a new vector clock with all values greater than
   // those of the merged clocks
-  merge(b: VectorClock<ValuesType>): VectorClock<ValuesType> {
-    const newValues = {} as ValuesType
+  merge(b: VectorClock): VectorClock {
+    const newValues = {} as VectorClockValuesType
     VectorClock.allKeys(this.values, b.values).forEach((key) => {
       newValues[key] = Math.max(this.values[key] || 0, b.values[key] || 0)
     })
@@ -95,8 +93,8 @@ export class VectorClock<ValuesType extends NumberVectorClockValues|StringVector
     return JSON.stringify(this.values)
   }
 
-  static deserialize<VT extends NumberVectorClockValues|StringVectorClockValues >(serialized: string): VectorClock<VT> {
-    return new VectorClock<VT>(JSON.parse(serialized) as VT)
+  static deserialize(serialized: string): VectorClock {
+    return new VectorClock(JSON.parse(serialized))
   }
 
 }

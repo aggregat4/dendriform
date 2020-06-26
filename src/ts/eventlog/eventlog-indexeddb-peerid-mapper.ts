@@ -1,4 +1,4 @@
-import { VectorClock, StringVectorClockValues, NumberVectorClockValues } from '../lib/vectorclock'
+import { VectorClock, VectorClockValuesType } from '../lib/vectorclock'
 import { DEvent } from './eventlog'
 import { StoredEvent } from './eventlog-storedevent'
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
@@ -38,17 +38,17 @@ export class LocalEventLogIdMapper {
     this.db.close()
   }
 
-  private async loadPeerIdMapping(): Promise<any> {
+  private async loadPeerIdMapping(): Promise<void> {
     const mappings = await this.db.getAll('peerid-mapping')
-    this.externalToInternalIdMap = new Map()
-    this.internalToExternalIdMap = new Map()
+    this.externalToInternalIdMap = new Map<string, number>()
+    this.internalToExternalIdMap = new Map<number, string>()
     for (const mapping of mappings) {
       this.externalToInternalIdMap.set(mapping.externalid, mapping.internalid)
       this.internalToExternalIdMap.set(mapping.internalid, mapping.externalid)
     }
   }
 
-  private async savePeerIdMapping(): Promise<any> {
+  private async savePeerIdMapping(): Promise<void> {
     const mappings = []
     for (const [key, value] of this.externalToInternalIdMap.entries()) {
       const mapping = {externalid: key, internalid: value}
@@ -77,13 +77,13 @@ export class LocalEventLogIdMapper {
     return largestId + 1
   }
 
-  externalToInternalPeerId(externalId: string): number {
+  async externalToInternalPeerId(externalId: string): Promise<number> {
     const existingMapping = this.externalToInternalIdMap.get(externalId)
     if (!existingMapping) {
       const newInternalId = this.findNextInternalId()
       this.externalToInternalIdMap.set(externalId, newInternalId)
       this.internalToExternalIdMap.set(newInternalId, externalId)
-      this.savePeerIdMapping()
+      await this.savePeerIdMapping()
       return newInternalId
     } else {
       return existingMapping
@@ -103,10 +103,10 @@ export class LocalEventLogIdMapper {
    * @returns A vectorclock where all node ids have been mapped from external UUIDs to
    * internal number ids. This never throws since an unknown nodeId is just added to the map.
    */
-  externalToInternalVectorclockValues(externalClockValues: StringVectorClockValues): NumberVectorClockValues {
+  async externalToInternalVectorclockValues(externalClockValues: VectorClockValuesType): Promise<VectorClockValuesType> {
     const internalValues = {}
     for (const externalNodeId of Object.keys(externalClockValues)) {
-      internalValues[this.externalToInternalPeerId(externalNodeId)] = externalClockValues[externalNodeId]
+      internalValues[await this.externalToInternalPeerId(externalNodeId)] = externalClockValues[externalNodeId]
     }
     return internalValues
   }
@@ -115,7 +115,7 @@ export class LocalEventLogIdMapper {
    * @returns A vectorclock where all node ids have been mapped from internal numbers to
    * external UUIDs. This function throws when the internal id is unknown.
    */
-  private internalToExternalVectorclockValues(internalClockValues: NumberVectorClockValues): StringVectorClockValues {
+  private internalToExternalVectorclockValues(internalClockValues: VectorClockValuesType): VectorClockValuesType {
     const externalValues = {}
     for (const internalNodeId of Object.keys(internalClockValues)) {
       externalValues[this.internalToExternalPeerId(Number(internalNodeId))] = internalClockValues[internalNodeId]

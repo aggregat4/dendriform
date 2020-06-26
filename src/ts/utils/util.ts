@@ -1,6 +1,6 @@
 export type Predicate<T> = (_: T) => boolean
 
-export const ALWAYS_TRUE: Predicate<any> = (foo: any) => true
+export const ALWAYS_TRUE: Predicate<never> = () => true
 
 export function createCompositeAndPredicate<T>(predicates: Predicate<T>[]): Predicate<T> {
   return (value: T) => {
@@ -18,9 +18,10 @@ export function isEmpty(str: string): boolean {
 }
 
 // from https://davidwalsh.name/javascript-debounce-function
-export function debounce(f: (...args: any[]) => void, wait: number, immediate?: boolean): (...args: any[]) => void {
+export function debounce(f: (...args: unknown[]) => void, wait: number, immediate?: boolean): (...args: unknown[]) => void {
   let timeout
-  return (...args2: any[]) => {
+  return (...args2: unknown[]) => {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias, @typescript-eslint/no-unsafe-assignment
     const context = this
     const later = () => {
       timeout = null
@@ -63,10 +64,10 @@ function isChildOf(node: Node, parent: Node) {
 /**
  * From https://stackoverflow.com/a/41034697/1996
  */
-export function getCursorPosAcrossMarkup(parent: Element) {
+export function getCursorPosAcrossMarkup(parent: Element): number {
   const selection = window.getSelection()
   let charCount = -1
-  let node = null
+  let node: Node = null
   if (selection.focusNode) {
     if (isChildOf(selection.focusNode, parent)) {
       node = selection.focusNode
@@ -135,30 +136,12 @@ function isCursorAtContentEditableFirstLine(focusNode: Element, outerElementClas
 }
 
 /**
- * NOTE this assumes that the element has only one textContent child as child 0, no rich content!
- * Because of this extreme naivity, it is no longer used, see setCursorPosAcrossMarkup for something
- * more robust.
- */
-function setCursorPos(el: Element, charPos: number): void {
-  if (!el.childNodes[0]) {
-    return
-  }
-  const range = document.createRange()
-  range.setStart(el.childNodes[0], charPos)
-  range.setEnd(el.childNodes[0], charPos)
-  // range.collapse(true)
-  const sel = window.getSelection()
-  sel.removeAllRanges()
-  sel.addRange(range)
-}
-
-/**
  * From https://stackoverflow.com/a/41034697/1996
  */
 export function setCursorPosAcrossMarkup(el: Element, chars: number): void {
   if (chars >= 0) {
     const selection = window.getSelection()
-    const range = createRange(el, { count: chars }, undefined)
+    const range = createRange(el, chars, undefined)
     if (range) {
       range.collapse(false)
       selection.removeAllRanges()
@@ -170,26 +153,27 @@ export function setCursorPosAcrossMarkup(el: Element, chars: number): void {
 /**
  * From https://stackoverflow.com/a/41034697/1996
  */
-function createRange(node, chars, range) {
+function createRange(node: Node, count: number, range: Range): Range {
   if (!range) {
     range = document.createRange()
     range.selectNode(node)
     range.setStart(node, 0)
   }
-  if (chars.count === 0) {
-    range.setEnd(node, chars.count)
-  } else if (node && chars.count > 0) {
+  let newCount = count
+  if (newCount === 0) {
+    range.setEnd(node, newCount)
+  } else if (node && newCount > 0) {
     if (node.nodeType === Node.TEXT_NODE) {
-      if (node.textContent.length < chars.count) {
-        chars.count -= node.textContent.length
+      if (node.textContent.length < newCount) {
+        newCount -= node.textContent.length
       } else {
-        range.setEnd(node, chars.count)
-        chars.count = 0
+        range.setEnd(node, newCount)
+        newCount = 0
       }
     } else {
       for (let lp = 0; lp < node.childNodes.length; lp++) {
-        range = createRange(node.childNodes[lp], chars, range)
-        if (chars.count === 0) {
+        range = createRange(node.childNodes[lp], newCount, range)
+        if (newCount === 0) {
           break
         }
       }
@@ -234,7 +218,7 @@ export function getTextAfterCursor(kbdevent: Event): string {
 
 // From https://stackoverflow.com/a/8809472/1996
 // Public Domain/MIT
-export function generateUUID() {
+export function generateUUID(): string {
   let d = new Date().getTime()
   // use high-precision timer if available
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -266,7 +250,7 @@ export function pasteTextUnformatted(event: ClipboardEvent): void {
   document.execCommand('insertHTML', false, text)
 }
 
-export function findFirst<T>(array: T[], predicate: (T) => boolean): T {
+export function findFirst<T>(array: T[], predicate: (arg: T) => boolean): T {
   for (let i = 0; i < array.length; i++) {
     if (predicate(array[i])) {
       return array[i]

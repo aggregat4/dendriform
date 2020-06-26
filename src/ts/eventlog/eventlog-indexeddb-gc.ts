@@ -21,8 +21,8 @@ export class LocalEventLogGarbageCollector {
 
   constructor(readonly eventLog: DEventLog, readonly db: IDBPDatabase<EventStoreSchema>) {}
 
-  start(): void {
-    this.garbageCollector.start(false)
+  async start(): Promise<void> {
+    await this.garbageCollector.start(false)
   }
 
   stop(): void {
@@ -53,12 +53,12 @@ export class LocalEventLogGarbageCollector {
   }
 
   // TODO: would this not be a perfect use case for a webworker?
-  private async gc(): Promise<any> {
+  private async gc(): Promise<void> {
     const startTime = Date.now()
     if (! this.histogram) {
-      await this.createEventGcHistogram()
+      this.createEventGcHistogram()
+      return
     }
-    const afterCreateHistogramTime = Date.now()
     for (const entry of this.histogram.entries()) {
       const count = entry[1]
       if (count > 1) {
@@ -69,12 +69,16 @@ export class LocalEventLogGarbageCollector {
         return
       }
     }
-    console.debug(`GC took ${Date.now() - startTime}ms, of that ${afterCreateHistogramTime - startTime}ms in histogram creation`)
+    console.debug(`GC took ${Date.now() - startTime}ms`)
   }
 
-  private async createEventGcHistogram(): Promise<void> {
-    this.histogram = new Map()
-    const increment = (timestamp) => this.histogramIncrement(-1, this.MAX_SLICE_TIME)
+  private createEventGcHistogram(): void {
+    const startTime = Date.now()
+    this.histogram = new Map<string, number>()
+    const increment = () => {
+      void this.histogramIncrement(-1, this.MAX_SLICE_TIME)
+      console.debug(`GC Histogram creation took ${Date.now() - startTime}ms`)
+    }
     window.requestAnimationFrame(increment)
   }
 
@@ -101,9 +105,7 @@ export class LocalEventLogGarbageCollector {
       return
     }
     this.addToHistogram(currentSlice)
-    const t1 = window.performance.now()
-    // console.debug(`RAF GC Slice ${t1 - t0}ms for ${counter} events`)
-    window.requestAnimationFrame((timestamp) => this.histogramIncrement(lastKey, maxSliceTimeInMs))
+    window.requestAnimationFrame(() => void this.histogramIncrement(lastKey, maxSliceTimeInMs))
   }
 
   private addToHistogram(events: StoredEvent[]): void {
@@ -152,7 +154,7 @@ export class LocalEventLogGarbageCollector {
               // This is an efficient bulk delete that does not wait for the success callback, inspired by
               // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
               let i = 0
-              let lastEvent = null
+              let lastEvent: StoredEvent = null
               for (; i < eventsToDelete.length; i++) {
                 lastEvent = eventsToDelete[i]
                 await tx.store.delete(lastEvent.eventid)

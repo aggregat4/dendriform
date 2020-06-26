@@ -81,7 +81,7 @@ export class FilteredRepositoryNode {
   isIncluded(): boolean {
     if (this.areAnyChildrenIncluded === undefined) {
       // We don't really care about the deferred loading here, if it is not loaded then we don't have to check any children
-      this.areAnyChildrenIncluded = !! findFirst(this.children.elements, (c) => c.isIncluded())
+      this.areAnyChildrenIncluded = !! findFirst(this.children.elements, (c: FilteredRepositoryNode) => c.isIncluded())
     }
     return !this.filterApplied
       || (this.filteredName && this.filteredName.filterMatches)

@@ -1,4 +1,5 @@
 // from https://github.com/gbirke/Sanitize.js (MIT license)
+/* eslint-disable */
 
 /**
  * Copyright (c) 2010 by Gabriel Birke

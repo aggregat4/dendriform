@@ -1,4 +1,4 @@
-import { VectorClock, NumberVectorClockValues, StringVectorClockValues } from '../lib/vectorclock'
+import { VectorClock, VectorClockValuesType } from '../lib/vectorclock'
 import { EventPayloadType } from './eventlog'
 import { DBSchema } from 'idb'
 
@@ -24,7 +24,7 @@ export interface EventStoreSchema extends DBSchema {
 
 export interface PeerMetadata {
   eventlogid: string,
-  vectorclock: StringVectorClockValues,
+  vectorclock: VectorClockValuesType,
   counter: number,
 }
 
@@ -37,7 +37,7 @@ export interface StoredEvent {
   eventtype: number,
   treenodeid: string,
   peerid: number, // these are remapped peerids, from the external string to a number
-  vectorclock: NumberVectorClockValues,
+  vectorclock: VectorClockValuesType,
   payload: EventPayloadType,
 }
 
