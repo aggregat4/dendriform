@@ -4,6 +4,6 @@
     "sourceMap": true,
     "baseUrl": ".",
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "node"
   }
 }

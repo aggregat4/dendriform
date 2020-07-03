@@ -4,7 +4,7 @@
 
 ### Promises are tricky
 
-* It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this is obvious, but debugging this is nasty.
+- It is imperative that what is passed to a then() call is actually a function a not just a call to a function that returns a promise. In hindsight this is obvious, but debugging this is nasty.
 
 ### Updates need to be serialized
 
@@ -20,9 +20,9 @@ We have a problem with our current model: since we use a virtual dom approach we
 
 There are two ways around this that I see:
 
-* Separate model: Keep the vdom approach and modify an in memory representation of the tree, serialize all updates to pouchdb and have those happen in the background. Problems here are that we need to store _another_ representation of the tree, and we need a way to deal with async updates coming in through pouchdb from other devices: when do we completely reload the local representation?
+- Separate model: Keep the vdom approach and modify an in memory representation of the tree, serialize all updates to pouchdb and have those happen in the background. Problems here are that we need to store _another_ representation of the tree, and we need a way to deal with async updates coming in through pouchdb from other devices: when do we completely reload the local representation?
 
-* Pure DOM approach: Restart the view layer without maquette, go pure dom, try to use [RE:DOM](https://redom.js.org/) perhaps. We could do all local changes directly on the DOM and serialize updates in the background to pouchdb. Here too we need to deal with the background sync issues and how to merge them in.
+- Pure DOM approach: Restart the view layer without maquette, go pure dom, try to use [RE:DOM](https://redom.js.org/) perhaps. We could do all local changes directly on the DOM and serialize updates in the background to pouchdb. Here too we need to deal with the background sync issues and how to merge them in.
 
 The two models are more similar then I imagined: they both operate on a local representation of the tree, which in both cases can be partial (think about collapsed nodes) and with both approaches I need to serialize updates to the backing store.
 
@@ -30,11 +30,11 @@ So, current idea: start a new branch where we will implement synchronous command
 
 Ideas:
 
-* Implement everyhting with getElementById, optionally I could try to optimise to always pass the current node as well since I usually have that, this could obviate a lookup with certain operations.
+- Implement everyhting with getElementById, optionally I could try to optimise to always pass the current node as well since I usually have that, this could obviate a lookup with certain operations.
 
-* A load is a load: always load from backing store and rerender tree. We just need to stop rerendering for everything since we will be (hopefully) in sync
+- A load is a load: always load from backing store and rerender tree. We just need to stop rerendering for everything since we will be (hopefully) in sync
 
-* We should be able to reuse the current pouchdb commands, need to abstract those builders out as an interface and have two implementations?
+- We should be able to reuse the current pouchdb commands, need to abstract those builders out as an interface and have two implementations?
 
 ## 17.1.2018
 
@@ -74,9 +74,9 @@ Also: I am starting to think that our performance problem may not be the storage
 
 Done most of the refactoring, I've arrived back at the frontend and need to fix 2 remaining things in the tree.component:
 
-* Does it have an internal cache of the tree for rerendering purposes? If so, where and how is it managed? Does it get it from the UndoableTreeService?
+- Does it have an internal cache of the tree for rerendering purposes? If so, where and how is it managed? Does it get it from the UndoableTreeService?
 
-* I'm a bit flummoxed by the exec() in tree-component and am wondering where the focus information there should be coming from. Perhaps I need to review the master branch to see where this was.
+- I'm a bit flummoxed by the exec() in tree-component and am wondering where the focus information there should be coming from. Perhaps I need to review the master branch to see where this was.
 
 ## 23.2.2018
 
@@ -87,9 +87,9 @@ I have a feeling that I will have to move towards direct DOM rendering in the en
 
 Started new branch called direct-dom and trying to redo rendering with RE:DOM. Basic minimal component works, need to load a real tree from Repo and see how we update the component. Two steps:
 
-* update just the one root node first (this involves changing the state as well), then updating the child
+- update just the one root node first (this involves changing the state as well), then updating the child
 
-* add a List component to the node so we can update children
+- add a List component to the node so we can update children
 
 ## 7.3.2018
 
@@ -133,18 +133,18 @@ Design notes for search in Dendriform.
 
 ### At load time
 
-* index each node during rendering with LUNR: {name, description, nodeid, [all ancestor ids]}
+- index each node during rendering with LUNR: {name, description, nodeid, [all ancestor ids]}
 
 ### At search time
 
-* debounced search term trigger
+- debounced search term trigger
 
-* search LUNR index with prefix search, retrieve ALL results
+- search LUNR index with prefix search, retrieve ALL results
 
-* build a map (a node inclusion map):
-    nodeid -> {name_highlight_pos: [], desc_highlight_pos: []}
+- build a map (a node inclusion map):
+  nodeid -> {name_highlight_pos: [], desc_highlight_pos: []}
 
-* rerender (no reload!) tree with this map as a filter + highlight as you go
+- rerender (no reload!) tree with this map as a filter + highlight as you go
 
 ### Status
 
@@ -248,9 +248,9 @@ Hit another roadblock: when implementing the eventlog based repository I needed 
 
 This came up when refactoring RelativeLinearPosition to only care about AFTER positions and not BEFORE. This is in itself probably hard/senseless because we need BEFORE for the split operation (see tree-service).
 
-But first we need to solve the ordering question: how and where do we track it? Is this another CRDT? Another Eventlog where the node concerned is the parent node and the events represent the sequence operations on its children? Is this an LSEQ?  Logoot? (<https://hal.inria.fr/inria-00432368/document>)
+But first we need to solve the ordering question: how and where do we track it? Is this another CRDT? Another Eventlog where the node concerned is the parent node and the events represent the sequence operations on its children? Is this an LSEQ? Logoot? (<https://hal.inria.fr/inria-00432368/document>)
 
-We probably need another custom approach here, a separate eventlog, queryable by parent node id, containing events of the nature insert(nodeid, afternodeid). We need a similar strategy to resolve concurrent updates  (same afternodeid) by sorting by peerid. Can we have events that have the same afternodeid from the same peer that are concurrent? No, since we always increase the vector clock.
+We probably need another custom approach here, a separate eventlog, queryable by parent node id, containing events of the nature insert(nodeid, afternodeid). We need a similar strategy to resolve concurrent updates (same afternodeid) by sorting by peerid. Can we have events that have the same afternodeid from the same peer that are concurrent? No, since we always increase the vector clock.
 
 ## 10.8.2018
 
@@ -276,7 +276,7 @@ Weird. Solution from <https://github.com/dfahlander/Dexie.js/issues/658>.
 
 Dexie, or rather IndexedDB, does not like it when a table is defined without a primary key. I had to make sure the peer table has one or I would get strange `Error: Failed to execute 'put' on 'IDBObjectStore': The object store uses out-of-line keys and has no key generator and the key parameter` errors.
 
-My build is a bit fucked, watch no longer watches src/*.
+My build is a bit fucked, watch no longer watches src/\*.
 
 In our eventlog our counter is apparently not stored (undefined). Is the problem that it is 0? Google Dexie for that.
 
@@ -364,9 +364,9 @@ Started the client side implementation of talking to our new dendriform-server t
 
 Two design constraints (or assumptions) for the design:
 
-* A peer always knows all of his own events. This means that if a peer's storage is ever reset, it needs to act like a new peer and start from scratch.
+- A peer always knows all of his own events. This means that if a peer's storage is ever reset, it needs to act like a new peer and start from scratch.
 
-* A peer always has a consistent state regarding the events from other peers he already saw from the server. Concreteley this means that we always have a valid counter from the server reflecting the current state of events that we have read. Again, if we reset the client somehow, we just become a new peer and fetch all of the events.
+- A peer always has a consistent state regarding the events from other peers he already saw from the server. Concreteley this means that we always have a valid counter from the server reflecting the current state of events that we have read. Again, if we reset the client somehow, we just become a new peer and fetch all of the events.
 
 Can we implement the client side event pump with pure polling or do we need Server Sent Events or something? polling won't be really immediate and maybe too much load? Is SSE too complicated? Do some digging.
 
@@ -430,8 +430,8 @@ Going to ignore the empty workfloy concurrent edit thing since that only happens
 
 Design idea for automatic updates when remote changes are detected:
 
-* The client subscribes to the repository for events concerning nodes that are children of the current root node. This should be fast since we have an in memory map of the tree. This subscription must be remade every time the client loads a different root node.
-* When a change was detected, the client rerenders the subtree of each node that was involved, a best effort is made to restore cursor position.
+- The client subscribes to the repository for events concerning nodes that are children of the current root node. This should be fast since we have an in memory map of the tree. This subscription must be remade every time the client loads a different root node.
+- When a change was detected, the client rerenders the subtree of each node that was involved, a best effort is made to restore cursor position.
 
 Maybe experiment with just updating the root node and see if that is sufficient?
 
@@ -465,9 +465,9 @@ Finally I investigated the REDOM error where it was trying to update the childli
 
 The only ways I currently see are:
 
-* Do it the REDOM way as I understand it: this means that an change event on the dom results in a change in the complete tree and then I just trigger a tree.update. The problem with that is that I would need to reconstruct the entire tree every time a change happens or I need to keep the tree around. And then I am almost in the same place I was with maquette, right?
+- Do it the REDOM way as I understand it: this means that an change event on the dom results in a change in the complete tree and then I just trigger a tree.update. The problem with that is that I would need to reconstruct the entire tree every time a change happens or I need to keep the tree around. And then I am almost in the same place I was with maquette, right?
 
-* Remove REDOM entirely and do the renders and node updates based on remote events completely myself.
+- Remove REDOM entirely and do the renders and node updates based on remote events completely myself.
 
 Is there some middle way? Could I somehow get to the REDOM component from some random DOM node and trigger a local update? I don't even have the information for a local update.
 
@@ -536,11 +536,11 @@ What I can't do is make the dialog a stateful component since I may have thousan
 
 Show:
 
-* IF click on trigger element AND dialog not already shown AND not same trigger
-* THEN put dialog in right location of dom tree (needed?), make dialog visible, set aria-expanded on trigger
+- IF click on trigger element AND dialog not already shown AND not same trigger
+- THEN put dialog in right location of dom tree (needed?), make dialog visible, set aria-expanded on trigger
 
-* IF click on document AND dialog is showing AND not clicked on trigger AND (did not click in dialog OR clicked close button)
-* THEN dismiss menu: aria-expanded = false, display = none
+- IF click on document AND dialog is showing AND not clicked on trigger AND (did not click in dialog OR clicked close button)
+- THEN dismiss menu: aria-expanded = false, display = none
 
 So a dialog manager needs access to a trigger element and a dialog element, that should suffice.
 
@@ -568,11 +568,11 @@ I introduced a new Command for this: CreateChildNode, that creates a node, makes
 
 First successfull import of OPML. Now the interaction needs to be better:
 
-* validation output for the import
-* need a separate import button
-* the file selection can not stay persistent after import (reset values after import)
-* test dynalist OPML
-* test large OPML
+- validation output for the import
+- need a separate import button
+- the file selection can not stay persistent after import (reset values after import)
+- test dynalist OPML
+- test large OPML
 
 ## 24.3.2019
 
@@ -614,11 +614,11 @@ We now need a new approach for (async) garbage collection. When and how to execu
 
 Here's how we're going to do that:
 
-* keep a list of gc candidates, these are just the nodeids+eventtypes of the events that came in during storage
+- keep a list of gc candidates, these are just the nodeids+eventtypes of the events that came in during storage
 
-* have a separate setTimeout method that regularly looks at the list, pops off a batch of N ids and performs the garbage collection on them
+- have a separate setTimeout method that regularly looks at the list, pops off a batch of N ids and performs the garbage collection on them
 
-* at the start of the program prefill this list with the ids of all events where more than one event exists for nodeid+eventtype
+- at the start of the program prefill this list with the ids of all events where more than one event exists for nodeid+eventtype
 
 ## 31.3.2019 B
 
@@ -634,8 +634,8 @@ This speeds up full tree loading significantly, but for the 8000 work nodes this
 
 There are two further optimisations I can do:
 
-* Have a composite index with node events so I can filter by type (I only need a third of the 24000 events).
-* Have a clever approach where collapsed nodes are not actually rendered but we "just" store the child tree on that node and render it on demand when the node is opened. This would massively cut down on rendering trees that are not fully opened, which in reality is almost all of them.
+- Have a composite index with node events so I can filter by type (I only need a third of the 24000 events).
+- Have a clever approach where collapsed nodes are not actually rendered but we "just" store the child tree on that node and render it on demand when the node is opened. This would massively cut down on rendering trees that are not fully opened, which in reality is almost all of them.
 
 ## 3.4.2019 B
 
@@ -670,10 +670,10 @@ Implemented on the fly autolinking of URLs.
 
 This was not trivial since we have to consider many aspects:
 
-* We now no longer need highlight filter matches, but also URLs and soon tags and @ mentions. This meant generalising the markup code.
-* In a contenteditable links are not clickable so we needed our own click handler and open the links like that.
-* We want links to be autolinked when start typing them in notes and in names. This required us to perform the rename operations WITH dom and then to implement new logic that for each input checks whether in the new text something should be marked up or marked down, and if so it will replace the contents of the node AND preserve the cursor position.
-* Since we now definitely have tags in our nodes our cursor posiotion code was no longer sufficient. We needed to be inspired by the Stackoverflow canonical position answer to get and set cursor position _across_ tags.
+- We now no longer need highlight filter matches, but also URLs and soon tags and @ mentions. This meant generalising the markup code.
+- In a contenteditable links are not clickable so we needed our own click handler and open the links like that.
+- We want links to be autolinked when start typing them in notes and in names. This required us to perform the rename operations WITH dom and then to implement new logic that for each input checks whether in the new text something should be marked up or marked down, and if so it will replace the contents of the node AND preserve the cursor position.
+- Since we now definitely have tags in our nodes our cursor posiotion code was no longer sufficient. We needed to be inspired by the Stackoverflow canonical position answer to get and set cursor position _across_ tags.
 
 With an improved pipeline for updating names and notes we should now be better prepared for further markup extensions to the program.
 
@@ -701,7 +701,7 @@ Added rudimentary markup for bold and italic by just using markdown and our exis
 
 I figured out the bug with where adding nodes, reordering them and then reloading causes the order to be wrong. This is because in `repository-eventlog.ts` in reparentNode() we explicitly depend on the fact that when we reorder inside the same parent, garbage collection will make sure that the duplicate INSERT operation in the logoot sequence (the original one and the new one) will be compacted and that only one will remain. Since garbage collection now runs async, this is no longer always true. If you reload before gc, then you will have two insert events. This gets worse the more reorders you have of course.
 
-If we would force this operation to be synchronous, performance of reordering would deteriorate significantly. Alternatively we could  store DELETE operations in the logoot sequence, but that does not seem to be implemented yet in our logoot lib and it would mean a new kind of eventlog event?
+If we would force this operation to be synchronous, performance of reordering would deteriorate significantly. Alternatively we could store DELETE operations in the logoot sequence, but that does not seem to be implemented yet in our logoot lib and it would mean a new kind of eventlog event?
 
 Final alternative: implement a dedicated garbage collection just for a parent's logoot sequence events that we trigger synchronously?
 
@@ -713,15 +713,15 @@ The downside is that additional events are generated for all moves that remain i
 
 Changed some behaviour to always open the first node of a page, regardless of its collapsed state. Otherwise you could never see the children of a collapsed root node.
 
-Changed the implementation of our verifyAndRepairMarkup function to always just redo the entire markup as soon as there is __any__ markup availably. This makes for really nice markup updates when you are editing links for example. No matter where you add to it, it is automatically linked correctly. The downside is that we redo the entire markup on each edit in a text node that has any markup at all. For large amounts of text this may be slow. The bet here is that node contents will never be so large that it matters.
+Changed the implementation of our verifyAndRepairMarkup function to always just redo the entire markup as soon as there is **any** markup availably. This makes for really nice markup updates when you are editing links for example. No matter where you add to it, it is automatically linked correctly. The downside is that we redo the entire markup on each edit in a text node that has any markup at all. For large amounts of text this may be slow. The bet here is that node contents will never be so large that it matters.
 
-Undo was also no longer working: had to modify the verifyAndRepairMarkup function again. In case of node name or note renames we were not actually using the new text to update the dom node. So this had to be extended. The condition for NOT doing anything in this function is also different since Undo can cause text to be added or subtracted without impacting the markup. Now the condition for not doing anything is that the text is completely the same as before __and__ we have no markup at all.
+Undo was also no longer working: had to modify the verifyAndRepairMarkup function again. In case of node name or note renames we were not actually using the new text to update the dom node. So this had to be extended. The condition for NOT doing anything in this function is also different since Undo can cause text to be added or subtracted without impacting the markup. Now the condition for not doing anything is that the text is completely the same as before **and** we have no markup at all.
 
 ## 8.5.2019
 
 I refactored `eventlog-local.ts` to split some self-contained code out into some helper classes. I think this makes things more legible.
 
-Also refactored enums into const enums, based on a tip in a chat on  a twitch livestream linking to an article. Apparently they are not compiled to objects but inlined to values.
+Also refactored enums into const enums, based on a tip in a chat on a twitch livestream linking to an article. Apparently they are not compiled to objects but inlined to values.
 
 For now I don't see an obvious refactoring for `repository-eventlog.ts` and will leave it as such.
 
@@ -922,10 +922,10 @@ The problem that uppercase search strings were not found is also fixed by automa
 
 Installed rollup with `npm install --global rollup` and then plugins we need:
 
-* `npm install --save-dev rollup-plugin-typescript typescript tslib`
-* `npm install --save-dev rollup-plugin-node-resolve`
-* `npm install --save-dev rollup-plugin-commonjs`
-* `npm install --save-dev rollup-plugin-off-main-thread`
+- `npm install --save-dev rollup-plugin-typescript typescript tslib`
+- `npm install --save-dev rollup-plugin-node-resolve`
+- `npm install --save-dev rollup-plugin-commonjs`
+- `npm install --save-dev rollup-plugin-off-main-thread`
 
 ## 25.7.2019
 
@@ -1013,15 +1013,15 @@ When dendriform is hosted (by me) this could be an initialization configuration 
 
 So we need two general features:
 
-* An approach to delete everyhting in an eventlog (Is it a special event that indicates that from this point on all the past events are to be considered deleted? Or is it just marking that eventlog as "deleted" and starting a new one?)
-* A notions of multiple documents and the ability to configure a dendriform client to use a "set" of documents initially. When logging into the server it checks whether you have any eventlogs and if so provides that set to the client, otherwise it will initialise and empty one unique to your account and give that to the client.
+- An approach to delete everyhting in an eventlog (Is it a special event that indicates that from this point on all the past events are to be considered deleted? Or is it just marking that eventlog as "deleted" and starting a new one?)
+- A notions of multiple documents and the ability to configure a dendriform client to use a "set" of documents initially. When logging into the server it checks whether you have any eventlogs and if so provides that set to the client, otherwise it will initialise and empty one unique to your account and give that to the client.
 
 This means:
 
-* We need an initial set of documents to manage
-* We need a document switcher
-* We need the current document id in the URL
-* We need the ability to mark a document as "deleted" (soft delete) (BUT how do we send that to the server and have correct concurrent updates for this!? Do we need events especially to manage metadata? This would be really elegant and solve the concurrency issue)
+- We need an initial set of documents to manage
+- We need a document switcher
+- We need the current document id in the URL
+- We need the ability to mark a document as "deleted" (soft delete) (BUT how do we send that to the server and have correct concurrent updates for this!? Do we need events especially to manage metadata? This would be really elegant and solve the concurrency issue)
 
 The hardest bit here is going to be to go multi document, I knew I should have done that from the start.
 
@@ -1218,8 +1218,9 @@ Still don't know whether performance is any good or not. I will have to run my 8
 A "problem" when using declarative templating is that you are not using code to construct your dom tree and therefore you can not use custom elements as object (AFAIK) but you must declare them using html.
 
 This forces two patterns:
-* expose all your configuration parameters as attributes
-* expose all your dependency injection requirements (like what funcion or object do you require to operate) as properties
+
+- expose all your configuration parameters as attributes
+- expose all your dependency injection requirements (like what funcion or object do you require to operate) as properties
 
 When the element has been added we must make sure to inject all the required dependencies before using it. This seems a little bit more unsafe, but allows for the declarative approach and it seems to work. See `a4-spinner` usages in tree-component.
 
@@ -1240,23 +1241,22 @@ I transformed baretest into typescript and added it to my project. Since I still
 Since we no longer have jest doing all kinds of magic we can't just have tests sprinkled over the workspace and automatically gathered and executed. Instead we now have a manual test suite that gathers the individual test files and runs them:
 
 ```javascript
-
 // Set up a fake dom environment for tests since we are not in the browser (see https://github.com/rstacruz/jsdom-global)
-import 'jsdom-global/register'
+import "jsdom-global/register";
 
-import { trun } from './tizzytest'
+import { trun } from "./tizzytest";
 
 // All the tests
-import './vectorclock.test'
-import './domain-search.test'
-import './keyboardshortcut.test'
-import './logoot-sequence-wrapper.test'
-import './markup.test'
-import './util.test'
+import "./vectorclock.test";
+import "./domain-search.test";
+import "./keyboardshortcut.test";
+import "./logoot-sequence-wrapper.test";
+import "./markup.test";
+import "./util.test";
 
 // Run tests async since the trun is async
-;(async () => await trun('All Tests'))()
-``` 
+(async () => await trun("All Tests"))();
+```
 
 `tizzytest` is my typescript conversion of baretest. I run this file with `npx ts-node test/runtests.ts`.
 
@@ -1267,7 +1267,7 @@ Doing this conversion I stumbled on a few interesting issues:
 This explains the top line in the `runtests.ts` file I included:
 
 ```javascript
-import 'jsdom-global/register'
+import "jsdom-global/register";
 ```
 
 The second issue was ts-node having trouble loading pure javascript files and treating them as es6 modules. This is a known issue with node. You can work around it by renaming the file to .mjs which makes node see it as an ES6 module, but typescript doesn't currently support this exetension for loading dependencies.
@@ -1363,8 +1363,9 @@ The histogram generation requires all stored events and builds a large map in me
 Originally this initial histogram building time was blocking the UI but I've moved to an approach to use a cursor to iterate over the indexeddb events and to read only batches events scheduled in a requestAnimationFrame (RAF) call. I try to automatically adjust the batch size based on the time required and to stay under the 16ms between frames. This is not yet perfect, especially my batch size determining algorithm is suboptimal, but it is much better and it basically prevents any pauses. FPS only drops to 40 or so while running.
 
 Two remaining optimisations I could do:
-* Do the actual GC calls with the same approach: when a lot of events need to be GCed (lot of editing in the tree) this GC time can also ramp up to more than 100ms
-* Do the batch size determination more robustly, in fact instead of determining the batch size, I should just check the time
+
+- Do the actual GC calls with the same approach: when a lot of events need to be GCed (lot of editing in the tree) this GC time can also ramp up to more than 100ms
+- Do the batch size determination more robustly, in fact instead of determining the batch size, I should just check the time
 
 I implemented the time based windowing, that does work more stable. During the histogram building I still get a lot of dips in FPS that seem to contain only JIT and GC work from the browser. Am I generating too much garbage?
 
@@ -1377,11 +1378,13 @@ We've come to the point where we need to resolve the last (?) big open question 
 Some reading on the internet leads me to believe that to reliably sync the state of all peers with each other over the server we would need something like a merkle trie based approach. This would be quite complicated to implement however, and I might consider moving to a state based CRDT with merkle updates as described in <https://hal.inria.fr/hal-02303490/document> then anyway. This may be something for some future implementation.
 
 The alternative is to make some assumptions:
-* The peer is authoratative on what events exist from that peer. It will incrementally synchronize them to the server by asking it what the last eventid is it knows (assuming they are monotonically increasing) and sending newer ones if they exist.
-* The server is authoritative on what events exist for all other peers.
+
+- The peer is authoratative on what events exist from that peer. It will incrementally synchronize them to the server by asking it what the last eventid is it knows (assuming they are monotonically increasing) and sending newer ones if they exist.
+- The server is authoritative on what events exist for all other peers.
 
 There are some massive constraints we need to take into account with this approach:
-* This only works if the server is the real source of truth: as soon as the server DB gets deleted, all clients should also delete their state since we can no longer guarantee it will be consistent otherwise. This is probably even true when the server state is deleted for the peer itself. It would have to delete itself as well?
+
+- This only works if the server is the real source of truth: as soon as the server DB gets deleted, all clients should also delete their state since we can no longer guarantee it will be consistent otherwise. This is probably even true when the server state is deleted for the peer itself. It would have to delete itself as well?
 
 Writing this down like this I'm not sure we can make this tradeoff. We could make the tradeoff for a short time so we just have something up and running but it does not seem viable for the longer term.
 
@@ -1400,6 +1403,7 @@ Now if I want to generate hashes for those leaves then either my hash function m
 Another problem is that I currently delete nodes when garbage collecting. This means that I will throw away received nodes which will change the event list and cause me to synchronize those events all the time. I will need to change delete to a soft delete and have efficient ways of ignoring those nodes when querying. Associative hash functions are not a thing AFAIK. So I need ordering which means the localId from DEvent?
 
 Concrete base changes required:
+
 - Keep tombstones for deleted events and allow for efficient filtering
 - Store the full UUID localId property for each event to allow for ordering (and hashing)
 - I need a way to filter by originator (index) as well since merkle trees need to be calculated for each originator id separately
@@ -1421,6 +1425,7 @@ The tree is always of the same depth. Meaning that even if there is only one eve
 This is done so we remain more or less stable when adding events: when you append new events (see ordering above) you at most change one leaf node (and with it the path to the the root).
 
 The synchronisation algorithm would be:
+
 - start at depth = 0
 - authoratative party sends all nodes at depth
 - receiving party sends back whether those nodes match or whether it does not know some of them

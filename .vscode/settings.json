@@ -12,5 +12,5 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 Happy linting! 💖
 */
 {
-    "javascript.validate.enable": false
+  "javascript.validate.enable": false
 }
