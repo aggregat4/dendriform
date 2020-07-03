@@ -23,28 +23,28 @@
   height: 2em;
 }
 
-.tree input[type="checkbox"] {
+.tree input[type='checkbox'] {
   height: 2em;
   padding: 0;
   margin: 0;
 }
 
 .tree button,
-.tree input[type=file] {
+.tree input[type='file'] {
   font-weight: bold;
   padding: 6px 12px 6px 12px;
   border: none;
   background-color: #e0e1e2;
-  color: rgba(0,0,0,.8);
+  color: rgba(0, 0, 0, 0.8);
   border-radius: 3px;
   height: 2em;
 }
 
 .tree button:disabled,
 .tree button.primary:disabled,
-.tree input[type=file]:disabled {
+.tree input[type='file']:disabled {
   background-color: #e0e1e2;
-  color: rgba(0,0,0,.4);
+  color: rgba(0, 0, 0, 0.4);
 }
 
 .tree button.primary {
@@ -121,10 +121,10 @@
 }
 
 .breadcrumbs a {
-  color: #29526D;
+  color: #29526d;
 }
 
-.breadcrumbs a[data-id=ROOT] {
+.breadcrumbs a[data-id='ROOT'] {
   font-weight: bold;
   text-decoration: none;
 }
@@ -138,7 +138,7 @@
   max-width: 400px;
 }
 
-.searchbox input[type=search] {
+.searchbox input[type='search'] {
   border: none;
   flex-grow: 1;
   background-color: inherit;
@@ -182,7 +182,10 @@
   text-align: center;
 }
 
-.nc > a, .nc > a:hover, .nc > a:active, .nc > a:visited {
+.nc > a,
+.nc > a:hover,
+.nc > a:active,
+.nc > a:visited {
   color: #666;
 }
 
@@ -201,7 +204,8 @@
   color: #666;
 }
 
-.nc > a:hover:before, .node.closed > .nc > a:hover:before {
+.nc > a:hover:before,
+.node.closed > .nc > a:hover:before {
   color: #666;
   content: '⬤'; /* &#11044; */
 }
@@ -282,8 +286,8 @@
   content: ' ';
 }
 
-
-.node .name:focus, .node .note:focus {
+.node .name:focus,
+.node .note:focus {
   outline: none;
   background-color: rgb(240, 240, 240, 0.5);
 }
@@ -351,7 +355,8 @@ a.embeddedLink {
   margin: 0 0 6px 6px;
 }
 
-.node.first > .nc > a, .node.first > .nc .toggle {
+.node.first > .nc > a,
+.node.first > .nc .toggle {
   display: none;
 }
 
@@ -375,7 +380,6 @@ a.embeddedLink {
 
 /* Extra small devices (portrait phones, less than 576px) */
 @media (max-width: 575px) {
-
   /* Move the close button to the right on mobile and hide if hidden */
   .node span.toggle {
     margin-left: 0;
@@ -396,7 +400,7 @@ a.embeddedLink {
   .tree {
     padding-left: 0;
     padding-right: 0;
-  }  
+  }
 
   .tree nav {
     flex-wrap: wrap;
@@ -405,7 +409,6 @@ a.embeddedLink {
   .tree .config label span {
     display: none;
   }
-
 }
 
 /* Small devices (landscape phones, 576px and up) 

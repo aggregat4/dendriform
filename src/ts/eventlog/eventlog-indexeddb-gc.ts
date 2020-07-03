@@ -16,7 +16,10 @@ export class LocalEventLogGarbageCollector {
    * is higher than the last counter we do gc, otherwise we just sleep.
    */
   private lastGcCounter = -1
-  private garbageCollector: JobScheduler = new JobScheduler(new FixedTimeoutStrategy(this.GC_TIMEOUT_MS), this.gc.bind(this))
+  private garbageCollector: JobScheduler = new JobScheduler(
+    new FixedTimeoutStrategy(this.GC_TIMEOUT_MS),
+    this.gc.bind(this)
+  )
   private histogram: Map<string, number> = null
 
   constructor(readonly eventLog: DEventLog, readonly db: IDBPDatabase<EventStoreSchema>) {}
@@ -38,14 +41,16 @@ export class LocalEventLogGarbageCollector {
   }
 
   private modifyEventCount(event: StoredEvent, count: number): void {
-    if (! this.histogram) {
+    if (!this.histogram) {
       // we may not yet have a histogram, in that case just ignore this
       return
     }
     const key = this.keyForEvent(event)
     const currentCount = this.histogram.get(key) || 0
     if (count < 0 && Math.abs(count) > currentCount) {
-      console.warn(`trying to decrease event counter for GC to a value that is lower (${count}) than the current count (${currentCount})`)
+      console.warn(
+        `trying to decrease event counter for GC to a value that is lower (${count}) than the current count (${currentCount})`
+      )
       this.histogram.delete(key)
     } else {
       this.histogram.set(key, currentCount + count)
@@ -55,7 +60,7 @@ export class LocalEventLogGarbageCollector {
   // TODO: would this not be a perfect use case for a webworker?
   private async gc(): Promise<void> {
     const startTime = Date.now()
-    if (! this.histogram) {
+    if (!this.histogram) {
       this.createEventGcHistogram()
       return
     }
@@ -64,7 +69,7 @@ export class LocalEventLogGarbageCollector {
       if (count > 1) {
         await this.garbageCollect(this.toGcCandidate(entry[0]))
       }
-      if (! this.garbageCollector.isScheduled()) {
+      if (!this.garbageCollector.isScheduled()) {
         // if we were stopped while doing this query then make sure we abort
         return
       }
@@ -85,7 +90,9 @@ export class LocalEventLogGarbageCollector {
   private async histogramIncrement(currentKey: number, maxSliceTimeInMs: number): Promise<void> {
     const t0 = window.performance.now()
     let counter = 0
-    let iterateCursor = await this.db.transaction('events').store.openCursor(IDBKeyRange.lowerBound(currentKey, true))
+    let iterateCursor = await this.db
+      .transaction('events')
+      .store.openCursor(IDBKeyRange.lowerBound(currentKey, true))
     let lastKey = currentKey
     const currentSlice = []
     while (iterateCursor) {
@@ -121,14 +128,15 @@ export class LocalEventLogGarbageCollector {
     const secondIndexOfColon = key.indexOf(':', firstIndexOfColon + 1)
     return new GcCandidate(
       key.slice(0, firstIndexOfColon),
-      Number(key.slice(firstIndexOfColon + 1, secondIndexOfColon)),
+      Number(key.slice(firstIndexOfColon + 1, secondIndexOfColon))
     )
   }
 
   private keyForEvent(storedEvent: StoredEvent): string {
     switch (storedEvent.eventtype) {
       case EventType.ADD_OR_UPDATE_NODE:
-      case EventType.REPARENT_NODE: return `${storedEvent.treenodeid}:${storedEvent.eventtype}:`
+      case EventType.REPARENT_NODE:
+        return `${storedEvent.treenodeid}:${storedEvent.eventtype}:`
       case EventType.REORDER_CHILD: {
         const payload = storedEvent.payload as ReorderChildNodeEventPayload
         return `${storedEvent.treenodeid}:${storedEvent.eventtype}:${payload.childId}:${payload.operation}`
@@ -137,12 +145,19 @@ export class LocalEventLogGarbageCollector {
   }
 
   private async garbageCollect(candidate: GcCandidate): Promise<void> {
-    return this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [candidate.eventtype, candidate.nodeId])
+    return this.db
+      .getAllFromIndex('events', 'eventtype-and-treenodeid', [
+        candidate.eventtype,
+        candidate.nodeId,
+      ])
       .then(async (nodeEvents: StoredEvent[]) => {
         // based on the eventtype we may need to partition the events for a node even further
-        const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(nodeEvents, candidate.eventtype)
+        const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(
+          nodeEvents,
+          candidate.eventtype
+        )
         for (const pruneCandidates of arraysToPrune) {
-          if (! this.garbageCollector.isScheduled()) {
+          if (!this.garbageCollector.isScheduled()) {
             // make sure to abort processing when we have been stopped
             return
           }
@@ -160,7 +175,7 @@ export class LocalEventLogGarbageCollector {
                 await tx.store.delete(lastEvent.eventid)
               }
               if (lastEvent) {
-                this.modifyEventCount(lastEvent, - eventsToDelete.length)
+                this.modifyEventCount(lastEvent, -eventsToDelete.length)
               }
               return tx.done
             } catch (error) {
@@ -176,23 +191,30 @@ export class LocalEventLogGarbageCollector {
   // parent, rather we need to retain the newest event for a particular child for that parent and
   // additionally take into account the operation type. We need to retain the newest DELETE as well
   // as INSERT operation so we can reliably rebuild the sequence
-  private groupByEventTypeDiscriminator(nodeEvents: StoredEvent[], eventtype: EventType): StoredEvent[][] {
+  private groupByEventTypeDiscriminator(
+    nodeEvents: StoredEvent[],
+    eventtype: EventType
+  ): StoredEvent[][] {
     switch (eventtype) {
       // no further grouping is needed for add_or_update or reparenting events
       case EventType.ADD_OR_UPDATE_NODE:
-      case EventType.REPARENT_NODE: return [nodeEvents]
+      case EventType.REPARENT_NODE:
+        return [nodeEvents]
       // LOGOOT sequences requires more specific partitioning, we need
       // to further group by childid + operationid
       case EventType.REORDER_CHILD: {
-        const reduced = nodeEvents.reduce((acc: {[eventKey in string]: StoredEvent[]}, val: StoredEvent) => {
-          const payload = (val.payload as ReorderChildNodeEventPayload)
-          const key = `${payload.childId}:${payload.operation}`; // semicolon necessary!
-          (acc[key] = acc[key] || []).push(val)
-          return acc
-        }, {})
+        const reduced = nodeEvents.reduce(
+          (acc: { [eventKey in string]: StoredEvent[] }, val: StoredEvent) => {
+            const payload = val.payload as ReorderChildNodeEventPayload
+            const key = `${payload.childId}:${payload.operation}` // semicolon necessary!
+            ;(acc[key] = acc[key] || []).push(val)
+            return acc
+          },
+          {}
+        )
         // Object.values() is ES2017, I don't want to target
         // ES2017 with typescript yet so therefore the workaround with keys
-        return Object.keys(reduced).map(key => reduced[key])
+        return Object.keys(reduced).map((key) => reduced[key])
       }
     }
   }
@@ -205,11 +227,10 @@ export class LocalEventLogGarbageCollector {
     if (events.length > 1) {
       events.sort(storedEventComparator)
       // remove the last element, which is also the newest event which we want to retain
-      events.splice(-1 , 1)
+      events.splice(-1, 1)
       return events
     } else {
       return []
     }
   }
-
 }

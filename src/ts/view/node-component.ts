@@ -7,19 +7,34 @@ import { unsafeHTML } from 'lit-html/directives/unsafe-html'
 /**
  * ☰ = trigram for heaven (U+2630)
  */
-const nodeTemplate = (node: FilteredRepositoryNode, children: DeferredArray<FilteredRepositoryNode>, first: boolean) => html`
-  <div id="${node.node._id}" class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}">
-    <div class="nc">
-      <a href="#node=${node.node._id}" title="Focus on this node"></a>
-      <div class="name" contenteditable="true">${unsafeHTML(node.filteredName ? node.filteredName.fragment : '')}</div>
-      <span class="toggle ${node.children.loaded && !node.node.collapsed && children.elements.length === 0 ? 'hidden' : ''}" title="Open or close node"></span>
-      <div class="note" contenteditable="false">${unsafeHTML(node.filteredNote ? node.filteredNote.fragment : '')}</div>
-      <span class="menuTrigger" title="Show menu" aria-haspopup="true">☰</span>
+const nodeTemplate = (
+  node: FilteredRepositoryNode,
+  children: DeferredArray<FilteredRepositoryNode>,
+  first: boolean
+) => html` <div
+  id="${node.node._id}"
+  class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}"
+>
+  <div class="nc">
+    <a href="#node=${node.node._id}" title="Focus on this node"></a>
+    <div class="name" contenteditable="true">
+      ${unsafeHTML(node.filteredName ? node.filteredName.fragment : '')}
     </div>
-    <div class="children">
-      ${children.elements.map((child) => nodeTemplate(child, getChildElements(child), false))}
+    <span
+      class="toggle ${node.children.loaded && !node.node.collapsed && children.elements.length === 0
+        ? 'hidden'
+        : ''}"
+      title="Open or close node"
+    ></span>
+    <div class="note" contenteditable="false">
+      ${unsafeHTML(node.filteredNote ? node.filteredNote.fragment : '')}
     </div>
-  </div>`
+    <span class="menuTrigger" title="Show menu" aria-haspopup="true">☰</span>
+  </div>
+  <div class="children">
+    ${children.elements.map((child) => nodeTemplate(child, getChildElements(child), false))}
+  </div>
+</div>`
 
 export function renderNode(node: FilteredRepositoryNode, first: boolean): TemplateResult {
   return nodeTemplate(node, getChildElements(node), first)
@@ -28,7 +43,7 @@ export function renderNode(node: FilteredRepositoryNode, first: boolean): Templa
 function getChildElements(treeNode: FilteredRepositoryNode): DeferredArray<FilteredRepositoryNode> {
   return {
     loaded: treeNode.children.loaded,
-    elements: treeNode.children.elements.filter(c => c.isIncluded()),
+    elements: treeNode.children.elements.filter((c) => c.isIncluded()),
   }
 }
 
@@ -40,12 +55,14 @@ function isRoot(node: RepositoryNode): boolean {
  * Has special casing for nodes that are the first on the page, they are always open.
  */
 function genClass(node: RepositoryNode, isFirst: boolean, isFilterIncluded: boolean): string {
-  return 'node' +
+  return (
+    'node' +
     (isRoot(node) ? ' root' : '') +
     (isFirst ? ' first' : '') +
     // make sure nodes are always open when they are first or filtered
     (node.collapsed && !isFirst && !isFilterIncluded ? ' closed' : ' open') +
     (node.completed ? ' completed' : '')
+  )
 }
 
 // install event handler to listen for escape (or backspace in the beginning when empty,
@@ -73,8 +90,10 @@ function stopEditingNote(noteEl: HTMLElement, refocus: boolean): void {
 }
 
 function onNoteKeydown(event: KeyboardEvent): void {
-  if ((event.key === 'Escape') ||
-      (event.key === 'ArrowUp' && isCursorAtContentEditableBeginning('note'))) {
+  if (
+    event.key === 'Escape' ||
+    (event.key === 'ArrowUp' && isCursorAtContentEditableBeginning('note'))
+  ) {
     event.preventDefault()
     stopEditingNote(event.target as HTMLElement, true)
   }

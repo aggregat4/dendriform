@@ -1,18 +1,24 @@
 import { Command } from '../commands/commands'
-import { isNameNode, getClosestNodeElement, getNodeId, getNodeName, getNodeNote } from './tree-dom-util'
+import {
+  isNameNode,
+  getClosestNodeElement,
+  getNodeId,
+  getNodeName,
+  getNodeNote,
+} from './tree-dom-util'
 import { getCursorPos } from '../utils/util'
 
 export interface CommandExecutor {
-  performWithDom(command: Command): Promise<void>,
+  performWithDom(command: Command): Promise<void>
   performWithoutDom(command: Command): Promise<void>
 }
 
 export interface TransientStateInfo {
-  focusNodePreviousId: string,
-  focusNodePreviousName: string,
-  focusNodePreviousNote: string,
-  focusNodePreviousPos: number,
-  currentMenuShownTriggerElement: string,
+  focusNodePreviousId: string
+  focusNodePreviousName: string
+  focusNodePreviousNote: string
+  focusNodePreviousPos: number
+  currentMenuShownTriggerElement: string
 }
 
 export class TransientState {
@@ -27,7 +33,12 @@ export class TransientState {
   }
   private activeNodeId: string = null
 
-  savePreviousNodeState(nodeId: string, nodeName: string, nodeNote: string, focusPos: number): void {
+  savePreviousNodeState(
+    nodeId: string,
+    nodeName: string,
+    nodeNote: string,
+    focusPos: number
+  ): void {
     this.transientState.focusNodePreviousId = nodeId
     this.transientState.focusNodePreviousName = nodeName
     this.transientState.focusNodePreviousNote = nodeNote
@@ -49,7 +60,8 @@ export class TransientState {
           getNodeId(activeNode),
           getNodeName(activeNode),
           getNodeNote(activeNode),
-          getCursorPos())
+          getCursorPos()
+        )
       }
     }
   }

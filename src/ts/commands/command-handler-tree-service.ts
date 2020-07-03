@@ -14,7 +14,7 @@ import {
   CompleteNodeByIdCommandPayload,
   UnCompleteNodeByIdCommandPayload,
 } from './commands'
-import {TreeService} from '../service/tree-service'
+import { TreeService } from '../service/tree-service'
 
 export class TreeServiceCommandHandler implements CommandHandler {
   constructor(readonly treeService: TreeService) {}
@@ -27,14 +27,34 @@ export class TreeServiceCommandHandler implements CommandHandler {
   private toAction(command: Command): () => void {
     const payload = command.payload
     if (payload instanceof SplitNodeByIdCommandPayload) {
-      return () => this.treeService.splitNode(payload.nodeId, payload.remainingNodeName, payload.siblingId, payload.newNodeName, command.synchronous)
+      return () =>
+        this.treeService.splitNode(
+          payload.nodeId,
+          payload.remainingNodeName,
+          payload.siblingId,
+          payload.newNodeName,
+          command.synchronous
+        )
     } else if (payload instanceof MergeNodesByIdCommandPayload) {
-      return () => this.treeService.mergeNodes(payload.sourceNodeId, payload.sourceNodeName,
-        payload.targetNodeId, payload.targetNodeName, payload.mergeNameOrder, command.synchronous)
+      return () =>
+        this.treeService.mergeNodes(
+          payload.sourceNodeId,
+          payload.sourceNodeName,
+          payload.targetNodeId,
+          payload.targetNodeName,
+          payload.mergeNameOrder,
+          command.synchronous
+        )
     } else if (payload instanceof RenameNodeByIdCommandPayload) {
       return () => this.treeService.renameNode(payload.nodeId, payload.newName, command.synchronous)
     } else if (payload instanceof ReparentNodeByIdCommandPayload) {
-      return () => this.treeService.reparentNode(payload.nodeId, payload.newParentNodeId, payload.position, command.synchronous)
+      return () =>
+        this.treeService.reparentNode(
+          payload.nodeId,
+          payload.newParentNodeId,
+          payload.position,
+          command.synchronous
+        )
     } else if (payload instanceof OpenNodeByIdCommandPayload) {
       return () => this.treeService.openNode(payload.nodeId, command.synchronous)
     } else if (payload instanceof CloseNodeByIdCommandPayload) {
@@ -50,10 +70,16 @@ export class TreeServiceCommandHandler implements CommandHandler {
     } else if (payload instanceof UpdateNoteByIdCommandPayload) {
       return () => this.treeService.updateNote(payload.nodeId, payload.newNote, command.synchronous)
     } else if (payload instanceof CreateChildNodeCommandPayload) {
-      return () => this.treeService.createChildNode(payload.nodeId, payload.name, payload.note, payload.parentId, command.synchronous)
+      return () =>
+        this.treeService.createChildNode(
+          payload.nodeId,
+          payload.name,
+          payload.note,
+          payload.parentId,
+          command.synchronous
+        )
     } else {
       throw new Error(`Received an unknown command with name`)
     }
   }
-
 }

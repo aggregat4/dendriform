@@ -7,7 +7,11 @@ export class MNodeAttribute {
 export class MNode {
   private _content: MNodeContent = undefined
 
-  constructor(readonly tagName: string, readonly attributes: MNodeAttribute[], content?: MNodeContent) {
+  constructor(
+    readonly tagName: string,
+    readonly attributes: MNodeAttribute[],
+    content?: MNodeContent
+  ) {
     this._content = content
   }
 
@@ -24,7 +28,7 @@ export class MNode {
  * @implNote According to https://stackoverflow.com/a/29083467/1996 template strings are mostly faster than concatenation now?
  */
 function getStartTag(node: MNode): string {
-  if (! node.tagName) {
+  if (!node.tagName) {
     return ''
   } else {
     let tag = `<${node.tagName}`
@@ -70,12 +74,22 @@ function findAndMarkText(node: MNode, markup: Markup): boolean {
     let searchEl = node
     let reMatch: RegExpExecArray = null
     let searchText: string = null
-    while (searchEl && (searchText = (searchEl.content as string)) && searchText.length > 0 && (reMatch = markup.regex.exec(searchText))) {
+    while (
+      searchEl &&
+      (searchText = searchEl.content as string) &&
+      searchText.length > 0 &&
+      (reMatch = markup.regex.exec(searchText))
+    ) {
       // The following two lines are a workaround for missing lookbehind assertions in JS (coming in ES2018)
       const matchedText = reMatch.length > 1 ? reMatch[1] : reMatch[0]
-      const matchedIndex = reMatch.length > 1 ? reMatch.index + reMatch[0].length - reMatch[1].length : reMatch.index
+      const matchedIndex =
+        reMatch.length > 1 ? reMatch.index + reMatch[0].length - reMatch[1].length : reMatch.index
       const beforeMatchNode = new MNode(null, [], searchText.substring(0, matchedIndex))
-      const afterMatchNode = new MNode(null, [], searchText.substring(matchedIndex + matchedText.length))
+      const afterMatchNode = new MNode(
+        null,
+        [],
+        searchText.substring(matchedIndex + matchedText.length)
+      )
       const markEl = markup.markFun(matchedText)
       searchEl.content = [beforeMatchNode, markEl, afterMatchNode]
       searchEl = afterMatchNode
@@ -92,22 +106,26 @@ function findAndMarkText(node: MNode, markup: Markup): boolean {
 
 const linkMarkup = new Markup(
   new RegExp('[^\\s>]+://[^\\s]+'),
-  (s) => new MNode(
-    'a',
-    [new MNodeAttribute('href', s), new MNodeAttribute('class', 'embeddedLink'), new MNodeAttribute('rel', 'noreferrer')],
-    s))
+  (s) =>
+    new MNode(
+      'a',
+      [
+        new MNodeAttribute('href', s),
+        new MNodeAttribute('class', 'embeddedLink'),
+        new MNodeAttribute('rel', 'noreferrer'),
+      ],
+      s
+    )
+)
 
 const filterMarkup = new Markup(
   new RegExp('(?:^|\\s|>)([@#][\\w-]+)'),
-  (s) => new MNode('span', [new MNodeAttribute('class', 'filterTag')], s))
+  (s) => new MNode('span', [new MNodeAttribute('class', 'filterTag')], s)
+)
 
-const boldMarkup = new Markup(
-  new RegExp('\\*\\*[^\\*]+\\*\\*'),
-  (s) => new MNode('b', [], s))
+const boldMarkup = new Markup(new RegExp('\\*\\*[^\\*]+\\*\\*'), (s) => new MNode('b', [], s))
 
-const italicMarkup = new Markup(
-  new RegExp('_[^_]+_'),
-  (s) => new MNode('i', [], s))
+const italicMarkup = new Markup(new RegExp('_[^_]+_'), (s) => new MNode('i', [], s))
 
 function createFilterMarkTagMNode(s: string): MNode {
   return new MNode('mark', [], s)

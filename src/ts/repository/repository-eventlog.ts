@@ -1,9 +1,28 @@
-import {Repository} from './repository'
+import { Repository } from './repository'
 // tslint:disable-next-line:max-line-length
-import { AddOrUpdateNodeEventPayload, DEventLog, EventType, ReparentNodeEventPayload, DEvent, ReorderChildNodeEventPayload, LogootReorderOperation, createNewAddOrUpdateNodeEventPayload, NodeFlags } from '../eventlog/eventlog'
+import {
+  AddOrUpdateNodeEventPayload,
+  DEventLog,
+  EventType,
+  ReparentNodeEventPayload,
+  DEvent,
+  ReorderChildNodeEventPayload,
+  LogootReorderOperation,
+  createNewAddOrUpdateNodeEventPayload,
+  NodeFlags,
+} from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
 // tslint:disable-next-line:max-line-length
-import { LoadedTree, RepositoryNode, RelativeNodePosition, RelativeLinearPosition, State, Subscription, ResolvedRepositoryNode, LifecycleAware } from '../domain/domain'
+import {
+  LoadedTree,
+  RepositoryNode,
+  RelativeNodePosition,
+  RelativeLinearPosition,
+  State,
+  Subscription,
+  ResolvedRepositoryNode,
+  LifecycleAware,
+} from '../domain/domain'
 import { atomIdent } from '../lib/modules/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 
@@ -13,7 +32,8 @@ class NodeChangedSubscription implements Subscription {
   constructor(
     readonly parentNode: string,
     readonly listener: (nodeId: string) => void,
-    readonly cancelCallback: (subToCancel: Subscription) => void) {}
+    readonly cancelCallback: (subToCancel: Subscription) => void
+  ) {}
 
   notify(nodeId: string): void {
     this.listener(nodeId)
@@ -29,13 +49,17 @@ class NodeChangedSubscription implements Subscription {
  * to provide an offline capable, eventually consistent, multi-peer storage backend.
  */
 export class EventlogRepository implements Repository, LifecycleAware {
-
-  private parentChildMap: {[key in string]: LogootSequenceWrapper<string>} = {}
-  private childParentMap: {[key in string]: string} = {}
+  private parentChildMap: {
+    [key in string]: LogootSequenceWrapper<string>
+  } = {}
+  private childParentMap: { [key in string]: string } = {}
   private changeSubscriptions: NodeChangedSubscription[] = []
   private eventLogSubscription: Subscription = null
 
-  private readonly debouncedNotifyNodeChangeSubscribers = debounce(this.notifyNodeChangeSubscribers.bind(this), 5000)
+  private readonly debouncedNotifyNodeChangeSubscribers = debounce(
+    this.notifyNodeChangeSubscribers.bind(this),
+    5000
+  )
   private readonly debouncedRebuildAndNotify = debounce(this.rebuildAndNotify.bind(this), 5000)
 
   // this is the limit after which we will bulk load all nodes instead of loading a tree incrementally
@@ -111,14 +135,14 @@ export class EventlogRepository implements Repository, LifecycleAware {
     const newChildParentMap = {}
     const newParentChildMap = {}
     const reparentEvents = await this.eventLog.getAllEventsFromType(EventType.REPARENT_NODE)
-    reparentEvents.events.forEach(event => {
+    reparentEvents.events.forEach((event) => {
       const treeEventPayload = event.payload as ReparentNodeEventPayload
       const nodeId = event.nodeId
       const parentId = treeEventPayload.parentId
       newChildParentMap[nodeId] = parentId
     })
     const reorderEvents = await this.eventLog.getAllEventsFromType(EventType.REORDER_CHILD)
-    reorderEvents.events.forEach(event => {
+    reorderEvents.events.forEach((event) => {
       const childOrderEventPayload = event.payload as ReorderChildNodeEventPayload
       EventlogRepository.insertInParentChildMap(
         newParentChildMap,
@@ -126,7 +150,8 @@ export class EventlogRepository implements Repository, LifecycleAware {
         childOrderEventPayload.parentId,
         childOrderEventPayload.operation,
         childOrderEventPayload.position,
-        this.eventLog.getPeerId())
+        this.eventLog.getPeerId()
+      )
     })
     // this is an attempt at an "atomic" update: we only replace the existing maps once we
     // have the new ones, to avoid having intermediate request accessing some weird state
@@ -134,10 +159,19 @@ export class EventlogRepository implements Repository, LifecycleAware {
     this.parentChildMap = newParentChildMap
   }
 
-  private static insertInParentChildMap(parentChildMap, childId: string, parentId: string,
-                                        operation: LogootReorderOperation, position: atomIdent, peerId: string): void {
+  private static insertInParentChildMap(
+    parentChildMap,
+    childId: string,
+    parentId: string,
+    operation: LogootReorderOperation,
+    position: atomIdent,
+    peerId: string
+  ): void {
     const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
-      parentChildMap, parentId, peerId)
+      parentChildMap,
+      parentId,
+      peerId
+    )
     if (operation === LogootReorderOperation.DELETE) {
       seq.deleteAtAtomIdent(position)
     } else {
@@ -150,7 +184,8 @@ export class EventlogRepository implements Repository, LifecycleAware {
       EventType.ADD_OR_UPDATE_NODE,
       id,
       createNewAddOrUpdateNodeEventPayload(name, content, false, false, false),
-      synchronous)
+      synchronous
+    )
   }
 
   async updateNode(node: RepositoryNode, synchronous: boolean): Promise<void> {
@@ -159,7 +194,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
       // also update a node that was already deleted but doing it twice doesn't hurt? And we
       // have no good way to recognize if it was really deleted
       const parentId = this.childParentMap[node._id]
-      if (! parentId) {
+      if (!parentId) {
         throw new Error(`Parent not known for node ${node._id} therefore can not delete this node`)
       }
       await this.deleteNode(node._id, parentId, synchronous)
@@ -173,9 +208,10 @@ export class EventlogRepository implements Repository, LifecycleAware {
         !!node.deleted,
         !!node.collapsed,
         !!node.completed,
-        node.created,
+        node.created
       ),
-      synchronous)
+      synchronous
+    )
   }
 
   /**
@@ -184,7 +220,12 @@ export class EventlogRepository implements Repository, LifecycleAware {
    * events from the sequence. Since garbage collection is now asynchronous we now always publish the
    * DELETE event as well so we don't get duplicate nodes in our child lists.
    */
-  async reparentNode(childId: string, parentId: string, position: RelativeNodePosition, synchronous: boolean): Promise<void> {
+  async reparentNode(
+    childId: string,
+    parentId: string,
+    position: RelativeNodePosition,
+    synchronous: boolean
+  ): Promise<void> {
     const oldParentId = this.childParentMap[childId]
     if (oldParentId) {
       // always publish a delete event if the node was already in the child list:
@@ -194,9 +235,15 @@ export class EventlogRepository implements Repository, LifecycleAware {
       await this.deleteNode(childId, oldParentId, synchronous)
     }
     const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
-      this.parentChildMap, parentId, this.eventLog.getPeerId())
+      this.parentChildMap,
+      parentId,
+      this.eventLog.getPeerId()
+    )
     const insertionIndex = this.getChildInsertionIndex(seq, position)
-    const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(insertionIndex, this.eventLog.getCounter())
+    const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(
+      insertionIndex,
+      this.eventLog.getCounter()
+    )
     // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.childParentMap[childId] = parentId
@@ -215,7 +262,8 @@ export class EventlogRepository implements Repository, LifecycleAware {
         childId,
         parentId,
       },
-      synchronous)
+      synchronous
+    )
   }
 
   private deleteNode(childId: string, parentId: string, synchronous: boolean): Promise<void> {
@@ -239,18 +287,28 @@ export class EventlogRepository implements Repository, LifecycleAware {
             childId,
             parentId,
           },
-          synchronous)
+          synchronous
+        )
       }
     }
     return Promise.resolve()
   }
 
   private static getOrCreateSeqForParent(
-      parentChildMap: {[key in string]: LogootSequenceWrapper<string>}, parentId: string, peerId: string): LogootSequenceWrapper<string> {
-    return parentChildMap[parentId] || (parentChildMap[parentId] = new LogootSequenceWrapper<string>(peerId))
+    parentChildMap: { [key in string]: LogootSequenceWrapper<string> },
+    parentId: string,
+    peerId: string
+  ): LogootSequenceWrapper<string> {
+    return (
+      parentChildMap[parentId] ||
+      (parentChildMap[parentId] = new LogootSequenceWrapper<string>(peerId))
+    )
   }
 
-  private getChildInsertionIndex(seq: LogootSequenceWrapper<string>, position: RelativeNodePosition): number {
+  private getChildInsertionIndex(
+    seq: LogootSequenceWrapper<string>,
+    position: RelativeNodePosition
+  ): number {
     if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
       return 0
     } else if (position.beforeOrAfter === RelativeLinearPosition.AFTER) {
@@ -279,9 +337,12 @@ export class EventlogRepository implements Repository, LifecycleAware {
   }
 
   async loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode> {
-    return this.eventLog.getNodeEvent(nodeId).then(nodeEvent => {
+    return this.eventLog.getNodeEvent(nodeId).then((nodeEvent) => {
       if (nodeEvent) {
-        const node = this.mapEventToRepositoryNode(nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload)
+        const node = this.mapEventToRepositoryNode(
+          nodeId,
+          nodeEvent.payload as AddOrUpdateNodeEventPayload
+        )
         if (nodeFilter(node)) {
           return Promise.resolve(node)
         }
@@ -289,7 +350,10 @@ export class EventlogRepository implements Repository, LifecycleAware {
     })
   }
 
-  private mapEventToRepositoryNode(nodeId: string, eventPayload: AddOrUpdateNodeEventPayload): RepositoryNode {
+  private mapEventToRepositoryNode(
+    nodeId: string,
+    eventPayload: AddOrUpdateNodeEventPayload
+  ): RepositoryNode {
     return {
       _id: nodeId,
       name: eventPayload.name,
@@ -311,12 +375,17 @@ export class EventlogRepository implements Repository, LifecycleAware {
    * nodes and create the tree from that. The latter is faster for very large subtrees but also
    * very wasteful for small subtrees.
    */
-  async loadTree(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<LoadedTree> {
+  async loadTree(
+    nodeId: string,
+    nodeFilter: Predicate<RepositoryNode>,
+    loadCollapsedChildren: boolean
+  ): Promise<LoadedTree> {
     try {
       const amountOfNodesToLoad = this.determineAmountOfNodesToLoad(nodeId)
-      const tree = amountOfNodesToLoad < this.MAX_NODES_TO_LOAD_INDIVIDUALLY
-        ? await this.loadTreeNodeRecursively(nodeId, nodeFilter, loadCollapsedChildren)
-        : await this.loadTreeBulk(nodeId, nodeFilter, loadCollapsedChildren)
+      const tree =
+        amountOfNodesToLoad < this.MAX_NODES_TO_LOAD_INDIVIDUALLY
+          ? await this.loadTreeNodeRecursively(nodeId, nodeFilter, loadCollapsedChildren)
+          : await this.loadTreeBulk(nodeId, nodeFilter, loadCollapsedChildren)
       if (!tree) {
         // since loadTreeNodRecursively can return null, we need to check it
         throw new NodeNotFoundError(`Node not found: ${nodeId}`)
@@ -342,60 +411,115 @@ export class EventlogRepository implements Repository, LifecycleAware {
     return 1 + childCount
   }
 
-  private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode> {
+  private async loadTreeBulk(
+    nodeId: string,
+    nodeFilter: Predicate<RepositoryNode>,
+    loadCollapsedChildren: boolean
+  ): Promise<ResolvedRepositoryNode> {
     const nodeEvents = await this.eventLog.getAllEventsFromType(EventType.ADD_OR_UPDATE_NODE)
     const nodeMap = new Map<string, RepositoryNode>()
     for (const nodeEvent of nodeEvents.events) {
-      nodeMap.set(nodeEvent.nodeId, this.mapEventToRepositoryNode(nodeEvent.nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload))
+      nodeMap.set(
+        nodeEvent.nodeId,
+        this.mapEventToRepositoryNode(
+          nodeEvent.nodeId,
+          nodeEvent.payload as AddOrUpdateNodeEventPayload
+        )
+      )
     }
     return this.loadTreeNodeBulk(nodeId, nodeMap, nodeFilter, loadCollapsedChildren)
   }
 
-  private async loadTreeNodeBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode> {
+  private async loadTreeNodeBulk(
+    nodeId: string,
+    nodeMap: Map<string, RepositoryNode>,
+    nodeFilter: Predicate<RepositoryNode>,
+    loadCollapsedChildren: boolean
+  ): Promise<ResolvedRepositoryNode> {
     const node = nodeMap.get(nodeId)
-    if (! node) {
+    if (!node) {
       throw new NodeNotFoundError(`Node not found in nodeMap with id ${nodeId}`)
     }
-    if (! nodeFilter(node)) {
+    if (!nodeFilter(node)) {
       return null
     }
     if (!node.collapsed || loadCollapsedChildren) {
-      const children = await this.loadChildTreeNodesBulk(nodeId, nodeMap, nodeFilter, loadCollapsedChildren)
+      const children = await this.loadChildTreeNodesBulk(
+        nodeId,
+        nodeMap,
+        nodeFilter,
+        loadCollapsedChildren
+      )
       return { node, children: { loaded: true, elements: children } }
     } else {
       // even if we do not load collapsed children, we optimize the case where the node is collapsed but has no children
       // in that case we can just pretend we loaded the child array
       const childIds = this.getChildIdsInternal(nodeId)
-      return { node, children: {loaded: childIds.length === 0 ? true : false, elements: []} }
+      return {
+        node,
+        children: {
+          loaded: childIds.length === 0 ? true : false,
+          elements: [],
+        },
+      }
     }
   }
 
-  private async loadChildTreeNodesBulk(nodeId: string, nodeMap: Map<string, RepositoryNode>, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode[]> {
+  private async loadChildTreeNodesBulk(
+    nodeId: string,
+    nodeMap: Map<string, RepositoryNode>,
+    nodeFilter: Predicate<RepositoryNode>,
+    loadCollapsedChildren: boolean
+  ): Promise<ResolvedRepositoryNode[]> {
     const children: ResolvedRepositoryNode[] = []
     const childIds = this.getChildIdsInternal(nodeId)
     for (const childNodeId of childIds) {
-      const childNode = await this.loadTreeNodeBulk(childNodeId, nodeMap, nodeFilter, loadCollapsedChildren)
-      if (childNode) { // node may have been filtered out, in that case omit
+      const childNode = await this.loadTreeNodeBulk(
+        childNodeId,
+        nodeMap,
+        nodeFilter,
+        loadCollapsedChildren
+      )
+      if (childNode) {
+        // node may have been filtered out, in that case omit
         children.push(childNode)
       }
     }
     return children
   }
 
-  private async loadTreeNodeRecursively(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode> {
+  private async loadTreeNodeRecursively(
+    nodeId: string,
+    nodeFilter: Predicate<RepositoryNode>,
+    loadCollapsedChildren: boolean
+  ): Promise<ResolvedRepositoryNode> {
     const node = await this.loadNode(nodeId, nodeFilter)
-    if (! node) {
+    if (!node) {
       return null // we can't throw here because of the filter: may be that the node is not included in the filter
     }
     const childIds = this.getChildIdsInternal(nodeId)
     if (!node.collapsed || loadCollapsedChildren) {
-      const children = await Promise.all(childIds.map(async childId => await this.loadTreeNodeRecursively(childId, nodeFilter, loadCollapsedChildren)))
+      const children = await Promise.all(
+        childIds.map(
+          async (childId) =>
+            await this.loadTreeNodeRecursively(childId, nodeFilter, loadCollapsedChildren)
+        )
+      )
       // filter out nulls that are excluded because of the nodeFilter
-      return { node, children: {loaded: true, elements: children.filter(c => !!c) } }
+      return {
+        node,
+        children: { loaded: true, elements: children.filter((c) => !!c) },
+      }
     } else {
       // even if we do not load collapsed children, we optimize the case where the node is collapsed but has no children
       // in that case we can just pretend we loaded the child array
-      return { node, children: {loaded: childIds.length === 0 ? true : false, elements: []} }
+      return {
+        node,
+        children: {
+          loaded: childIds.length === 0 ? true : false,
+          elements: [],
+        },
+      }
     }
   }
 
@@ -407,7 +531,10 @@ export class EventlogRepository implements Repository, LifecycleAware {
     return Promise.resolve(this.getChildIdsInternal(nodeId))
   }
 
-  private async loadAncestors(childId: string, ancestors: RepositoryNode[]): Promise<RepositoryNode[]> {
+  private async loadAncestors(
+    childId: string,
+    ancestors: RepositoryNode[]
+  ): Promise<RepositoryNode[]> {
     const parentId = this.childParentMap[childId]
     if (parentId && parentId !== ' ROOT') {
       const parent = await this.loadNode(parentId, ALWAYS_TRUE)
@@ -418,7 +545,10 @@ export class EventlogRepository implements Repository, LifecycleAware {
     }
   }
 
-  subscribeToChanges(parentNodeId: string, nodeChangeListener: (nodeId: string) => void): Subscription {
+  subscribeToChanges(
+    parentNodeId: string,
+    nodeChangeListener: (nodeId: string) => void
+  ): Subscription {
     const subscription = new NodeChangedSubscription(
       parentNodeId,
       nodeChangeListener,
@@ -426,8 +556,12 @@ export class EventlogRepository implements Repository, LifecycleAware {
       // unsubscribing means we need to remove the subscription from our list, to do that we need to find
       // its index first, we do that by checking object equality on the subscription object
       (subToCancel) => {
-        this.changeSubscriptions.splice(this.changeSubscriptions.findIndex((sub) => sub === subToCancel), 1)
-      })
+        this.changeSubscriptions.splice(
+          this.changeSubscriptions.findIndex((sub) => sub === subToCancel),
+          1
+        )
+      }
+    )
     this.changeSubscriptions.push(subscription)
     return subscription
   }

@@ -6,21 +6,21 @@ export type ServerEventClock = VectorClockValuesType
 export type ServerEventPayload = EventPayloadType
 
 export type ServerEvent = {
-  localId: number,
-  type: number,
-  originator: string,
-  clock: ServerEventClock,
-  nodeId: string,
+  localId: number
+  type: number
+  originator: string
+  clock: ServerEventClock
+  nodeId: string
   payload: ServerEventPayload
 }
 
 export type ServerEventWrapper = {
-  originator: string,
+  originator: string
   body: string
 }
 
 export type ServerEvents = {
-  counter: number,
+  counter: number
   events: ServerEventWrapper[]
 }
 

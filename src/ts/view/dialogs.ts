@@ -19,78 +19,81 @@ export type DialogCloseObserver = () => void
 export class DialogElement extends HTMLElement {
   private _dialogCloseObserver: DialogCloseObserver = null
 
-  private readonly dialogTemplate = () => html`
-    <style>
-    /* ---------- Dialog ---------- */
-    /* Just the absolute basic styles for a responsive dialog */
-    .dialog {
-      background: white;
-      display: none;
-      position: fixed;
-      z-index: 2; /* dialogs need to be above the overlay */
-      border: 1px #d1d1d1 solid;
-      border-radius: 3px;
-      animation: fadeIn 150ms ease-out;
-      box-shadow: 0px 3px 6px rgba(0,0,0,0.2);
-      /* To center horizontally and vertically as per https://stackoverflow.com/a/25829529/1996 */
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    .dialogOverlay {
-      display: none;
-      position: fixed;
-      z-index: 1; /* overlay is above everything but the dialog itself */
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-    }
-
-    .dialog .closeButton {
-      position: absolute;
-      top: 0;
-      right: 0;
-      padding: 6px;
-      color: #aaa;
-      font-size: 1.5rem;
-    }
-
-    .closeButton::before {
-      content: '✕';
-    }
-
-    .closeButton:hover {
-      cursor: pointer;
-    }
-
-    .dialog header h1 {
-      font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 12px;
-    }
-
-    /* Extra small devices (portrait phones, less than 576px) */
-    @media (max-width: 575px) {
+  private readonly dialogTemplate = () => html` <style>
+      /* ---------- Dialog ---------- */
+      /* Just the absolute basic styles for a responsive dialog */
       .dialog {
+        background: white;
+        display: none;
+        position: fixed;
+        z-index: 2; /* dialogs need to be above the overlay */
+        border: 1px #d1d1d1 solid;
+        border-radius: 3px;
+        animation: fadeIn 150ms ease-out;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+        /* To center horizontally and vertically as per https://stackoverflow.com/a/25829529/1996 */
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .dialogOverlay {
+        display: none;
+        position: fixed;
+        z-index: 1; /* overlay is above everything but the dialog itself */
+        left: 0;
+        top: 0;
         width: 100%;
         height: 100%;
-        border: 0;
-        padding: 40px 0px 20px 0px;
+        background-color: rgba(0, 0, 0, 0.5);
       }
 
       .dialog .closeButton {
-        position: fixed;
-        display: block;
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 6px;
+        color: #aaa;
+        font-size: 1.5rem;
       }
-    }
+
+      .closeButton::before {
+        content: '✕';
+      }
+
+      .closeButton:hover {
+        cursor: pointer;
+      }
+
+      .dialog header h1 {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 12px;
+      }
+
+      /* Extra small devices (portrait phones, less than 576px) */
+      @media (max-width: 575px) {
+        .dialog {
+          width: 100%;
+          height: 100%;
+          border: 0;
+          padding: 40px 0px 20px 0px;
+        }
+
+        .dialog .closeButton {
+          position: fixed;
+          display: block;
+        }
+      }
     </style>
     <div class="dialog">
       <div class="closeButton" @click=${this.close.bind(this)}></div>
@@ -100,7 +103,7 @@ export class DialogElement extends HTMLElement {
 
   constructor() {
     super()
-    this.attachShadow({mode: 'open'})
+    this.attachShadow({ mode: 'open' })
   }
 
   get dialogElement(): HTMLElement {
@@ -191,11 +194,14 @@ export class DialogElement extends HTMLElement {
 
   beforeShow(): void {
     // "assignedNodes" is a special property on a slot to get child elements
-    this.shadowRoot.querySelector('slot').assignedNodes().forEach(dialogItem => {
-      if (isDialogLifecycleAware(dialogItem)) {
-        dialogItem.beforeShow()
-      }
-    })
+    this.shadowRoot
+      .querySelector('slot')
+      .assignedNodes()
+      .forEach((dialogItem) => {
+        if (isDialogLifecycleAware(dialogItem)) {
+          dialogItem.beforeShow()
+        }
+      })
   }
 }
 
@@ -204,9 +210,7 @@ customElements.define('df-dialog', DialogElement)
 export type DialogTrigger = string | HTMLElement
 
 export class Dialog {
-  constructor(
-    readonly trigger: DialogTrigger,
-    readonly dialogElement: DialogElement) {}
+  constructor(readonly trigger: DialogTrigger, readonly dialogElement: DialogElement) {}
 }
 
 class ActiveDialog {
@@ -239,8 +243,10 @@ export class Dialogs {
   private onInRootClicked(event: Event) {
     const clickedElement = event.target as HTMLElement
     for (const dialog of this.dialogs) {
-      if ( (dialog.trigger instanceof HTMLElement && dialog.trigger === clickedElement) ||
-           (typeof dialog.trigger === 'string' && clickedElement.classList.contains(dialog.trigger))) {
+      if (
+        (dialog.trigger instanceof HTMLElement && dialog.trigger === clickedElement) ||
+        (typeof dialog.trigger === 'string' && clickedElement.classList.contains(dialog.trigger))
+      ) {
         if (this.isDialogActive()) {
           return
         } else {
@@ -266,17 +272,21 @@ export class Dialogs {
     }
     this.activeDialog = activeDialog
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    this.activeDialog.dialog.dialogElement.dialogCloseObserver = this.activeDialogCloseHandler.bind(this)
+    this.activeDialog.dialog.dialogElement.dialogCloseObserver = this.activeDialogCloseHandler.bind(
+      this
+    )
     // we register a global handler to track dismiss clicks outside of the dialog
     document.addEventListener('click', this.onDocumentClickedListener)
   }
 
   private onDocumentClicked(event: Event): void {
     const clickedElement = event.target as HTMLElement
-    if (this.isDialogActive() &&
-        this.activeDialog.trigger !== clickedElement &&
-        (!this.getActiveDialog().dialog.dialogElement.contains(clickedElement) ||
-         clickedElement === this.getActiveDialog().dialog.dialogElement.getCloseButton())) {
+    if (
+      this.isDialogActive() &&
+      this.activeDialog.trigger !== clickedElement &&
+      (!this.getActiveDialog().dialog.dialogElement.contains(clickedElement) ||
+        clickedElement === this.getActiveDialog().dialog.dialogElement.getCloseButton())
+    ) {
       this.dismissDialog(this.getActiveDialog())
     }
   }
@@ -310,5 +320,4 @@ export class Dialogs {
     triggerEl?.setAttribute('aria-expanded', 'true')
     dialog.dialogElement.showCentered()
   }
-
 }

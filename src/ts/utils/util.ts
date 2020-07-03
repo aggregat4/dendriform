@@ -18,7 +18,11 @@ export function isEmpty(str: string): boolean {
 }
 
 // from https://davidwalsh.name/javascript-debounce-function
-export function debounce(f: (...args: unknown[]) => void, wait: number, immediate?: boolean): (...args: unknown[]) => void {
+export function debounce(
+  f: (...args: unknown[]) => void,
+  wait: number,
+  immediate?: boolean
+): (...args: unknown[]) => void {
   let timeout
   return (...args2: unknown[]) => {
     // eslint-disable-next-line @typescript-eslint/no-this-alias, @typescript-eslint/no-unsafe-assignment
@@ -98,7 +102,10 @@ export function isCursorAtContentEditableBeginning(outerElementClass: string): b
   const selection = window.getSelection()
   if (selection.rangeCount && selection.focusNode) {
     const focusNode = selection.focusNode
-    if ((focusNode as Element).classList && (focusNode as Element).classList.contains(outerElementClass)) {
+    if (
+      (focusNode as Element).classList &&
+      (focusNode as Element).classList.contains(outerElementClass)
+    ) {
       return false // we are apparently already in the parent element
     }
     if (isCursorAtContentEditableFirstLine(focusNode as Element, outerElementClass)) {
@@ -108,14 +115,23 @@ export function isCursorAtContentEditableBeginning(outerElementClass: string): b
   return false
 }
 
-function isCursorAtContentEditableFirstLine(focusNode: Element, outerElementClass: string): boolean {
-  if (focusNode.nodeType === Node.TEXT_NODE && focusNode.parentElement.classList.contains(outerElementClass)) {
+function isCursorAtContentEditableFirstLine(
+  focusNode: Element,
+  outerElementClass: string
+): boolean {
+  if (
+    focusNode.nodeType === Node.TEXT_NODE &&
+    focusNode.parentElement.classList.contains(outerElementClass)
+  ) {
     return true
   } else {
     // 1. find the first parent whose parent is the outerElementClass
     // 2. if that parent has previoussiblings then we are not at the beginning
     let lineNodeCandidate = focusNode
-    while (lineNodeCandidate.parentElement && !lineNodeCandidate.parentElement.classList.contains(outerElementClass)) {
+    while (
+      lineNodeCandidate.parentElement &&
+      !lineNodeCandidate.parentElement.classList.contains(outerElementClass)
+    ) {
       lineNodeCandidate = lineNodeCandidate.parentElement
     }
     if (lineNodeCandidate.parentElement) {
@@ -129,8 +145,10 @@ function isCursorAtContentEditableFirstLine(focusNode: Element, outerElementClas
         return true // our focusNode is apparently on the first line
       }
     } else {
-      throw new Error(`Can not determine whether we are at the beginning of a contenteditable ` +
-                      `since the provided node is not inside another node with the provided outerElementclass`)
+      throw new Error(
+        `Can not determine whether we are at the beginning of a contenteditable ` +
+          `since the provided node is not inside another node with the provided outerElementclass`
+      )
     }
   }
 }
@@ -229,7 +247,7 @@ export function generateUUID(): string {
     const r = (d + Math.random() * 16) % 16 | 0
     d = Math.floor(d / 16)
     // tslint:disable-next-line:no-bitwise
-    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
   })
 }
 
@@ -273,7 +291,13 @@ const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K']
 const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE']
 const iosPlatforms = ['iPhone', 'iPad', 'iPod']
 
-export const enum OperatingSystem { MacOs = 'MacOs', Linux = 'Linux', Windows = 'Windows', Android = 'Android', Ios = 'Ios' }
+export const enum OperatingSystem {
+  MacOs = 'MacOs',
+  Linux = 'Linux',
+  Windows = 'Windows',
+  Android = 'Android',
+  Ios = 'Ios',
+}
 
 export function guessOperatingSystem(): OperatingSystem {
   const userAgent = window?.navigator?.userAgent || ''

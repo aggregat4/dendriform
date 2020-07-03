@@ -1,5 +1,5 @@
 import { html, render } from 'lit-html'
-import {until} from 'lit-html/directives/until'
+import { until } from 'lit-html/directives/until'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { epochSecondsToLocaleString } from '../utils/dateandtime'
 import { DialogLifecycleAware } from './dialogs'
@@ -9,7 +9,7 @@ abstract class TreeNodeMenuItem extends HTMLElement {
 
   constructor() {
     super()
-    this.attachShadow({mode: 'open'})
+    this.attachShadow({ mode: 'open' })
   }
 
   set treeActionContext(treeActionContext: TreeActionContext) {
@@ -22,27 +22,26 @@ abstract class TreeNodeMenuItem extends HTMLElement {
 
   protected get menuItemStyle() {
     return html`<style>
-    .menuItem {
-      display: block;
-      padding: 6px 12px 6px 12px;
-      max-width: 300px;
-    }
+      .menuItem {
+        display: block;
+        padding: 6px 12px 6px 12px;
+        max-width: 300px;
+      }
 
-    .menuItem:hover {
-      background-color: var(--highlight-bgcolor);
-      color: var(--highlight-color);
-      cursor: pointer;
-    }
+      .menuItem:hover {
+        background-color: var(--highlight-bgcolor);
+        color: var(--highlight-color);
+        cursor: pointer;
+      }
 
-    .menuItem.disabled,
-    .menuItem.disabled:hover {
-      background-color: inherit;
-      color: var(--disabled-text-color);
-      cursor: inherit;
-    }
+      .menuItem.disabled,
+      .menuItem.disabled:hover {
+        background-color: inherit;
+        color: var(--disabled-text-color);
+        cursor: inherit;
+      }
     </style>`
   }
-
 }
 
 export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
@@ -80,8 +79,7 @@ customElements.define('df-menuitem-action', TreeNodeActionMenuItem)
 
 export class TreeNodeInfoMenuItem extends TreeNodeMenuItem implements DialogLifecycleAware {
   private readonly DEFAULT_INFO_TEXT = 'No node selected.'
-  private readonly template = () => html`
-    ${this.menuItemStyle}
+  private readonly template = () => html` ${this.menuItemStyle}
     <div class="menuItem disabled">
       <span class="infoContent">${until(this.getInfoContent(), '...')}</span>
     </div>`
@@ -98,7 +96,9 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem implements DialogLife
     const activeNodeId = this.treeActionContext?.transientStateManager.getActiveNodeId()
     if (activeNodeId) {
       const activeNode = await this.treeActionContext.treeService.loadNode(activeNodeId)
-      return `Created: ${epochSecondsToLocaleString(activeNode.created)}, Updated: ${epochSecondsToLocaleString(activeNode.updated)}`
+      return `Created: ${epochSecondsToLocaleString(
+        activeNode.created
+      )}, Updated: ${epochSecondsToLocaleString(activeNode.updated)}`
     } else {
       return this.DEFAULT_INFO_TEXT
     }
@@ -107,7 +107,6 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem implements DialogLife
   beforeShow(): void {
     render(this.template(), this.shadowRoot)
   }
-
 }
 
 customElements.define('df-menuitem-info', TreeNodeInfoMenuItem)

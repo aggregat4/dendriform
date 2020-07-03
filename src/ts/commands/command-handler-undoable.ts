@@ -1,8 +1,4 @@
-import {
-  Command,
-  CommandBuilder,
-  CommandHandler,
-} from './commands'
+import { Command, CommandBuilder, CommandHandler } from './commands'
 
 export class UndoableCommandHandler implements CommandHandler {
   readonly undoBuffer: Command[] = []
@@ -23,9 +19,11 @@ export class UndoableCommandHandler implements CommandHandler {
 
   popRedoCommand(): Command {
     // console.log(`about to pop redo command with pointer `, this.undoCommandPointer, ` in buffer `, this.undoBuffer)
-    if (this.undoCommandPointer < this.undoBuffer.length - 1 &&
-        this.undoCommandPointer >= -1 &&
-        this.undoBuffer.length > 0) {
+    if (
+      this.undoCommandPointer < this.undoBuffer.length - 1 &&
+      this.undoCommandPointer >= -1 &&
+      this.undoBuffer.length > 0
+    ) {
       // A redo command is an inverted undo command
       this.undoCommandPointer++
       const nextUndoCommand = this.undoBuffer[this.undoCommandPointer]

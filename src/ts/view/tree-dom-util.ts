@@ -3,9 +3,11 @@ import * as sanitize from '../lib/modules/sanitize'
 
 // Checks whether the current node has a parent
 export function hasParentNode(node: Element): boolean {
-  return node.parentElement &&
-         node.parentElement.classList.contains('children') &&
-         isNode(getParentNode(node))
+  return (
+    node.parentElement &&
+    node.parentElement.classList.contains('children') &&
+    isNode(getParentNode(node))
+  )
 }
 
 function isRootNode(node: Element): boolean {
@@ -21,7 +23,7 @@ export function isNameNode(element: Element): boolean {
 }
 
 export function isInNameNode(element: Element): boolean {
-  return !! element.closest('.name')
+  return !!element.closest('.name')
 }
 
 export function isToggleElement(element: Element): boolean {
@@ -136,7 +138,9 @@ export function isInNoteElement(element: Element): boolean {
 export function findNoteElementAncestor(element: Element): Element {
   return isNoteElement(element)
     ? element
-    : (element.parentElement ? findNoteElementAncestor(element.parentElement) : null)
+    : element.parentElement
+    ? findNoteElementAncestor(element.parentElement)
+    : null
 }
 
 // TODO add search for OPEN nodes, not just any node
@@ -199,13 +203,13 @@ function findFirstAncestorNextSibling(node: Element): Element {
 const sanitizer = new sanitize.Sanitize({
   elements: ['a', 'b', 'br', 'em', 'i', 'u', 'div'], // div and br are because of contenteditable linebreaks
   attributes: {
-    'a': ['href'],
+    a: ['href'],
   },
   add_attributes: {
-    'a': {'rel': 'noreferrer'},
+    a: { rel: 'noreferrer' },
   },
   protocols: {
-    'a': {'href': ['ftp', 'http', 'https', 'mailto']},
+    a: { href: ['ftp', 'http', 'https', 'mailto'] },
   },
 })
 

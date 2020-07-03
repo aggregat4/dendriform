@@ -13,8 +13,12 @@ export function only(name, fn) {
   onlyTests.push({ name, fn })
 }
 
-export function before(fn) { beforeTests.push(fn) }
-export function after(fn) { afterTests.push(fn)  }
+export function before(fn) {
+  beforeTests.push(fn)
+}
+export function after(fn) {
+  afterTests.push(fn)
+}
 export function skip(fn) {
   // intentionally left blank, this function is just a helper for the client to identify skips
 }
@@ -27,7 +31,7 @@ export async function run(headline) {
       for (const fn of beforeTests) await fn()
       await t.fn()
       rgb.gray('• ')
-    } catch(e) {
+    } catch (e) {
       for (const fn of afterTests) await fn()
       rgb.red(`\n\n! ${test.name} \n\n`)
       prettyError(e)
@@ -35,7 +39,7 @@ export async function run(headline) {
     }
   }
   for (const fn of afterTests) await fn()
-  rgb.greenln(`✓ ${ tests.length }`)
+  rgb.greenln(`✓ ${tests.length}`)
   console.info('\n')
 }
 

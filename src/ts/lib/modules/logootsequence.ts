@@ -68,7 +68,10 @@ export function compareAtomIdents(atomIdentA: atomIdent, atomIdentB: atomIdent):
  * max default atoms.
  */
 export function emptySequence(): sequence {
-  return [[ABS_MIN_ATOM_IDENT, null], [ABS_MAX_ATOM_IDENT, null]]
+  return [
+    [ABS_MIN_ATOM_IDENT, null],
+    [ABS_MAX_ATOM_IDENT, null],
+  ]
 }
 
 /**
@@ -79,7 +82,12 @@ export function emptySequence(): sequence {
  * @param prevAtomIdent The atom identify before the new one
  * @param nextAtomIdent The atom identify after the new one
  */
-export function genAtomIdent(siteID: string | number, clock: number, prevAtomIdent: atomIdent, nextAtomIdent: atomIdent): atomIdent {
+export function genAtomIdent(
+  siteID: string | number,
+  clock: number,
+  prevAtomIdent: atomIdent,
+  nextAtomIdent: atomIdent
+): atomIdent {
   return [genPosition(siteID, prevAtomIdent[0], nextAtomIdent[0]), clock]
 }
 
@@ -97,7 +105,11 @@ export function genAtomIdent(siteID: string | number, clock: number, prevAtomIde
  * @param {function(sequence, number, atom) : sequence} insertFunc The function
  *   that will be called on to do the insert
  */
-export function insertAtom(seq: sequence, anAtom: atom, insertFunc: (s: sequence, n: number, a: atom) => sequence): sequence {
+export function insertAtom(
+  seq: sequence,
+  anAtom: atom,
+  insertFunc: (s: sequence, n: number, a: atom) => sequence
+): sequence {
   const sequenceLength = seq.length
 
   for (let i = 0; i < sequenceLength; i++) {
@@ -108,16 +120,19 @@ export function insertAtom(seq: sequence, anAtom: atom, insertFunc: (s: sequence
     const prevPosition = prev[0][0]
     const nextPosition = next[0][0]
 
-    const comparisons =
-      [comparePositions(aPosition, prevPosition),
-       comparePositions(aPosition, nextPosition)]
+    const comparisons = [
+      comparePositions(aPosition, prevPosition),
+      comparePositions(aPosition, nextPosition),
+    ]
 
     if (comparisons[0] === 1 && comparisons[1] === -1) {
       return insertFunc(seq, i + 1, anAtom)
     } else if (comparisons[0] === 1 && comparisons[1] === 1) {
       continue
-    } else if (comparisons[0] === -1 && comparisons[1] === 1 ||
-               comparisons[0] === -1 && comparisons[1] === -1) {
+    } else if (
+      (comparisons[0] === -1 && comparisons[1] === 1) ||
+      (comparisons[0] === -1 && comparisons[1] === -1)
+    ) {
       throw new Error('Sequence out of order!')
     } else {
       return seq
@@ -154,7 +169,10 @@ function comparePositions(posA: position, posB: position): comparisonResult {
  * @param identA The ident to compare another ident against
  * @param identB The ident to compare against the first
  */
-function compareIdents([identAInt, identASite]: ident, [identBInt, identBSite]: ident): comparisonResult {
+function compareIdents(
+  [identAInt, identASite]: ident,
+  [identBInt, identBSite]: ident
+): comparisonResult {
   if (identAInt > identBInt) return 1
   if (identAInt < identBInt) return -1
   if (identASite > identBSite) return 1
@@ -188,13 +206,13 @@ function genPosition(siteID: string | number, prevPos: position, nextPos: positi
       } else if (diff === 1 && siteID > prevSiteID) {
         return [[prevInt, siteID]]
       } else {
-        return [prevHead].concat(
-          genPosition(siteID, prevPos.slice(1), nextPos.slice(1)))
+        return [prevHead].concat(genPosition(siteID, prevPos.slice(1), nextPos.slice(1)))
       }
-    } case 0: {
-      return [prevHead].concat(
-              genPosition(siteID, prevPos.slice(1), nextPos.slice(1)))
-    } case 1: {
+    }
+    case 0: {
+      return [prevHead].concat(genPosition(siteID, prevPos.slice(1), nextPos.slice(1)))
+    }
+    case 1: {
       throw new Error('"Next" position was less than "previous" position.')
     }
   }

@@ -1,4 +1,4 @@
-import {RelativeNodePosition, RelativeLinearPosition} from '../domain/domain'
+import { RelativeNodePosition, RelativeLinearPosition } from '../domain/domain'
 import { MergeNameOrder } from '../service/service'
 
 export interface CommandHandler {
@@ -6,7 +6,7 @@ export interface CommandHandler {
 }
 
 export interface CommandPayload {
-  inverse(): CommandPayload,
+  inverse(): CommandPayload
   requiresRender(): boolean
   // idea: add notion of batch vs interactive, in batch case rerender is debounced?
 }
@@ -20,7 +20,7 @@ export class Command {
     public afterFocusPos: number = -1,
     readonly undoable: boolean = false,
     readonly batch: boolean = false,
-    readonly _synchronous: boolean = false,
+    readonly _synchronous: boolean = false
   ) {}
 
   // Whether or not a command should synchronously executed is implicitly true when it requires
@@ -90,7 +90,7 @@ export class CommandBuilder {
       this.afterFocusPos,
       this.undoable,
       this.batch,
-      this.synchronous,
+      this.synchronous
     )
   }
 }
@@ -102,7 +102,7 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
     readonly nodeId: string,
     readonly newNodeName: string,
     readonly remainingNodeName: string,
-    readonly mergeNameOrder: MergeNameOrder,
+    readonly mergeNameOrder: MergeNameOrder
   ) {}
 
   inverse(): CommandPayload {
@@ -111,11 +111,13 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
       this.newNodeName,
       this.nodeId,
       this.remainingNodeName,
-      this.mergeNameOrder,
+      this.mergeNameOrder
     )
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }
 
 export class MergeNodesByIdCommandPayload implements CommandPayload {
@@ -124,7 +126,7 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
     readonly sourceNodeName: string,
     readonly targetNodeId: string,
     readonly targetNodeName: string,
-    readonly mergeNameOrder: MergeNameOrder,
+    readonly mergeNameOrder: MergeNameOrder
   ) {}
 
   inverse(): CommandPayload {
@@ -133,25 +135,25 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
       this.targetNodeId,
       this.sourceNodeName,
       this.targetNodeName,
-      this.mergeNameOrder,
+      this.mergeNameOrder
     )
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }
 
 export class RenameNodeByIdCommandPayload implements CommandPayload {
-  constructor(
-    readonly nodeId: string,
-    readonly oldName: string,
-    readonly newName: string,
-  ) {}
+  constructor(readonly nodeId: string, readonly oldName: string, readonly newName: string) {}
 
   inverse(): CommandPayload {
     return new RenameNodeByIdCommandPayload(this.nodeId, this.newName, this.oldName)
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }
 
 export class ReparentNodeByIdCommandPayload implements CommandPayload {
@@ -160,7 +162,7 @@ export class ReparentNodeByIdCommandPayload implements CommandPayload {
     readonly oldParentNodeId: string,
     readonly oldAfterNodeId: string,
     readonly newParentNodeId: string,
-    readonly position: RelativeNodePosition,
+    readonly position: RelativeNodePosition
   ) {}
 
   inverse(): CommandPayload {
@@ -169,11 +171,16 @@ export class ReparentNodeByIdCommandPayload implements CommandPayload {
       this.newParentNodeId,
       null,
       this.oldParentNodeId,
-      { beforeOrAfter: RelativeLinearPosition.AFTER, nodeId: this.oldAfterNodeId},
+      {
+        beforeOrAfter: RelativeLinearPosition.AFTER,
+        nodeId: this.oldAfterNodeId,
+      }
     )
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }
 
 export class OpenNodeByIdCommandPayload implements CommandPayload {
@@ -183,7 +190,9 @@ export class OpenNodeByIdCommandPayload implements CommandPayload {
     return new CloseNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }
 
 export class CloseNodeByIdCommandPayload implements CommandPayload {
@@ -193,7 +202,9 @@ export class CloseNodeByIdCommandPayload implements CommandPayload {
     return new OpenNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }
 
 export class DeleteNodeByIdCommandPayload implements CommandPayload {
@@ -203,7 +214,9 @@ export class DeleteNodeByIdCommandPayload implements CommandPayload {
     return new UndeleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }
 
 export class UndeleteNodeByIdCommandPayload implements CommandPayload {
@@ -214,7 +227,9 @@ export class UndeleteNodeByIdCommandPayload implements CommandPayload {
   }
 
   // we need the node to reappear in the tree: therefore we trigger a rerender and it will get loaded
-  requiresRender(): boolean { return true }
+  requiresRender(): boolean {
+    return true
+  }
 }
 
 export class CompleteNodeByIdCommandPayload implements CommandPayload {
@@ -226,7 +241,9 @@ export class CompleteNodeByIdCommandPayload implements CommandPayload {
 
   // In case the tree is set to not show completed nodes, we need a rerender since
   // we need to make sure nodes are removed from the tree afterwards for navigation to work
-  requiresRender(): boolean { return true }
+  requiresRender(): boolean {
+    return true
+  }
 }
 
 export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
@@ -238,21 +255,21 @@ export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
 
   // Changes the tree structure: undo can cause an uncomplete of a node that needs to reappear (see undelete)
   // this requires loading the nodes and rendering them
-  requiresRender(): boolean { return true }
+  requiresRender(): boolean {
+    return true
+  }
 }
 
 export class UpdateNoteByIdCommandPayload implements CommandPayload {
-  constructor(
-    readonly nodeId: string,
-    readonly oldNote: string,
-    readonly newNote: string,
-  ) {}
+  constructor(readonly nodeId: string, readonly oldNote: string, readonly newNote: string) {}
 
   inverse(): CommandPayload {
     return new UpdateNoteByIdCommandPayload(this.nodeId, this.newNote, this.oldNote)
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }
 
 export class CreateChildNodeCommandPayload implements CommandPayload {
@@ -260,12 +277,14 @@ export class CreateChildNodeCommandPayload implements CommandPayload {
     readonly nodeId: string,
     readonly name: string,
     readonly note: string,
-    readonly parentId: string,
+    readonly parentId: string
   ) {}
 
   inverse(): CommandPayload {
     return new DeleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender(): boolean { return false }
+  requiresRender(): boolean {
+    return false
+  }
 }

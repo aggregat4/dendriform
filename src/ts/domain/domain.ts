@@ -1,5 +1,11 @@
-import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup, Predicate, createCompositeAndPredicate, findFirst } from '../utils/util'
-import { toHtml, containsMarkup, markupHtml} from '../utils/markup'
+import {
+  getCursorPosAcrossMarkup,
+  setCursorPosAcrossMarkup,
+  Predicate,
+  createCompositeAndPredicate,
+  findFirst,
+} from '../utils/util'
+import { toHtml, containsMarkup, markupHtml } from '../utils/markup'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 
 export interface LifecycleAware {
@@ -8,23 +14,33 @@ export interface LifecycleAware {
 }
 
 export interface RepositoryNode {
-  _id: string,
-  name: string,
-  note: string,
-  deleted: boolean,
-  collapsed: boolean,
-  completed: boolean,
-  created: number, // seconds since the epoch
-  updated: number, // seconds since the epoch
+  _id: string
+  name: string
+  note: string
+  deleted: boolean
+  collapsed: boolean
+  completed: boolean
+  created: number // seconds since the epoch
+  updated: number // seconds since the epoch
 }
 
 // const NODE_IS_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.deleted
-export const NODE_IS_NOT_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.deleted
-export const NODE_IS_NOT_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.completed
-export const NODE_NOT_DELETED_AND_NOT_COMPLETED = createCompositeAndPredicate([NODE_IS_NOT_DELETED, NODE_IS_NOT_COMPLETED])
-export const NODE_IS_NOT_COLLAPSED: Predicate<RepositoryNode> = (node: RepositoryNode) => !node.collapsed
+export const NODE_IS_NOT_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) =>
+  !node.deleted
+export const NODE_IS_NOT_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) =>
+  !node.completed
+export const NODE_NOT_DELETED_AND_NOT_COMPLETED = createCompositeAndPredicate([
+  NODE_IS_NOT_DELETED,
+  NODE_IS_NOT_COMPLETED,
+])
+export const NODE_IS_NOT_COLLAPSED: Predicate<RepositoryNode> = (node: RepositoryNode) =>
+  !node.collapsed
 
-function createNewRepositoryNodeWithContent(id: string, name: string, content: string): RepositoryNode {
+function createNewRepositoryNodeWithContent(
+  id: string,
+  name: string,
+  content: string
+): RepositoryNode {
   return {
     _id: id,
     name,
@@ -39,16 +55,20 @@ function createNewRepositoryNodeWithContent(id: string, name: string, content: s
 }
 
 export interface DeferredArray<T> {
-  loaded: boolean,
-  elements: T[],
+  loaded: boolean
+  elements: T[]
 }
 
 export interface ResolvedRepositoryNode {
-  node: RepositoryNode,
-  children: DeferredArray<ResolvedRepositoryNode>,
+  node: RepositoryNode
+  children: DeferredArray<ResolvedRepositoryNode>
 }
 
-export function createNewResolvedRepositoryNodeWithContent(id: string, name: string, content: string): ResolvedRepositoryNode {
+export function createNewResolvedRepositoryNodeWithContent(
+  id: string,
+  name: string,
+  content: string
+): ResolvedRepositoryNode {
   return {
     node: createNewRepositoryNodeWithContent(id, name, content),
     children: { loaded: true, elements: [] },
@@ -64,7 +84,7 @@ export class Filter {
 }
 
 export interface FilteredFragment {
-  fragment: string,
+  fragment: string
   filterMatches: boolean
 }
 
@@ -76,17 +96,23 @@ export class FilteredRepositoryNode {
     readonly children: DeferredArray<FilteredRepositoryNode>,
     readonly filterApplied: boolean,
     readonly filteredName: FilteredFragment,
-    readonly filteredNote: FilteredFragment) {}
+    readonly filteredNote: FilteredFragment
+  ) {}
 
   isIncluded(): boolean {
     if (this.areAnyChildrenIncluded === undefined) {
       // We don't really care about the deferred loading here, if it is not loaded then we don't have to check any children
-      this.areAnyChildrenIncluded = !! findFirst(this.children.elements, (c: FilteredRepositoryNode) => c.isIncluded())
+      this.areAnyChildrenIncluded = !!findFirst(
+        this.children.elements,
+        (c: FilteredRepositoryNode) => c.isIncluded()
+      )
     }
-    return !this.filterApplied
-      || (this.filteredName && this.filteredName.filterMatches)
-      || (this.filteredNote && this.filteredNote.filterMatches)
-      || this.areAnyChildrenIncluded
+    return (
+      !this.filterApplied ||
+      (this.filteredName && this.filteredName.filterMatches) ||
+      (this.filteredNote && this.filteredNote.filterMatches) ||
+      this.areAnyChildrenIncluded
+    )
   }
 }
 
@@ -116,7 +142,7 @@ export const enum RelativeLinearPosition {
 }
 
 export interface RelativeNodePosition {
-  nodeId?: string,
+  nodeId?: string
   beforeOrAfter: RelativeLinearPosition
 }
 

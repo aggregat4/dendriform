@@ -46,7 +46,7 @@ export class TreeManager {
 
   async loadNode(nodeId: string): Promise<void> {
     if (this.currentInitializer !== null) {
-      await this.currentInitializer.then(tree => tree.loadNode(nodeId))
+      await this.currentInitializer.then((tree) => tree.loadNode(nodeId))
     }
   }
 
@@ -71,5 +71,4 @@ export class TreeManager {
     // default tree)
     return Promise.resolve(['dendriform-eventlog'])
   }
-
 }

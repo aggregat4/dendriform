@@ -53,7 +53,8 @@ export function mountTree(el: HTMLElement): void {
 `mountTree` requires a DOM element where the web component should be hung but it does this only when the initialisation has finised. This is embodied in the `initPromise`:
 
 ```typescript
-const initPromise = localEventLog.init()
+const initPromise = localEventLog
+  .init()
   .then(() => eventPump.init())
   .then(() => eventPump.start())
   .then(() => repository.init())
@@ -107,9 +108,9 @@ In order to make garbage collection easier we extended all events with vector cl
 
 There are 3 types of events that each represent a CRDT managed data structure:
 
-* The node contents themselves are modeled as a set of things
-* The parent-child relationships between nodes are managed as a set of parent-child relationship tuples
-* The ordering of the children of a parent is modeled as a set of "logoot" sequences with one logoot sequence per parent
+- The node contents themselves are modeled as a set of things
+- The parent-child relationships between nodes are managed as a set of parent-child relationship tuples
+- The ordering of the children of a parent is modeled as a set of "logoot" sequences with one logoot sequence per parent
 
 No data is actively deleted, all "deleted" nodes remain in the set as tombstones.
 
@@ -118,9 +119,9 @@ There is a periodical garbage collection phase that will collect all nodes that 
 ## TODOs
 
 1. BUG: if 2 offline users reparent B to A and A to B and then they get the events of the other users they will have a cycle in the tree. This can theoretically also happen on larger subtrees. We don't currently have a way to detect or deal with this cycle. In fact we probably go out of memory on rendering.
-  Solution(?): with each executed reparenting operation we must check on the client whether we introduce a cycle and if we do we must reject the operation. This also means that if we generate a cycle with a local operation and a remote operation has come in that happens before us, then we reject the local operation. I think we keep them around in the eventlog because it will happen so rarely that it doesn't matter.
-  TODO: document this in a datastructure problems/solutions section, also document GC there?
-  Also document that while we GC on the client, the server is dumb and does no GC.
+   Solution(?): with each executed reparenting operation we must check on the client whether we introduce a cycle and if we do we must reject the operation. This also means that if we generate a cycle with a local operation and a remote operation has come in that happens before us, then we reject the local operation. I think we keep them around in the eventlog because it will happen so rarely that it doesn't matter.
+   TODO: document this in a datastructure problems/solutions section, also document GC there?
+   Also document that while we GC on the client, the server is dumb and does no GC.
 1. BUG: after opml import you can not expand (or collapse) the newly imported nodes
 1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
 1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)

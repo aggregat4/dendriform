@@ -26,26 +26,36 @@ export const enum NodeFlags {
  * because we don't need more than that accuracy and we save space.
  */
 export interface AddOrUpdateNodeEventPayload {
-  name: string,
-  note: string,
-  flags: number, // bitmask as per NodeFlags
-  created: number, // epoch seconds
-  updated: number, // epoch seconds
+  name: string
+  note: string
+  flags: number // bitmask as per NodeFlags
+  created: number // epoch seconds
+  updated: number // epoch seconds
 }
 
-export function createNewAddOrUpdateNodeEventPayload(name: string, note: string, deleted: boolean, collapsed: boolean, completed: boolean, created?: number): AddOrUpdateNodeEventPayload {
+export function createNewAddOrUpdateNodeEventPayload(
+  name: string,
+  note: string,
+  deleted: boolean,
+  collapsed: boolean,
+  completed: boolean,
+  created?: number
+): AddOrUpdateNodeEventPayload {
   return {
     name,
     note,
     // tslint:disable-next-line:no-bitwise
-    flags: (deleted ? NodeFlags.deleted : 0) | (collapsed ? NodeFlags.collapsed : 0) | (completed ? NodeFlags.completed : 0),
+    flags:
+      (deleted ? NodeFlags.deleted : 0) |
+      (collapsed ? NodeFlags.collapsed : 0) |
+      (completed ? NodeFlags.completed : 0),
     created: created || secondsSinceEpoch(),
     updated: secondsSinceEpoch(),
   }
 }
 
 export interface ReparentNodeEventPayload {
-  parentId: string,
+  parentId: string
 }
 
 export const enum LogootReorderOperation {
@@ -54,13 +64,16 @@ export const enum LogootReorderOperation {
 }
 
 export interface ReorderChildNodeEventPayload {
-  operation: LogootReorderOperation,
-  position: atomIdent, // this is a logoot position/sequence identifier, a bunch of nested arrays
-  childId: string,
-  parentId: string,
+  operation: LogootReorderOperation
+  position: atomIdent // this is a logoot position/sequence identifier, a bunch of nested arrays
+  childId: string
+  parentId: string
 }
 
-export type EventPayloadType = AddOrUpdateNodeEventPayload | ReparentNodeEventPayload | ReorderChildNodeEventPayload
+export type EventPayloadType =
+  | AddOrUpdateNodeEventPayload
+  | ReparentNodeEventPayload
+  | ReorderChildNodeEventPayload
 
 export class DEvent {
   constructor(
@@ -70,7 +83,8 @@ export class DEvent {
     readonly originator: string,
     public clock: VectorClock,
     readonly nodeId: string,
-    readonly payload: EventPayloadType) {}
+    readonly payload: EventPayloadType
+  ) {}
 }
 
 export class CounterTooHighError extends Error {}
@@ -83,24 +97,29 @@ export interface EventSubscriber {
 type EventLogCounter = number
 
 export interface Events {
-  counter: EventLogCounter,
-  events: DEvent[],
+  counter: EventLogCounter
+  events: DEvent[]
 }
 
 export interface DEventSource {
-  publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<void>
+  publish(
+    type: EventType,
+    nodeId: string,
+    payload: EventPayloadType,
+    synchronous: boolean
+  ): Promise<void>
 }
 
 export interface DEventLog extends DEventSource, LifecycleAware {
   /**
    *  A globally unique ID identifying this peer in a multi-peer environment
    */
-  getPeerId(): string,
+  getPeerId(): string
   /**
    * The logical name of the eventlog, for example 'dendriform-tree-structure-events'
    */
-  getName(): string,
-  getCounter(): number,
+  getName(): string
+  getCounter(): number
   insert(events: DEvent[], synchronous: boolean): Promise<void>
   subscribe(subscriber: EventSubscriber): Subscription
   /**
@@ -109,7 +128,11 @@ export interface DEventLog extends DEventSource, LifecycleAware {
    * @throws CounterTooHighError when the provided counter is higher than the max counter
    * of the eventlog.
    */
-  getEventsSince(peerId: string, fromCounterNotInclusive: number, batchSize: number): Promise<Events>
+  getEventsSince(
+    peerId: string,
+    fromCounterNotInclusive: number,
+    batchSize: number
+  ): Promise<Events>
   /**
    * Loads all events from a specific type.
    * @return An array that is causally sorted by vectorclock and peerid.

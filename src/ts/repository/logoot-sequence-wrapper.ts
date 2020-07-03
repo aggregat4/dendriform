@@ -1,4 +1,12 @@
-import {atomIdent, emptySequence, insertAtom, genAtomIdent, compareAtomIdents, sequence, atom} from '../lib/modules/logootsequence'
+import {
+  atomIdent,
+  emptySequence,
+  insertAtom,
+  genAtomIdent,
+  compareAtomIdents,
+  sequence,
+  atom,
+} from '../lib/modules/logootsequence'
 
 function insertMut(seq: sequence, index: number, anAtom: atom) {
   seq.splice(index, 0, anAtom)
@@ -54,20 +62,19 @@ export class LogootSequenceWrapper<T> {
     }
     return pos >= this.length()
       ? genAtomIdent(
-        this.peerId,
-        peerClock,
-        this.seq[this.seq.length - 2][0],
-        this.seq[this.seq.length - 1][0])
-      : genAtomIdent(
-        this.peerId,
-        peerClock,
-        this.seq[pos][0],
-        this.seq[pos + 1][0])
+          this.peerId,
+          peerClock,
+          this.seq[this.seq.length - 2][0],
+          this.seq[this.seq.length - 1][0]
+        )
+      : genAtomIdent(this.peerId, peerClock, this.seq[pos][0], this.seq[pos + 1][0])
   }
 
   deleteAtIndex(pos: number): void {
     if (pos < 0 || pos >= this.length()) {
-      throw new Error(`Trying to remove element at pos ${pos} which is out of bounds for this logootsequence`)
+      throw new Error(
+        `Trying to remove element at pos ${pos} which is out of bounds for this logootsequence`
+      )
     }
     this.seq.splice(pos + 1, 1)
   }
@@ -79,6 +86,6 @@ export class LogootSequenceWrapper<T> {
   toArray(): T[] {
     // cut off the marker items at the beginning and the end
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.seq.slice(1, -1).map(anAtom => anAtom[1])
+    return this.seq.slice(1, -1).map((anAtom) => anAtom[1])
   }
 }

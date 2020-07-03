@@ -1,7 +1,52 @@
-import { KbdEventType, RawKbdShortcut, KeyboardEventTrigger, NodeClassSelector, KbdKey, KbdModifier, KbdModifierType, toRawShortCuts, SemanticShortcut, SemanticShortcutType, AllNodesSelector } from './keyboardshortcut'
-import { getClosestNodeElement, getNodeId, getNodeName, getNodeNote, findPreviousNode, getNameElement, findNextNode, hasChildren, getParentNode, hasParentNode, findLastChildNode, isNodeCompleted } from './tree-dom-util'
-import { getCursorPos, getTextBeforeCursor, getTextAfterCursor, generateUUID, isTextSelected, isCursorAtBeginning, isEmpty, isCursorAtEnd } from '../utils/util'
-import { CommandBuilder, RenameNodeByIdCommandPayload, UpdateNoteByIdCommandPayload, SplitNodeByIdCommandPayload, DeleteNodeByIdCommandPayload, MergeNodesByIdCommandPayload, Command, ReparentNodeByIdCommandPayload, UnCompleteNodeByIdCommandPayload, CompleteNodeByIdCommandPayload } from '../commands/commands'
+import {
+  KbdEventType,
+  RawKbdShortcut,
+  KeyboardEventTrigger,
+  NodeClassSelector,
+  KbdKey,
+  KbdModifier,
+  KbdModifierType,
+  toRawShortCuts,
+  SemanticShortcut,
+  SemanticShortcutType,
+  AllNodesSelector,
+} from './keyboardshortcut'
+import {
+  getClosestNodeElement,
+  getNodeId,
+  getNodeName,
+  getNodeNote,
+  findPreviousNode,
+  getNameElement,
+  findNextNode,
+  hasChildren,
+  getParentNode,
+  hasParentNode,
+  findLastChildNode,
+  isNodeCompleted,
+} from './tree-dom-util'
+import {
+  getCursorPos,
+  getTextBeforeCursor,
+  getTextAfterCursor,
+  generateUUID,
+  isTextSelected,
+  isCursorAtBeginning,
+  isEmpty,
+  isCursorAtEnd,
+} from '../utils/util'
+import {
+  CommandBuilder,
+  RenameNodeByIdCommandPayload,
+  UpdateNoteByIdCommandPayload,
+  SplitNodeByIdCommandPayload,
+  DeleteNodeByIdCommandPayload,
+  MergeNodesByIdCommandPayload,
+  Command,
+  ReparentNodeByIdCommandPayload,
+  UnCompleteNodeByIdCommandPayload,
+  CompleteNodeByIdCommandPayload,
+} from '../commands/commands'
 import { MergeNameOrder } from '../service/service'
 import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import { CommandExecutor } from './tree-helpers'
@@ -19,7 +64,11 @@ export class TreeActionRegistry {
     existingActions.push(action)
   }
 
-  executeKeyboardActions(eventType: KbdEventType, event: Event, treeActionContext: TreeActionContext): void {
+  executeKeyboardActions(
+    eventType: KbdEventType,
+    event: Event,
+    treeActionContext: TreeActionContext
+  ): void {
     const actions = this.keyboardActions.get(eventType) || []
     for (const action of actions) {
       if (action.trigger.isTriggered(eventType, event)) {
@@ -27,7 +76,6 @@ export class TreeActionRegistry {
       }
     }
   }
-
 }
 
 // TODO: implement a parser for a text based syntax for keyborad shortcut definition, this is crazy
@@ -59,75 +107,103 @@ class UpdateNameAction extends TreeAction {
   constructor() {
     super(
       new KeyboardEventTrigger(KbdEventType.Input, new NodeClassSelector('name')),
-      'Update Name')
+      'Update Name'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
-    const targetNode = getClosestNodeElement((event.target as Element))
+    const targetNode = getClosestNodeElement(event.target as Element)
     const nodeId = getNodeId(targetNode)
     const newName = getNodeName(targetNode)
     const oldName = treeActionContext.transientStateManager.getState().focusNodePreviousName
     // const beforeFocusNodeId = nodeId
     // const beforeFocusPos = treeActionContext.transientStateManager.getState().focusNodePreviousPos
     const afterFocusPos = getCursorPos()
-    treeActionContext.transientStateManager.savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
+    treeActionContext.transientStateManager.savePreviousNodeState(
+      nodeId,
+      newName,
+      getNodeNote(targetNode),
+      afterFocusPos
+    )
     // the update itself is inline, but we may need to update attributes of other elements like embdeddedLinks
     await treeActionContext.commandExecutor.performWithDom(
-      new CommandBuilder(
-        new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
+      new CommandBuilder(new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
         .isUndoable()
         // .withBeforeFocusNodeId(beforeFocusNodeId)
         // .withBeforeFocusPos(beforeFocusPos)
         // .withAfterFocusNodeId(nodeId)
         // .withAfterFocusPos(afterFocusPos)
-        .build())
+        .build()
+    )
   }
 }
 
 class UpdateNoteAction extends TreeAction {
   constructor() {
-    super(new KeyboardEventTrigger(KbdEventType.Input, new NodeClassSelector('note')), 'Update Note')
+    super(
+      new KeyboardEventTrigger(KbdEventType.Input, new NodeClassSelector('note')),
+      'Update Note'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
-    const targetNode = getClosestNodeElement((event.target as Element))
+    const targetNode = getClosestNodeElement(event.target as Element)
     const nodeId = getNodeId(targetNode)
     const name = getNodeName(targetNode)
     const newNote = getNodeNote(targetNode)
     const oldNote = treeActionContext.transientStateManager.getState().focusNodePreviousNote
     const afterFocusPos = getCursorPos()
-    treeActionContext.transientStateManager.savePreviousNodeState(nodeId, name, newNote, afterFocusPos)
+    treeActionContext.transientStateManager.savePreviousNodeState(
+      nodeId,
+      name,
+      newNote,
+      afterFocusPos
+    )
     // updates are de facto inline but we may need to update further elements like links
     await treeActionContext.commandExecutor.performWithDom(
-      new CommandBuilder(
-        new UpdateNoteByIdCommandPayload(nodeId, oldNote, newNote))
+      new CommandBuilder(new UpdateNoteByIdCommandPayload(nodeId, oldNote, newNote))
         .isUndoable()
-        .build())
+        .build()
+    )
   }
 }
 
 class SplitNodeAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keypress,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Shift, false), new KbdModifier(KbdModifierType.Ctrl, false)])]),
-      'Split Node')
+      new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.Enter, [
+          new KbdModifier(KbdModifierType.Shift, false),
+          new KbdModifier(KbdModifierType.Ctrl, false),
+        ]),
+      ]),
+      'Split Node'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
     event.preventDefault()
-    const targetNode = getClosestNodeElement((event.target as Element))
+    const targetNode = getClosestNodeElement(event.target as Element)
     const nodeId = getNodeId(targetNode)
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     const newNodeId = generateUUID()
     // make sure we save the transientstate so we can undo properly, especially when we split at the end of a node
-    treeActionContext.transientStateManager.savePreviousNodeState(nodeId, afterSplitNamePart, getNodeNote(targetNode), 0)
+    treeActionContext.transientStateManager.savePreviousNodeState(
+      nodeId,
+      afterSplitNamePart,
+      getNodeNote(targetNode),
+      0
+    )
     const command = new CommandBuilder(
-      new SplitNodeByIdCommandPayload(newNodeId, nodeId, beforeSplitNamePart,
-        afterSplitNamePart, MergeNameOrder.SOURCE_TARGET))
+      new SplitNodeByIdCommandPayload(
+        newNodeId,
+        nodeId,
+        beforeSplitNamePart,
+        afterSplitNamePart,
+        MergeNameOrder.SOURCE_TARGET
+      )
+    )
       .isUndoable()
       // The before position and node is used for the after position and node in undo
       .withBeforeFocusNodeId(nodeId)
@@ -142,11 +218,11 @@ class SplitNodeAction extends TreeAction {
 class EditNoteAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keypress,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Shift, true)])]),
-    'Start Editing Note')
+      new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Shift, true)]),
+      ]),
+      'Start Editing Note'
+    )
   }
   handle() {
     event.preventDefault()
@@ -158,11 +234,14 @@ class EditNoteAction extends TreeAction {
 class MoveNodeUpAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.ArrowUp, [new KbdModifier(KbdModifierType.Shift, true), new KbdModifier(KbdModifierType.Alt, true)])]),
-    'Move Node Up')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.ArrowUp, [
+          new KbdModifier(KbdModifierType.Shift, true),
+          new KbdModifier(KbdModifierType.Alt, true),
+        ]),
+      ]),
+      'Move Node Up'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
@@ -178,11 +257,14 @@ class MoveNodeUpAction extends TreeAction {
 class MoveCursorUpAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.ArrowUp, [new KbdModifier(KbdModifierType.Shift, false), new KbdModifier(KbdModifierType.Alt, false)])]),
-      'Move Cursor Up')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.ArrowUp, [
+          new KbdModifier(KbdModifierType.Shift, false),
+          new KbdModifier(KbdModifierType.Alt, false),
+        ]),
+      ]),
+      'Move Cursor Up'
+    )
   }
 
   handle(event: Event) {
@@ -190,7 +272,7 @@ class MoveCursorUpAction extends TreeAction {
     const nodeElement = getClosestNodeElement(event.target as Element)
     const previousNode = findPreviousNode(nodeElement)
     if (previousNode) {
-      (getNameElement(previousNode) as HTMLElement).focus()
+      ;(getNameElement(previousNode) as HTMLElement).focus()
     }
   }
 }
@@ -198,11 +280,14 @@ class MoveCursorUpAction extends TreeAction {
 class MoveNodeDownAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.ArrowDown, [new KbdModifier(KbdModifierType.Shift, true), new KbdModifier(KbdModifierType.Alt, true)])]),
-      'Move Node Down')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.ArrowDown, [
+          new KbdModifier(KbdModifierType.Shift, true),
+          new KbdModifier(KbdModifierType.Alt, true),
+        ]),
+      ]),
+      'Move Node Down'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
@@ -218,11 +303,14 @@ class MoveNodeDownAction extends TreeAction {
 class MoveCursorDownAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.ArrowDown, [new KbdModifier(KbdModifierType.Shift, false), new KbdModifier(KbdModifierType.Alt, false)])]),
-      'Move Cursor Down')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.ArrowDown, [
+          new KbdModifier(KbdModifierType.Shift, false),
+          new KbdModifier(KbdModifierType.Alt, false),
+        ]),
+      ]),
+      'Move Cursor Down'
+    )
   }
 
   handle(event: Event) {
@@ -230,7 +318,7 @@ class MoveCursorDownAction extends TreeAction {
     const nodeElement = getClosestNodeElement(event.target as Element)
     const nextNode = findNextNode(nodeElement)
     if (nextNode) {
-      (getNameElement(nextNode) as HTMLElement).focus()
+      ;(getNameElement(nextNode) as HTMLElement).focus()
     }
   }
 }
@@ -244,15 +332,18 @@ function createMoveNodeDownCommand(nodeElement: Element): Command {
       parentNodeElement,
       parentNodeElement,
       RelativeLinearPosition.AFTER,
-      nodeElement.nextElementSibling)
+      nodeElement.nextElementSibling
+    )
   } else if (parentNodeElement.nextElementSibling) {
     // the node itself has no next siblings, but if its parent has one, we will move it there
-    return createReparentingCommand(nodeElement,
+    return createReparentingCommand(
+      nodeElement,
       getCursorPos(),
       parentNodeElement,
       parentNodeElement.nextElementSibling,
       RelativeLinearPosition.BEGINNING,
-      null)
+      null
+    )
   }
 }
 
@@ -269,7 +360,8 @@ function createMoveNodeUpCommand(nodeElement: Element): Command {
         parentNodeElement,
         parentNodeElement,
         RelativeLinearPosition.AFTER,
-        nodeElement.previousElementSibling.previousElementSibling)
+        nodeElement.previousElementSibling.previousElementSibling
+      )
     } else {
       return createReparentingCommand(
         nodeElement,
@@ -277,7 +369,8 @@ function createMoveNodeUpCommand(nodeElement: Element): Command {
         parentNodeElement,
         parentNodeElement,
         RelativeLinearPosition.BEGINNING,
-        null)
+        null
+      )
     }
   } else if (parentNodeElement.previousElementSibling) {
     // the node itself has no previous siblings, but if its parent has one, we will move it there
@@ -287,12 +380,19 @@ function createMoveNodeUpCommand(nodeElement: Element): Command {
       parentNodeElement,
       parentNodeElement.previousElementSibling,
       RelativeLinearPosition.END,
-      null)
+      null
+    )
   }
 }
 
-function createReparentingCommand(node: Element, cursorPos: number, oldParentNode: Element, newParentNode: Element,
-  relativePosition: RelativeLinearPosition, relativeNode: Element): Command {
+function createReparentingCommand(
+  node: Element,
+  cursorPos: number,
+  oldParentNode: Element,
+  newParentNode: Element,
+  relativePosition: RelativeLinearPosition,
+  relativeNode: Element
+): Command {
   const nodeId = getNodeId(node)
   const oldAfterNodeId = node.previousElementSibling ? getNodeId(node.previousElementSibling) : null
   const oldParentNodeId = getNodeId(oldParentNode)
@@ -302,7 +402,14 @@ function createReparentingCommand(node: Element, cursorPos: number, oldParentNod
     beforeOrAfter: relativePosition,
   }
   return new CommandBuilder(
-    new ReparentNodeByIdCommandPayload(nodeId, oldParentNodeId, oldAfterNodeId, newParentNodeId, position))
+    new ReparentNodeByIdCommandPayload(
+      nodeId,
+      oldParentNodeId,
+      oldAfterNodeId,
+      newParentNodeId,
+      position
+    )
+  )
     .withBeforeFocusNodeId(nodeId)
     .withBeforeFocusPos(cursorPos)
     .withAfterFocusNodeId(nodeId)
@@ -314,11 +421,14 @@ function createReparentingCommand(node: Element, cursorPos: number, oldParentNod
 class DeleteNodeAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Backspace, [new KbdModifier(KbdModifierType.Shift, true), new KbdModifier(KbdModifierType.Ctrl, true)])]),
-      'Delete Node')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.Backspace, [
+          new KbdModifier(KbdModifierType.Shift, true),
+          new KbdModifier(KbdModifierType.Ctrl, true),
+        ]),
+      ]),
+      'Delete Node'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
@@ -348,11 +458,11 @@ async function deleteNode(node: Element, commandExecutor: CommandExecutor): Prom
 class CompleteNodeAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Ctrl, true)])]),
-      'Toggle Node Completion')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Ctrl, true)]),
+      ]),
+      'Toggle Node Completion'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
@@ -377,8 +487,7 @@ async function toggleNodeCompletion(node: Element, commandExecutor: CommandExecu
     // This is the node where we will focus after completing the current node (if there is one)
     const afterFocusNode = findNextNode(node) || findPreviousNode(node)
     if (afterFocusNode) {
-      builder = builder.withAfterFocusNodeId(getNodeId(afterFocusNode))
-        .withAfterFocusPos(0)
+      builder = builder.withAfterFocusNodeId(getNodeId(afterFocusNode)).withAfterFocusPos(0)
     }
     await commandExecutor.performWithDom(builder.build())
   }
@@ -387,11 +496,14 @@ async function toggleNodeCompletion(node: Element, commandExecutor: CommandExecu
 class MergeNodeWithPreviousAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Backspace, [new KbdModifier(KbdModifierType.Shift, false), new KbdModifier(KbdModifierType.Ctrl, false)])]),
-      'Potentially Merge With Previous Node')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.Backspace, [
+          new KbdModifier(KbdModifierType.Shift, false),
+          new KbdModifier(KbdModifierType.Ctrl, false),
+        ]),
+      ]),
+      'Potentially Merge With Previous Node'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
@@ -414,8 +526,14 @@ class MergeNodeWithPreviousAction extends TreeAction {
         const targetNodeId = getNodeId(targetNode)
         const targetNodeName = getNodeName(targetNode)
         const command = new CommandBuilder(
-          new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName,
-            targetNodeId, targetNodeName, MergeNameOrder.SOURCE_TARGET))
+          new MergeNodesByIdCommandPayload(
+            sourceNodeId,
+            sourceNodeName,
+            targetNodeId,
+            targetNodeName,
+            MergeNameOrder.SOURCE_TARGET
+          )
+        )
           .isUndoable()
           .withBeforeFocusNodeId(targetNodeId)
           .withBeforeFocusPos(0)
@@ -431,17 +549,19 @@ class MergeNodeWithPreviousAction extends TreeAction {
 class MergeNodeWithNextAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Delete)]),
-      'Potentially Merge With Next Node')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.Delete),
+      ]),
+      'Potentially Merge With Next Node'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
-    if (!isTextSelected() &&
-        isCursorAtEnd(event) &&
-        getClosestNodeElement(event.target as Element).nextElementSibling) {
+    if (
+      !isTextSelected() &&
+      isCursorAtEnd(event) &&
+      getClosestNodeElement(event.target as Element).nextElementSibling
+    ) {
       event.preventDefault()
       const sourceNode = getClosestNodeElement(event.target as Element)
       const targetNode = sourceNode.nextElementSibling
@@ -453,8 +573,14 @@ class MergeNodeWithNextAction extends TreeAction {
       const targetNodeId = getNodeId(targetNode)
       const targetNodeName = getNodeName(targetNode)
       const command = new CommandBuilder(
-        new MergeNodesByIdCommandPayload(sourceNodeId, sourceNodeName,
-          targetNodeId, targetNodeName, MergeNameOrder.SOURCE_TARGET))
+        new MergeNodesByIdCommandPayload(
+          sourceNodeId,
+          sourceNodeName,
+          targetNodeId,
+          targetNodeName,
+          MergeNameOrder.SOURCE_TARGET
+        )
+      )
         .isUndoable()
         .withBeforeFocusNodeId(sourceNodeId)
         .withBeforeFocusPos(getCursorPos())
@@ -469,11 +595,11 @@ class MergeNodeWithNextAction extends TreeAction {
 class IndentNodeAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Tab, [new KbdModifier(KbdModifierType.Shift, false)])]),
-      'Indent Node')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.Tab, [new KbdModifier(KbdModifierType.Shift, false)]),
+      ]),
+      'Indent Node'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
@@ -484,7 +610,16 @@ class IndentNodeAction extends TreeAction {
       // when a node is a child, it is inside a "children" container of its parent
       const oldParentNode = getParentNode(node)
       const newParentNode = node.previousElementSibling
-      await treeActionContext.commandExecutor.performWithDom(createReparentingCommand(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.END, null))
+      await treeActionContext.commandExecutor.performWithDom(
+        createReparentingCommand(
+          node,
+          getCursorPos(),
+          oldParentNode,
+          newParentNode,
+          RelativeLinearPosition.END,
+          null
+        )
+      )
     }
   }
 }
@@ -492,11 +627,11 @@ class IndentNodeAction extends TreeAction {
 class UnindentNodeAction extends TreeAction {
   constructor() {
     super(
-      new KeyboardEventTrigger(
-        KbdEventType.Keydown,
-        new NodeClassSelector('name'),
-        [new RawKbdShortcut(KbdKey.Tab, [new KbdModifier(KbdModifierType.Shift, true)])]),
-      'Unindent Node')
+      new KeyboardEventTrigger(KbdEventType.Keydown, new NodeClassSelector('name'), [
+        new RawKbdShortcut(KbdKey.Tab, [new KbdModifier(KbdModifierType.Shift, true)]),
+      ]),
+      'Unindent Node'
+    )
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
@@ -510,13 +645,16 @@ class UnindentNodeAction extends TreeAction {
         event.preventDefault()
         const newParentNode = getParentNode(oldParentNode)
         const afterNode = oldParentNode
-        await treeActionContext.commandExecutor.performWithDom(createReparentingCommand(
-          node,
-          getCursorPos(),
-          oldParentNode,
-          newParentNode,
-          RelativeLinearPosition.AFTER,
-          afterNode))
+        await treeActionContext.commandExecutor.performWithDom(
+          createReparentingCommand(
+            node,
+            getCursorPos(),
+            oldParentNode,
+            newParentNode,
+            RelativeLinearPosition.AFTER,
+            afterNode
+          )
+        )
       }
     }
   }
@@ -528,15 +666,17 @@ class GotoBeginningOfTreeAction extends TreeAction {
       new KeyboardEventTrigger(
         KbdEventType.Keydown,
         new NodeClassSelector('name'),
-        toRawShortCuts(new SemanticShortcut(SemanticShortcutType.BeginningOfDocument))),
-      'Go to Beginning of Tree')
+        toRawShortCuts(new SemanticShortcut(SemanticShortcutType.BeginningOfDocument))
+      ),
+      'Go to Beginning of Tree'
+    )
   }
   handle(event: Event) {
     // Move to the top of the current tree (not the root, but its first child)
     const treeDiv = (event.target as Element).closest('.tree')
     const firstNode = treeDiv.querySelector('div.node div.node')
     if (firstNode) {
-      (getNameElement(firstNode) as HTMLElement).focus()
+      ;(getNameElement(firstNode) as HTMLElement).focus()
     }
   }
 }
@@ -547,8 +687,10 @@ class GotoEndOfTreeAction extends TreeAction {
       new KeyboardEventTrigger(
         KbdEventType.Keydown,
         new NodeClassSelector('name'),
-        toRawShortCuts(new SemanticShortcut(SemanticShortcutType.EndOfDocument))),
-      'Go to End of Tree')
+        toRawShortCuts(new SemanticShortcut(SemanticShortcutType.EndOfDocument))
+      ),
+      'Go to End of Tree'
+    )
   }
   handle(event: Event) {
     // Move to the bottom (last leaf node) of the current tree
@@ -557,7 +699,7 @@ class GotoEndOfTreeAction extends TreeAction {
     if (rootNode) {
       const lastNode = findLastChildNode(rootNode)
       if (lastNode) {
-        (getNameElement(lastNode) as HTMLElement).focus()
+        ;(getNameElement(lastNode) as HTMLElement).focus()
       }
     }
   }
@@ -569,8 +711,10 @@ class SaveDocumentAction extends TreeAction {
       new KeyboardEventTrigger(
         KbdEventType.Keydown,
         new AllNodesSelector(),
-        toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Save))),
-      'Save Document')
+        toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Save))
+      ),
+      'Save Document'
+    )
   }
   handle(event: Event) {
     // suppress saving the page with ctrl s since that is just annoying

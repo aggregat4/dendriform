@@ -1,4 +1,7 @@
-import { ResolvedRepositoryNode, createNewResolvedRepositoryNodeWithContent } from '../domain/domain'
+import {
+  ResolvedRepositoryNode,
+  createNewResolvedRepositoryNodeWithContent,
+} from '../domain/domain'
 import { generateUUID } from '../utils/util'
 
 /**
@@ -29,7 +32,7 @@ export function opmlDocumentToRepositoryNodes(doc: Document): ResolvedRepository
 }
 
 function childElementsByName(el: Element, name: string): Element[] {
-  return Array.from(el.children).filter(c => c.nodeName.toUpperCase() === name.toUpperCase())
+  return Array.from(el.children).filter((c) => c.nodeName.toUpperCase() === name.toUpperCase())
 }
 
 function opmlOutlineNodeToRepositoryNode(outlineEl: Element): ResolvedRepositoryNode {
@@ -39,7 +42,8 @@ function opmlOutlineNodeToRepositoryNode(outlineEl: Element): ResolvedRepository
   const repoNode = createNewResolvedRepositoryNodeWithContent(
     generateUUID(),
     outlineEl.getAttribute('text'),
-    outlineEl.getAttribute('_note'))
+    outlineEl.getAttribute('_note')
+  )
   const children = childElementsByName(outlineEl, 'outline')
   for (const child of children) {
     repoNode.children.elements.push(opmlOutlineNodeToRepositoryNode(child))

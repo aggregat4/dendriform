@@ -1242,20 +1242,20 @@ Since we no longer have jest doing all kinds of magic we can't just have tests s
 
 ```javascript
 // Set up a fake dom environment for tests since we are not in the browser (see https://github.com/rstacruz/jsdom-global)
-import "jsdom-global/register";
+import 'jsdom-global/register'
 
-import { trun } from "./tizzytest";
+import { trun } from './tizzytest'
 
 // All the tests
-import "./vectorclock.test";
-import "./domain-search.test";
-import "./keyboardshortcut.test";
-import "./logoot-sequence-wrapper.test";
-import "./markup.test";
-import "./util.test";
+import './vectorclock.test'
+import './domain-search.test'
+import './keyboardshortcut.test'
+import './logoot-sequence-wrapper.test'
+import './markup.test'
+import './util.test'
 
 // Run tests async since the trun is async
-(async () => await trun("All Tests"))();
+;(async () => await trun('All Tests'))()
 ```
 
 `tizzytest` is my typescript conversion of baretest. I run this file with `npx ts-node test/runtests.ts`.
@@ -1267,7 +1267,7 @@ Doing this conversion I stumbled on a few interesting issues:
 This explains the top line in the `runtests.ts` file I included:
 
 ```javascript
-import "jsdom-global/register";
+import 'jsdom-global/register'
 ```
 
 The second issue was ts-node having trouble loading pure javascript files and treating them as es6 modules. This is a known issue with node. You can work around it by renaming the file to .mjs which makes node see it as an ES6 module, but typescript doesn't currently support this exetension for loading dependencies.

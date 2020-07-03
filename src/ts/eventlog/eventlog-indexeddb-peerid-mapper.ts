@@ -4,14 +4,14 @@ import { StoredEvent } from './eventlog-storedevent'
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
 
 interface PeerIdMapping {
-  externalid: string,
-  internalid: number,
+  externalid: string
+  internalid: number
 }
 
 interface PeerIdMappingSchema extends DBSchema {
   'peerid-mapping': {
-    key: string,
-    value: PeerIdMapping,
+    key: string
+    value: PeerIdMapping
   }
 }
 
@@ -51,7 +51,7 @@ export class LocalEventLogIdMapper {
   private async savePeerIdMapping(): Promise<void> {
     const mappings = []
     for (const [key, value] of this.externalToInternalIdMap.entries()) {
-      const mapping = {externalid: key, internalid: value}
+      const mapping = { externalid: key, internalid: value }
       mappings.push(mapping)
       await this.db.put('peerid-mapping', mapping)
     }
@@ -64,7 +64,8 @@ export class LocalEventLogIdMapper {
       this.internalToExternalPeerId(Number(ev.peerid)),
       new VectorClock(this.internalToExternalVectorclockValues(ev.vectorclock)),
       ev.treenodeid,
-      ev.payload)
+      ev.payload
+    )
   }
 
   private findNextInternalId(): number {
@@ -103,10 +104,13 @@ export class LocalEventLogIdMapper {
    * @returns A vectorclock where all node ids have been mapped from external UUIDs to
    * internal number ids. This never throws since an unknown nodeId is just added to the map.
    */
-  async externalToInternalVectorclockValues(externalClockValues: VectorClockValuesType): Promise<VectorClockValuesType> {
+  async externalToInternalVectorclockValues(
+    externalClockValues: VectorClockValuesType
+  ): Promise<VectorClockValuesType> {
     const internalValues = {}
     for (const externalNodeId of Object.keys(externalClockValues)) {
-      internalValues[await this.externalToInternalPeerId(externalNodeId)] = externalClockValues[externalNodeId]
+      internalValues[await this.externalToInternalPeerId(externalNodeId)] =
+        externalClockValues[externalNodeId]
     }
     return internalValues
   }
@@ -115,10 +119,13 @@ export class LocalEventLogIdMapper {
    * @returns A vectorclock where all node ids have been mapped from internal numbers to
    * external UUIDs. This function throws when the internal id is unknown.
    */
-  private internalToExternalVectorclockValues(internalClockValues: VectorClockValuesType): VectorClockValuesType {
+  private internalToExternalVectorclockValues(
+    internalClockValues: VectorClockValuesType
+  ): VectorClockValuesType {
     const externalValues = {}
     for (const internalNodeId of Object.keys(internalClockValues)) {
-      externalValues[this.internalToExternalPeerId(Number(internalNodeId))] = internalClockValues[internalNodeId]
+      externalValues[this.internalToExternalPeerId(Number(internalNodeId))] =
+        internalClockValues[internalNodeId]
     }
     return externalValues
   }

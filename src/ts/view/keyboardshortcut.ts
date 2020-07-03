@@ -1,6 +1,10 @@
 import { OperatingSystem, guessOperatingSystem } from '../utils/util'
 
-export const enum KbdEventType { Input, Keydown, Keypress }
+export const enum KbdEventType {
+  Input,
+  Keydown,
+  Keypress,
+}
 export enum SemanticShortcutType {
   Undo = 'Undo',
   Redo = 'Redo',
@@ -59,7 +63,10 @@ export class RawKbdShortcut {
   constructor(readonly key: KbdKey | KbdCode, readonly modifiers: KbdModifier[] = []) {}
 
   toString(): string {
-    const modifiers = this.modifiers.filter(m => m.pressed).map(m => m.type.toString()).join('+')
+    const modifiers = this.modifiers
+      .filter((m) => m.pressed)
+      .map((m) => m.type.toString())
+      .join('+')
     if (modifiers) {
       return `${modifiers}+${this.key.toString()}`
     } else {
@@ -79,61 +86,75 @@ const macOsMap = new Map<SemanticShortcutType, RawKbdShortcut[]>()
 macOsMap.set(
   SemanticShortcutType.Undo,
   // Command+z
-  [new RawKbdShortcut(new KbdCode(90), [
-    new KbdModifier(KbdModifierType.Command, true),
-    new KbdModifier(KbdModifierType.Shift, false)])])
+  [
+    new RawKbdShortcut(new KbdCode(90), [
+      new KbdModifier(KbdModifierType.Command, true),
+      new KbdModifier(KbdModifierType.Shift, false),
+    ]),
+  ]
+)
 macOsMap.set(
   SemanticShortcutType.Redo,
   // Command+Shift+z
-  [new RawKbdShortcut(new KbdCode(90), [
-    new KbdModifier(KbdModifierType.Command, true),
-    new KbdModifier(KbdModifierType.Shift, true)])])
+  [
+    new RawKbdShortcut(new KbdCode(90), [
+      new KbdModifier(KbdModifierType.Command, true),
+      new KbdModifier(KbdModifierType.Shift, true),
+    ]),
+  ]
+)
 macOsMap.set(
   SemanticShortcutType.BeginningOfDocument,
   // Home
-  [new RawKbdShortcut(KbdKey.Home)])
+  [new RawKbdShortcut(KbdKey.Home)]
+)
 macOsMap.set(
   SemanticShortcutType.EndOfDocument,
   // End
-  [new RawKbdShortcut(KbdKey.End)])
+  [new RawKbdShortcut(KbdKey.End)]
+)
 macOsMap.set(
   SemanticShortcutType.Save,
   // Command+s
-  [new RawKbdShortcut(KbdKey.s, [
-    new KbdModifier(KbdModifierType.Command, true)])])
+  [new RawKbdShortcut(KbdKey.s, [new KbdModifier(KbdModifierType.Command, true)])]
+)
 shortcutMappings.set(OperatingSystem.MacOs, macOsMap)
 
 const windowsMap = new Map<SemanticShortcutType, RawKbdShortcut[]>()
 windowsMap.set(
   SemanticShortcutType.Undo,
   // Ctrl+z
-  [new RawKbdShortcut(new KbdCode(90), [
-    new KbdModifier(KbdModifierType.Ctrl, true),
-    new KbdModifier(KbdModifierType.Shift, false)])])
-windowsMap.set(
-  SemanticShortcutType.Redo,
   [
-    // Shift+Ctrl+z
     new RawKbdShortcut(new KbdCode(90), [
       new KbdModifier(KbdModifierType.Ctrl, true),
-      new KbdModifier(KbdModifierType.Shift, true)]),
-    // Ctrl+y
-    new RawKbdShortcut(KbdKey.y, [
-      new KbdModifier(KbdModifierType.Ctrl, true)]),
-  ])
+      new KbdModifier(KbdModifierType.Shift, false),
+    ]),
+  ]
+)
+windowsMap.set(SemanticShortcutType.Redo, [
+  // Shift+Ctrl+z
+  new RawKbdShortcut(new KbdCode(90), [
+    new KbdModifier(KbdModifierType.Ctrl, true),
+    new KbdModifier(KbdModifierType.Shift, true),
+  ]),
+  // Ctrl+y
+  new RawKbdShortcut(KbdKey.y, [new KbdModifier(KbdModifierType.Ctrl, true)]),
+])
 windowsMap.set(
   SemanticShortcutType.BeginningOfDocument,
   // Ctrl+Home
-  [new RawKbdShortcut(KbdKey.Home, [new KbdModifier(KbdModifierType.Ctrl, true)])])
+  [new RawKbdShortcut(KbdKey.Home, [new KbdModifier(KbdModifierType.Ctrl, true)])]
+)
 windowsMap.set(
   SemanticShortcutType.EndOfDocument,
   // Ctrl+End
-  [new RawKbdShortcut(KbdKey.End, [new KbdModifier(KbdModifierType.Ctrl, true)])])
+  [new RawKbdShortcut(KbdKey.End, [new KbdModifier(KbdModifierType.Ctrl, true)])]
+)
 windowsMap.set(
   SemanticShortcutType.Save,
   // Ctrl+s
-  [new RawKbdShortcut(KbdKey.s, [
-    new KbdModifier(KbdModifierType.Ctrl, true)])])
+  [new RawKbdShortcut(KbdKey.s, [new KbdModifier(KbdModifierType.Ctrl, true)])]
+)
 shortcutMappings.set(OperatingSystem.Windows, windowsMap)
 shortcutMappings.set(OperatingSystem.Linux, windowsMap)
 
@@ -150,10 +171,11 @@ export class KeyboardEventTrigger {
     // simplified selector like ".class" or "#id"
     readonly targetFilter: TreeNodeSelector,
     // a list of keyboardshortcuts that trigger this, evaluated as an OR
-    readonly shortcuts: RawKbdShortcut[] = []) {}
+    readonly shortcuts: RawKbdShortcut[] = []
+  ) {}
 
   toString(): string {
-    return this.shortcuts.map(s => s.toString()).join(', ')
+    return this.shortcuts.map((s) => s.toString()).join(', ')
   }
 
   isTriggered(type: KbdEventType, event: Event): boolean {
@@ -168,7 +190,10 @@ export class KeyboardEventTrigger {
       case KbdEventType.Keypress:
         const kbdEvent = event as KeyboardEvent
         for (const shortcut of this.shortcuts) {
-          if (this.doesKeyMatch(shortcut.key, kbdEvent) && this.doModifiersMatch(shortcut.modifiers, kbdEvent)) {
+          if (
+            this.doesKeyMatch(shortcut.key, kbdEvent) &&
+            this.doModifiersMatch(shortcut.modifiers, kbdEvent)
+          ) {
             return true
           }
         }
@@ -201,13 +226,17 @@ export class KeyboardEventTrigger {
 
   private isModifierPresent(modifier: KbdModifier, event: KeyboardEvent): boolean {
     switch (modifier.type) {
-      case KbdModifierType.Alt: return !!event.altKey
+      case KbdModifierType.Alt:
+        return !!event.altKey
       // this is tricky, according to https://stackoverflow.com/a/5500536/1996 this may or may not work in chrome
-      case KbdModifierType.Command: return !!event.metaKey
-      case KbdModifierType.Ctrl: return !!event.ctrlKey
-      case KbdModifierType.Shift: return !!event.shiftKey
-      default: throw Error(`Unexpected keyboard modifier type in a keyboard trigger`)
+      case KbdModifierType.Command:
+        return !!event.metaKey
+      case KbdModifierType.Ctrl:
+        return !!event.ctrlKey
+      case KbdModifierType.Shift:
+        return !!event.shiftKey
+      default:
+        throw Error(`Unexpected keyboard modifier type in a keyboard trigger`)
     }
   }
-
 }

@@ -32,7 +32,7 @@ export class BackoffWithJitterTimeoutStrategy implements TimeoutStrategy {
   }
 
   private calcBackoffTimeout(currentTimeoutMs: number): number {
-    return (currentTimeoutMs * 2) + (1000 * Math.random())
+    return currentTimeoutMs * 2 + 1000 * Math.random()
   }
 }
 

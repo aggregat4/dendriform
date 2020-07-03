@@ -5,64 +5,62 @@ export class ActivityIndicator extends HTMLElement {
   private spinner: HTMLElement = null
   private timerId = null
   private _activityIndicating: ActivityIndicating = null
-  private readonly template = () => html`
-    <style>
-    .spinner {
-      display: none;
-    }
-
-    .spinner,
-    .spinner:after {
-      border-radius: 50%;
-      width: 1em;
-      height: 1em;
-    }
-
-    .spinner {
-      font-size: 10px;
-      position: relative;
-      text-indent: -9999em;
-      border-top: 0.5em solid rgba(0, 0, 0, 0.2);
-      border-right: 0.5em solid rgba(0, 0, 0, 0.2);
-      border-bottom: 0.5em solid rgba(0, 0, 0, 0.2);
-      border-left: 0.5em solid #ffffff;
-      transform: translateZ(0);
-      animation: load8 1.1s infinite linear;
-    }
-
-    @-webkit-keyframes load8 {
-      0% {
-        transform: rotate(0deg);
+  private readonly template = () => html` <style>
+      .spinner {
+        display: none;
       }
-      100% {
-        transform: rotate(360deg);
-      }
-    }
 
-    @keyframes load8 {
-      0% {
-        transform: rotate(0deg);
+      .spinner,
+      .spinner:after {
+        border-radius: 50%;
+        width: 1em;
+        height: 1em;
       }
-      100% {
-        transform: rotate(360deg);
+
+      .spinner {
+        font-size: 10px;
+        position: relative;
+        text-indent: -9999em;
+        border-top: 0.5em solid rgba(0, 0, 0, 0.2);
+        border-right: 0.5em solid rgba(0, 0, 0, 0.2);
+        border-bottom: 0.5em solid rgba(0, 0, 0, 0.2);
+        border-left: 0.5em solid #ffffff;
+        transform: translateZ(0);
+        animation: load8 1.1s infinite linear;
       }
-    }
+
+      @-webkit-keyframes load8 {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes load8 {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
     </style>
     <div class="spinner"></div>`
 
   constructor() {
     super()
-    this.attachShadow({mode: 'open'})
+    this.attachShadow({ mode: 'open' })
   }
 
   connectedCallback(): void {
     render(this.template(), this.shadowRoot)
     this.spinner = this.firstElementChild as HTMLElement
-    if (! this.timerId) {
+    if (!this.timerId) {
       this.timerId = setInterval(() => {
         this.updateActivityStatus()
-      },
-      this.delayMs)
+      }, this.delayMs)
     }
   }
 
@@ -96,7 +94,7 @@ export class ActivityIndicator extends HTMLElement {
 
   updateActivityStatus(): void {
     const activityIndicating = this.activityIndicating
-    if (! activityIndicating) {
+    if (!activityIndicating) {
       return
     }
     const currentDisplay = this.spinner.style.display
@@ -118,7 +116,8 @@ export class ActivityIndicator extends HTMLElement {
   private installPreventCloseWindowHandler() {
     if (!window.onbeforeunload) {
       window.onbeforeunload = (e: BeforeUnloadEvent) => {
-        const message = 'Events are being saved, if you close the window you may lose data. Proceed?'
+        const message =
+          'Events are being saved, if you close the window you may lose data. Proceed?'
         const event = e || window.event
         // For IE and Firefox
         if (event) {
@@ -140,7 +139,6 @@ export class ActivityIndicator extends HTMLElement {
       this.timerId = null
     }
   }
-
 }
 
 customElements.define('df-spinner', ActivityIndicator)

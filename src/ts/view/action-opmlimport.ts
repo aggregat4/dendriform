@@ -12,8 +12,10 @@ import { sharedCommonStyles } from './shared-styles'
 
 export class OpmlImportAction extends TreeAction {
   constructor(readonly dialogElement: DialogElement) {
-    super(new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name')),
-      'Import OPML')
+    super(
+      new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name')),
+      'Import OPML'
+    )
   }
 
   handle(event: Event, treeActionContext: TreeActionContext): void {
@@ -22,7 +24,8 @@ export class OpmlImportAction extends TreeAction {
   }
 }
 
-export class OpmlImportDialog extends HTMLElement implements ActivityIndicating, DialogLifecycleAware {
+export class OpmlImportDialog extends HTMLElement
+  implements ActivityIndicating, DialogLifecycleAware {
   private _treeActionContext: TreeActionContext
   private importing = false
   private success = null
@@ -67,15 +70,19 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
         </header>
         ${this.error ? html`<div class="error">${this.error}</div>` : ''}
         ${this.success ? html`<div class="success">${this.success}</div>` : ''}
-        <input class="uploadOpml" type="file" @change=${this.handleFilesChanged.bind(this)}>Select OPML File</input>
-        <button class="import primary" ?disabled=${this.disabled} @click=${this.importFile.bind(this)}>Import File</button>
+        <input class="uploadOpml" type="file" @change=${this.handleFilesChanged.bind(
+          this
+        )}>Select OPML File</input>
+        <button class="import primary" ?disabled=${this.disabled} @click=${this.importFile.bind(
+    this
+  )}>Import File</button>
         <df-spinner delayMs="250"/>
       </section>
     </div>`
 
   constructor() {
     super()
-    this.attachShadow({mode: 'open'})
+    this.attachShadow({ mode: 'open' })
   }
 
   connectedCallback(): void {
@@ -155,12 +162,17 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
 
   private resetFileSelector() {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    (this.shadowRoot.querySelector('.uploadOpml') as HTMLInputElement).value = ''
+    ;(this.shadowRoot.querySelector('.uploadOpml') as HTMLInputElement).value = ''
   }
 
-  private async createNode(commandExecutor: CommandExecutor, node: ResolvedRepositoryNode, parentId: string): Promise<void> {
+  private async createNode(
+    commandExecutor: CommandExecutor,
+    node: ResolvedRepositoryNode,
+    parentId: string
+  ): Promise<void> {
     const command = new CommandBuilder(
-      new CreateChildNodeCommandPayload(node.node._id, node.node.name, node.node.note, parentId))
+      new CreateChildNodeCommandPayload(node.node._id, node.node.name, node.node.note, parentId)
+    )
       .isUndoable()
       .isBatch()
       .build()

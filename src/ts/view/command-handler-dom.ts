@@ -20,7 +20,7 @@ import {
   CompleteNodeByIdCommandPayload,
   UnCompleteNodeByIdCommandPayload,
 } from '../commands/commands'
-import {MergeNameOrder} from '../service/service'
+import { MergeNameOrder } from '../service/service'
 import {
   getChildrenElement,
   getChildrenElementOrCreate,
@@ -36,7 +36,6 @@ import { renderNode } from './node-component'
 import { render } from 'lit-html'
 
 export class DomCommandHandler implements CommandHandler {
-
   async exec(command: Command): Promise<void> {
     const cmd = command.payload
     if (cmd instanceof SplitNodeByIdCommandPayload) {
@@ -44,14 +43,16 @@ export class DomCommandHandler implements CommandHandler {
         document.getElementById(cmd.nodeId),
         cmd.newNodeName,
         cmd.remainingNodeName,
-        cmd.siblingId)
+        cmd.siblingId
+      )
     } else if (cmd instanceof MergeNodesByIdCommandPayload) {
       this.domMergeNodes(
         document.getElementById(cmd.sourceNodeId),
         cmd.sourceNodeName,
         document.getElementById(cmd.targetNodeId),
         cmd.targetNodeName,
-        cmd.mergeNameOrder)
+        cmd.mergeNameOrder
+      )
     } else if (cmd instanceof RenameNodeByIdCommandPayload) {
       this.domRenameNode(document.getElementById(cmd.nodeId), cmd.newName)
     } else if (cmd instanceof ReparentNodeByIdCommandPayload) {
@@ -60,7 +61,8 @@ export class DomCommandHandler implements CommandHandler {
         document.getElementById(cmd.nodeId),
         document.getElementById(cmd.newParentNodeId),
         relativeNode,
-        cmd.position.beforeOrAfter)
+        cmd.position.beforeOrAfter
+      )
     } else if (cmd instanceof OpenNodeByIdCommandPayload) {
       this.domOpenNode(document.getElementById(cmd.nodeId))
     } else if (cmd instanceof CloseNodeByIdCommandPayload) {
@@ -76,24 +78,39 @@ export class DomCommandHandler implements CommandHandler {
     } else if (cmd instanceof UpdateNoteByIdCommandPayload) {
       this.domUpdateNote(document.getElementById(cmd.nodeId), cmd.newNote)
     } else if (cmd instanceof CreateChildNodeCommandPayload) {
-      return this.domCreateChildNode(cmd.nodeId, cmd.name, cmd.note, document.getElementById(cmd.parentId))
+      return this.domCreateChildNode(
+        cmd.nodeId,
+        cmd.name,
+        cmd.note,
+        document.getElementById(cmd.parentId)
+      )
     } else {
       throw new Error(`Unknown Command for DomCommandHandler: ${typeof command.payload}}`)
     }
     return Promise.resolve()
   }
 
-  private domMergeNodes(sourceNode: Element, sourceNodeName: string,
-                        targetNode: Element, targetNodeName: string,
-                        mergeNameOrder: MergeNameOrder): void {
+  private domMergeNodes(
+    sourceNode: Element,
+    sourceNodeName: string,
+    targetNode: Element,
+    targetNodeName: string,
+    mergeNameOrder: MergeNameOrder
+  ): void {
     // DOM Handling
     // 1. rename targetnode to be targetnode.name + sourcenode.name
     // 2. move all children of sourcenode to targetnode (actual move, just reparent)
     // 3. delete sourcenode
     // 4. focus the new node at the end of its old name
-    (mergeNameOrder === MergeNameOrder.SOURCE_TARGET)
-      ? this.replaceElementWithTaggedContent(getNameElement(targetNode), sourceNodeName + targetNodeName)
-      : this.replaceElementWithTaggedContent(getNameElement(targetNode), targetNodeName + sourceNodeName)
+    mergeNameOrder === MergeNameOrder.SOURCE_TARGET
+      ? this.replaceElementWithTaggedContent(
+          getNameElement(targetNode),
+          sourceNodeName + targetNodeName
+        )
+      : this.replaceElementWithTaggedContent(
+          getNameElement(targetNode),
+          targetNodeName + sourceNodeName
+        )
     // Only move source node children if it has any
     // TODO: make this childnodestuff safer with some utility methods
     if (hasChildren(sourceNode)) {
@@ -106,8 +123,12 @@ export class DomCommandHandler implements CommandHandler {
     sourceNode.remove()
   }
 
-  private domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
-                             newNodeId: string): void {
+  private domSplitNode(
+    node: Element,
+    newNodeName: string,
+    originalNodeName: string,
+    newNodeId: string
+  ): void {
     this.replaceElementWithTaggedContent(getNameElement(node), originalNodeName)
     const newSiblingEl = this.createDomNode(newNodeId, newNodeName, null)
     node.insertAdjacentElement('beforebegin', newSiblingEl)
@@ -134,8 +155,12 @@ export class DomCommandHandler implements CommandHandler {
     verifyAndRepairMarkup(nameEl, newName)
   }
 
-  private domReparentNode(node: Element, newParentNode: Element,
-                          relativeNode: Element, relativePosition: RelativeLinearPosition): void {
+  private domReparentNode(
+    node: Element,
+    newParentNode: Element,
+    relativeNode: Element,
+    relativePosition: RelativeLinearPosition
+  ): void {
     // save the original parent node for later
     const oldParentNode = getParentNode(node)
     // if we add a new child to a parent we may need to unhide the toggle button on the new parent
@@ -185,7 +210,12 @@ export class DomCommandHandler implements CommandHandler {
     verifyAndRepairMarkup(noteEl, note)
   }
 
-  private domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): void {
+  private domCreateChildNode(
+    childId: string,
+    childName: string,
+    childNote: string,
+    parentNode: Element
+  ): void {
     const parentChildrenNode = getChildrenElementOrCreate(parentNode)
     const newNode = this.createDomNode(childId, childName, childNote)
     parentChildrenNode.appendChild(newNode)

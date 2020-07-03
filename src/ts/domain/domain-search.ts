@@ -1,4 +1,10 @@
-import { Filter, FilteredFragment, ResolvedRepositoryNode, FilteredRepositoryNode, QueryComponent } from './domain'
+import {
+  Filter,
+  FilteredFragment,
+  ResolvedRepositoryNode,
+  FilteredRepositoryNode,
+  QueryComponent,
+} from './domain'
 import { containsMarkup, toHtml, markupHtml, markupHtmlWithFilterHits } from '../utils/markup'
 import { isEmpty } from '../utils/util'
 
@@ -8,7 +14,10 @@ const splitRegexp = new RegExp('[,\\.;\\s]+')
  * Splits the query into its consituents, removing whitespace and lowercasing all strings.
  */
 export function parseQuery(query: string): QueryComponent[] {
-  return query.split(splitRegexp).filter(s => !isEmpty(s)).map(comp => new QueryComponent(comp.toLowerCase()))
+  return query
+    .split(splitRegexp)
+    .filter((s) => !isEmpty(s))
+    .map((comp) => new QueryComponent(comp.toLowerCase()))
 }
 
 /**
@@ -35,7 +44,12 @@ function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
       }
     } else {
       return {
-        fragment: toHtml(markupHtmlWithFilterHits(rawHtml, filter.queryComponents.map(qc => qc.value))),
+        fragment: toHtml(
+          markupHtmlWithFilterHits(
+            rawHtml,
+            filter.queryComponents.map((qc) => qc.value)
+          )
+        ),
         filterMatches: true,
       }
     }
@@ -50,8 +64,12 @@ function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
 export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): FilteredRepositoryNode {
   return new FilteredRepositoryNode(
     node.node,
-    { loaded: node.children.loaded, elements: node.children.elements.map(c => filterNode(c, filter)) },
+    {
+      loaded: node.children.loaded,
+      elements: node.children.elements.map((c) => filterNode(c, filter)),
+    },
     !!filter,
     node.node.name ? filterHtml(node.node.name, filter) : null,
-    node.node.note ? filterHtml(node.node.note, filter) : null)
+    node.node.note ? filterHtml(node.node.note, filter) : null
+  )
 }

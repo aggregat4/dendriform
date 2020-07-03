@@ -5,15 +5,15 @@ import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobsche
 import { IDBPDatabase, DBSchema, openDB } from 'idb'
 
 interface EventPumpMetadata {
-  id: string,
-  maxlocalcounter: number,
-  maxservercounter: number,
+  id: string
+  maxlocalcounter: number
+  maxservercounter: number
 }
 
 interface EventPumpSchema extends DBSchema {
-  'metadata': {
-    key: string,
-    value: EventPumpMetadata,
+  metadata: {
+    key: string
+    value: EventPumpMetadata
   }
 }
 
@@ -37,7 +37,6 @@ interface EventPumpSchema extends DBSchema {
  * hard for now. Instead this implementation polls the client and it polls the server.
  */
 export class EventPump implements LifecycleAware {
-
   private db: IDBPDatabase<EventPumpSchema>
   private readonly dbName: string
   private readonly DEFAULT_DELAY_MS = 5000
@@ -45,9 +44,13 @@ export class EventPump implements LifecycleAware {
   private readonly EVENT_TRANSMISSION_BATCH_SIZE = 250
 
   private localEventPump = new JobScheduler(
-    new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS), this.drainLocalEvents.bind(this))
+    new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS),
+    this.drainLocalEvents.bind(this)
+  )
   private remoteEventPump = new JobScheduler(
-    new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS), this.drainRemoteEvents.bind(this))
+    new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS),
+    this.drainRemoteEvents.bind(this)
+  )
 
   private maxServerCounter: number
   /**
@@ -57,8 +60,10 @@ export class EventPump implements LifecycleAware {
    */
   private maxLocalCounter: number
 
-  constructor(private readonly localEventLog: DEventLog,
-              private readonly remoteEventLog: RemoteEventLog) {
+  constructor(
+    private readonly localEventLog: DEventLog,
+    private readonly remoteEventLog: RemoteEventLog
+  ) {
     this.dbName = localEventLog.getName() + '-eventpump'
   }
 
@@ -119,7 +124,10 @@ export class EventPump implements LifecycleAware {
    */
   private async drainLocalEvents(): Promise<void> {
     const events: Events = await this.localEventLog.getEventsSince(
-      this.localEventLog.getPeerId(), this.maxLocalCounter, this.EVENT_TRANSMISSION_BATCH_SIZE)
+      this.localEventLog.getPeerId(),
+      this.maxLocalCounter,
+      this.EVENT_TRANSMISSION_BATCH_SIZE
+    )
     if (events.events.length > 0) {
       await this.remoteEventLog.publishEvents(events.events)
       this.maxLocalCounter = events.counter
@@ -133,7 +141,11 @@ export class EventPump implements LifecycleAware {
    * @throws something on server contact failure
    */
   private async drainRemoteEvents(): Promise<void> {
-    const events = await this.remoteEventLog.getEventsSince(this.maxServerCounter, this.localEventLog.getPeerId(), this.EVENT_TRANSMISSION_BATCH_SIZE)
+    const events = await this.remoteEventLog.getEventsSince(
+      this.maxServerCounter,
+      this.localEventLog.getPeerId(),
+      this.EVENT_TRANSMISSION_BATCH_SIZE
+    )
     if (events.events.length > 0) {
       // This can be async, the client should see the changes eventually
       await this.localEventLog.insert(events.events, false)
@@ -141,5 +153,4 @@ export class EventPump implements LifecycleAware {
       await this.saveMetadata()
     }
   }
-
 }
