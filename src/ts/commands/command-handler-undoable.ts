@@ -7,6 +7,7 @@ import {
 export class UndoableCommandHandler implements CommandHandler {
   readonly undoBuffer: Command[] = []
   // readonly redoBuffer: Array<Promise<Command>> = []
+  // eslint-disable-next-line @typescript-eslint/no-inferrable-types
   private undoCommandPointer: number = -1
 
   constructor(readonly commandHandler: CommandHandler) {}
@@ -32,7 +33,7 @@ export class UndoableCommandHandler implements CommandHandler {
     }
   }
 
-  async exec(command: Command): Promise<any> {
+  async exec(command: Command): Promise<void> {
     const commandPromise = this.commandHandler.exec(command)
     if (command.undoable) {
       const undoCommand = this.invert(command)

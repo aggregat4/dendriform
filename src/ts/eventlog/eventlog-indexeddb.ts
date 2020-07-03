@@ -174,7 +174,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
   }
 
-  private async storeEvents(events: DEvent[]): Promise<any> {
+  private async storeEvents(events: DEvent[]): Promise<void> {
     await this.store(events)
     await this.saveMetadata()
     this.notifySubscribers(events)
@@ -258,7 +258,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
   }
 
-  private async saveMetadata(): Promise<any> {
+  private async saveMetadata(): Promise<void> {
     const metadata: PeerMetadata = {
       eventlogid: this.peerId,
       vectorclock: this.vectorClock.values,
@@ -266,13 +266,13 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
     const tx = this.db.transaction('peer', 'readwrite')
     try {
-      return tx.store.put(metadata)
+      await tx.store.put(metadata)
     } catch (e) {
       console.error(e)
     }
   }
 
-  publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any> {
+  async publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<void> {
     // We update the vectorclock for our own peer only in this location since we need a continuously up to date view
     // on the world. We increment our clock for other peer data in drainStorageQueue() where we only take into account
     // other peers. This can only happen there since that is the time where we persist the current state of the world
@@ -281,7 +281,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     // of date in our vectorclock. Not sure how to solve this.
     this.vectorClock.increment(this.peerId)
     // Locally generated events have no localId _yet_, it is filled with the current maxCounter when storing the event
-    return this.insert([new DEvent(-1, type, this.peerId, this.vectorClock, nodeId, payload)], synchronous)
+    await this.insert([new DEvent(-1, type, this.peerId, this.vectorClock, nodeId, payload)], synchronous)
   }
 
   /**
@@ -292,16 +292,15 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
    *
    * @param events The events to persist and rebroadcast.
    */
-  async insert(events: DEvent[], synchronous: boolean): Promise<any> {
+  async insert(events: DEvent[], synchronous: boolean): Promise<void> {
     if (events.length === 0) {
-      return Promise.resolve()
+      return
     }
     try {
       this.storageQueue.push(...events)
       if (synchronous) {
         await this.drainStorageQueue(true)
       }
-      return Promise.resolve()
     } catch (err) {
       // tslint:disable-next-line:no-console
       console.error(`ERROR occurred during nodeEvent storage: `, err)

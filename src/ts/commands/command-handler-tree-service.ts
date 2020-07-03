@@ -19,8 +19,9 @@ import {TreeService} from '../service/tree-service'
 export class TreeServiceCommandHandler implements CommandHandler {
   constructor(readonly treeService: TreeService) {}
 
-  async exec(command: Command): Promise<any> {
-    return Promise.resolve(this.toAction(command)())
+  exec(command: Command): Promise<void> {
+    this.toAction(command)()
+    return
   }
 
   private toAction(command: Command): () => void {
@@ -51,7 +52,7 @@ export class TreeServiceCommandHandler implements CommandHandler {
     } else if (payload instanceof CreateChildNodeCommandPayload) {
       return () => this.treeService.createChildNode(payload.nodeId, payload.name, payload.note, payload.parentId, command.synchronous)
     } else {
-      throw new Error(`Received an unknown command with name ${payload}`)
+      throw new Error(`Received an unknown command with name`)
     }
   }
 

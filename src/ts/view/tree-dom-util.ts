@@ -210,6 +210,7 @@ const sanitizer = new sanitize.Sanitize({
 })
 
 function sanitizeContent(element: HTMLElement): HTMLElement {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return sanitizer.clean_node(element)
 }
 

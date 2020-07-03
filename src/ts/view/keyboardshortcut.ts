@@ -43,7 +43,7 @@ export class NodeClassSelector implements TreeNodeSelector {
 }
 
 export class AllNodesSelector implements TreeNodeSelector {
-  matches(node: Element): boolean {
+  matches(): boolean {
     return true
   }
 }
@@ -73,9 +73,9 @@ export class RawKbdShortcut {
  * we want to provide some leniency for user. For example mapping Home on mac OS to both the native
  * chord as well as the more pc friendly combination.
  */
-const shortcutMappings: Map<OperatingSystem, Map<SemanticShortcutType, RawKbdShortcut[]>> = new Map()
+const shortcutMappings = new Map<OperatingSystem, Map<SemanticShortcutType, RawKbdShortcut[]>>()
 
-const macOsMap: Map<SemanticShortcutType, RawKbdShortcut[]> = new Map()
+const macOsMap = new Map<SemanticShortcutType, RawKbdShortcut[]>()
 macOsMap.set(
   SemanticShortcutType.Undo,
   // Command+z
@@ -103,7 +103,7 @@ macOsMap.set(
     new KbdModifier(KbdModifierType.Command, true)])])
 shortcutMappings.set(OperatingSystem.MacOs, macOsMap)
 
-const windowsMap: Map<SemanticShortcutType, RawKbdShortcut[]> = new Map()
+const windowsMap = new Map<SemanticShortcutType, RawKbdShortcut[]>()
 windowsMap.set(
   SemanticShortcutType.Undo,
   // Ctrl+z
@@ -176,7 +176,7 @@ export class KeyboardEventTrigger {
       case KbdEventType.Input:
         return true // if something listens on input it always triggers
       default:
-        console.log(`Unexpected event type ${type} which is not handled by our shortcut system!`)
+        console.log(`Unexpected event type which is not handled by our shortcut system!`)
         return false
     }
   }
@@ -206,7 +206,7 @@ export class KeyboardEventTrigger {
       case KbdModifierType.Command: return !!event.metaKey
       case KbdModifierType.Ctrl: return !!event.ctrlKey
       case KbdModifierType.Shift: return !!event.shiftKey
-      default: throw Error(`Unexpected keyboard modifier type ${modifier.type} in a keyboard trigger`)
+      default: throw Error(`Unexpected keyboard modifier type in a keyboard trigger`)
     }
   }
 

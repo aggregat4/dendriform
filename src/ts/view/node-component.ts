@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { RepositoryNode, FilteredRepositoryNode, DeferredArray } from '../domain/domain'
 import { isCursorAtContentEditableBeginning } from '../utils/util'
-import { html, render, TemplateResult } from 'lit-html'
+import { html, TemplateResult } from 'lit-html'
 import { unsafeHTML } from 'lit-html/directives/unsafe-html'
 
 /**

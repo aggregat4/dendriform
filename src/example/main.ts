@@ -24,4 +24,6 @@ if (document.readyState !== 'loading') {
   document.addEventListener('DOMContentLoaded', init)
 }
 
-window.addEventListener('hashchange', () => treeManager.loadNode(getRequestedNodeId()))
+window.addEventListener('hashchange', () => {
+  void treeManager.loadNode(getRequestedNodeId())
+})

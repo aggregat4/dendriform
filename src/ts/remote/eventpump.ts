@@ -72,8 +72,8 @@ export class EventPump implements LifecycleAware {
       },
     })
     await this.loadOrCreateMetadata()
-    this.localEventPump.start(true)
-    this.remoteEventPump.start(true)
+    await this.localEventPump.start(true)
+    await this.remoteEventPump.start(true)
   }
 
   async deinit(): Promise<void> {
@@ -86,12 +86,12 @@ export class EventPump implements LifecycleAware {
     }
   }
 
-  private async loadOrCreateMetadata(): Promise<any> {
+  private async loadOrCreateMetadata(): Promise<void> {
     const metadata = await this.db.getAll('metadata')
     if (!metadata || metadata.length === 0) {
       this.maxServerCounter = -1
       this.maxLocalCounter = -1
-      return this.saveMetadata()
+      await this.saveMetadata()
     } else {
       const md = metadata[0]
       this.maxServerCounter = md.maxservercounter
@@ -99,16 +99,16 @@ export class EventPump implements LifecycleAware {
     }
   }
 
-  private async saveMetadata(): Promise<any> {
+  private async saveMetadata(): Promise<void> {
     const metadata = {
       id: this.dbName,
       maxservercounter: this.maxServerCounter,
       maxlocalcounter: this.maxLocalCounter,
     }
     try {
-      return this.db.put('metadata', metadata)
+      await this.db.put('metadata', metadata)
     } catch (error) {
-      throw Error(`Error saving metadata: ${error}`)
+      throw Error(`Error saving metadata`)
     }
   }
 
@@ -117,15 +117,13 @@ export class EventPump implements LifecycleAware {
    * when successfull, saves the new maxLocalCounter.
    * @throws something on server contact failure
    */
-  private async drainLocalEvents(): Promise<any> {
+  private async drainLocalEvents(): Promise<void> {
     const events: Events = await this.localEventLog.getEventsSince(
       this.localEventLog.getPeerId(), this.maxLocalCounter, this.EVENT_TRANSMISSION_BATCH_SIZE)
     if (events.events.length > 0) {
       await this.remoteEventLog.publishEvents(events.events)
       this.maxLocalCounter = events.counter
-      return this.saveMetadata()
-    } else {
-      return Promise.resolve()
+      await this.saveMetadata()
     }
   }
 
@@ -134,15 +132,13 @@ export class EventPump implements LifecycleAware {
    * locally and when successfull saves the new maxServerCounter.
    * @throws something on server contact failure
    */
-  private async drainRemoteEvents(): Promise<any> {
+  private async drainRemoteEvents(): Promise<void> {
     const events = await this.remoteEventLog.getEventsSince(this.maxServerCounter, this.localEventLog.getPeerId(), this.EVENT_TRANSMISSION_BATCH_SIZE)
     if (events.events.length > 0) {
       // This can be async, the client should see the changes eventually
       await this.localEventLog.insert(events.events, false)
       this.maxServerCounter = events.counter
-      return this.saveMetadata()
-    } else {
-      return Promise.resolve()
+      await this.saveMetadata()
     }
   }
 

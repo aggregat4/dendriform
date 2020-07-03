@@ -35,14 +35,12 @@ export class TreeService implements LifecycleAware {
   }
 
   // loads the node by id, renames it and then returns a Promise of a response when done
-  renameNode(nodeId: string, newName: string, synchronous): Promise<any> {
+  async renameNode(nodeId: string, newName: string, synchronous: boolean): Promise<void> {
     return this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
       .then(node => {
         if (newName !== node.name) {
           node.name = newName
           return this.repo.updateNode(node, synchronous)
-        } else {
-          return Promise.resolve()
         }
       })
   }
@@ -56,13 +54,13 @@ export class TreeService implements LifecycleAware {
     return this.repo.loadNode(nodeId, ALWAYS_TRUE)
   }
 
-  reparentNode(nodeId: string, newParentId: string, position: RelativeNodePosition, synchronous: boolean): Promise<any> {
+  reparentNode(nodeId: string, newParentId: string, position: RelativeNodePosition, synchronous: boolean): Promise<void> {
     return this.repo.reparentNode(nodeId, newParentId, position, synchronous)
   }
 
-  reparentNodes(childIds: string[], newParentId: string, synchronous: boolean): Promise<any> {
+  reparentNodes(childIds: string[], newParentId: string, synchronous: boolean): Promise<void> {
     if (!childIds) {
-      return Promise.resolve()
+      return
     }
     let sequentialPromise = Promise.resolve()
     for (const childId of childIds) {
@@ -73,36 +71,36 @@ export class TreeService implements LifecycleAware {
     return sequentialPromise
   }
 
-  deleteNode(nodeId: string, synchronous: boolean): Promise<any> {
-    return this.updateNode(nodeId, synchronous, (node) => node.deleted = true)
+  deleteNode(nodeId: string, synchronous: boolean): Promise<void> {
+    return this.updateNode(nodeId, synchronous, (node: RepositoryNode) => node.deleted = true)
   }
 
   // undeletes a node, just removing its deleted flag
-  undeleteNode(nodeId: string, synchronous: boolean): Promise<any> {
-    return this.updateNode(nodeId, synchronous, (node) => node.deleted = false)
+  undeleteNode(nodeId: string, synchronous: boolean): Promise<void> {
+    return this.updateNode(nodeId, synchronous, (node: RepositoryNode) => node.deleted = false)
   }
 
-  completeNode(nodeId: string, synchronous: boolean): Promise<any> {
-    return this.updateNode(nodeId, synchronous, (node) => node.completed = true)
+  completeNode(nodeId: string, synchronous: boolean): Promise<void> {
+    return this.updateNode(nodeId, synchronous, (node: RepositoryNode) => node.completed = true)
   }
 
-  unCompleteNode(nodeId: string, synchronous: boolean): Promise<any> {
-    return this.updateNode(nodeId, synchronous, (node) => node.completed = false)
+  unCompleteNode(nodeId: string, synchronous: boolean): Promise<void> {
+    return this.updateNode(nodeId, synchronous, (node: RepositoryNode) => node.completed = false)
   }
 
   openNode(nodeId: string, synchronous: boolean): Promise<void> {
-    return this.updateNode(nodeId, synchronous, (node) => node.collapsed = false)
+    return this.updateNode(nodeId, synchronous, (node: RepositoryNode) => node.collapsed = false)
   }
 
   closeNode(nodeId: string, synchronous: boolean): Promise<void> {
-    return this.updateNode(nodeId, synchronous, (node) => node.collapsed = true)
+    return this.updateNode(nodeId, synchronous, (node: RepositoryNode) => node.collapsed = true)
   }
 
   updateNote(nodeId: string, note: string, synchronous: boolean): Promise<void> {
-    return this.updateNode(nodeId, synchronous, (node) => node.note = note)
+    return this.updateNode(nodeId, synchronous, (node: RepositoryNode) => node.note = note)
   }
 
-  private updateNode(nodeId: string, synchronous: boolean, updateFun: (node) => void): Promise<any> {
+  private async updateNode(nodeId: string, synchronous: boolean, updateFun: (node: RepositoryNode) => void): Promise<void> {
     return this.repo.loadNode(nodeId, ALWAYS_TRUE)
       .then(node => {
         if (node) {
@@ -117,9 +115,9 @@ export class TreeService implements LifecycleAware {
 
   // 1. rename the current node to the right hand side of the split
   // 2. insert a new sibling BEFORE the current node containing the left hand side of the split
-  splitNode(nodeId: string, nodeName: string, newSiblingId: string, newSiblingName: string, synchronous: boolean): Promise<any> {
+  async splitNode(nodeId: string, nodeName: string, newSiblingId: string, newSiblingName: string, synchronous: boolean): Promise<void> {
     return this.findNode(newSiblingId)
-      .then(sibling => {
+      .then(async sibling => {
         if (sibling) {
           // we need to attempt undelete since this may be an undo operation of a merge, in this case the sibling exists
           return this.undeleteNode(newSiblingId, synchronous)
@@ -132,8 +130,8 @@ export class TreeService implements LifecycleAware {
       })
       .then(() => this.repo.getChildIds(nodeId))
       .then(childIds => this.reparentNodes(childIds, newSiblingId, synchronous))
-      .then(() => {
-        this.renameNode(nodeId, nodeName, synchronous)
+      .then(async () => {
+        await this.renameNode(nodeId, nodeName, synchronous)
       })
   }
 
@@ -149,9 +147,9 @@ export class TreeService implements LifecycleAware {
   // For undo it is assumed that a merge never happens to a target node with children
   // This function will not undo the merging of the child collections (this mirrors workflowy
   // maybe we want to revisit this in the future)
-  mergeNodes(sourceNodeId: string, sourceNodeName: string,
-             targetNodeId: string, targetNodeName: string, mergeNameOrder: MergeNameOrder, synchronous: boolean): Promise<any> {
-    return this.repo.getChildIds(sourceNodeId)
+  async mergeNodes(sourceNodeId: string, sourceNodeName: string,
+             targetNodeId: string, targetNodeName: string, mergeNameOrder: MergeNameOrder, synchronous: boolean): Promise<void> {
+    await this.repo.getChildIds(sourceNodeId)
       .then(childIds => this.reparentNodes(childIds, targetNodeId, synchronous))
       .then(() => this.renameNode(
         targetNodeId,
@@ -165,8 +163,8 @@ export class TreeService implements LifecycleAware {
     return this.repo.subscribeToChanges(parentNodeId, nodeChangeListener)
   }
 
-  createChildNode(childId: string, childName: string, childNote: string, parentId: string, synchronous: boolean): Promise<any> {
-    return this.repo.createNode(childId, childName, childNote, synchronous)
+  async createChildNode(childId: string, childName: string, childNote: string, parentId: string, synchronous: boolean): Promise<void> {
+    await this.repo.createNode(childId, childName, childNote, synchronous)
       .then(() => this.repo.reparentNode(childId, parentId, { beforeOrAfter: RelativeLinearPosition.END }, synchronous))
   }
 

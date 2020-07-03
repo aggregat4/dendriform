@@ -20,8 +20,8 @@ export class RemoteEventLog {
     }
   }
 
-  async publishEvents(events: DEvent[]): Promise<any> {
-    return fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/`,
+  async publishEvents(events: DEvent[]): Promise<void> {
+    await fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/`,
       {
         method: 'POST',
         headers: {

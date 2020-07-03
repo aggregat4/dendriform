@@ -88,7 +88,7 @@ export interface Events {
 }
 
 export interface DEventSource {
-  publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<any>
+  publish(type: EventType, nodeId: string, payload: EventPayloadType, synchronous: boolean): Promise<void>
 }
 
 export interface DEventLog extends DEventSource, LifecycleAware {
@@ -101,7 +101,7 @@ export interface DEventLog extends DEventSource, LifecycleAware {
    */
   getName(): string,
   getCounter(): number,
-  insert(events: DEvent[], synchronous: boolean): Promise<EventLogCounter>
+  insert(events: DEvent[], synchronous: boolean): Promise<void>
   subscribe(subscriber: EventSubscriber): Subscription
   /**
    * Loads all events with a counter/eventid that is _higher_ than the provided number.

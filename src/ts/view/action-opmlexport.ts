@@ -12,7 +12,7 @@ export class OpmlExportAction extends TreeAction {
     super(new KeyboardEventTrigger(KbdEventType.Keypress, new NodeClassSelector('name')),
     'Export OPML')
   }
-  async handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext): Promise<void> {
     const activeNodeId = treeActionContext.transientStateManager.getActiveNodeId()
     if (activeNodeId) {
       const loadedTree = await treeActionContext.treeService.loadTree(activeNodeId, NODE_IS_NOT_DELETED, true)

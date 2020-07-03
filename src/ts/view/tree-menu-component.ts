@@ -71,7 +71,7 @@ export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
     return this._treeAction.handle(e, this.treeActionContext)
   }
 
-  connectedCallback() {
+  connectedCallback(): void {
     render(this.template(), this.shadowRoot)
   }
 }
@@ -90,7 +90,7 @@ export class TreeNodeInfoMenuItem extends TreeNodeMenuItem implements DialogLife
     super()
   }
 
-  connectedCallback() {
+  connectedCallback(): void {
     render(this.template(), this.shadowRoot)
   }
 

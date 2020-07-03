@@ -2,7 +2,7 @@ import {RelativeNodePosition, RelativeLinearPosition} from '../domain/domain'
 import { MergeNameOrder } from '../service/service'
 
 export interface CommandHandler {
-  exec(command: Command): Promise<any>
+  exec(command: Command): Promise<void>
 }
 
 export interface CommandPayload {
@@ -34,13 +34,13 @@ export class Command {
 export class CommandBuilder {
   private payload: CommandPayload
   private beforeFocusNodeId: string = null
-  private beforeFocusPos: number = -1
+  private beforeFocusPos = -1
   private afterFocusNodeId: string = null
-  private afterFocusPos: number = -1
-  private undoable: boolean = false
+  private afterFocusPos = -1
+  private undoable = false
   // TODO: verify whether we still need this
-  private batch: boolean = false
-  private synchronous: boolean = false
+  private batch = false
+  private synchronous = false
 
   constructor(payload: CommandPayload) {
     this.payload = payload
@@ -105,7 +105,7 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
     readonly mergeNameOrder: MergeNameOrder,
   ) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new MergeNodesByIdCommandPayload(
       this.siblingId,
       this.newNodeName,
@@ -115,7 +115,7 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
     )
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }
 
 export class MergeNodesByIdCommandPayload implements CommandPayload {
@@ -137,7 +137,7 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
     )
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }
 
 export class RenameNodeByIdCommandPayload implements CommandPayload {
@@ -147,11 +147,11 @@ export class RenameNodeByIdCommandPayload implements CommandPayload {
     readonly newName: string,
   ) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new RenameNodeByIdCommandPayload(this.nodeId, this.newName, this.oldName)
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }
 
 export class ReparentNodeByIdCommandPayload implements CommandPayload {
@@ -163,7 +163,7 @@ export class ReparentNodeByIdCommandPayload implements CommandPayload {
     readonly position: RelativeNodePosition,
   ) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new ReparentNodeByIdCommandPayload(
       this.nodeId,
       this.newParentNodeId,
@@ -173,72 +173,72 @@ export class ReparentNodeByIdCommandPayload implements CommandPayload {
     )
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }
 
 export class OpenNodeByIdCommandPayload implements CommandPayload {
   constructor(readonly nodeId: string) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new CloseNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }
 
 export class CloseNodeByIdCommandPayload implements CommandPayload {
   constructor(readonly nodeId: string) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new OpenNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }
 
 export class DeleteNodeByIdCommandPayload implements CommandPayload {
   constructor(readonly nodeId: string) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new UndeleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }
 
 export class UndeleteNodeByIdCommandPayload implements CommandPayload {
   constructor(readonly nodeId: string) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new DeleteNodeByIdCommandPayload(this.nodeId)
   }
 
   // we need the node to reappear in the tree: therefore we trigger a rerender and it will get loaded
-  requiresRender() { return true }
+  requiresRender(): boolean { return true }
 }
 
 export class CompleteNodeByIdCommandPayload implements CommandPayload {
   constructor(readonly nodeId: string) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new UnCompleteNodeByIdCommandPayload(this.nodeId)
   }
 
   // In case the tree is set to not show completed nodes, we need a rerender since
   // we need to make sure nodes are removed from the tree afterwards for navigation to work
-  requiresRender() { return true }
+  requiresRender(): boolean { return true }
 }
 
 export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
   constructor(readonly nodeId: string) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new CompleteNodeByIdCommandPayload(this.nodeId)
   }
 
   // Changes the tree structure: undo can cause an uncomplete of a node that needs to reappear (see undelete)
   // this requires loading the nodes and rendering them
-  requiresRender() { return true }
+  requiresRender(): boolean { return true }
 }
 
 export class UpdateNoteByIdCommandPayload implements CommandPayload {
@@ -248,11 +248,11 @@ export class UpdateNoteByIdCommandPayload implements CommandPayload {
     readonly newNote: string,
   ) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new UpdateNoteByIdCommandPayload(this.nodeId, this.newNote, this.oldNote)
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }
 
 export class CreateChildNodeCommandPayload implements CommandPayload {
@@ -263,9 +263,9 @@ export class CreateChildNodeCommandPayload implements CommandPayload {
     readonly parentId: string,
   ) {}
 
-  inverse() {
+  inverse(): CommandPayload {
     return new DeleteNodeByIdCommandPayload(this.nodeId)
   }
 
-  requiresRender() { return false }
+  requiresRender(): boolean { return false }
 }

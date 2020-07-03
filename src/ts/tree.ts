@@ -40,13 +40,13 @@ export class TreeManager {
     tree.treeActionRegistry = treeActionRegistry
     tree.activityIndicating = localEventLog
     await tree.init()
-    this.currentEventPump.init()
+    await this.currentEventPump.init()
     return tree
   }
 
-  loadNode(nodeId: string) {
-    if (this.currentInitializer) {
-      this.currentInitializer.then(tree => tree.loadNode(nodeId))
+  async loadNode(nodeId: string): Promise<void> {
+    if (this.currentInitializer !== null) {
+      await this.currentInitializer.then(tree => tree.loadNode(nodeId))
     }
   }
 
@@ -58,9 +58,9 @@ export class TreeManager {
    *
    * @param el The element to mount the tree component to.
    */
-  async mountTree(el: HTMLElement, treeName: string): Promise<any> {
+  async mountTree(el: HTMLElement, treeName: string): Promise<void> {
     this.currentInitializer = this.createAndInitTree(treeName).then((tree) => el.appendChild(tree))
-    return this.currentInitializer
+    await this.currentInitializer
   }
 
   getAvailableTrees(): Promise<string[]> {

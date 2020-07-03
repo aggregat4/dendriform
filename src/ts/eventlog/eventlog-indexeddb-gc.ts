@@ -136,7 +136,7 @@ export class LocalEventLogGarbageCollector {
     }
   }
 
-  private async garbageCollect(candidate: GcCandidate): Promise<any> {
+  private async garbageCollect(candidate: GcCandidate): Promise<void> {
     return this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [candidate.eventtype, candidate.nodeId])
       .then(async (nodeEvents: StoredEvent[]) => {
         // based on the eventtype we may need to partition the events for a node even further
@@ -184,7 +184,7 @@ export class LocalEventLogGarbageCollector {
       // LOGOOT sequences requires more specific partitioning, we need
       // to further group by childid + operationid
       case EventType.REORDER_CHILD: {
-        const reduced = nodeEvents.reduce((acc, val: StoredEvent) => {
+        const reduced = nodeEvents.reduce((acc: {[eventKey in string]: StoredEvent[]}, val: StoredEvent) => {
           const payload = (val.payload as ReorderChildNodeEventPayload)
           const key = `${payload.childId}:${payload.operation}`; // semicolon necessary!
           (acc[key] = acc[key] || []).push(val)

@@ -9,7 +9,7 @@ import { TreeAction, TreeActionContext } from './tree-actions'
 import { startEditingNote } from './node-component'
 
 export class TreeActionRegistry {
-  private readonly keyboardActions: Map<KbdEventType, TreeAction[]> = new Map()
+  private readonly keyboardActions = new Map<KbdEventType, TreeAction[]>()
 
   registerKeyboardAction(action: TreeAction): void {
     if (!this.keyboardActions.get(action.trigger.eventType)) {
@@ -33,7 +33,7 @@ export class TreeActionRegistry {
 // TODO: implement a parser for a text based syntax for keyborad shortcut definition, this is crazy
 // TODO: think about a better way to handle the "negative" keyboar shortcut modifiers, for example moving cursor up instead of the node. Maybe just sort by specificity and then the first match wins?
 // NOTE: not all of these actions should be user configurable, a lot are intrinsic (like enter to break up a node)
-export function registerTreeActions(tree: TreeActionRegistry) {
+export function registerTreeActions(tree: TreeActionRegistry): void {
   // Editing Actions
   tree.registerKeyboardAction(new UpdateNameAction())
   tree.registerKeyboardAction(new UpdateNoteAction())
@@ -62,7 +62,7 @@ class UpdateNameAction extends TreeAction {
       'Update Name')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     const targetNode = getClosestNodeElement((event.target as Element))
     const nodeId = getNodeId(targetNode)
     const newName = getNodeName(targetNode)
@@ -72,7 +72,7 @@ class UpdateNameAction extends TreeAction {
     const afterFocusPos = getCursorPos()
     treeActionContext.transientStateManager.savePreviousNodeState(nodeId, newName, getNodeNote(targetNode), afterFocusPos)
     // the update itself is inline, but we may need to update attributes of other elements like embdeddedLinks
-    treeActionContext.commandExecutor.performWithDom(
+    await treeActionContext.commandExecutor.performWithDom(
       new CommandBuilder(
         new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
         .isUndoable()
@@ -89,7 +89,7 @@ class UpdateNoteAction extends TreeAction {
     super(new KeyboardEventTrigger(KbdEventType.Input, new NodeClassSelector('note')), 'Update Note')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     const targetNode = getClosestNodeElement((event.target as Element))
     const nodeId = getNodeId(targetNode)
     const name = getNodeName(targetNode)
@@ -98,7 +98,7 @@ class UpdateNoteAction extends TreeAction {
     const afterFocusPos = getCursorPos()
     treeActionContext.transientStateManager.savePreviousNodeState(nodeId, name, newNote, afterFocusPos)
     // updates are de facto inline but we may need to update further elements like links
-    treeActionContext.commandExecutor.performWithDom(
+    await treeActionContext.commandExecutor.performWithDom(
       new CommandBuilder(
         new UpdateNoteByIdCommandPayload(nodeId, oldNote, newNote))
         .isUndoable()
@@ -116,7 +116,7 @@ class SplitNodeAction extends TreeAction {
       'Split Node')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     event.preventDefault()
     const targetNode = getClosestNodeElement((event.target as Element))
     const nodeId = getNodeId(targetNode)
@@ -135,7 +135,7 @@ class SplitNodeAction extends TreeAction {
       .withAfterFocusNodeId(nodeId)
       .withAfterFocusPos(0)
       .build()
-    treeActionContext.commandExecutor.performWithDom(command)
+    await treeActionContext.commandExecutor.performWithDom(command)
   }
 }
 
@@ -148,7 +148,7 @@ class EditNoteAction extends TreeAction {
         [new RawKbdShortcut(KbdKey.Enter, [new KbdModifier(KbdModifierType.Shift, true)])]),
     'Start Editing Note')
   }
-  handle(evt: Event, treeActionContext: TreeActionContext) {
+  handle() {
     event.preventDefault()
     const noteEl = (event.target as Element).nextElementSibling.nextElementSibling as HTMLElement
     startEditingNote(noteEl)
@@ -165,13 +165,13 @@ class MoveNodeUpAction extends TreeAction {
     'Move Node Up')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     event.preventDefault()
     const nodeElement = getClosestNodeElement(event.target as Element)
     // this is the combination for moving a node up in its siblings or its parent's previous siblings' children
     // if the current node has siblings before it, then just move it up
     // else if the parent has previous siblings, then move it as a child of the first previous sibling at the end
-    treeActionContext.commandExecutor.performWithDom(createMoveNodeUpCommand(nodeElement))
+    await treeActionContext.commandExecutor.performWithDom(createMoveNodeUpCommand(nodeElement))
   }
 }
 
@@ -185,7 +185,7 @@ class MoveCursorUpAction extends TreeAction {
       'Move Cursor Up')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  handle(event: Event) {
     event.preventDefault()
     const nodeElement = getClosestNodeElement(event.target as Element)
     const previousNode = findPreviousNode(nodeElement)
@@ -205,13 +205,13 @@ class MoveNodeDownAction extends TreeAction {
       'Move Node Down')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     event.preventDefault()
     const nodeElement = getClosestNodeElement(event.target as Element)
     // this is the combination for moving a node down in its siblings or its parent's next siblings' children
     // if the current node has siblings after it, then just move it down
     // else if the parent has next siblings, then move it as a child of the first next sibling at the end
-    treeActionContext.commandExecutor.performWithDom(createMoveNodeDownCommand(nodeElement))
+    await treeActionContext.commandExecutor.performWithDom(createMoveNodeDownCommand(nodeElement))
   }
 }
 
@@ -225,7 +225,7 @@ class MoveCursorDownAction extends TreeAction {
       'Move Cursor Down')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  handle(event: Event) {
     event.preventDefault()
     const nodeElement = getClosestNodeElement(event.target as Element)
     const nextNode = findNextNode(nodeElement)
@@ -321,14 +321,14 @@ class DeleteNodeAction extends TreeAction {
       'Delete Node')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     event.preventDefault()
     const eventNode = getClosestNodeElement(event.target as Element)
-    deleteNode(eventNode, treeActionContext.commandExecutor)
+    await deleteNode(eventNode, treeActionContext.commandExecutor)
   }
 }
 
-function deleteNode(node: Element, commandExecutor: CommandExecutor): void {
+async function deleteNode(node: Element, commandExecutor: CommandExecutor): Promise<void> {
   const nodeId = getNodeId(node)
   const builder = new CommandBuilder(new DeleteNodeByIdCommandPayload(nodeId))
     .isUndoable()
@@ -342,7 +342,7 @@ function deleteNode(node: Element, commandExecutor: CommandExecutor): void {
       .withAfterFocusNodeId(getNodeId(previousNode))
       .withAfterFocusPos(getNodeName(previousNode).length)
   }
-  commandExecutor.performWithDom(builder.build())
+  await commandExecutor.performWithDom(builder.build())
 }
 
 class CompleteNodeAction extends TreeAction {
@@ -355,20 +355,20 @@ class CompleteNodeAction extends TreeAction {
       'Toggle Node Completion')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     const eventNode = getClosestNodeElement(event.target as Element)
-    toggleNodeCompletion(eventNode, treeActionContext.commandExecutor)
+    await toggleNodeCompletion(eventNode, treeActionContext.commandExecutor)
   }
 }
 
-function toggleNodeCompletion(node: Element, commandExecutor: CommandExecutor) {
+async function toggleNodeCompletion(node: Element, commandExecutor: CommandExecutor) {
   const nodeId = getNodeId(node)
   if (isNodeCompleted(node)) {
     const builder = new CommandBuilder(new UnCompleteNodeByIdCommandPayload(nodeId))
       .isUndoable()
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(getCursorPos())
-    commandExecutor.performWithDom(builder.build())
+    await commandExecutor.performWithDom(builder.build())
   } else {
     let builder = new CommandBuilder(new CompleteNodeByIdCommandPayload(nodeId))
       .isUndoable()
@@ -380,7 +380,7 @@ function toggleNodeCompletion(node: Element, commandExecutor: CommandExecutor) {
       builder = builder.withAfterFocusNodeId(getNodeId(afterFocusNode))
         .withAfterFocusPos(0)
     }
-    commandExecutor.performWithDom(builder.build())
+    await commandExecutor.performWithDom(builder.build())
   }
 }
 
@@ -394,14 +394,14 @@ class MergeNodeWithPreviousAction extends TreeAction {
       'Potentially Merge With Previous Node')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     if (!isTextSelected() && isCursorAtBeginning()) {
       const eventNode = getClosestNodeElement(event.target as Element)
       if (isEmpty(getNodeName(eventNode)) && !hasChildren(eventNode)) {
         // this is a special case for convience: when a node is empty and has no
         // children, we interpret backspace as deleting the complete node
         event.preventDefault()
-        deleteNode(eventNode, treeActionContext.commandExecutor)
+        await deleteNode(eventNode, treeActionContext.commandExecutor)
       } else if (getClosestNodeElement(event.target as Element).previousElementSibling) {
         const targetNode = eventNode
         const sourceNode = targetNode.previousElementSibling
@@ -422,7 +422,7 @@ class MergeNodeWithPreviousAction extends TreeAction {
           .withAfterFocusNodeId(targetNodeId)
           .withAfterFocusPos(Math.max(0, sourceNodeName.length))
           .build()
-        treeActionContext.commandExecutor.performWithDom(command)
+        await treeActionContext.commandExecutor.performWithDom(command)
       }
     }
   }
@@ -438,7 +438,7 @@ class MergeNodeWithNextAction extends TreeAction {
       'Potentially Merge With Next Node')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     if (!isTextSelected() &&
         isCursorAtEnd(event) &&
         getClosestNodeElement(event.target as Element).nextElementSibling) {
@@ -461,7 +461,7 @@ class MergeNodeWithNextAction extends TreeAction {
         .withAfterFocusNodeId(targetNodeId)
         .withAfterFocusPos(Math.max(0, sourceNodeName.length))
         .build()
-      treeActionContext.commandExecutor.performWithDom(command)
+      await treeActionContext.commandExecutor.performWithDom(command)
     }
   }
 }
@@ -476,7 +476,7 @@ class IndentNodeAction extends TreeAction {
       'Indent Node')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     // When tabbing you want to make the node the last child of the previous sibling (if it exists)
     const node = getClosestNodeElement(event.target as Element)
     if (node.previousElementSibling) {
@@ -484,7 +484,7 @@ class IndentNodeAction extends TreeAction {
       // when a node is a child, it is inside a "children" container of its parent
       const oldParentNode = getParentNode(node)
       const newParentNode = node.previousElementSibling
-      treeActionContext.commandExecutor.performWithDom(createReparentingCommand(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.END, null))
+      await treeActionContext.commandExecutor.performWithDom(createReparentingCommand(node, getCursorPos(), oldParentNode, newParentNode, RelativeLinearPosition.END, null))
     }
   }
 }
@@ -499,7 +499,7 @@ class UnindentNodeAction extends TreeAction {
       'Unindent Node')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  async handle(event: Event, treeActionContext: TreeActionContext) {
     // When shift-Tabbing the node should become the next sibling of the parent node (if it exists)
     // Caution: we only allow unindent if the current node has a parent and a grandparent node,
     // otherwise we can not unindent
@@ -510,7 +510,7 @@ class UnindentNodeAction extends TreeAction {
         event.preventDefault()
         const newParentNode = getParentNode(oldParentNode)
         const afterNode = oldParentNode
-        treeActionContext.commandExecutor.performWithDom(createReparentingCommand(
+        await treeActionContext.commandExecutor.performWithDom(createReparentingCommand(
           node,
           getCursorPos(),
           oldParentNode,
@@ -531,7 +531,7 @@ class GotoBeginningOfTreeAction extends TreeAction {
         toRawShortCuts(new SemanticShortcut(SemanticShortcutType.BeginningOfDocument))),
       'Go to Beginning of Tree')
   }
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  handle(event: Event) {
     // Move to the top of the current tree (not the root, but its first child)
     const treeDiv = (event.target as Element).closest('.tree')
     const firstNode = treeDiv.querySelector('div.node div.node')
@@ -550,7 +550,7 @@ class GotoEndOfTreeAction extends TreeAction {
         toRawShortCuts(new SemanticShortcut(SemanticShortcutType.EndOfDocument))),
       'Go to End of Tree')
   }
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  handle(event: Event) {
     // Move to the bottom (last leaf node) of the current tree
     const treeDiv = (event.target as Element).closest('.tree')
     const rootNode = treeDiv.querySelector('div.node')
@@ -572,7 +572,7 @@ class SaveDocumentAction extends TreeAction {
         toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Save))),
       'Save Document')
   }
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  handle(event: Event) {
     // suppress saving the page with ctrl s since that is just annoying
     // everything should be saved by now
     event.preventDefault()

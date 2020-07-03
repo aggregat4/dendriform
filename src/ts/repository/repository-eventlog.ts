@@ -30,8 +30,8 @@ class NodeChangedSubscription implements Subscription {
  */
 export class EventlogRepository implements Repository, LifecycleAware {
 
-  private parentChildMap = {}
-  private childParentMap = {}
+  private parentChildMap: {[key in string]: LogootSequenceWrapper<string>} = {}
+  private childParentMap: {[key in string]: string} = {}
   private changeSubscriptions: NodeChangedSubscription[] = []
   private eventLogSubscription: Subscription = null
 
@@ -50,6 +50,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
     // would mean delaying the inital map construction for too long...
     this.eventLogSubscription = this.eventLog.subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       notify: this.eventLogListener.bind(this),
       filter: (event) => event.originator !== this.eventLog.getPeerId(),
     })
@@ -82,8 +83,8 @@ export class EventlogRepository implements Repository, LifecycleAware {
     }
   }
 
-  private rebuildAndNotify(nodeId: string): void {
-    this.rebuildTreeStructureMaps().then(() => this.notifyNodeChangeSubscribers(nodeId))
+  private async rebuildAndNotify(nodeId: string): Promise<void> {
+    await this.rebuildTreeStructureMaps().then(() => this.notifyNodeChangeSubscribers(nodeId))
   }
 
   private notifyNodeChangeSubscribers(nodeId: string): void {
@@ -152,7 +153,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
       synchronous)
   }
 
-  updateNode(node: RepositoryNode, synchronous: boolean): Promise<void> {
+  async updateNode(node: RepositoryNode, synchronous: boolean): Promise<void> {
     if (!!node.deleted) {
       // here we assume the node just got deleted, this is not necessarily correct, one could
       // also update a node that was already deleted but doing it twice doesn't hurt? And we
@@ -161,9 +162,9 @@ export class EventlogRepository implements Repository, LifecycleAware {
       if (! parentId) {
         throw new Error(`Parent not known for node ${node._id} therefore can not delete this node`)
       }
-      this.deleteNode(node._id, parentId, synchronous)
+      await this.deleteNode(node._id, parentId, synchronous)
     }
-    return this.eventLog.publish(
+    await this.eventLog.publish(
       EventType.ADD_OR_UPDATE_NODE,
       node._id,
       createNewAddOrUpdateNodeEventPayload(
@@ -245,7 +246,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
   }
 
   private static getOrCreateSeqForParent(
-      parentChildMap, parentId: string, peerId: string): LogootSequenceWrapper<string> {
+      parentChildMap: {[key in string]: LogootSequenceWrapper<string>}, parentId: string, peerId: string): LogootSequenceWrapper<string> {
     return parentChildMap[parentId] || (parentChildMap[parentId] = new LogootSequenceWrapper<string>(peerId))
   }
 
@@ -279,14 +280,11 @@ export class EventlogRepository implements Repository, LifecycleAware {
 
   async loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode> {
     return this.eventLog.getNodeEvent(nodeId).then(nodeEvent => {
-      if (!nodeEvent) {
-        return Promise.resolve(null)
-      }
-      const node = this.mapEventToRepositoryNode(nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload)
-      if (nodeFilter(node)) {
-        return Promise.resolve(node)
-      } else {
-        return Promise.resolve(null)
+      if (nodeEvent) {
+        const node = this.mapEventToRepositoryNode(nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload)
+        if (nodeFilter(node)) {
+          return Promise.resolve(node)
+        }
       }
     })
   }
@@ -331,7 +329,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
       } else {
         // tslint:disable-next-line:no-console
         console.error(`error while loading tree from eventlog: `, reason)
-        return { status: { state: State.ERROR, msg: `Error loading tree: ${reason}` } }
+        return { status: { state: State.ERROR, msg: `Error loading tree` } }
       }
     }
   }
@@ -346,7 +344,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
 
   private async loadTreeBulk(nodeId: string, nodeFilter: Predicate<RepositoryNode>, loadCollapsedChildren: boolean): Promise<ResolvedRepositoryNode> {
     const nodeEvents = await this.eventLog.getAllEventsFromType(EventType.ADD_OR_UPDATE_NODE)
-    const nodeMap: Map<string, RepositoryNode> = new Map()
+    const nodeMap = new Map<string, RepositoryNode>()
     for (const nodeEvent of nodeEvents.events) {
       nodeMap.set(nodeEvent.nodeId, this.mapEventToRepositoryNode(nodeEvent.nodeId, nodeEvent.payload as AddOrUpdateNodeEventPayload))
     }

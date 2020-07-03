@@ -16,7 +16,7 @@ export class OpmlImportAction extends TreeAction {
       'Import OPML')
   }
 
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  handle(event: Event, treeActionContext: TreeActionContext): void {
     event.stopPropagation()
     treeActionContext.dialogs.showTransientDialog(null, this.dialogElement)
   }
@@ -24,9 +24,9 @@ export class OpmlImportAction extends TreeAction {
 
 export class OpmlImportDialog extends HTMLElement implements ActivityIndicating, DialogLifecycleAware {
   private _treeActionContext: TreeActionContext
-  private importing: boolean = false
+  private importing = false
   private success = null
-  private error = null
+  private error: string = null
   private disabled = true
 
   private readonly importTemplate = () => html`
@@ -78,11 +78,11 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
     this.attachShadow({mode: 'open'})
   }
 
-  connectedCallback() {
+  connectedCallback(): void {
     this.rerender()
   }
 
-  beforeShow() {
+  beforeShow(): void {
     this.resetFileSelector()
     this.success = null
     this.error = null
@@ -94,7 +94,7 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
   }
 
   private getUploadInput(): HTMLInputElement {
-    return this.shadowRoot.querySelector('input.uploadOpml') as HTMLInputElement
+    return this.shadowRoot.querySelector('input.uploadOpml')
   }
 
   isActive(): boolean {
@@ -106,6 +106,7 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
   }
 
   private handleFilesChanged(event: Event): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const files: FileList = (event.target as any).files as FileList
     if (files && files.length > 0) {
       this.disabled = false
@@ -113,12 +114,12 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
     this.rerender()
   }
 
-  private importFile(event: Event): void {
+  private importFile(): void {
     const uploadInput = this.getUploadInput()
-    const files: FileList = uploadInput.files as FileList
+    const files: FileList = uploadInput.files
     if (files && files.length > 0) {
       const reader = new FileReader()
-      reader.onload = async (e) => {
+      reader.onload = async () => {
         try {
           const doc = parseXML(reader.result as string)
           const rootNodes = opmlDocumentToRepositoryNodes(doc)
@@ -139,6 +140,7 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
           this.rerender()
         } catch (error) {
           console.error(error)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           this.error = error.message
           this.rerender()
           return
@@ -152,6 +154,7 @@ export class OpmlImportDialog extends HTMLElement implements ActivityIndicating,
   }
 
   private resetFileSelector() {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     (this.shadowRoot.querySelector('.uploadOpml') as HTMLInputElement).value = ''
   }
 

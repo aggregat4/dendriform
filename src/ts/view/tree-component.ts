@@ -21,7 +21,7 @@ import { OpmlExportAction } from './action-opmlexport'
 import './activity-indicator-component' // for side effects
 
 class TreeConfig {
-  showCompleted: boolean = false
+  showCompleted = false
 }
 
 export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware {
@@ -41,7 +41,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
   private treeActionContext: TreeActionContext = null
   private dialogs: Dialogs = null
   private config: TreeConfig = new TreeConfig()
-  private currentFilterQuery: string = ''
+  private currentFilterQuery = ''
 
   // We handle undo and redo internally since they are core functionality we don't want to make generic and overwritable
   private readonly undoTrigger = new KeyboardEventTrigger(KbdEventType.Keydown, new AllNodesSelector(), toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Undo)))
@@ -124,7 +124,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     this._commandHandler = commandHandler
   }
 
-  get commandHandler() {
+  get commandHandler(): UndoableCommandHandler {
     return this._commandHandler
   }
 
@@ -132,7 +132,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     this._treeActionRegistry = treeActionRegistry
   }
 
-  get treeActionRegistry() {
+  get treeActionRegistry(): TreeActionRegistry {
     return this._treeActionRegistry
   }
 
@@ -140,7 +140,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     this._activityIndicating = activityIndicating
   }
 
-  get activityIndicating() {
+  get activityIndicating(): ActivityIndicating {
     return this._activityIndicating
   }
 
@@ -164,7 +164,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     infoMenuItem.treeActionContext = this.treeActionContext
   }
 
-  get treeService() {
+  get treeService(): TreeService {
     return this._treeService
   }
 
@@ -176,7 +176,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     await this.treeService.deinit()
   }
 
-  async loadNode(nodeId: string): Promise<any> {
+  async loadNode(nodeId: string): Promise<void> {
     if (!nodeId) {
       return Promise.resolve()
     }
@@ -185,7 +185,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
       this.treeChangeSubscription = null
     }
     const loadedTree = await this.treeService.loadTree(nodeId, this.getNodeVisibilityPredicate(), this.shouldCollapsedChildrenBeLoaded())
-    await this.update(loadedTree)
+    this.update(loadedTree)
     this.treeChangeSubscription = this.treeService.subscribeToChanges(nodeId, this.onBackgroundTreeChange.bind(this))
   }
 
@@ -204,15 +204,15 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     return this.filterIsActive()
   }
 
-  private rerenderTree(): Promise<any> {
-    return this.loadNode(this.filteredTreeRoot.node._id)
+  private async rerenderTree(): Promise<void> {
+    await this.loadNode(this.filteredTreeRoot.node._id)
   }
 
-  private onBackgroundTreeChange(): void {
-    this.rerenderTree()
+  private async onBackgroundTreeChange(): Promise<void> {
+    await this.rerenderTree()
   }
 
-  update(tree: LoadedTree) {
+  update(tree: LoadedTree): void {
     this.treeStatus = tree.status
     this.treeAncestors = tree.ancestors
     this.filteredTreeRoot = this.getFilteredTree(tree.tree)
@@ -258,14 +258,14 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         // this should be efficient: we _are_ loading the entire tree but that node should be opned now and update
         // NOTE: we used to only load the subtree here, that was definitely more efficient. Theoretically we could
         // still do this and patch the loadedtree model
-        this.rerenderTree()
+        await this.rerenderTree()
       }
     } else if (isInNoteElement(clickedElement)) {
       // for a note we need to take into account that a note may have its own markup (hence isInNoteElement)
       const noteElement = findNoteElementAncestor(clickedElement) as HTMLElement
       if (!noteElement.isContentEditable) {
         event.preventDefault()
-        startEditingNote(noteElement as HTMLElement)
+        startEditingNote(noteElement)
       }
     }
     // Handle clicking on links inside of names and notes
@@ -278,7 +278,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         searchField.value = isEmpty(oldValue)
           ? extractFilterText(clickedElement)
           : oldValue + ' ' + extractFilterText(clickedElement)
-        this.onQueryChange() // trigger a filter operation
+        await this.onQueryChange() // trigger a filter operation
       }
     }
   }
@@ -303,16 +303,17 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     }
   }
 
-  private onShowCompletedToggle() {
+  private async onShowCompletedToggle() {
     this.config.showCompleted = !!this.getCompletedCheckboxElement().checked
-    this.rerenderTree()
+    await this.rerenderTree()
   }
 
-  private onInput(event: Event) {
+  private onInput(event: InputEvent) {
     // apparently we can get some fancy newfangled input events we may want to ignore
     // see https://www.w3.org/TR/input-events-1/
-    if ((event as any).inputType === 'historyUndo' ||
-      (event as any).inputType === 'historyRedo') {
+    if (event.inputType === 'historyUndo' ||
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      event.inputType === 'historyRedo') {
       return
     }
     this.treeActionRegistry.executeKeyboardActions(KbdEventType.Input, event, this.treeActionContext)
@@ -326,7 +327,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     this.treeActionRegistry.executeKeyboardActions(KbdEventType.Keydown, event, this.treeActionContext)
   }
 
-  private async onAddNodeButtonClick(event: Event): Promise<void> {
+  private async onAddNodeButtonClick(): Promise<void> {
     const newNodeId = generateUUID()
     const command = new CommandBuilder(
       new CreateChildNodeCommandPayload(newNodeId, '', null, this.filteredTreeRoot.node._id))
@@ -336,7 +337,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     await this.performWithDom(command)
   }
 
-  private onDocumentKeydown(event: KeyboardEvent): void {
+  private async onDocumentKeydown(event: KeyboardEvent): Promise<void> {
     if (event.key === 'Escape') {
       // Escape should clear the searchfield and blur the focus when we have an active query
       if (this.filterIsActive()) {
@@ -345,20 +346,21 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         if (document.activeElement === searchField) {
           searchField.blur()
         }
-        this.onQueryChange()
+        await this.onQueryChange()
       }
     } else if (this.undoTrigger.isTriggered(KbdEventType.Keydown, event)) {
-      this.onUndo(event)
+      await this.onUndo(event)
     } else if (this.redoTrigger.isTriggered(KbdEventType.Keydown, event)) {
-      this.onRedo(event)
+      await this.onRedo(event)
     }
   }
 
-  performWithoutDom(command: Command): Promise<void> {
-    return this.commandHandler.exec(command)
+  async performWithoutDom(command: Command): Promise<void> {
+    await this.commandHandler.exec(command)
   }
 
-  private readonly debouncedRerender = debounce(this.rerenderTree, 5000).bind(this)
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  private readonly debouncedRerender: () => void = debounce(this.rerenderTree.bind(this), 5000).bind(this)
 
   async performWithDom(command: Command): Promise<void> {
     if (command) {
@@ -370,22 +372,20 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
       // the tree
       if (command.payload.requiresRender()) {
         // if it is a batch command we don't want to immediately rerender
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const renderFunction = command.batch ? this.debouncedRerender : this.rerenderTree.bind(this)
-        commandPromise.then(renderFunction).then(() => {
+        await commandPromise.then(renderFunction).then(() => {
           if (command.afterFocusNodeId) {
             this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
           }
         })
       } else {
-        commandPromise.then(() => {
+        await commandPromise.then(() => {
           if (command.afterFocusNodeId) {
             this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
           }
         })
       }
-      return commandPromise
-    } else {
-      return Promise.resolve()
     }
   }
 
@@ -402,15 +402,15 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     }
   }
 
-  private onUndo(event: Event) {
+  private async onUndo(event: Event): Promise<void> {
     event.preventDefault()
     event.stopPropagation()
-    this.performWithDom(this.commandHandler.popUndoCommand())
+    await this.performWithDom(this.commandHandler.popUndoCommand())
   }
 
-  private onRedo(event: Event) {
+  private async onRedo(event: Event): Promise<void> {
     event.preventDefault()
     event.stopPropagation()
-    this.performWithDom(this.commandHandler.popRedoCommand())
+    await this.performWithDom(this.commandHandler.popRedoCommand())
   }
 }

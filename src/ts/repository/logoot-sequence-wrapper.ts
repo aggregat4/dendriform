@@ -43,12 +43,12 @@ export class LogootSequenceWrapper<T> {
    * If pos is >= sequence.length then it will be appended.
    * The position is relative to the the externalarray range for this sequence not its internal representation.
    */
-  insertAtIndex(item: T, pos: number, peerClock): void {
+  insertAtIndex(item: T, pos: number, peerClock: number): void {
     const atomId = this.getAtomIdentForInsertionIndex(pos, peerClock)
     this.insertAtAtomIdent(item, atomId)
   }
 
-  getAtomIdentForInsertionIndex(pos: number, peerClock): atomIdent {
+  getAtomIdentForInsertionIndex(pos: number, peerClock: number): atomIdent {
     if (pos < 0) {
       throw new Error(`Invalid positionn ${pos}`)
     }
@@ -78,6 +78,7 @@ export class LogootSequenceWrapper<T> {
 
   toArray(): T[] {
     // cut off the marker items at the beginning and the end
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.seq.slice(1, -1).map(anAtom => anAtom[1])
   }
 }

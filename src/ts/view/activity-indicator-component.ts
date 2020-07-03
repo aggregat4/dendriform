@@ -55,7 +55,7 @@ export class ActivityIndicator extends HTMLElement {
     this.attachShadow({mode: 'open'})
   }
 
-  connectedCallback() {
+  connectedCallback(): void {
     render(this.template(), this.shadowRoot)
     this.spinner = this.firstElementChild as HTMLElement
     if (! this.timerId) {
@@ -70,7 +70,7 @@ export class ActivityIndicator extends HTMLElement {
     this._activityIndicating = activityIndicating
   }
 
-  get activityIndicating() {
+  get activityIndicating(): ActivityIndicating {
     return this._activityIndicating
   }
 
@@ -117,7 +117,7 @@ export class ActivityIndicator extends HTMLElement {
 
   private installPreventCloseWindowHandler() {
     if (!window.onbeforeunload) {
-      window.onbeforeunload = (e) => {
+      window.onbeforeunload = (e: BeforeUnloadEvent) => {
         const message = 'Events are being saved, if you close the window you may lose data. Proceed?'
         const event = e || window.event
         // For IE and Firefox
@@ -134,7 +134,7 @@ export class ActivityIndicator extends HTMLElement {
     window.onbeforeunload = null
   }
 
-  disconnectedCallback() {
+  disconnectedCallback(): void {
     if (this.timerId) {
       clearInterval(this.timerId)
       this.timerId = null

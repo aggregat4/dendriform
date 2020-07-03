@@ -37,7 +37,7 @@ import { render } from 'lit-html'
 
 export class DomCommandHandler implements CommandHandler {
 
-  async exec(command: Command): Promise<any> {
+  async exec(command: Command): Promise<void> {
     const cmd = command.payload
     if (cmd instanceof SplitNodeByIdCommandPayload) {
       return this.domSplitNode(
@@ -106,10 +106,10 @@ export class DomCommandHandler implements CommandHandler {
     sourceNode.remove()
   }
 
-  private async domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
-                             newNodeId: string): Promise<void> {
+  private domSplitNode(node: Element, newNodeName: string, originalNodeName: string,
+                             newNodeId: string): void {
     this.replaceElementWithTaggedContent(getNameElement(node), originalNodeName)
-    const newSiblingEl = await this.createDomNode(newNodeId, newNodeName, null)
+    const newSiblingEl = this.createDomNode(newNodeId, newNodeName, null)
     node.insertAdjacentElement('beforebegin', newSiblingEl)
   }
 
@@ -117,7 +117,7 @@ export class DomCommandHandler implements CommandHandler {
     el.innerHTML = toHtml(markupHtml(newName))
   }
 
-  private async createDomNode(id: string, name: string, note: string): Promise<Element> {
+  private createDomNode(id: string, name: string, note: string): Element {
     const newNode = createNewResolvedRepositoryNodeWithContent(id, name, note)
     const el = document.createElement('div')
     render(renderNode(filterNode(newNode), false), el)
@@ -151,7 +151,7 @@ export class DomCommandHandler implements CommandHandler {
     } else if (relativePosition === RelativeLinearPosition.AFTER) {
       relativeNode.insertAdjacentElement('afterend', node)
     } else {
-      throw new Error(`Invalid RelativeLinearPosition: ${relativePosition}`)
+      throw new Error(`Invalid RelativeLinearPosition`)
     }
     // we need to check whether the original parent still has children, and if not, hide the toggle (if necessary)
     if (!hasChildren(oldParentNode)) {
@@ -185,9 +185,9 @@ export class DomCommandHandler implements CommandHandler {
     verifyAndRepairMarkup(noteEl, note)
   }
 
-  private async domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): Promise<void> {
+  private domCreateChildNode(childId: string, childName: string, childNote: string, parentNode: Element): void {
     const parentChildrenNode = getChildrenElementOrCreate(parentNode)
-    const newNode = await this.createDomNode(childId, childName, childNote)
+    const newNode = this.createDomNode(childId, childName, childNote)
     parentChildrenNode.appendChild(newNode)
   }
 

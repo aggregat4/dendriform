@@ -7,6 +7,14 @@ export interface CommandExecutor {
   performWithoutDom(command: Command): Promise<void>
 }
 
+export interface TransientStateInfo {
+  focusNodePreviousId: string,
+  focusNodePreviousName: string,
+  focusNodePreviousNote: string,
+  focusNodePreviousPos: number,
+  currentMenuShownTriggerElement: string,
+}
+
 export class TransientState {
   // Holds transient view state that we need to manage somehow (focus, cursor position, etc)
   readonly transientState = {
@@ -26,14 +34,14 @@ export class TransientState {
     this.transientState.focusNodePreviousPos = focusPos
   }
 
-  registerSelectionChangeHandler() {
+  registerSelectionChangeHandler(): void {
     // We need to track when the selection changes so we can store the current
     // cursor position (needed for UNDO)
     // TODO: doing this on document is uncool when we want to have multiple trees, but I did this for a reason to capture more clicks?
     document.addEventListener('selectionchange', this.selectionChangeHandler.bind(this))
   }
 
-  private selectionChangeHandler(event: Event): void {
+  private selectionChangeHandler(): void {
     if (document.activeElement) {
       if (isNameNode(document.activeElement)) {
         const activeNode = getClosestNodeElement(document.activeElement)
@@ -54,7 +62,7 @@ export class TransientState {
     this.activeNodeId = nodeId
   }
 
-  getState() {
+  getState(): TransientStateInfo {
     return this.transientState
   }
 }

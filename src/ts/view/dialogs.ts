@@ -8,7 +8,9 @@ export interface DialogLifecycleAware {
   beforeShow(): void
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isDialogLifecycleAware(obj: any): obj is DialogLifecycleAware {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return typeof obj.beforeShow === 'function'
 }
 
@@ -109,13 +111,13 @@ export class DialogElement extends HTMLElement {
     return this.shadowRoot.querySelector('.dialogOverlay')
   }
 
-  dismiss() {
+  dismiss(): void {
     this.dialogCloseObserver = null
     this.dialogElement.style.display = 'none'
     this.overlayElement.style.display = 'none'
   }
 
-  showAtPos(position: Position) {
+  showAtPos(position: Position): void {
     this.beforeShow()
     const dialogElement = this.dialogElement
     if (this.getViewportWidth() < 576) {
@@ -123,8 +125,8 @@ export class DialogElement extends HTMLElement {
       dialogElement.style.left = '0'
       dialogElement.style.top = '0'
     } else {
-      dialogElement.style.left = position.x + 'px'
-      dialogElement.style.top = position.y + 'px'
+      dialogElement.style.left = `${position.x}px`
+      dialogElement.style.top = `${position.y}px`
     }
     dialogElement.style.transform = 'none'
     dialogElement.style.display = 'block'
@@ -134,11 +136,11 @@ export class DialogElement extends HTMLElement {
       // position it will drop up. This is not entirely correct because some of the
       // elements of the dialog may render asynchronously and they will not be
       // accounted for in the clientHeight here. Close enough though.
-      dialogElement.style.top = (position.y - dialogElement.clientHeight) + 'px'
+      dialogElement.style.top = `${position.y - dialogElement.clientHeight}px`
     }
   }
 
-  showCentered() {
+  showCentered(): void {
     this.beforeShow()
     const dialogElement = this.dialogElement
     if (this.getViewportWidth() < 576) {
@@ -169,7 +171,7 @@ export class DialogElement extends HTMLElement {
     )
   }
 
-  connectedCallback() {
+  connectedCallback(): void {
     render(this.dialogTemplate(), this.shadowRoot)
   }
 
@@ -214,10 +216,11 @@ class ActiveDialog {
 export class Dialogs {
   private dialogs: Dialog[] = []
   private activeDialog: ActiveDialog = null
-  private readonly onDocumentClickedListener
+  private readonly onDocumentClickedListener: (event: Event) => void
 
   constructor(root: HTMLElement) {
     root.addEventListener('click', this.onInRootClicked.bind(this))
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.onDocumentClickedListener = this.onDocumentClicked.bind(this)
   }
 
@@ -262,12 +265,13 @@ export class Dialogs {
       throw new Error(`Setting an active dialog when one is already active`)
     }
     this.activeDialog = activeDialog
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.activeDialog.dialog.dialogElement.dialogCloseObserver = this.activeDialogCloseHandler.bind(this)
     // we register a global handler to track dismiss clicks outside of the dialog
     document.addEventListener('click', this.onDocumentClickedListener)
   }
 
-  private onDocumentClicked(event: Event) {
+  private onDocumentClicked(event: Event): void {
     const clickedElement = event.target as HTMLElement
     if (this.isDialogActive() &&
         this.activeDialog.trigger !== clickedElement &&
