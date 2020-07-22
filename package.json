@@ -51,7 +51,8 @@
     "rollup-plugin-visualizer": "4.0.4",
     "ts-unused-exports": "6.2.1",
     "tslint": "6.1.2",
-    "typescript": "3.9.7"
+    "typescript": "3.9.7",
+    "lodash": ">=4.17.19"
   },
   "dependencies": {
     "file-saver": "2.0.2",
