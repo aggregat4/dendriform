@@ -3,11 +3,16 @@ import { RemoteEventLog } from './eventlog-remote'
 import { LifecycleAware } from '../domain/domain'
 import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobscheduler'
 import { IDBPDatabase, DBSchema, openDB } from 'idb'
+import { assert } from '../utils/util'
 
+/**
+ * We store the max localeventid that we know per originator. This allows us to
+ * check whether a server may have newer events than us or whether we need to
+ * send the server newer events.
+ */
 interface EventPumpMetadata {
-  id: string
-  maxlocalcounter: number
-  maxservercounter: number
+  originator: string
+  maxlocaleventid: number
 }
 
 interface EventPumpSchema extends DBSchema {
@@ -21,20 +26,19 @@ interface EventPumpSchema extends DBSchema {
  * An event pump connects an event log to a remote server and a local event log
  * and pumps events back and forth continuously.
  *
- * It filters incoming events to be only those that are NOT
- * originated by the eventlog itself by using the event log's peerid as a filter.
+ * The pump knows for what events it is authoratative, this means what events it
+ * should be sending to the server. All originatorIds that it is _not_ authoratative
+ * for will be fetched from the server.
  *
- * It filters outgoing events to be only events from the local peer.
+ * In each pump loop iteration the following happens:
+ * - We ask the server what originatorIds it knows and what the max local event Ids
+ *   are that it has.
+ * - For the originatorId that the client is authoratative we will send maximum one
+ *   page of new events.
+ * - For all other originatorIds it requests at most one page worth of new events.
  *
- * It keeps track of the max event counter it has seen from the server for this
- * eventlog (identified by name) so far. It does the same for the local event log.
- *
- * implNote: We can't easily subscribe for local events and persist them when they
- * occur because we also need to make sure that we persisted all previous events.
- * If we would get all local events to persist, save them on the server and then
- * subscribe, we would need to make sure that we didn't miss any events between
- * the fetch of all local events and the start of our subscription. That seems too
- * hard for now. Instead this implementation polls the client and it polls the server.
+ * If both the client and the server do not generate any further events this means
+ * that eventually the client will have nothing to do anymore.
  */
 export class EventPump implements LifecycleAware {
   private db: IDBPDatabase<EventPumpSchema>
@@ -43,26 +47,19 @@ export class EventPump implements LifecycleAware {
   private readonly MAX_DELAY_MS = 60 * 1000
   private readonly EVENT_TRANSMISSION_BATCH_SIZE = 250
 
-  private localEventPump = new JobScheduler(
+  private eventPump = new JobScheduler(
     new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS),
-    this.drainLocalEvents.bind(this)
-  )
-  private remoteEventPump = new JobScheduler(
-    new BackoffWithJitterTimeoutStrategy(this.DEFAULT_DELAY_MS, this.MAX_DELAY_MS),
-    this.drainRemoteEvents.bind(this)
+    this.pump.bind(this)
   )
 
-  private maxServerCounter: number
-  /**
-   * This is the counter of the last locally originated event that the server has seen.
-   * We use it to determine what to send the server. Should the server reset its state
-   * in some way we may need to correct this number.
-   */
-  private maxLocalCounter: number
+  // A map of originator Ids to the largest local event Id we know for that originator
+  private maxLocalEventIds = new Map<string, number>()
 
   constructor(
     private readonly localEventLog: DEventLog,
-    private readonly remoteEventLog: RemoteEventLog
+    private readonly remoteEventLog: RemoteEventLog,
+    // The originatorId we are authoratative for
+    private readonly authoratativeFor: string
   ) {
     this.dbName = localEventLog.getName() + '-eventpump'
   }
@@ -77,14 +74,12 @@ export class EventPump implements LifecycleAware {
       },
     })
     await this.loadOrCreateMetadata()
-    await this.localEventPump.start(true)
-    await this.remoteEventPump.start(true)
+    await this.eventPump.start(true)
   }
 
   async deinit(): Promise<void> {
     if (this.db) {
-      await this.localEventPump.stopAndWaitUntilDone()
-      await this.remoteEventPump.stopAndWaitUntilDone()
+      await this.eventPump.stopAndWaitUntilDone()
       await this.saveMetadata()
       this.db.close()
       this.db = null
@@ -93,27 +88,48 @@ export class EventPump implements LifecycleAware {
 
   private async loadOrCreateMetadata(): Promise<void> {
     const metadata = await this.db.getAll('metadata')
-    if (!metadata || metadata.length === 0) {
-      this.maxServerCounter = -1
-      this.maxLocalCounter = -1
-      await this.saveMetadata()
-    } else {
-      const md = metadata[0]
-      this.maxServerCounter = md.maxservercounter
-      this.maxLocalCounter = md.maxlocalcounter
+    if (metadata) {
+      for (const maxLocalEventId of metadata) {
+        this.maxLocalEventIds.set(maxLocalEventId.originator, maxLocalEventId.maxlocaleventid)
+      }
     }
   }
 
   private async saveMetadata(): Promise<void> {
-    const metadata = {
-      id: this.dbName,
-      maxservercounter: this.maxServerCounter,
-      maxlocalcounter: this.maxLocalCounter,
-    }
     try {
-      await this.db.put('metadata', metadata)
+      for (const [originator, maxlocaleventid] of this.maxLocalEventIds.entries()) {
+        await this.db.put('metadata', { originator, maxlocaleventid })
+      }
     } catch (error) {
       throw Error(`Error saving metadata`)
+    }
+  }
+
+  /**
+   * client asks server for his current state of the world
+   * if he doesn't know our max event Id yet, send a batch of local events
+   * for all other originator ids:
+   *   if we do not know the max id yet, fetch a batch of remote events
+   */
+  private async pump(): Promise<void> {
+    const serverState = await this.remoteEventLog.fetchServerState()
+    const serverMaxKnownEventIdForOwnEvents = serverState[this.authoratativeFor] || -1
+    if (serverMaxKnownEventIdForOwnEvents < this.maxLocalEventIds.get(this.authoratativeFor)) {
+      await this.drainLocalEvents(serverMaxKnownEventIdForOwnEvents)
+    }
+    for (const originatorId of Object.keys(serverState)) {
+      if (originatorId === this.authoratativeFor) {
+        continue
+      }
+      const serverMaxId = serverState[originatorId]
+      const localMaxKnownEventId = this.maxLocalEventIds.get(originatorId) || -1
+      assert(
+        localMaxKnownEventId <= serverMaxId,
+        `We can not have more events than the server for an eventlog that we are not authoratative for. Offending originator: ${originatorId}`
+      )
+      if (localMaxKnownEventId < serverMaxId) {
+        await this.fetchRemoteEvents(localMaxKnownEventId, originatorId)
+      }
     }
   }
 
@@ -122,15 +138,15 @@ export class EventPump implements LifecycleAware {
    * when successfull, saves the new maxLocalCounter.
    * @throws something on server contact failure
    */
-  private async drainLocalEvents(): Promise<void> {
+  private async drainLocalEvents(maxServerEventId: number): Promise<void> {
     const events: Events = await this.localEventLog.getEventsSince(
       this.localEventLog.getPeerId(),
-      this.maxLocalCounter,
+      maxServerEventId,
       this.EVENT_TRANSMISSION_BATCH_SIZE
     )
     if (events.events.length > 0) {
       await this.remoteEventLog.publishEvents(events.events)
-      this.maxLocalCounter = events.counter
+      this.maxLocalEventIds[this.authoratativeFor] = events.counter
       await this.saveMetadata()
     }
   }
@@ -140,16 +156,16 @@ export class EventPump implements LifecycleAware {
    * locally and when successfull saves the new maxServerCounter.
    * @throws something on server contact failure
    */
-  private async drainRemoteEvents(): Promise<void> {
+  private async fetchRemoteEvents(maxLocalEventId: number, originator: string): Promise<void> {
     const events = await this.remoteEventLog.getEventsSince(
-      this.maxServerCounter,
-      this.localEventLog.getPeerId(),
+      maxLocalEventId,
+      originator,
       this.EVENT_TRANSMISSION_BATCH_SIZE
     )
     if (events.events.length > 0) {
       // This can be async, the client should see the changes eventually
       await this.localEventLog.insert(events.events, false)
-      this.maxServerCounter = events.counter
+      this.maxLocalEventIds[originator] = events.counter
       await this.saveMetadata()
     }
   }

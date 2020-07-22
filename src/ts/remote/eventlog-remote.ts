@@ -1,6 +1,8 @@
+import { serializeServerEvent, ServerEvents, deserializeServerEvents } from './serialization'
 import { DEvent, Events } from '../eventlog/eventlog'
 import { assertNonEmptyString } from '../utils/util'
-import { deserializeServerEvents, serializeServerEvent, ServerEvents } from './serialization'
+
+export type ServerState = { [key: string]: number }
 
 export class RemoteEventLog {
   readonly serverEndpoint: string
@@ -17,6 +19,11 @@ export class RemoteEventLog {
     }
   }
 
+  async fetchServerState(): Promise<ServerState> {
+    const response = await fetch(`${this.serverEndpoint}/state`)
+    return (await response.json()) as ServerState
+  }
+
   async publishEvents(events: DEvent[]): Promise<void> {
     await fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/`, {
       method: 'POST',
@@ -29,17 +36,10 @@ export class RemoteEventLog {
     // })
   }
 
-  /**
-   * TODO: error handling!
-   */
-  async getEventsSince(
-    counter: number,
-    peerIdExclusionFilter: string,
-    batchSize: number
-  ): Promise<Events> {
-    assertNonEmptyString(peerIdExclusionFilter)
+  async getEventsSince(counter: number, originator: string, batchSize: number): Promise<Events> {
+    assertNonEmptyString(originator)
     const response = await fetch(
-      `${this.serverEndpoint}eventlogs/${this.eventlogId}/?since=${counter}&notForOriginator=${peerIdExclusionFilter}&batchSize=${batchSize}`
+      `${this.serverEndpoint}eventlogs/${this.eventlogId}/?since=${counter}&originator=${originator}&batchSize=${batchSize}`
     )
     const serverEvents = (await response.json()) as ServerEvents
     return {

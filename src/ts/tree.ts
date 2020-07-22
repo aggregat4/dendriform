@@ -27,7 +27,7 @@ export class TreeManager {
     }
     const localEventLog = new LocalEventLog(treeName)
     const remoteEventLog = new RemoteEventLog('/', treeName)
-    this.currentEventPump = new EventPump(localEventLog, remoteEventLog)
+    this.currentEventPump = new EventPump(localEventLog, remoteEventLog, localEventLog.getPeerId())
     const repository = new EventlogRepository(localEventLog)
     const treeService = new TreeService(repository)
     const treeServiceCommandHandler = new TreeServiceCommandHandler(treeService)

@@ -277,7 +277,7 @@ export function findFirst<T>(array: T[], predicate: (arg: T) => boolean): T {
   return null
 }
 
-function assert(condition: boolean, message: string): void {
+export function assert(condition: boolean, message: string): void {
   if (!condition) {
     throw new Error(message || 'Assertion failed')
   }
