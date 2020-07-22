@@ -1454,10 +1454,24 @@ BTW I currently have a collision with localId and the id I would need for this t
 
 After spending a few fruitless sessions thinking about how to make merkle trees work for our event distribution mechanism I have decided to abandon it for now. I still don't see a good way to extend "normal" merkle trees to be efficient when constantly updating them concurrently: the tree itself is constantly changing and you don't limit changes to some localized part of the tree itself.
 
-Approaches such as the INRIA fast search trees would work but they kind of presuppose a completely different storage and potentially CRDT structure and that is too big a change for me to make right now.
+Approaches such as the INRIA fast search trees would work but they kind of presuppose a completely different storage schema and maybe even a different CRDT structure and that is too big a change for me to make right now.
 
 I will revert to a simpler approach where I _do_ keep track of authoratative authors for events (basically the originator is always authoratative) and then track per authoratative source what the max event ID is and which I don't have yet. I will send the local clients missing events to the server (batched) and will receive them from the server per other originator.
 
 This is far from optimal but it is simple and I think it may be sufficient for my pedestrian needs.
 
 At some point in the future I would like to have a better approach for incremental synchronization that is totally robust.
+
+## 2020-07-22 Simple Sync Approach
+
+The algorithm for the periodic sync in the new simpler approach:
+
+1. client asks server for his current state of the world
+1. if he doesn't know our max event Id yet, send a batch of local events
+1. for all other originator ids:
+1.   if we do not know the max id yet, fetch a batch of it
+1. repeat with backoff
+
+I reimplemented the eventpumpt to have this logic, this requires one new controller for the server and we need to verify whether we support "originator" instead of notForOriginator on the eventlogs endpoint.
+
+Unclear whether something is missing on the client after that but then we should start testing.
