@@ -31,6 +31,7 @@ export default {
   //   include: 'src/css/tree.css'
   // },
   plugins: [
+    eslint(),
     copy({
       targets: [{ src: 'src/css/*.css', dest: 'dist' }],
     }),
@@ -51,13 +52,12 @@ export default {
         'node_modules/file-saver/dist/FileSaver.min.js': ['saveAs'],
       },
     }),
-    eslint(),
     ts({
       browserslist: false,
     }),
-    visualizer({
-      filename: 'bundle-size.html',
-      template: 'treemap',
-    }),
+    // visualizer({
+    //   filename: 'bundle-size.html',
+    //   template: 'treemap',
+    // }),
   ],
 }

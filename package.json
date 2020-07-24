@@ -12,7 +12,6 @@
   },
   "main": "main.js",
   "scripts": {
-    "copycss": "cp src/css/tree.css dist",
     "clean": "rm -rf dist && mkdir dist",
     "build": "npx rollup -c rollup.config.js",
     "test": "npx ts-node test/runtests.ts",
@@ -22,7 +21,10 @@
     "sloc": "npx sloc src",
     "unused-exports": "npx ts-unused-exports tsconfig.json",
     "serve": "npx http-server dist",
-    "unused-dependencies": "npx depcheck"
+    "unused-dependencies": "npx depcheck",
+    "esb": "npx esbuild --bundle --sourcemap --target=es2017 --outdir=dist --format=esm src/ts/tree.ts src/example/main.ts && cp src/css/*.css dist/example &&  cp src/example/index2.html dist/example/index.html",
+    "esbserve": "npx http-server dist/example",
+    "eslint": "npx eslint src"
   },
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "Apache-2.0",
@@ -33,6 +35,7 @@
     "@wessberg/rollup-plugin-ts": "1.2.28",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
+    "esbuild": "^0.6.5",
     "eslint": "7.5.0",
     "eslint-config-prettier": "6.11.0",
     "eslint-plugin-import": "2.22.0",
@@ -41,6 +44,7 @@
     "eslint-plugin-prettier": "3.1.4",
     "jsdom": "16.3.0",
     "jsdom-global": "3.0.2",
+    "lodash": ">=4.17.19",
     "prettier": "2.0.5",
     "rollup": "2.22.2",
     "rollup-plugin-commonjs": "10.1.0",
@@ -51,8 +55,7 @@
     "rollup-plugin-visualizer": "4.0.4",
     "ts-unused-exports": "6.2.1",
     "tslint": "6.1.2",
-    "typescript": "3.9.7",
-    "lodash": ">=4.17.19"
+    "typescript": "3.9.7"
   },
   "dependencies": {
     "file-saver": "2.0.2",
