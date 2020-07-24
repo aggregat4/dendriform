@@ -208,32 +208,36 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   private async store(events: DEvent[]): Promise<void> {
-    const mappedEvents = events
-      // This is some (ugly?) special casing: we do not persist and create or update events on the ROOT node
-      // performed by other peers. This is to make sure there is always only one ROOT node on each peer
-      .filter(
-        (e) =>
-          !(
-            e.type === EventType.ADD_OR_UPDATE_NODE &&
-            e.nodeId === 'ROOT' &&
-            e.originator !== this.peerId
-          )
-      )
-      .map((e) => {
-        // We preincrement the counter because our semantics are that counter is always the current
-        // highest existing ID in the database
-        const newId = ++this.counter
-        return {
-          eventid: newId,
-          // the local id exists when the DEvent comes from outside but it is -1 when it originates on this client
-          localId: e.localId !== -1 ? e.localId : newId,
-          eventtype: e.type,
-          treenodeid: e.nodeId,
-          peerid: this.peeridMapper.externalToInternalPeerId(e.originator),
-          vectorclock: this.peeridMapper.externalToInternalVectorclockValues(e.clock.values),
-          payload: e.payload,
-        }
-      })
+    const mappedEvents = await Promise.all(
+      events
+        // This is some (ugly?) special casing: we do not persist and create or update events on the ROOT node
+        // performed by other peers. This is to make sure there is always only one ROOT node on each peer
+        .filter(
+          (e) =>
+            !(
+              e.type === EventType.ADD_OR_UPDATE_NODE &&
+              e.nodeId === 'ROOT' &&
+              e.originator !== this.peerId
+            )
+        )
+        .map(async (e) => {
+          // We preincrement the counter because our semantics are that counter is always the current
+          // highest existing ID in the database
+          const newId = ++this.counter
+          return {
+            eventid: newId,
+            // the local id exists when the DEvent comes from outside but it is -1 when it originates on this client
+            localId: e.localId !== -1 ? e.localId : newId,
+            eventtype: e.type,
+            treenodeid: e.nodeId,
+            peerid: await this.peeridMapper.externalToInternalPeerId(e.originator),
+            vectorclock: await this.peeridMapper.externalToInternalVectorclockValues(
+              e.clock.values
+            ),
+            payload: e.payload,
+          }
+        })
+    )
     const tx = this.db.transaction('events', 'readwrite')
     try {
       // This is an efficient bulk add that does not wait for the success callback, inspired by

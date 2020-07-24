@@ -102,7 +102,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     toRawShortCuts(new SemanticShortcut(SemanticShortcutType.Redo))
   )
 
-  private readonly treeTemplate = () => html` <div
+  private readonly treeTemplate = () => html`<div
     class="tree activityindicating"
     @input=${this.onInput.bind(this)}
     @keypress=${this.onKeypress.bind(this)}
@@ -125,9 +125,8 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         aria-label="Add Node"
         title="Add Node"
         @click=${this.onAddNodeButtonClick.bind(this)}
+        >+</button
       >
-        +
-      </button>
       <div class="searchbox">
         <input
           class="searchField"
