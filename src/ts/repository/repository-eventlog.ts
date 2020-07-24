@@ -131,6 +131,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     }
   }
 
+  // TODO: add checks for cycles: do not add parent child relationships when the cause cycles, still need to figure out what order these events come in because that order must be consistent across all clients!
   private async rebuildTreeStructureMaps(): Promise<void> {
     const newChildParentMap = {}
     const newParentChildMap = {}
@@ -219,6 +220,8 @@ export class EventlogRepository implements Repository, LifecycleAware {
    * the fact that we would synchronously garbage collect our events and discard older, duplicate INSERT
    * events from the sequence. Since garbage collection is now asynchronous we now always publish the
    * DELETE event as well so we don't get duplicate nodes in our child lists.
+   *
+   * TODO: check whether we are creating a cycle by inserting, all operations to the structure map must check that. In this case the operation is local and therefore always the "newest" and we just reject it!?
    */
   async reparentNode(
     childId: string,
