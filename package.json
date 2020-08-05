@@ -22,7 +22,7 @@
     "unused-exports": "npx ts-unused-exports tsconfig.json",
     "serve": "npx http-server dist",
     "unused-dependencies": "npx depcheck",
-    "esb": "npx esbuild --bundle --sourcemap --target=es2017 --outdir=dist --format=esm src/ts/tree.ts src/example/main.ts && cp src/css/*.css dist/example &&  cp src/example/index2.html dist/example/index.html",
+    "esb": "npx esbuild --bundle --sourcemap --target=es2017 --outdir=dist --format=esm src/ts/tree.ts src/example/main.ts && cp src/css/*.css dist/example && cp src/example/index2.html dist/example/index.html",
     "esbserve": "npx http-server dist/example",
     "eslint": "npx eslint src"
   },
