@@ -131,7 +131,12 @@ export class EventlogRepository implements Repository, LifecycleAware {
     }
   }
 
-  // TODO: add checks for cycles: do not add parent child relationships when the cause cycles, still need to figure out what order these events come in because that order must be consistent across all clients!
+  /**
+   * Rebuilds the tree structure maps for child->parent relationships and the ordering
+   * of children. If during the insertion of a child->parent relationship we detect a
+   * cycle, we omit that relationship. Since events are causally sorted this will be
+   * consistent across nodes.
+   */
   private async rebuildTreeStructureMaps(): Promise<void> {
     const newChildParentMap = {}
     const newParentChildMap = {}
@@ -140,7 +145,11 @@ export class EventlogRepository implements Repository, LifecycleAware {
       const treeEventPayload = event.payload as ReparentNodeEventPayload
       const nodeId = event.nodeId
       const parentId = treeEventPayload.parentId
-      newChildParentMap[nodeId] = parentId
+      // updates to the tree structure that would cause cycles are not applied
+      // since these are in causal order this will be consistent across clients
+      if (!EventlogRepository.causesCycle(newChildParentMap, nodeId, parentId)) {
+        newChildParentMap[nodeId] = parentId
+      }
     })
     const reorderEvents = await this.eventLog.getAllEventsFromType(EventType.REORDER_CHILD)
     reorderEvents.events.forEach((event) => {
@@ -154,10 +163,26 @@ export class EventlogRepository implements Repository, LifecycleAware {
         this.eventLog.getPeerId()
       )
     })
-    // this is an attempt at an "atomic" update: we only replace the existing maps once we
-    // have the new ones, to avoid having intermediate request accessing some weird state
     this.childParentMap = newChildParentMap
     this.parentChildMap = newParentChildMap
+  }
+
+  private static causesCycle(
+    childParentMap: { [key in string]: string },
+    childId: string,
+    parentId: string
+  ): boolean {
+    let currentNode = parentId
+    while (currentNode) {
+      const ancestor = childParentMap[currentNode]
+      if (ancestor) {
+        if (ancestor === childId) {
+          return true
+        }
+        currentNode = ancestor
+      }
+    }
+    return false
   }
 
   private static insertInParentChildMap(
@@ -221,7 +246,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
    * events from the sequence. Since garbage collection is now asynchronous we now always publish the
    * DELETE event as well so we don't get duplicate nodes in our child lists.
    *
-   * TODO: check whether we are creating a cycle by inserting, all operations to the structure map must check that. In this case the operation is local and therefore always the "newest" and we just reject it!?
+   * Assumption: we don't perform a cycle check here since we assume
    */
   async reparentNode(
     childId: string,

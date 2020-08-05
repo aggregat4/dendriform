@@ -116,14 +116,23 @@ No data is actively deleted, all "deleted" nodes remain in the set as tombstones
 
 There is a periodical garbage collection phase that will collect all nodes that are known to be causally redundant and removes them from the event log. This phase does not yet run in a separate thread (web worker) and causes (small) pauses.
 
+### Preventing Cycles
+
+Since two clients can work disconnected for a while, it is possible that they may both emit events that are perfectly valid locally but that can cause cycles when merging together. If client 1 reparents B under A, and client 2 reparenty A under B we have a de facto conflict that can not be solved simply by CRDT approaches.
+
+The implemented solution for this is to reject all reparenting events that would cause a cycle. Since we always process all events in (total) causal order we can be sure that the system will converge on the same state across clients.
+
+The downside here is that we need a cycle check for each reparenting operation when rebuilding the structure maps in `repository-eventlog.ts`.
+
+### Garbage Collection Using RAF
+
+Garbage Collection of events is still not happening in a Webworker and therefore not truly parallel. To mitigate the impact on the user experience the histogram creation part of theregular garbage collection cycle is throttled to at most take one animation frame of effort by using RequestAnimationFrame and timing the operations.
+
+What's missing is to also throttle the actual garbage collection itself (deleting events) with RAF and real world testing to validate that this does prevent UI jank.
+
 ## TODOs
 
 1. BUG: marking as completed is broken, seems to render too many nodes as completed?
-1. BUG: if 2 offline users reparent B to A and A to B and then they get the events of the other users they will have a cycle in the tree. This can theoretically also happen on larger subtrees. We don't currently have a way to detect or deal with this cycle. In fact we probably go out of memory on rendering.
-   Solution(?): with each executed reparenting operation we must check on the client whether we introduce a cycle and if we do we must reject the operation. This also means that if we generate a cycle with a local operation and a remote operation has come in that happens before us, then we reject the local operation. I think we keep them around in the eventlog because it will happen so rarely that it doesn't matter.
-   TODO: document this in a datastructure problems/solutions section, also document GC there?
-   Also document that while we GC on the client, the server is dumb and does no GC.
-   See repository-eventlog.ts for TODO comments on where to add these checks
 1. BUG: after opml import you can not expand (or collapse) the newly imported nodes
 1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
 1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
