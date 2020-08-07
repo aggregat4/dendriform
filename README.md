@@ -126,25 +126,24 @@ The downside here is that we need a cycle check for each reparenting operation w
 
 ### Garbage Collection Using RAF
 
-Garbage Collection of events is still not happening in a Webworker and therefore not truly parallel. To mitigate the impact on the user experience the histogram creation part of theregular garbage collection cycle is throttled to at most take one animation frame of effort by using RequestAnimationFrame and timing the operations.
+Garbage Collection of events is still not happening in a Webworker and therefore not truly parallel. To mitigate the impact on the user experience the histogram creation part of the regular garbage collection cycle is throttled to at most take one animation frame of effort by using RequestAnimationFrame and timing the operations.
 
 What's missing is to also throttle the actual garbage collection itself (deleting events) with RAF and real world testing to validate that this does prevent UI jank.
 
 ## TODOs
 
+1. IMPROVEMENT: consider moving to esbuild completely, after testing that it satisfies all the requirements that rollup currently fulfills. It is _so_ fast.
 1. BUG: marking as completed is broken, seems to render too many nodes as completed?
 1. BUG: after opml import you can not expand (or collapse) the newly imported nodes
 1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
 1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
 1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it?
-1. Transferring events should happen in batches (N events) for performance and transfer reasons. Test with large documents and with a remote server.
-1. We should check with the server what he knows about us, in case he has a lower eventid than what we think he has, we should reset to that value
 1. Try out remote containers in Visual Studio code: could define my dev environment with it and use VS Code as a remote editor
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
-1. Add a feature to quickly move nodes to another parent node. Either with a bunch of fixed targets and automcomplete and remembering the last used? is last used an antipattern since you may need a different one each time? Or based on tags somehow? Or autocomplete on all nodes with last used?
+1. Add a feature to quickly move nodes to another parent node. Either with a bunch of fixed targets and autocomplete and remembering the last used? is last used an antipattern since you may need a different one each time? Or based on tags somehow? Or autocomplete on all nodes with last used?
 1. Move garbage collection to a web worker, maybe use comlink?
 1. Move event pumping to a web worker? Maybe not since then storage would be in a web worker and collide with my ID generation for the events?
-1. Put all the standard actions into menuitems for the node popup
+1. Put all the (sensible) standard actions into menuitems for the node popup
 1. As long as we don't support formatting the importer needs to strip all HTML tags and optionally convert some tags to markdown?
 1. Implement import by pasting into a text area.
 1. Test with touch
@@ -154,9 +153,7 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 1. Think through the performance of deleting a root node of a huge subtree: what does that mean for client storage? Do we keep any of those events?
 1. Importing OPML first seems to hang in the import dialog before dismissing it, this is probably the DOM update blocking everything, can we avoid that? This is only noticeable for really large imports.
-1. At some point we probably need paging for getting server side events, just to prevent us from crashing when the list of events becomes too large. Maybe one parameter suffices? pageSize=100 maybe?
 1. I probably need some kind of forced garbage collect where on a peer a user confirms that this is the master copy and some sort of synchronous operation happens that forces a reset. What does that mean? Generate a snapshot on the server and have clients load this? This means putting data structure knowhow on the server. Or the client generates a snapshot and sends it to the server, but this means that all clients need to have the same software version.
-1. Convert remaining promise based code to async functions?
 1. We need some sort of versioning support: when the software evolves and it is running "in production" we need a way to gracefully upgrade. Our two external interfaces are the remote events and the local indexeddb storage of events. The local store can theoretically be recreated completely but we need to identify the version change, remote events we could maybe transform?
 1. Check if it works on iOS and Android
 1. i18n
@@ -164,7 +161,6 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node) (what node though? config? hmm)
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
 1. Accessibility: is that even possible with this tree? How do I make the commands accessible? Do I need a menu per item anyway? How can I make moving a node in the tree accessible?
-1. MAYBE Implement a cleanup process that periodically sweeps the tree and collects incorrectly hung nodes in a LOST+FOUND node?
 1. MAYBE Implement moving up and down with arrow keys and maintaining approximate character position
 1. MAYBE Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 1. Make dialog positioning smarter by taking into account how much room we have on all sides.
