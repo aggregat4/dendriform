@@ -164,3 +164,5 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 1. MAYBE Implement moving up and down with arrow keys and maintaining approximate character position
 1. MAYBE Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 1. Make dialog positioning smarter by taking into account how much room we have on all sides.
+
+Test commit.
