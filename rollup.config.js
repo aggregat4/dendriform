@@ -6,7 +6,7 @@ import ts from '@wessberg/rollup-plugin-ts'
 // import visualizer from 'rollup-plugin-visualizer'
 import html2 from 'rollup-plugin-html2'
 import copy from 'rollup-plugin-copy'
-import { eslint } from 'rollup-plugin-eslint'
+// import { eslint } from 'rollup-plugin-eslint'
 
 export default {
   input: {
@@ -27,11 +27,9 @@ export default {
       return dirs[dirs.lastIndexOf('node_modules') + 1]
     }
   },
-  // watch: {
-  //   include: 'src/css/tree.css'
-  // },
   plugins: [
-    eslint(),
+    // no longer running eslint on build since we have it integrated in the editor and autoformat on save
+//    eslint(),
     copy({
       targets: [{ src: 'src/css/*.css', dest: 'dist' }],
     }),
