@@ -7,7 +7,7 @@ import { html } from 'lit-html'
  * Maybe having a <link> tag to an external extra stylesheet? But that seems like mixing global knowledge
  * with local knowledge?
  */
-export const sharedCommonStyles = html` <style>
+export const sharedCommonStyles = html`<style>
   input {
     /* By default input fields do not inherit font features */
     font-size: inherit;

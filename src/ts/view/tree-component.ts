@@ -63,7 +63,8 @@ import { TreeActionRegistry } from './tree-actionregistry'
 import { Dialogs, Dialog, DialogElement } from './dialogs'
 import { startEditingNote, renderNode } from './node-component'
 import './action-opmlimport' // direct import to trigger side effects (custom element registration)
-import { OpmlImportAction, OpmlImportDialog } from './action-opmlimport'
+import { OpmlImportAction } from './action-opmlimport'
+import { OpmlImportDialog } from './dialog-opmlimport'
 import { OpmlExportAction } from './action-opmlexport'
 import './activity-indicator-component' // for side effects
 
@@ -148,9 +149,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         </label>
       </fieldset>
     </nav>
-    <div class="content">
-      ${this.renderTreeNodes()}
-    </div>
+    <div class="content">${this.renderTreeNodes()}</div>
     <df-dialog class="node-menu">
       <df-menuitem-action class="import-opml-action-menuitem"></df-menuitem-action>
       <df-menuitem-action class="export-opml-action-menuitem"></df-menuitem-action>
