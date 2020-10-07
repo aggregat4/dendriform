@@ -10,7 +10,7 @@ import { unsafeHTML } from 'lit-html/directives/unsafe-html'
 const nodeTemplate = (
   node: FilteredRepositoryNode,
   children: DeferredArray<FilteredRepositoryNode>,
-  first: booleans
+  first: boolean
 ) => html`<div
   id="${node.node._id}"
   class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}"
