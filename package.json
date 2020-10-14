@@ -22,7 +22,7 @@
     "cbt-rollup": "npm run clean && npm run bundle-rollup && npm run test",
     "bt": "npm run compile && npm run bundle-esb && npm run test",
     "cbt": "npm run clean && npm run bundle-esb && npm run test",
-    "watch": "npx chokidar 'src/**/*.*' -c 'npm run bt'",
+    "watch": "npx chokidar 'src/**/*.*' --initial -c 'npm run bt'",
     "sloc": "npx sloc src",
     "unused-exports": "npx ts-unused-exports tsconfig.json",
     "serve": "npx http-server dist",
@@ -32,17 +32,17 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/file-saver": "2.0.1",
-    "@typescript-eslint/eslint-plugin": "4.4.0",
-    "@typescript-eslint/parser": "4.4.0",
+    "@typescript-eslint/eslint-plugin": "4.4.1",
+    "@typescript-eslint/parser": "4.4.1",
     "@wessberg/rollup-plugin-ts": "1.3.5",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
-    "chokidar-cli": "^2.1.0",
-    "esbuild": "0.7.11",
-    "eslint": "7.10.0",
+    "chokidar-cli": "2.1.0",
+    "esbuild": "0.7.15",
+    "eslint": "7.11.0",
     "eslint-config-prettier": "6.12.0",
     "eslint-plugin-import": "2.22.1",
-    "eslint-plugin-jsdoc": "30.6.3",
+    "eslint-plugin-jsdoc": "30.6.5",
     "eslint-plugin-prefer-arrow": "1.2.2",
     "eslint-plugin-prettier": "3.1.4",
     "jsdom": "16.4.0",
@@ -62,7 +62,7 @@
   },
   "dependencies": {
     "file-saver": "2.0.2",
-    "idb": "5.0.6",
+    "idb": "5.0.7",
     "lit-html": "1.3.0"
   }
 }
