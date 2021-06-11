@@ -3,21 +3,19 @@ export function secondsSinceEpoch(): number {
   return Math.trunc(new Date().getTime() / 1000)
 }
 
-const dateTimeFormatOptions = {
+function getLanguage() {
+  return navigator ? navigator.language : 'en'
+}
+
+const dateTimeFormatter = Intl.DateTimeFormat(getLanguage(), {
   weekday: 'short',
   year: 'numeric',
   month: 'short',
   day: 'numeric',
   hour: 'numeric',
   minute: 'numeric',
-  seconds: 'numeric',
-}
-
-function getLanguage() {
-  return navigator ? navigator.language : 'en'
-}
-
-const dateTimeFormatter = Intl.DateTimeFormat(getLanguage(), dateTimeFormatOptions)
+  second: 'numeric',
+})
 
 export function epochSecondsToLocaleString(seconds: number): string {
   return dateTimeFormatter.format(new Date(seconds * 1000))
