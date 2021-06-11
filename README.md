@@ -132,12 +132,14 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 ## TODOs
 
+1. IMPROVEMENT: upgrade to lit-html 2, see https://lit.dev/docs/releases/upgrade/
+1. IMPROVEMENT: maybe consider trying https://tailwindcss.com/ and give that a go here. I am curious how it feels.
 1. IMPROVEMENT: consider moving to esbuild completely, after testing that it satisfies all the requirements that rollup currently fulfills. It is _so_ fast.
 1. BUG: marking as completed is broken, seems to render too many nodes as completed?
 1. BUG: after opml import you can not expand (or collapse) the newly imported nodes
 1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
 1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
-1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it?
+1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it? How do you ever delete a document?
 1. Try out remote containers in Visual Studio code: could define my dev environment with it and use VS Code as a remote editor
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Add a feature to quickly move nodes to another parent node. Either with a bunch of fixed targets and autocomplete and remembering the last used? is last used an antipattern since you may need a different one each time? Or based on tags somehow? Or autocomplete on all nodes with last used?
