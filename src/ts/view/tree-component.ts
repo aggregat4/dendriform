@@ -132,7 +132,6 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
         <input
           class="searchField"
           type="search"
-          placeholder="Filter"
           @input=${debounce(this.onQueryChange.bind(this), 150)}
         />
         <df-spinner delayms="1000" />
