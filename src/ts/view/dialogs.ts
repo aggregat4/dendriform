@@ -271,10 +271,10 @@ export class Dialogs {
       throw new Error(`Setting an active dialog when one is already active`)
     }
     this.activeDialog = activeDialog
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    this.activeDialog.dialog.dialogElement.dialogCloseObserver = this.activeDialogCloseHandler.bind(
-      this
-    )
+    this.activeDialog.dialog.dialogElement.dialogCloseObserver =
+      this.activeDialogCloseHandler.bind(this)
     // we register a global handler to track dismiss clicks outside of the dialog
     document.addEventListener('click', this.onDocumentClickedListener)
   }
