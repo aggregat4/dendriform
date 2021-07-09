@@ -1244,7 +1244,7 @@ Since we no longer have jest doing all kinds of magic we can't just have tests s
 // Set up a fake dom environment for tests since we are not in the browser (see https://github.com/rstacruz/jsdom-global)
 import 'jsdom-global/register'
 
-import { trun } from './tizzytest'
+import { trun } from '../lib/tizzytest'
 
 // All the tests
 import './vectorclock.test'

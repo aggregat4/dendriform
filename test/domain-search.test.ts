@@ -1,4 +1,4 @@
-import { test } from './tizzytest'
+import { test } from '../lib/tizzytest'
 import expect from 'ceylon'
 
 import { parseQuery } from '../src/ts/domain/domain-search'

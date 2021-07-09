@@ -1,4 +1,4 @@
-import { test } from './tizzytest'
+import { test } from '../lib/tizzytest'
 import expect from 'ceylon'
 
 import { LogootSequenceWrapper } from '../src/ts/repository/logoot-sequence-wrapper'
@@ -64,33 +64,33 @@ test('inserting two elements and deleting one', () => {
   expect(seq.toArray()).toEqual(['bar'])
 })
 
-// describe('logoot sequences can be modified with indices', () => {
+// // describe('logoot sequences can be modified with indices', () => {
 
-test('inserting one element in an empty sequence', () => {
-  const seq = new LogootSequenceWrapper('a')
-  seq.insertAtIndex('foo', 0, 1)
-  expect(seq.toArray()).toEqual(['foo'])
-})
+// test('inserting one element in an empty sequence', () => {
+//   const seq = new LogootSequenceWrapper('a')
+//   seq.insertAtIndex('foo', 0, 1)
+//   expect(seq.toArray()).toEqual(['foo'])
+// })
 
-test('inserting multiple elements in an empty sequence', () => {
-  const seq = new LogootSequenceWrapper('a')
-  seq.insertAtIndex('foo', 0, 1)
-  seq.insertAtIndex('bar', 0, 2)
-  seq.insertAtIndex('baz', 0, 3)
-  expect(seq.toArray()).toEqual(['baz', 'bar', 'foo'])
-})
+// test('inserting multiple elements in an empty sequence', () => {
+//   const seq = new LogootSequenceWrapper('a')
+//   seq.insertAtIndex('foo', 0, 1)
+//   seq.insertAtIndex('bar', 0, 2)
+//   seq.insertAtIndex('baz', 0, 3)
+//   expect(seq.toArray()).toEqual(['baz', 'bar', 'foo'])
+// })
 
-test('inserting one element and deleting it again', () => {
-  const seq = new LogootSequenceWrapper('a')
-  seq.insertAtIndex('foo', 0, 1)
-  seq.deleteAtIndex(0)
-  expect(seq.toArray()).toEqual([])
-})
+// test('inserting one element and deleting it again', () => {
+//   const seq = new LogootSequenceWrapper('a')
+//   seq.insertAtIndex('foo', 0, 1)
+//   seq.deleteAtIndex(0)
+//   expect(seq.toArray()).toEqual([])
+// })
 
-test('inserting two element and deleting one', () => {
-  const seq = new LogootSequenceWrapper('a')
-  seq.insertAtIndex('foo', 0, 1)
-  seq.insertAtIndex('bar', 0, 2)
-  seq.deleteAtIndex(0)
-  expect(seq.toArray()).toEqual(['foo'])
-})
+// test('inserting two element and deleting one', () => {
+//   const seq = new LogootSequenceWrapper('a')
+//   seq.insertAtIndex('foo', 0, 1)
+//   seq.insertAtIndex('bar', 0, 2)
+//   seq.deleteAtIndex(0)
+//   expect(seq.toArray()).toEqual(['foo'])
+// })

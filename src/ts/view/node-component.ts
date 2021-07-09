@@ -11,24 +11,20 @@ const nodeTemplate = (
   node: FilteredRepositoryNode,
   children: DeferredArray<FilteredRepositoryNode>,
   first: boolean
-) => html`<div
+) =>
+  // prettier-ignore
+  html`<div
   id="${node.node._id}"
-  class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}"
->
+  class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}">
   <div class="nc">
     <a href="#node=${node.node._id}" title="Focus on this node"></a>
-    <div class="name" contenteditable="true"
-      >${unsafeHTML(node.filteredName ? node.filteredName.fragment : '')}</div
-    >
+    <div class="name" contenteditable="true">${unsafeHTML(node.filteredName ? node.filteredName.fragment : '')}</div>
     <span
       class="toggle ${node.children.loaded && !node.node.collapsed && children.elements.length === 0
         ? 'hidden'
         : ''}"
-      title="Open or close node"
-    ></span>
-    <div class="note" contenteditable="false"
-      >${unsafeHTML(node.filteredNote ? node.filteredNote.fragment : '')}</div
-    >
+      title="Open or close node"></span>
+    <div class="note" contenteditable="false">${unsafeHTML(node.filteredNote ? node.filteredNote.fragment : '')}</div>
     <span class="menuTrigger" title="Show menu" aria-haspopup="true">☰</span>
   </div>
   <div class="children">

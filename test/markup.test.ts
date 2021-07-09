@@ -1,4 +1,4 @@
-import { test } from './tizzytest'
+import { test } from '../lib/tizzytest'
 import expect from 'ceylon'
 
 import { toHtml, markupHtml, markupHtmlWithFilterHits } from '../src/ts/utils/markup'

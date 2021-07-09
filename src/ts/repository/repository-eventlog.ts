@@ -50,7 +50,7 @@ class NodeChangedSubscription implements Subscription {
  */
 export class EventlogRepository implements Repository, LifecycleAware {
   private parentChildMap: {
-    [key in string]: LogootSequenceWrapper<string>
+    [key in string]: LogootSequenceWrapper
   } = {}
   private childParentMap: { [key in string]: string } = {}
   private changeSubscriptions: NodeChangedSubscription[] = []
@@ -193,7 +193,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     position: atomIdent,
     peerId: string
   ): void {
-    const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
+    const seq: LogootSequenceWrapper = EventlogRepository.getOrCreateSeqForParent(
       parentChildMap,
       parentId,
       peerId
@@ -262,20 +262,15 @@ export class EventlogRepository implements Repository, LifecycleAware {
       // appear multiple times.
       await this.deleteNode(childId, oldParentId, synchronous)
     }
-    const seq: LogootSequenceWrapper<string> = EventlogRepository.getOrCreateSeqForParent(
+    // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
+    // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
+    this.childParentMap[childId] = parentId
+    const seq: LogootSequenceWrapper = EventlogRepository.getOrCreateSeqForParent(
       this.parentChildMap,
       parentId,
       this.eventLog.getPeerId()
     )
-    const insertionIndex = this.getChildInsertionIndex(seq, position)
-    const insertionAtomIdent = seq.getAtomIdentForInsertionIndex(
-      insertionIndex,
-      this.eventLog.getCounter()
-    )
-    // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
-    // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
-    this.childParentMap[childId] = parentId
-    seq.insertAtAtomIdent(childId, insertionAtomIdent)
+    const insertionPosition = seq.insertElement(childId, position, this.eventLog.getCounter())
     if (oldParentId !== parentId) {
       // publish a reparent event when we have a new parent
       await this.eventLog.publish(EventType.REPARENT_NODE, childId, { parentId }, synchronous)
@@ -286,7 +281,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
       parentId,
       {
         operation: LogootReorderOperation.INSERT,
-        position: insertionAtomIdent,
+        position: insertionPosition,
         childId,
         parentId,
       },
@@ -295,23 +290,18 @@ export class EventlogRepository implements Repository, LifecycleAware {
   }
 
   private deleteNode(childId: string, parentId: string, synchronous: boolean): Promise<void> {
-    // delete the child at the old parent
-    const seq: LogootSequenceWrapper<string> = this.parentChildMap[parentId]
+    const seq: LogootSequenceWrapper = this.parentChildMap[parentId]
     if (seq) {
-      const indexOfChild = seq.toArray().indexOf(childId)
-      if (indexOfChild >= 0) {
-        console.log(`removing child from local sequence in cache`)
-        // ordering here is crucial: get the atom ident first, and THEN delete the item, otherwise
-        // it is the wrong value
-        const deletionAtomIdent = seq.getAtomIdent(indexOfChild)
-        seq.deleteAtIndex(indexOfChild)
-        console.log(`publishing child delete event`)
+      const deletePosition = seq.deleteElement(childId)
+      if (deletePosition !== null) {
+        // console.log(`removing child from local sequence in cache`)
+        // console.log(`publishing child delete event`)
         return this.eventLog.publish(
           EventType.REORDER_CHILD,
           parentId,
           {
             operation: LogootReorderOperation.DELETE,
-            position: deletionAtomIdent,
+            position: deletePosition,
             childId,
             parentId,
           },
@@ -323,41 +313,13 @@ export class EventlogRepository implements Repository, LifecycleAware {
   }
 
   private static getOrCreateSeqForParent(
-    parentChildMap: { [key in string]: LogootSequenceWrapper<string> },
+    parentChildMap: { [key in string]: LogootSequenceWrapper },
     parentId: string,
     peerId: string
-  ): LogootSequenceWrapper<string> {
+  ): LogootSequenceWrapper {
     return (
-      parentChildMap[parentId] ||
-      (parentChildMap[parentId] = new LogootSequenceWrapper<string>(peerId))
+      parentChildMap[parentId] || (parentChildMap[parentId] = new LogootSequenceWrapper(peerId))
     )
-  }
-
-  private getChildInsertionIndex(
-    seq: LogootSequenceWrapper<string>,
-    position: RelativeNodePosition
-  ): number {
-    if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
-      return 0
-    } else if (position.beforeOrAfter === RelativeLinearPosition.AFTER) {
-      // TODO: We default to insert at the beginning of the sequence when we can not find the after Node, is this right?
-      const afterNodeIndex = seq.toArray().indexOf(position.nodeId)
-      if (afterNodeIndex === -1) {
-        return 0
-      } else {
-        return afterNodeIndex + 1
-      }
-    } else if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
-      // TODO: We default to insert at the beginning of the sequence when we can not find the before Node, is this right?
-      const beforeNodeIndex = seq.toArray().indexOf(position.nodeId)
-      if (beforeNodeIndex === -1) {
-        return 0
-      } else {
-        return beforeNodeIndex
-      }
-    } else if (position.beforeOrAfter === RelativeLinearPosition.END) {
-      return seq.length()
-    }
   }
 
   getParentId(nodeId: string): Promise<string> {

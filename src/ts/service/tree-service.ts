@@ -23,18 +23,17 @@ export class TreeService implements LifecycleAware {
     await this.repo.deinit()
   }
 
-  loadTree(
+  async loadTree(
     nodeId: string,
     nodeFilter: Predicate<RepositoryNode>,
     loadCollapsedChildren: boolean
   ): Promise<LoadedTree> {
-    return this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren).then((tree) => {
-      if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
-        // TODO: handle this better. Is this an exception? this used to be initialize empty tree
-      } else {
-        return tree
-      }
-    })
+    const tree = await this.repo.loadTree(nodeId, nodeFilter, loadCollapsedChildren)
+    if (tree.status.state === State.NOT_FOUND && nodeId === 'ROOT') {
+      // TODO: handle this better. Is this an exception? this used to be initialize empty tree
+    } else {
+      return tree
+    }
   }
 
   // loads the node by id, renames it and then returns a Promise of a response when done

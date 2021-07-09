@@ -91,7 +91,7 @@ export class LocalEventLogIdMapper {
     }
   }
 
-  private internalToExternalPeerId(internalId: number): string {
+  internalToExternalPeerId(internalId: number): string {
     const existingExternalId = this.internalToExternalIdMap.get(internalId)
     if (!existingExternalId) {
       throw Error(`Invalid internalId ${internalId}`)

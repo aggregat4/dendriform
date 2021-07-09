@@ -1,3 +1,4 @@
+import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import {
   atomIdent,
   emptySequence,
@@ -14,15 +15,65 @@ function insertMut(seq: sequence, index: number, anAtom: atom) {
 }
 
 /**
- * A sequence of unique items, the uniqueness invariant is important since
+ * A sequence of _unique_ items, the uniqueness invariant is important since
  * we may use it to cache locations of items in the sequence for fast insertion.
  */
-export class LogootSequenceWrapper<T> {
+export class LogootSequenceWrapper {
   private seq: sequence = emptySequence()
 
   constructor(readonly peerId: string) {}
 
-  insertAtAtomIdent(item: T, pos: atomIdent): void {
+  insertElement(element: string, position: RelativeNodePosition, clock: number): atomIdent {
+    const insertionIndex = this.getChildInsertionIndex(position)
+    const insertionAtomIdent = this.getAtomIdentForInsertionIndex(insertionIndex, clock)
+    this.insertAtAtomIdent(element, insertionAtomIdent)
+    return insertionAtomIdent
+  }
+
+  /**
+   * @param element The element to delete. This sequence assumes that the elements are all unique.
+   * @returns The position of the elemt that was deleted, null otherwise
+   */
+  deleteElement(element: string): atomIdent {
+    const indexOfChild = this.toArray().indexOf(element)
+    if (indexOfChild > 0) {
+      // ordering here is crucial: get the atom ident first, and THEN delete the item, otherwise
+      // it is the wrong value
+      // TODO: I don't think we need getAtomIdent for Index, we should just iterate and get the atomident directly
+      // instead of this workaround with toArray and then the index
+      const deletionAtomIdent = this.getAtomIdent(indexOfChild)
+      this.deleteAtIndex(indexOfChild)
+      return deletionAtomIdent
+    } else {
+      return null
+    }
+  }
+
+  private getChildInsertionIndex(position: RelativeNodePosition): number {
+    if (position.beforeOrAfter === RelativeLinearPosition.BEGINNING) {
+      return 0
+    } else if (position.beforeOrAfter === RelativeLinearPosition.AFTER) {
+      // QUESTION: We default to insert at the beginning of the sequence when we can not find the after Node, is this right?
+      const afterNodeIndex = this.toArray().indexOf(position.nodeId)
+      if (afterNodeIndex === -1) {
+        return 0
+      } else {
+        return afterNodeIndex + 1
+      }
+    } else if (position.beforeOrAfter === RelativeLinearPosition.BEFORE) {
+      // QUESTION: We default to insert at the beginning of the sequence when we can not find the before Node, is this right?
+      const beforeNodeIndex = this.toArray().indexOf(position.nodeId)
+      if (beforeNodeIndex === -1) {
+        return 0
+      } else {
+        return beforeNodeIndex
+      }
+    } else if (position.beforeOrAfter === RelativeLinearPosition.END) {
+      return this.length()
+    }
+  }
+
+  insertAtAtomIdent(item: string, pos: atomIdent): void {
     insertAtom(this.seq, [pos, item], insertMut)
   }
 
@@ -39,23 +90,14 @@ export class LogootSequenceWrapper<T> {
     }
   }
 
-  getAtomIdent(pos: number): atomIdent {
+  private getAtomIdent(pos: number): atomIdent {
     if (pos < 0 || pos >= this.length()) {
       throw new Error(`Invalid positionn ${pos}`)
     }
     return this.seq[pos + 1][0]
   }
 
-  /**
-   * Element will be inserted at pos and everything starting with pos will be shifted right.
-   * If pos is >= sequence.length then it will be appended.
-   * The position is relative to the the externalarray range for this sequence not its internal representation.
-   */
-  insertAtIndex(item: T, pos: number, peerClock: number): void {
-    const atomId = this.getAtomIdentForInsertionIndex(pos, peerClock)
-    this.insertAtAtomIdent(item, atomId)
-  }
-
+  // TODO: only public for tests, how to handle?
   getAtomIdentForInsertionIndex(pos: number, peerClock: number): atomIdent {
     if (pos < 0) {
       throw new Error(`Invalid positionn ${pos}`)
@@ -70,7 +112,7 @@ export class LogootSequenceWrapper<T> {
       : genAtomIdent(this.peerId, peerClock, this.seq[pos][0], this.seq[pos + 1][0])
   }
 
-  deleteAtIndex(pos: number): void {
+  private deleteAtIndex(pos: number): void {
     if (pos < 0 || pos >= this.length()) {
       throw new Error(
         `Trying to remove element at pos ${pos} which is out of bounds for this logootsequence`
@@ -83,7 +125,7 @@ export class LogootSequenceWrapper<T> {
     return this.seq.length - 2
   }
 
-  toArray(): T[] {
+  toArray(): string[] {
     // cut off the marker items at the beginning and the end
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.seq.slice(1, -1).map((anAtom) => anAtom[1])

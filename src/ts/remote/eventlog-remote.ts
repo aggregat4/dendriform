@@ -20,7 +20,7 @@ export class RemoteEventLog {
   }
 
   async fetchServerState(): Promise<ServerState> {
-    const response = await fetch(`eventlogs/${this.eventlogId}/state`)
+    const response = await fetch(`${this.serverEndpoint}eventlogs/${this.eventlogId}/state`)
     return (await response.json()) as ServerState
   }
 

@@ -1,7 +1,7 @@
 // Set up a fake dom environment for tests since we are not in the browser (see https://github.com/rstacruz/jsdom-global)
 import 'jsdom-global/register'
 
-import { run } from './tizzytest'
+import { run } from '../lib/tizzytest'
 
 // All the tests
 import './vectorclock.test'
