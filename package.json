@@ -26,26 +26,27 @@
     "sloc": "npx sloc src",
     "unused-exports": "npx ts-unused-exports tsconfig.json",
     "serve": "npx http-server dist",
-    "unused-dependencies": "npx depcheck"
+    "unused-dependencies": "npx depcheck",
+    "dependency-upgrades": "npx npm-upgrade"
   },
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/file-saver": "2.0.2",
+    "@types/file-saver": "2.0.3",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
     "chokidar-cli": "2.1.0",
-    "esbuild": "0.12.9",
-    "eslint": "7.28.0",
+    "esbuild": "0.12.15",
+    "eslint": "7.30.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-prettier": "3.4.0",
     "jsdom": "16.6.0",
     "jsdom-global": "3.0.2",
-    "prettier": "2.3.1",
+    "prettier": "2.3.2",
     "puppeteer": "^10.1.0",
     "ts-node": "10.0.0",
     "ts-unused-exports": "7.0.3",
-    "typescript": "4.3.4"
+    "typescript": "4.3.5"
   },
   "dependencies": {
     "file-saver": "2.0.5",
