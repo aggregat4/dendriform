@@ -1,4 +1,4 @@
-import { test } from '../lib/tizzytest'
+import { test } from '../lib/tizzy'
 import expect from 'ceylon'
 
 import { VectorClock } from '../src/ts/lib/vectorclock'

@@ -1,4 +1,4 @@
-import { test } from '../lib/tizzytest'
+import { test } from '../lib/tizzy'
 import expect from 'ceylon'
 
 import { LogootSequenceWrapper } from '../src/ts/repository/logoot-sequence-wrapper'

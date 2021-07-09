@@ -1,4 +1,9 @@
-import rgb from 'barecolor'
+export interface Reporter {
+  start(headline: string): void
+  end(noftests: number): void
+  success(testname: string)
+  failure(testname: string, error: Error)
+}
 
 const suite = []
 const beforeTests = []
@@ -23,31 +28,20 @@ export function skip(fn) {
   // intentionally left blank, this function is just a helper for the client to identify skips
 }
 
-export async function run(headline) {
+export async function run(reporter: Reporter, headline: string): Promise<boolean> {
   const tests = onlyTests[0] ? onlyTests : suite
-  rgb.cyan(headline + ' ')
+  reporter.start(headline)
   for (const t of tests) {
     try {
       for (const fn of beforeTests) await fn()
       await t.fn()
-      rgb.gray('• ')
+      reporter.success(test.name)
     } catch (e) {
       for (const fn of afterTests) await fn()
-      rgb.red(`\n\n! ${test.name} \n\n`)
-      prettyError(e)
+      reporter.failure(test.name, e)
       return false
     }
   }
   for (const fn of afterTests) await fn()
-  rgb.greenln(`✓ ${tests.length}`)
-  console.info('\n')
-}
-
-function prettyError(e) {
-  const msg = e.stack
-  if (!msg) return rgb.yellow(e)
-
-  const i = msg.indexOf('\n')
-  rgb.yellowln(msg.slice(0, i))
-  rgb.gray(msg.slice(i))
+  reporter.end(tests.length)
 }
