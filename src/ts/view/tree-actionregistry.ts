@@ -78,7 +78,6 @@ export class TreeActionRegistry {
   }
 }
 
-// TODO: implement a parser for a text based syntax for keyborad shortcut definition, this is crazy
 // TODO: think about a better way to handle the "negative" keyboar shortcut modifiers, for example moving cursor up instead of the node. Maybe just sort by specificity and then the first match wins?
 // NOTE: not all of these actions should be user configurable, a lot are intrinsic (like enter to break up a node)
 export function registerTreeActions(tree: TreeActionRegistry): void {
@@ -224,7 +223,7 @@ class EditNoteAction extends TreeAction {
       'Start Editing Note'
     )
   }
-  handle() {
+  handle(event: Event, treeActionContext: TreeActionContext) {
     event.preventDefault()
     const noteEl = (event.target as Element).nextElementSibling.nextElementSibling as HTMLElement
     startEditingNote(noteEl)
