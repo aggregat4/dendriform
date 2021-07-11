@@ -11,6 +11,9 @@ test('Mapping an id is reversible', async () => {
     const localId = await mapper.externalToInternalPeerId('foo')
     const originalId = mapper.internalToExternalPeerId(localId)
     expect(originalId).toEqual('foo')
+    const localId2 = await mapper.externalToInternalPeerId('foo')
+    expect(localId2).toEqual(localId)
+    expect(mapper.internalToExternalPeerId(localId2)).toEqual(originalId)
   } finally {
     mapper.deinit()
   }
