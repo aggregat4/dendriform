@@ -22,6 +22,10 @@ import {
   PeerMetadata,
 } from './eventlog-storedevent'
 import { openDB, IDBPDatabase } from 'idb'
+import {
+  externalToInternalVectorclockValues,
+  mapStoredEventToDEvent,
+} from './eventlog-indexeddb-utils'
 
 class EventSubscription implements Subscription {
   constructor(
@@ -231,7 +235,8 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
             eventtype: e.type,
             treenodeid: e.nodeId,
             peerid: await this.peeridMapper.externalToInternalPeerId(e.originator),
-            vectorclock: await this.peeridMapper.externalToInternalVectorclockValues(
+            vectorclock: await externalToInternalVectorclockValues(
+              this.peeridMapper,
               e.clock.values
             ),
             payload: e.payload,
@@ -394,7 +399,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
     return {
       counter: this.counter,
-      events: storedEvents.map((e) => this.peeridMapper.storedEventToDEventMapper(e)),
+      events: storedEvents.map((e) => mapStoredEventToDEvent(this.peeridMapper, e)),
     }
   }
 
@@ -412,7 +417,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     if (events.length > 1) {
       events.sort(storedEventComparator)
     }
-    return this.peeridMapper.storedEventToDEventMapper(events[events.length - 1])
+    return mapStoredEventToDEvent(this.peeridMapper, events[events.length - 1])
   }
 
   private notifySubscribers(events: DEvent[]): void {

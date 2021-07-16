@@ -212,9 +212,7 @@ export class LocalEventLogGarbageCollector {
           },
           {}
         )
-        // Object.values() is ES2017, I don't want to target
-        // ES2017 with typescript yet so therefore the workaround with keys
-        return Object.keys(reduced).map((key) => reduced[key])
+        return Object.values(reduced)
       }
     }
   }
