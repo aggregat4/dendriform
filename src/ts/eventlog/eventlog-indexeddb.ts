@@ -46,7 +46,6 @@ class EventSubscription implements Subscription {
  */
 export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicating, LifecycleAware {
   private db: IDBPDatabase<EventStoreSchema>
-  private readonly name: string
   private peerId: string
   private vectorClock: VectorClock
   private counter: number
@@ -64,7 +63,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
    */
   private readonly STORAGE_QUEUE_BATCH_SIZE = 200
   private garbageCollector: LocalEventLogGarbageCollector
-  private peeridMapper: LocalEventLogIdMapper
   // DEBUG
   private lastStoreMeasurement = 0
   private storeCount = 0
@@ -73,10 +71,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     this.drainStorageQueUnforced.bind(this)
   )
 
-  constructor(readonly dbName: string) {
-    console.debug(`ctor LocalEventLog`)
-    this.name = dbName
-  }
+  constructor(readonly dbName: string, readonly peerIdMapper: LocalEventLogIdMapper) {}
 
   isActive(): boolean {
     return this.storageQueue.length > 0
@@ -91,7 +86,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   getName(): string {
-    return this.name
+    return this.dbName
   }
 
   getCounter(): number {
@@ -120,11 +115,8 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
       await this.determineMaxCounter()
       // must be initialised before storagequeuedrainer and before publishing because that may call store()
       this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db)
-      this.peeridMapper = new LocalEventLogIdMapper(this.dbName + '-peerid-mapping')
-      await this.peeridMapper.init()
       // NOTE: we need a peeridMapper to store events! It is used to translate the ids!
       // Make sure we have a ROOT node and if not, create it
-      console.debug(`about to get root node`)
       const rootNode = await this.getNodeEvent('ROOT')
       if (!rootNode) {
         await this.publish(
@@ -149,7 +141,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     if (this.db) {
       await this.garbageCollector.stopAndWaitUntilDone()
       await this.storageQueueDrainer.stopAndWaitUntilDone()
-      this.peeridMapper.deinit()
       this.db.close()
       this.db = null
     }
@@ -234,9 +225,9 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
             localId: e.localId !== -1 ? e.localId : newId,
             eventtype: e.type,
             treenodeid: e.nodeId,
-            peerid: await this.peeridMapper.externalToInternalPeerId(e.originator),
+            peerid: await this.peerIdMapper.externalToInternalPeerId(e.originator),
             vectorclock: await externalToInternalVectorclockValues(
-              this.peeridMapper,
+              this.peerIdMapper,
               e.clock.values
             ),
             payload: e.payload,
@@ -327,9 +318,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
 
   /**
    * 1. persist the event in indexeddb
-   * 2. compact the store by removing redundant events
-   * 3. (later) update the in memory maps (parent map, child map)
-   * 4. async notify any subscribers that are interested
+   * 2. async notify any subscribers that are interested
    *
    * @param events The events to persist and rebroadcast.
    */
@@ -358,6 +347,19 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     return subscription
   }
 
+  private notifySubscribers(events: DEvent[]): void {
+    for (const subscription of this.subscriptions) {
+      const subscriber = subscription.subscriber
+      const filteredEvents = events.filter((e) => subscriber.filter(e))
+      if (filteredEvents.length > 0) {
+        window.setTimeout(() => {
+          // console.debug(`Notifying subscriber`)
+          subscriber.notify(filteredEvents)
+        }, 0) // schedule at the earliest convenience
+      }
+    }
+  }
+
   async getEventsSince(
     peerId: string,
     fromCounterNotInclusive: number,
@@ -369,7 +371,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
           ` but events were requested since ${fromCounterNotInclusive}`
       )
     }
-    const localPeerId = this.peeridMapper.externalToInternalPeerId(peerId)
+    const localPeerId = this.peerIdMapper.externalToInternalPeerId(peerId)
     const lowerBound = [localPeerId, fromCounterNotInclusive]
     const upperBound = [localPeerId, fromCounterNotInclusive + batchSize]
     const range = IDBKeyRange.bound(lowerBound, upperBound, true, true) // do not include lower and upper bounds themselves (open interval)
@@ -399,7 +401,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
     return {
       counter: this.counter,
-      events: storedEvents.map((e) => mapStoredEventToDEvent(this.peeridMapper, e)),
+      events: storedEvents.map((e) => mapStoredEventToDEvent(this.peerIdMapper, e)),
     }
   }
 
@@ -417,19 +419,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     if (events.length > 1) {
       events.sort(storedEventComparator)
     }
-    return mapStoredEventToDEvent(this.peeridMapper, events[events.length - 1])
-  }
-
-  private notifySubscribers(events: DEvent[]): void {
-    for (const subscription of this.subscriptions) {
-      const subscriber = subscription.subscriber
-      const filteredEvents = events.filter((e) => subscriber.filter(e))
-      if (filteredEvents.length > 0) {
-        window.setTimeout(() => {
-          // console.debug(`Notifying subscriber`)
-          subscriber.notify(filteredEvents)
-        }, 0) // schedule at the earliest convenience
-      }
-    }
+    return mapStoredEventToDEvent(this.peerIdMapper, events[events.length - 1])
   }
 }

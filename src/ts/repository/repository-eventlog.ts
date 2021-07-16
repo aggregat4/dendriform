@@ -1,5 +1,4 @@
 import { Repository } from './repository'
-// tslint:disable-next-line:max-line-length
 import {
   AddOrUpdateNodeEventPayload,
   DEventLog,
@@ -12,12 +11,10 @@ import {
   NodeFlags,
 } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
-// tslint:disable-next-line:max-line-length
 import {
   LoadedTree,
   RepositoryNode,
   RelativeNodePosition,
-  RelativeLinearPosition,
   State,
   Subscription,
   ResolvedRepositoryNode,
@@ -68,7 +65,6 @@ export class EventlogRepository implements Repository, LifecycleAware {
   constructor(readonly eventLog: DEventLog) {}
 
   async init(): Promise<void> {
-    await this.eventLog.init()
     await this.rebuildTreeStructureMaps()
     // This is not great: we rebuild the maps, then subscribe and theoretically we could get
     // a bunch of events coming in forcing us to rebuild again. But using the debounced function above
@@ -84,7 +80,6 @@ export class EventlogRepository implements Repository, LifecycleAware {
     if (this.eventLogSubscription) {
       this.eventLogSubscription.cancel()
       this.eventLogSubscription = null
-      await this.eventLog.deinit()
     }
   }
 

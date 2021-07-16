@@ -13,6 +13,10 @@ export interface LifecycleAware {
   deinit(): Promise<void>
 }
 
+export function isLifecycleAware(object: any): object is LifecycleAware {
+  return 'init' in object && 'deinit' in object
+}
+
 export interface RepositoryNode {
   _id: string
   name: string

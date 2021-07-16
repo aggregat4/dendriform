@@ -10,38 +10,58 @@ import { LocalEventLog } from './eventlog/eventlog-indexeddb'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
+import { isLifecycleAware, LifecycleAware } from './domain/domain'
+import { LocalEventLogIdMapper } from './eventlog/eventlog-indexeddb-peerid-mapper'
 
 customElements.define('dendriform-tree', Tree)
 
 export class TreeManager {
-  private currentEventPump: EventPump = null
   private currentInitializer: Promise<Tree>
+  private initializables: LifecycleAware[] = []
 
   private async createAndInitTree(treeName: string): Promise<Tree> {
-    if (this.currentEventPump !== null) {
-      await this.currentEventPump.deinit()
-      this.currentEventPump = null
-      const oldTree = await this.currentInitializer
-      await oldTree.deinit()
+    if (this.currentInitializer !== null) {
+      await this.deinitAll()
       this.currentInitializer = null
     }
-    const localEventLog = new LocalEventLog(treeName)
-    const remoteEventLog = new RemoteEventLog('/', treeName)
-    this.currentEventPump = new EventPump(localEventLog, remoteEventLog, localEventLog.getPeerId())
-    const repository = new EventlogRepository(localEventLog)
-    const treeService = new TreeService(repository)
-    const treeServiceCommandHandler = new TreeServiceCommandHandler(treeService)
-    const commandHandler = new UndoableCommandHandler(treeServiceCommandHandler)
-    const treeActionRegistry = new TreeActionRegistry()
+    const peerIdMapper = this.register(new LocalEventLogIdMapper(treeName + '-peerid-mapping'))
+    const localEventLog = this.register(new LocalEventLog(treeName, peerIdMapper))
+    const remoteEventLog = this.register(new RemoteEventLog('/', treeName))
+    const repository = this.register(new EventlogRepository(localEventLog))
+    const treeService = this.register(new TreeService(repository))
+    const treeServiceCommandHandler = this.register(new TreeServiceCommandHandler(treeService))
+    const commandHandler = this.register(new UndoableCommandHandler(treeServiceCommandHandler))
+    const treeActionRegistry = this.register(new TreeActionRegistry())
     registerTreeActions(treeActionRegistry)
-    const tree = new Tree()
-    tree.commandHandler = commandHandler
-    tree.treeService = treeService
-    tree.treeActionRegistry = treeActionRegistry
-    tree.activityIndicating = localEventLog
-    await tree.init()
-    await this.currentEventPump.init()
+    const tree = this.register(
+      new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
+    )
+    // tree.commandHandler = commandHandler
+    // tree.treeService = treeService
+    // tree.treeActionRegistry = treeActionRegistry
+    // tree.activityIndicating = localEventLog
+    this.register(new EventPump(localEventLog, remoteEventLog, localEventLog.getPeerId()))
+    await this.initAll()
     return tree
+  }
+
+  private register(object: any): any {
+    if (isLifecycleAware(object)) {
+      this.initializables.push(object)
+    }
+    return object
+  }
+
+  private async initAll(): Promise<void> {
+    for (const initializable of this.initializables) {
+      await initializable.init()
+    }
+  }
+
+  private async deinitAll(): Promise<void> {
+    while (this.initializables.length > 0) {
+      await this.initializables.pop().deinit()
+    }
   }
 
   async loadNode(nodeId: string): Promise<void> {
@@ -59,7 +79,10 @@ export class TreeManager {
    * @param el The element to mount the tree component to.
    */
   async mountTree(el: HTMLElement, treeName: string): Promise<void> {
-    this.currentInitializer = this.createAndInitTree(treeName).then((tree) => el.appendChild(tree))
+    this.currentInitializer = this.createAndInitTree(treeName).then((tree) => {
+      tree.mount()
+      return el.appendChild(tree)
+    })
     await this.currentInitializer
   }
 

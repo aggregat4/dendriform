@@ -7,21 +7,12 @@ import {
   RelativeNodePosition,
   NODE_IS_NOT_DELETED,
   Subscription,
-  LifecycleAware,
 } from '../domain/domain'
 import { Repository } from '../repository/repository'
 import { MergeNameOrder } from './service'
 
-export class TreeService implements LifecycleAware {
+export class TreeService {
   constructor(readonly repo: Repository) {}
-
-  async init(): Promise<void> {
-    await this.repo.init()
-  }
-
-  async deinit(): Promise<void> {
-    await this.repo.deinit()
-  }
 
   async loadTree(
     nodeId: string,

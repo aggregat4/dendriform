@@ -6,6 +6,7 @@ import {
   CommandBuilder,
   OpenNodeByIdCommandPayload,
   CreateChildNodeCommandPayload,
+  CommandHandler,
 } from '../commands/commands'
 import {
   FilteredRepositoryNode,
@@ -72,7 +73,7 @@ class TreeConfig {
   showCompleted = false
 }
 
-export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware {
+export class Tree extends HTMLElement implements CommandExecutor {
   private readonly domCommandHandler = new DomCommandHandler()
   private _commandHandler: UndoableCommandHandler
   private _treeActionRegistry: TreeActionRegistry
@@ -90,6 +91,19 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
   private dialogs: Dialogs = null
   private config: TreeConfig = new TreeConfig()
   private currentFilterQuery = ''
+
+  constructor(
+    commandHandler: UndoableCommandHandler,
+    treeService: TreeService,
+    treeActionRegistry: TreeActionRegistry,
+    activityIndicating: ActivityIndicating
+  ) {
+    super()
+    this._commandHandler = commandHandler
+    this._treeService = treeService
+    this._treeActionRegistry = treeActionRegistry
+    this._activityIndicating = activityIndicating
+  }
 
   // We handle undo and redo internally since they are core functionality we don't want to make generic and overwritable
   private readonly undoTrigger = new KeyboardEventTrigger(
@@ -181,8 +195,7 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     return name === 'ROOT' ? 'Root' : name
   }
 
-  constructor() {
-    super()
+  mount() {
     render(this.treeTemplate(), this)
     // In general we only want to limit ourselves to our own component with listeners, but for some functions we
     // need the complete document
@@ -191,8 +204,29 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
     this.transientStateManager.registerSelectionChangeHandler()
 
     this.dialogs = new Dialogs(this)
-    const treeNodeMenu = (this.querySelector('.node-menu') as unknown) as DialogElement
+    const treeNodeMenu = this.querySelector('.node-menu') as unknown as DialogElement
     this.dialogs.registerDialog(new Dialog('menuTrigger', treeNodeMenu))
+
+    const opmlImportElement = this.querySelector(
+      'df-omplimportdialog'
+    ) as unknown as OpmlImportDialog
+    opmlImportElement.treeActionContext = this.treeActionContext
+
+    const opmlImportDialog = this.querySelector('.opml-import-dialog') as unknown as DialogElement
+    const importOpmlActionMenuItem = this.querySelector(
+      '.import-opml-action-menuitem'
+    ) as unknown as TreeNodeActionMenuItem
+    importOpmlActionMenuItem.treeAction = new OpmlImportAction(opmlImportDialog)
+    importOpmlActionMenuItem.treeActionContext = this.treeActionContext
+
+    const exportOpmlActionMenuItem = this.querySelector(
+      '.export-opml-action-menuitem'
+    ) as unknown as TreeNodeActionMenuItem
+    exportOpmlActionMenuItem.treeAction = new OpmlExportAction()
+    exportOpmlActionMenuItem.treeActionContext = this.treeActionContext
+
+    const infoMenuItem = this.querySelector('.info-menuitem') as unknown as TreeNodeActionMenuItem
+    infoMenuItem.treeActionContext = this.treeActionContext
   }
 
   set commandHandler(commandHandler: UndoableCommandHandler) {
@@ -227,39 +261,10 @@ export class Tree extends HTMLElement implements CommandExecutor, LifecycleAware
       this.dialogs,
       this.treeService
     )
-
-    const opmlImportElement = (this.querySelector(
-      'df-omplimportdialog'
-    ) as unknown) as OpmlImportDialog
-    opmlImportElement.treeActionContext = this.treeActionContext
-
-    const opmlImportDialog = (this.querySelector('.opml-import-dialog') as unknown) as DialogElement
-    const importOpmlActionMenuItem = (this.querySelector(
-      '.import-opml-action-menuitem'
-    ) as unknown) as TreeNodeActionMenuItem
-    importOpmlActionMenuItem.treeAction = new OpmlImportAction(opmlImportDialog)
-    importOpmlActionMenuItem.treeActionContext = this.treeActionContext
-
-    const exportOpmlActionMenuItem = (this.querySelector(
-      '.export-opml-action-menuitem'
-    ) as unknown) as TreeNodeActionMenuItem
-    exportOpmlActionMenuItem.treeAction = new OpmlExportAction()
-    exportOpmlActionMenuItem.treeActionContext = this.treeActionContext
-
-    const infoMenuItem = (this.querySelector('.info-menuitem') as unknown) as TreeNodeActionMenuItem
-    infoMenuItem.treeActionContext = this.treeActionContext
   }
 
   get treeService(): TreeService {
     return this._treeService
-  }
-
-  async init(): Promise<void> {
-    await this.treeService.init()
-  }
-
-  async deinit(): Promise<void> {
-    await this.treeService.deinit()
   }
 
   async loadNode(nodeId: string): Promise<void> {
