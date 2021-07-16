@@ -31,10 +31,10 @@ export function skip(fn) {
 export async function run(reporter: Reporter, headline: string): Promise<boolean> {
   const tests = onlyTests[0] ? onlyTests : suite
   reporter.start(headline)
-  for (const t of tests) {
+  for (const test of tests) {
     try {
       for (const fn of beforeTests) await fn()
-      await t.fn()
+      await test.fn()
       reporter.success(test.name)
     } catch (e) {
       for (const fn of afterTests) await fn()
