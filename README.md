@@ -177,3 +177,15 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 1. Make dialog positioning smarter by taking into account how much room we have on all sides.
 
 Test commit.
+
+## Research
+
+If I read <https://martin.kleppmann.com/papers/move-op.pdf> correctly this project implements not exactly the same thing but it is very close. That paper describes a CRDT for modeling a tree _without_ ordered children. It also uses timestamped (lamport timestamps) events (all events are "move operations"). It describes an extension of the algorithm (but only roughly) for ordered children by using a Logoot or RGA CRDT for the childlist on each node. Exactly like we do.
+
+Some comparisons between the paper and our implementation:
+- In the paper when a remote event comes in that lives somewhere in the history of all events, they undo all the events up until that point and then redo with the new event inserted. In contrast in dendriform we redo the entire tree cache afteer getting remote updates. Our implementation may be more performant for one peer editing the tree at a time (in aggregate) while their approach may be better for highly concurrent scenarios.
+- In the paper they only have one operation/event: the move operation. All changes such as renames, reparenting and deletes are modeled using this operation. For a rename the metadata is changed but the parent is the same. For deletes they just move the node to a "trash" parent and reparenting is basically the move itsel.
+- They resolve the two possible conflicts (concurrent moves and cycle generation) in the same way as us. With concurrent moves the last one wins and cycle generating events/operations are just discarded.
+- The paper does not describe any garbage collection strategies. I implemented this in dendriform explicitly because node names are the basic content of the tree and will change relatively often, causing a lot of redundant rename events to exist. Obviously this editing also dies down after a while. If the content of a dendriform CRDT node would not be a complete node itself than maybe the math would be different. Also still untested whether dendriform's garbage collection is strictly necessary for performance.
+
+TODO: I need to describe the intended nature of how the usage pattern of dendriform since that informs a lot of the implementation and architectural choices I made (no "real" concurrent editing, central server, nodes are potentially large texts, etc).
