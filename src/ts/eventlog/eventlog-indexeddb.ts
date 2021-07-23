@@ -15,17 +15,12 @@ import { ActivityIndicating, Subscription, LifecycleAware } from '../domain/doma
 import { LocalEventLogGarbageCollector } from './eventlog-indexeddb-gc'
 import { LocalEventLogIdMapper } from './eventlog-indexeddb-peerid-mapper'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
-import {
-  StoredEvent,
-  storedEventComparator,
-  EventStoreSchema,
-  PeerMetadata,
-} from './eventlog-storedevent'
-import { openDB, IDBPDatabase } from 'idb'
+import { StoredEvent, storedEventComparator, PeerIdAndEventIdKeyType } from './eventlog-storedevent'
 import {
   externalToInternalVectorclockValues,
   mapStoredEventToDEvent,
 } from './eventlog-indexeddb-utils'
+import { IdbEventRepository } from './idb-event-repository'
 
 class EventSubscription implements Subscription {
   constructor(
@@ -45,7 +40,6 @@ class EventSubscription implements Subscription {
  * TODO: do we need to make this multi document capable? Currently assumes one log, one document
  */
 export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicating, LifecycleAware {
-  private db: IDBPDatabase<EventStoreSchema>
   private peerId: string
   private vectorClock: VectorClock
   private counter: number
@@ -71,7 +65,10 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     this.drainStorageQueUnforced.bind(this)
   )
 
-  constructor(readonly dbName: string, readonly peerIdMapper: LocalEventLogIdMapper) {}
+  constructor(
+    readonly repository: IdbEventRepository,
+    readonly peerIdMapper: LocalEventLogIdMapper
+  ) {}
 
   isActive(): boolean {
     return this.storageQueue.length > 0
@@ -86,7 +83,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   getName(): string {
-    return this.dbName
+    return this.repository.getName()
   }
 
   getCounter(): number {
@@ -94,56 +91,25 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   async init(): Promise<void> {
-    try {
-      this.db = await openDB<EventStoreSchema>(this.dbName, 1, {
-        upgrade(db) {
-          db.createObjectStore('peer', {
-            keyPath: 'eventlogid',
-            autoIncrement: false,
-          })
-          const eventsStore = db.createObjectStore('events', {
-            keyPath: 'eventid',
-            autoIncrement: false, // we generate our own keys, this is required since compound indexes with an auto-incremented key do not work everywhere (yet)
-          })
-          eventsStore.createIndex('eventid', 'eventid')
-          eventsStore.createIndex('eventtype', 'eventtype')
-          eventsStore.createIndex('eventtype-and-treenodeid', ['eventtype', 'treenodeid'])
-          eventsStore.createIndex('peerid-and-eventid', ['peerid', 'eventid'])
-        },
-      })
-      await this.loadOrCreateMetadata()
-      await this.determineMaxCounter()
-      // must be initialised before storagequeuedrainer and before publishing because that may call store()
-      this.garbageCollector = new LocalEventLogGarbageCollector(this, this.db)
-      // NOTE: we need a peeridMapper to store events! It is used to translate the ids!
-      // Make sure we have a ROOT node and if not, create it
-      const rootNode = await this.getNodeEvent('ROOT')
-      if (!rootNode) {
-        await this.publish(
-          EventType.ADD_OR_UPDATE_NODE,
-          'ROOT',
-          createNewAddOrUpdateNodeEventPayload('ROOT', null, false, false, false),
-          true
-        )
-      }
-      // start async event storage
-      await this.storageQueueDrainer.start(true)
-      await this.garbageCollector.start()
-    } catch (error) {
-      console.error(
-        `Error initialising indexeddb eventlog, note that Firefox does not (yet) allow IndexedDB in private browsing mode: `,
-        error
+    await this.loadOrCreateMetadata()
+    const maxEventId = await this.repository.getMaxEventId()
+    this.counter = maxEventId >= 0 ? maxEventId : 0
+    // Make sure we have a ROOT node and if not, create it
+    const rootNode = await this.getNodeEvent('ROOT')
+    if (!rootNode) {
+      await this.publish(
+        EventType.ADD_OR_UPDATE_NODE,
+        'ROOT',
+        createNewAddOrUpdateNodeEventPayload('ROOT', null, false, false, false),
+        true
       )
     }
+    // start async event storage
+    await this.storageQueueDrainer.start(true)
   }
 
   async deinit(): Promise<void> {
-    if (this.db) {
-      await this.garbageCollector.stopAndWaitUntilDone()
-      await this.storageQueueDrainer.stopAndWaitUntilDone()
-      this.db.close()
-      this.db = null
-    }
+    await this.storageQueueDrainer.stopAndWaitUntilDone()
   }
 
   private async drainStorageQueUnforced(): Promise<void> {
@@ -234,66 +200,30 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
           }
         })
     )
-    const tx = this.db.transaction('events', 'readwrite')
-    try {
-      // This is an efficient bulk add that does not wait for the success callback, inspired by
-      // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
-      let i = 0
-      let lastEvent = null
-      for (; i < mappedEvents.length; i++) {
-        lastEvent = mappedEvents[i]
-        // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
-        await tx.store.add(lastEvent)
-        this.garbageCollector.countEvent(lastEvent)
-      }
-      return tx.done
-    } catch (error) {
-      console.error(`store error: `, error)
-    }
-  }
-
-  private async loadOrCreateMetadata(): Promise<void> {
-    return this.db.getAll('peer').then(async (peerMetadata) => {
-      if (!peerMetadata || peerMetadata.length === 0) {
-        this.peerId = generateUUID()
-        this.vectorClock = new VectorClock()
-        // always start a new vectorclock on 1 for the current peer
-        this.vectorClock.increment(this.peerId)
-        // TODO: review this comment, I don't think we use autogenerated keys here
-        // it is important that the counter starts at 0: we later set the counter
-        // to be the primary key that is generated by dexie in the indexeddb,
-        // if we set it to 1, it will have that value double
-        this.counter = 0
-        await this.saveMetadata()
-      } else {
-        const md = peerMetadata[0]
-        this.peerId = md.eventlogid
-        this.vectorClock = new VectorClock(md.vectorclock)
-        this.counter = md.counter
-      }
+    await this.repository.storeEvents(mappedEvents, (e) => {
+      this.garbageCollector.countEvent(e)
     })
   }
 
-  private async determineMaxCounter(): Promise<void> {
-    const tx = this.db.transaction('events', 'readonly')
-    const cursor = await tx.store.index('eventid').openCursor(null, 'prev')
-    if (cursor) {
-      this.counter = cursor.value.eventid
+  private async loadOrCreateMetadata(): Promise<void> {
+    const currentMetadata = await this.repository.loadPeerMetadata()
+    if (!currentMetadata) {
+      this.peerId = generateUUID()
+      this.vectorClock = new VectorClock()
+      // always start a new vectorclock on 1 for the current peer
+      this.vectorClock.increment(this.peerId)
+      await this.saveMetadata()
+    } else {
+      this.peerId = currentMetadata.eventlogid
+      this.vectorClock = new VectorClock(currentMetadata.vectorclock)
     }
   }
 
   private async saveMetadata(): Promise<void> {
-    const metadata: PeerMetadata = {
+    this.repository.storePeerMetadata({
       eventlogid: this.peerId,
       vectorclock: this.vectorClock.values,
-      counter: this.counter,
-    }
-    const tx = this.db.transaction('peer', 'readwrite')
-    try {
-      await tx.store.put(metadata)
-    } catch (e) {
-      console.error(e)
-    }
+    })
   }
 
   async publish(
@@ -371,16 +301,15 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
           ` but events were requested since ${fromCounterNotInclusive}`
       )
     }
-    const localPeerId = this.peerIdMapper.externalToInternalPeerId(peerId)
-    const lowerBound = [localPeerId, fromCounterNotInclusive]
-    const upperBound = [localPeerId, fromCounterNotInclusive + batchSize]
-    const range = IDBKeyRange.bound(lowerBound, upperBound, true, true) // do not include lower and upper bounds themselves (open interval)
-    const events = await this.db.getAllFromIndex('events', 'peerid-and-eventid', range)
+    const localPeerId = await this.peerIdMapper.externalToInternalPeerId(peerId)
+    const lowerBound = [localPeerId, fromCounterNotInclusive] as PeerIdAndEventIdKeyType
+    const upperBound = [localPeerId, fromCounterNotInclusive + batchSize] as PeerIdAndEventIdKeyType
+    const events = await this.repository.loadEventsSince(lowerBound, upperBound)
     return this.processRetrievedEvents(events)
   }
 
   async getAllEventsFromType(eventType: EventType): Promise<Events> {
-    const storedEvents = await this.db.getAllFromIndex('events', 'eventtype', eventType)
+    const storedEvents = await this.repository.loadEventsFromType(eventType)
     return this.processRetrievedEvents(storedEvents)
   }
 
@@ -406,10 +335,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   async getNodeEvent(nodeId: string): Promise<DEvent> {
-    const events = await this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [
-      EventType.ADD_OR_UPDATE_NODE,
-      nodeId,
-    ])
+    const events = await this.repository.loadStoredEvents(EventType.ADD_OR_UPDATE_NODE, nodeId)
     if (events.length === 0) {
       return null
     }

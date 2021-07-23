@@ -1,13 +1,14 @@
-import { EventType, ReorderChildNodeEventPayload, DEventLog } from './eventlog'
+import { EventType, ReorderChildNodeEventPayload } from './eventlog'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { StoredEvent, storedEventComparator, EventStoreSchema } from './eventlog-storedevent'
 import { IDBPDatabase } from 'idb'
+import { LifecycleAware } from '../domain/domain'
 
 class GcCandidate {
   constructor(readonly nodeId: string, readonly eventtype: EventType) {}
 }
 
-export class LocalEventLogGarbageCollector {
+export class LocalEventLogGarbageCollector implements LifecycleAware {
   private readonly GC_TIMEOUT_MS = 10000
   private readonly GC_MAX_BATCH_SIZE = 500
   private readonly MAX_SLICE_TIME = 15
@@ -22,18 +23,14 @@ export class LocalEventLogGarbageCollector {
   )
   private histogram: Map<string, number> = null
 
-  constructor(readonly eventLog: DEventLog, readonly db: IDBPDatabase<EventStoreSchema>) {}
+  constructor(readonly db: IDBPDatabase<EventStoreSchema>) {}
 
-  async start(): Promise<void> {
+  async init(): Promise<void> {
     await this.garbageCollector.start(false)
   }
 
-  stop(): void {
-    this.garbageCollector.stop()
-  }
-
-  stopAndWaitUntilDone(): Promise<void> {
-    return this.garbageCollector.stopAndWaitUntilDone()
+  async deinit(): Promise<void> {
+    await this.garbageCollector.stopAndWaitUntilDone()
   }
 
   countEvent(event: StoredEvent): void {
@@ -145,45 +142,40 @@ export class LocalEventLogGarbageCollector {
   }
 
   private async garbageCollect(candidate: GcCandidate): Promise<void> {
-    return this.db
-      .getAllFromIndex('events', 'eventtype-and-treenodeid', [
-        candidate.eventtype,
-        candidate.nodeId,
-      ])
-      .then(async (nodeEvents: StoredEvent[]) => {
-        // based on the eventtype we may need to partition the events for a node even further
-        const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(
-          nodeEvents,
-          candidate.eventtype
-        )
-        for (const pruneCandidates of arraysToPrune) {
-          if (!this.garbageCollector.isScheduled()) {
-            // make sure to abort processing when we have been stopped
-            return
+    const nodeEvents = await this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [
+      candidate.eventtype,
+      candidate.nodeId,
+    ])
+    // based on the eventtype we may need to partition the events for a node even further
+    const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(
+      nodeEvents,
+      candidate.eventtype
+    )
+    for (const pruneCandidates of arraysToPrune) {
+      if (!this.garbageCollector.isScheduled()) {
+        // make sure to abort processing when we have been stopped
+        return
+      }
+      const eventsToDelete = this.findEventsToPrune(pruneCandidates)
+      if (eventsToDelete.length > 0) {
+        console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
+        const tx = this.db.transaction('events', 'readwrite')
+        try {
+          // This is an efficient bulk delete that does not wait for the success callback, inspired by
+          // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
+          let i = 0
+          let lastEvent: StoredEvent = null
+          for (; i < eventsToDelete.length; i++) {
+            lastEvent = eventsToDelete[i]
+            await tx.store.delete(lastEvent.eventid)
+            this.modifyEventCount(lastEvent, -1)
           }
-          const eventsToDelete = this.findEventsToPrune(pruneCandidates)
-          if (eventsToDelete.length > 0) {
-            console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
-            const tx = this.db.transaction('events', 'readwrite')
-            try {
-              // This is an efficient bulk delete that does not wait for the success callback, inspired by
-              // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
-              let i = 0
-              let lastEvent: StoredEvent = null
-              for (; i < eventsToDelete.length; i++) {
-                lastEvent = eventsToDelete[i]
-                await tx.store.delete(lastEvent.eventid)
-              }
-              if (lastEvent) {
-                this.modifyEventCount(lastEvent, -eventsToDelete.length)
-              }
-              return tx.done
-            } catch (error) {
-              console.error(`store error: `, error)
-            }
-          }
+          return tx.done
+        } catch (error) {
+          console.error(`store error: `, error)
         }
-      })
+      }
+    }
   }
 
   // For the child order event log we need a special garbage collection filter because

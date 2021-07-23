@@ -132,6 +132,7 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 ## TODOs
 
+1. Continue refactoring indexeddb eventlog garbage collector: move all the IDB access to the repository, use generators for the storedevent iterator (see <https://stackoverflow.com/questions/38508172/typescript-make-class-objects-iterable>)
 1. Implement tests for all functionality: In order to trust the implementation I need tests for everything
   * Integration tests
     1. I implemented a "manual" approach using puppeteer:
