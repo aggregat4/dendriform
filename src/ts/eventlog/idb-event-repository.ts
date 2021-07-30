@@ -8,8 +8,14 @@ import {
   StoredEvent,
 } from './eventlog-storedevent'
 
+export interface EventStorageListener {
+  eventStored(event: StoredEvent): void
+  eventDeleted(event: StoredEvent): void
+}
+
 export class IdbEventRepository implements LifecycleAware {
   private db: IDBPDatabase<EventStoreSchema>
+  private listeners: EventStorageListener[] = []
 
   constructor(readonly dbName: string) {}
 
@@ -46,22 +52,53 @@ export class IdbEventRepository implements LifecycleAware {
     }
   }
 
+  addListener(listener: EventStorageListener): void {
+    this.listeners.push(listener)
+  }
+
+  removeListener(listener: EventStorageListener): void {
+    const index = this.listeners.indexOf(listener)
+    if (index > -1) {
+      this.listeners.splice(index, 1)
+    }
+  }
+
+  private notifyListeners(callback: (EventStorageListener) => void) {
+    for (const listener of this.listeners) {
+      callback(listener)
+    }
+  }
+
   getName(): string {
     return this.dbName
   }
 
-  async storeEvents(events: StoredEvent[], storeCallback: (event: StoredEvent) => void) {
+  async storeEvents(events: StoredEvent[]): Promise<void> {
     const tx = this.db.transaction('events', 'readwrite')
     try {
       // This is an efficient bulk add that does not wait for the success callback, inspired by
       // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
       let i = 0
-      let lastEvent = null
       for (; i < events.length; i++) {
-        lastEvent = events[i]
         // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
-        await tx.store.add(lastEvent)
-        storeCallback(lastEvent)
+        await tx.store.add(events[i])
+        this.notifyListeners((listener: EventStorageListener) => listener.eventStored(events[i]))
+      }
+      return tx.done
+    } catch (error) {
+      console.error(`store error: `, error)
+    }
+  }
+
+  async deleteEvents(events: StoredEvent[]): Promise<void> {
+    const tx = this.db.transaction('events', 'readwrite')
+    try {
+      // This is an efficient bulk delete that does not wait for the success callback, inspired by
+      // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
+      let i = 0
+      for (; i < events.length; i++) {
+        await tx.store.delete(events[i].eventid)
+        this.notifyListeners((listener: EventStorageListener) => listener.eventDeleted(events[i]))
       }
       return tx.done
     } catch (error) {
@@ -109,5 +146,20 @@ export class IdbEventRepository implements LifecycleAware {
 
   async loadStoredEvents(eventType: EventType, nodeId: string): Promise<StoredEvent[]> {
     return await this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [eventType, nodeId])
+  }
+
+  // assuming that the type parameters for an AsyncGenerator are:
+  // 1. return type for next()
+  // 2. return type of the function itself
+  // 3. the parameter to the function
+  // It is not properly documented
+  async *eventGenerator(startKey: number): AsyncGenerator<StoredEvent, void, void> {
+    let iterateCursor = await this.db
+      .transaction('events')
+      .store.openCursor(IDBKeyRange.lowerBound(startKey, true))
+    while (iterateCursor) {
+      yield iterateCursor.value
+      iterateCursor = await iterateCursor.continue()
+    }
   }
 }

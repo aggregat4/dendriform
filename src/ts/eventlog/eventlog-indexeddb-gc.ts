@@ -1,14 +1,14 @@
 import { EventType, ReorderChildNodeEventPayload } from './eventlog'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
-import { StoredEvent, storedEventComparator, EventStoreSchema } from './eventlog-storedevent'
-import { IDBPDatabase } from 'idb'
+import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
 import { LifecycleAware } from '../domain/domain'
+import { EventStorageListener, IdbEventRepository } from './idb-event-repository'
 
 class GcCandidate {
   constructor(readonly nodeId: string, readonly eventtype: EventType) {}
 }
 
-export class LocalEventLogGarbageCollector implements LifecycleAware {
+export class LocalEventLogGarbageCollector implements LifecycleAware, EventStorageListener {
   private readonly GC_TIMEOUT_MS = 10000
   private readonly GC_MAX_BATCH_SIZE = 500
   private readonly MAX_SLICE_TIME = 15
@@ -23,7 +23,15 @@ export class LocalEventLogGarbageCollector implements LifecycleAware {
   )
   private histogram: Map<string, number> = null
 
-  constructor(readonly db: IDBPDatabase<EventStoreSchema>) {}
+  constructor(readonly repository: IdbEventRepository) {}
+
+  eventStored(event: StoredEvent): void {
+    this.modifyEventCount(event, 1)
+  }
+
+  eventDeleted(event: StoredEvent): void {
+    this.modifyEventCount(event, -1)
+  }
 
   async init(): Promise<void> {
     await this.garbageCollector.start(false)
@@ -31,10 +39,6 @@ export class LocalEventLogGarbageCollector implements LifecycleAware {
 
   async deinit(): Promise<void> {
     await this.garbageCollector.stopAndWaitUntilDone()
-  }
-
-  countEvent(event: StoredEvent): void {
-    this.modifyEventCount(event, 1)
   }
 
   private modifyEventCount(event: StoredEvent, count: number): void {
@@ -87,29 +91,23 @@ export class LocalEventLogGarbageCollector implements LifecycleAware {
   private async histogramIncrement(currentKey: number, maxSliceTimeInMs: number): Promise<void> {
     const t0 = window.performance.now()
     let counter = 0
-    let iterateCursor = await this.db
-      .transaction('events')
-      .store.openCursor(IDBKeyRange.lowerBound(currentKey, true))
     let lastKey = currentKey
     const currentSlice = []
-    while (iterateCursor) {
-      const event = iterateCursor.value
-      lastKey = event.eventid
-      currentSlice.push(event)
-      iterateCursor = await iterateCursor.continue()
+    for await (const e of this.repository.eventGenerator(currentKey)) {
+      lastKey = e.eventid
+      currentSlice.push(e)
       counter += 1
       if (counter % 5 === 0) {
-        const time = window.performance.now()
-        if (time - t0 > maxSliceTimeInMs) {
+        if (window.performance.now() - t0 >= maxSliceTimeInMs) {
           break
         }
       }
     }
-    if (currentSlice.length === 0) {
-      return
-    }
     this.addToHistogram(currentSlice)
-    window.requestAnimationFrame(() => void this.histogramIncrement(lastKey, maxSliceTimeInMs))
+    // only schedule another slice if we got any results with this run
+    if (currentSlice.length !== 0) {
+      window.requestAnimationFrame(() => void this.histogramIncrement(lastKey, maxSliceTimeInMs))
+    }
   }
 
   private addToHistogram(events: StoredEvent[]): void {
@@ -142,10 +140,7 @@ export class LocalEventLogGarbageCollector implements LifecycleAware {
   }
 
   private async garbageCollect(candidate: GcCandidate): Promise<void> {
-    const nodeEvents = await this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [
-      candidate.eventtype,
-      candidate.nodeId,
-    ])
+    const nodeEvents = await this.repository.loadStoredEvents(candidate.eventtype, candidate.nodeId)
     // based on the eventtype we may need to partition the events for a node even further
     const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(
       nodeEvents,
@@ -158,22 +153,7 @@ export class LocalEventLogGarbageCollector implements LifecycleAware {
       }
       const eventsToDelete = this.findEventsToPrune(pruneCandidates)
       if (eventsToDelete.length > 0) {
-        console.log(`garbageCollect: bulkdelete of `, eventsToDelete)
-        const tx = this.db.transaction('events', 'readwrite')
-        try {
-          // This is an efficient bulk delete that does not wait for the success callback, inspired by
-          // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
-          let i = 0
-          let lastEvent: StoredEvent = null
-          for (; i < eventsToDelete.length; i++) {
-            lastEvent = eventsToDelete[i]
-            await tx.store.delete(lastEvent.eventid)
-            this.modifyEventCount(lastEvent, -1)
-          }
-          return tx.done
-        } catch (error) {
-          console.error(`store error: `, error)
-        }
+        await this.repository.deleteEvents(eventsToDelete)
       }
     }
   }

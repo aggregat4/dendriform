@@ -12,14 +12,10 @@ import {
 import { generateUUID } from '../utils/util'
 import { VectorClock } from '../lib/vectorclock'
 import { ActivityIndicating, Subscription, LifecycleAware } from '../domain/domain'
-import { LocalEventLogGarbageCollector } from './eventlog-indexeddb-gc'
 import { LocalEventLogIdMapper } from './eventlog-indexeddb-peerid-mapper'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { StoredEvent, storedEventComparator, PeerIdAndEventIdKeyType } from './eventlog-storedevent'
-import {
-  externalToInternalVectorclockValues,
-  mapStoredEventToDEvent,
-} from './eventlog-indexeddb-utils'
+import { externalToInternalVectorclockValues, mapStoredEventToDEvent } from './eventlog-utils'
 import { IdbEventRepository } from './idb-event-repository'
 
 class EventSubscription implements Subscription {
@@ -56,7 +52,6 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
    * this dynamically.
    */
   private readonly STORAGE_QUEUE_BATCH_SIZE = 200
-  private garbageCollector: LocalEventLogGarbageCollector
   // DEBUG
   private lastStoreMeasurement = 0
   private storeCount = 0
@@ -200,9 +195,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
           }
         })
     )
-    await this.repository.storeEvents(mappedEvents, (e) => {
-      this.garbageCollector.countEvent(e)
-    })
+    await this.repository.storeEvents(mappedEvents)
   }
 
   private async loadOrCreateMetadata(): Promise<void> {

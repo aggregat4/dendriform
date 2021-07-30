@@ -132,7 +132,8 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 ## TODOs
 
-1. Continue refactoring indexeddb eventlog garbage collector: move all the IDB access to the repository, use generators for the storedevent iterator (see <https://stackoverflow.com/questions/38508172/typescript-make-class-objects-iterable>)
+
+1. Refactoring of repository and idb: repo is refactored out, it's much better. Need to rename the files and inject repo into everything, also garbage collector, maybe extract metrics package from eventlog?
 1. Implement tests for all functionality: In order to trust the implementation I need tests for everything
   * Integration tests
     1. I implemented a "manual" approach using puppeteer:
@@ -144,7 +145,7 @@ What's missing is to also throttle the actual garbage collection itself (deletin
     3. I need to expand tizzytest a bit to be able to relay test status through the browser and through the console (just separate that out and have a special browser implementation that sets some object on window or whatever)
     4. I need to probably do a quick test to check that indexeddb even works inside a locally loaded page and that local file references work in the html
 1. IMPROVEMENT: upgrade to lit-html 2, see https://lit.dev/docs/releases/upgrade/
-1. IMPROVEMENT: maybe consider trying https://tailwindcss.com/ and give that a go here. I am curious how it feels.
+1. IMPROVEMENT: maybe consider trying https://talwindcss.com/ and give that a go here. I am curious how it feels.
 1. BUG: marking as completed is broken, seems to render too many nodes as completed?
 1. BUG: after opml import you can not expand (or collapse) the newly imported nodes
 1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
