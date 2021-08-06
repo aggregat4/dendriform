@@ -132,7 +132,6 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 ## TODOs
 
-
 1. Refactoring of repository and idb: repo is refactored out, it's much better. Need to rename the files and inject repo into everything, also garbage collector, maybe extract metrics package from eventlog?
 1. Implement tests for all functionality: In order to trust the implementation I need tests for everything
   * Integration tests

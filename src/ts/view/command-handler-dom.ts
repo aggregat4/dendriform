@@ -1,9 +1,5 @@
-import {
-  RelativeLinearPosition,
-  createNewResolvedRepositoryNodeWithContent,
-  verifyAndRepairMarkup,
-} from '../domain/domain'
-import { filterNode } from '../domain/domain-search'
+import { RelativeLinearPosition } from '../domain/domain'
+import { filterNode } from '../repository/domain-search'
 import {
   CloseNodeByIdCommandPayload,
   Command,
@@ -31,9 +27,11 @@ import {
   unhideToggle,
   getParentNode,
 } from './tree-dom-util'
-import { markupHtml, toHtml } from '../utils/markup'
+import { containsMarkup, markupHtml, toHtml } from '../utils/markup'
 import { renderNode } from './node-component'
 import { render } from 'lit-html'
+import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup } from '../utils/util'
+import { createNewResolvedRepositoryNodeWithContent } from '../repository/repository'
 
 export class DomCommandHandler implements CommandHandler {
   async exec(command: Command): Promise<void> {
@@ -235,5 +233,31 @@ export class DomCommandHandler implements CommandHandler {
       node.classList.remove('completed')
       node.classList.remove('completed-visual-only')
     }
+  }
+}
+
+function updateAllEmbeddedLinks(node: Element): void {
+  for (const anchor of node.querySelectorAll('a.embeddedLink')) {
+    const anchorText = anchor.textContent
+    if (anchor.getAttribute('href') !== anchorText) {
+      anchor.setAttribute('href', anchorText)
+    }
+  }
+}
+
+/**
+ * Will figure out whether the provided element's contents require something to be
+ * marked up (or have markup removed). If it does it will replace the contents of the
+ * node and preserve the cursor position in the process.
+ *
+ * It will also make sure all the embeddedLink elements have the correct href value.
+ */
+function verifyAndRepairMarkup(el: Element, newText: string): void {
+  if (containsMarkup(newText)) {
+    const newMarkup = markupHtml(newText)
+    const cursorPos = getCursorPosAcrossMarkup(el)
+    el.innerHTML = toHtml(newMarkup)
+    updateAllEmbeddedLinks(el)
+    setCursorPosAcrossMarkup(el, cursorPos)
   }
 }

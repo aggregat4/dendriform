@@ -1,4 +1,4 @@
-import { Repository } from './repository'
+import { LoadedTree, Repository, RepositoryNode, ResolvedRepositoryNode, State } from './repository'
 import {
   AddOrUpdateNodeEventPayload,
   DEventLog,
@@ -11,17 +11,10 @@ import {
   NodeFlags,
 } from '../eventlog/eventlog'
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
-import {
-  LoadedTree,
-  RepositoryNode,
-  RelativeNodePosition,
-  State,
-  Subscription,
-  ResolvedRepositoryNode,
-  LifecycleAware,
-} from '../domain/domain'
+import { RelativeNodePosition } from '../domain/domain'
 import { atomIdent } from '../lib/modules/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
+import { LifecycleAware, Subscription } from '../domain/lifecycle'
 
 class NodeNotFoundError extends Error {}
 

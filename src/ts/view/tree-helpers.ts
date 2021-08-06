@@ -13,7 +13,7 @@ export interface CommandExecutor {
   performWithoutDom(command: Command): Promise<void>
 }
 
-export interface TransientStateInfo {
+interface TransientStateInfo {
   focusNodePreviousId: string
   focusNodePreviousName: string
   focusNodePreviousNote: string

@@ -2,7 +2,7 @@ import { serializeServerEvent, ServerEvents, deserializeServerEvents } from './s
 import { DEvent, Events } from '../eventlog/eventlog'
 import { assertNonEmptyString } from '../utils/util'
 
-export type ServerState = { [key: string]: number }
+type ServerState = { [key: string]: number }
 
 export class RemoteEventLog {
   readonly serverEndpoint: string

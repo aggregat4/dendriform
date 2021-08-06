@@ -1,15 +1,14 @@
 import { ALWAYS_TRUE, Predicate } from '../utils/util'
+import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import {
-  RelativeLinearPosition,
-  RepositoryNode,
   LoadedTree,
-  State,
-  RelativeNodePosition,
   NODE_IS_NOT_DELETED,
-  Subscription,
-} from '../domain/domain'
-import { Repository } from '../repository/repository'
+  Repository,
+  RepositoryNode,
+  State,
+} from '../repository/repository'
 import { MergeNameOrder } from './service'
+import { Subscription } from '../domain/lifecycle'
 
 export class TreeService {
   constructor(readonly repo: Repository) {}

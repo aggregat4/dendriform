@@ -1,11 +1,11 @@
 import { DEvent, EventPayloadType } from '../eventlog/eventlog'
 import { VectorClock, VectorClockValuesType } from '../lib/vectorclock'
 
-export type ServerEventClock = VectorClockValuesType
+type ServerEventClock = VectorClockValuesType
 
-export type ServerEventPayload = EventPayloadType
+type ServerEventPayload = EventPayloadType
 
-export type ServerEvent = {
+type ServerEvent = {
   localId: number
   type: number
   originator: string
@@ -14,7 +14,7 @@ export type ServerEvent = {
   payload: ServerEventPayload
 }
 
-export type ServerEventWrapper = {
+type ServerEventWrapper = {
   originator: string
   body: string
 }

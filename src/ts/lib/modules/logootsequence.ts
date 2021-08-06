@@ -13,7 +13,7 @@ const ABS_MAX_ATOM_IDENT: atomIdent = [[[MAX_POS, 0]], 1]
 /**
  * The result of a comparison operation.
  */
-export type comparisonResult = -1 | 0 | 1
+type comparisonResult = -1 | 0 | 1
 
 /**
  * An array `[int, site]` where `int` is an integer and `site` is a site
@@ -21,12 +21,12 @@ export type comparisonResult = -1 | 0 | 1
  *
  * The site identifier may be any comparable value.
  */
-export type ident = [number, string | number]
+type ident = [number, string | number]
 
 /**
  * A list of `ident`s.
  */
-export type position = ident[]
+type position = ident[]
 
 /**
  * An array `[pos, vector]` where `pos` is a position and `vector` is the value
@@ -49,8 +49,8 @@ export type atom = [atomIdent, any]
  */
 export type sequence = atom[]
 
-export const min = ABS_MIN_ATOM_IDENT
-export const max = ABS_MAX_ATOM_IDENT
+const min = ABS_MIN_ATOM_IDENT
+const max = ABS_MAX_ATOM_IDENT
 
 /**
  * Compare two atom identifiers, returning `1` if the first is greater than the

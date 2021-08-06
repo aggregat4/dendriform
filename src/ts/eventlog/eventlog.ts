@@ -2,7 +2,7 @@ import { VectorClock } from '../lib/vectorclock'
 import { Predicate } from '../utils/util'
 import { atomIdent } from '../lib/modules/logootsequence.js'
 import { secondsSinceEpoch } from '../utils/dateandtime'
-import { Subscription, LifecycleAware } from '../domain/domain'
+import { Subscription } from '../domain/lifecycle'
 
 export const enum EventType {
   ADD_OR_UPDATE_NODE,
@@ -110,7 +110,7 @@ export interface DEventSource {
   ): Promise<void>
 }
 
-export interface DEventLog extends DEventSource, LifecycleAware {
+export interface DEventLog extends DEventSource {
   /**
    *  A globally unique ID identifying this peer in a multi-peer environment
    */

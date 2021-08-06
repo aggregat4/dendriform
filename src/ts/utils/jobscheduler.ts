@@ -1,4 +1,4 @@
-export interface TimeoutStrategy {
+interface TimeoutStrategy {
   calcNewTimeout(success: boolean): number
 }
 

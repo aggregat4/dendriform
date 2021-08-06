@@ -5,7 +5,7 @@ export interface CommandHandler {
   exec(command: Command): Promise<void>
 }
 
-export interface CommandPayload {
+interface CommandPayload {
   inverse(): CommandPayload
   requiresRender(): boolean
   // idea: add notion of batch vs interactive, in batch case rerender is debounced?

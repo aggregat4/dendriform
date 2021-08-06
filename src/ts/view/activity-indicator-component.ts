@@ -1,5 +1,5 @@
 import { html, render } from 'lit-html'
-import { ActivityIndicating } from '../domain/domain'
+import { ActivityIndicating } from '../domain/lifecycle'
 
 export class ActivityIndicator extends HTMLElement {
   private spinner: HTMLElement = null

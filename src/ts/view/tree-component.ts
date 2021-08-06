@@ -6,23 +6,8 @@ import {
   CommandBuilder,
   OpenNodeByIdCommandPayload,
   CreateChildNodeCommandPayload,
-  CommandHandler,
 } from '../commands/commands'
-import {
-  FilteredRepositoryNode,
-  LoadedTree,
-  State,
-  Subscription,
-  ActivityIndicating,
-  Filter,
-  NODE_IS_NOT_DELETED,
-  RepositoryNode,
-  NODE_IS_NOT_COMPLETED,
-  LifecycleAware,
-  ResolvedRepositoryNode,
-  Status,
-} from '../domain/domain'
-import { filterNode, parseQuery } from '../domain/domain-search'
+import { Filter, filterNode, parseQuery } from '../repository/domain-search'
 import { TreeService } from '../service/tree-service'
 import {
   debounce,
@@ -68,6 +53,17 @@ import { OpmlImportAction } from './action-opmlimport'
 import { OpmlImportDialog } from './dialog-opmlimport'
 import { OpmlExportAction } from './action-opmlexport'
 import './activity-indicator-component' // for side effects
+import {
+  FilteredRepositoryNode,
+  LoadedTree,
+  NODE_IS_NOT_COMPLETED,
+  NODE_IS_NOT_DELETED,
+  RepositoryNode,
+  ResolvedRepositoryNode,
+  State,
+  Status,
+} from '../repository/repository'
+import { ActivityIndicating, Subscription } from '../domain/lifecycle'
 
 class TreeConfig {
   showCompleted = false

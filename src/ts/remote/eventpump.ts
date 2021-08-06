@@ -1,9 +1,9 @@
 import { DEventLog, Events } from '../eventlog/eventlog'
 import { RemoteEventLog } from './eventlog-remote'
-import { LifecycleAware } from '../domain/domain'
 import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobscheduler'
 import { IDBPDatabase, DBSchema, openDB } from 'idb'
 import { assert } from '../utils/util'
+import { LifecycleAware } from '../domain/lifecycle'
 
 /**
  * We store the max localeventid that we know per originator. This allows us to

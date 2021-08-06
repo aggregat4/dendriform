@@ -14,7 +14,7 @@ function isDialogLifecycleAware(obj: any): obj is DialogLifecycleAware {
   return typeof obj.beforeShow === 'function'
 }
 
-export type DialogCloseObserver = () => void
+type DialogCloseObserver = () => void
 
 export class DialogElement extends HTMLElement {
   private _dialogCloseObserver: DialogCloseObserver = null
@@ -207,7 +207,7 @@ export class DialogElement extends HTMLElement {
 
 customElements.define('df-dialog', DialogElement)
 
-export type DialogTrigger = string | HTMLElement
+type DialogTrigger = string | HTMLElement
 
 export class Dialog {
   constructor(readonly trigger: DialogTrigger, readonly dialogElement: DialogElement) {}

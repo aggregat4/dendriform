@@ -1,10 +1,10 @@
-export type MNodeContent = MNode[] | string
+type MNodeContent = MNode[] | string
 
-export class MNodeAttribute {
+class MNodeAttribute {
   constructor(readonly name: string, readonly value: string) {}
 }
 
-export class MNode {
+class MNode {
   private _content: MNodeContent = undefined
 
   constructor(

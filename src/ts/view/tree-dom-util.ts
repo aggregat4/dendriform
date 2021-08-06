@@ -217,18 +217,3 @@ function sanitizeContent(element: HTMLElement): HTMLElement {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return sanitizer.clean_node(element)
 }
-
-/**
- * If the given element is either the root of the tree component (not the root node, but the
- * container element) or it is inside the root of the tree then this will return that node.
- * Otherwise it will return null.
- */
-export function findTreeRoot(element: HTMLElement): HTMLElement {
-  if (element.classList.contains('tree')) {
-    return element
-  } else if (element.parentElement) {
-    return findTreeRoot(element.parentElement)
-  } else {
-    return null
-  }
-}

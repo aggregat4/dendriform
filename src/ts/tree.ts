@@ -10,8 +10,10 @@ import { LocalEventLog } from './eventlog/eventlog-indexeddb'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
-import { isLifecycleAware, LifecycleAware } from './domain/domain'
-import { LocalEventLogIdMapper } from './eventlog/eventlog-indexeddb-peerid-mapper'
+import { LocalEventLogIdMapper } from './eventlog/idb-peerid-mapper'
+import { isLifecycleAware, LifecycleAware } from './domain/lifecycle'
+import { IdbEventRepository } from './eventlog/idb-event-repository'
+import { LocalEventLogGarbageCollector } from './eventlog/eventlog-gc'
 
 customElements.define('dendriform-tree', Tree)
 
@@ -24,8 +26,10 @@ export class TreeManager {
       await this.deinitAll()
       this.currentInitializer = null
     }
+    const idbEventRepository = this.register(new IdbEventRepository(treeName))
     const peerIdMapper = this.register(new LocalEventLogIdMapper(treeName + '-peerid-mapping'))
-    const localEventLog = this.register(new LocalEventLog(treeName, peerIdMapper))
+    const localEventLog = this.register(new LocalEventLog(idbEventRepository, peerIdMapper))
+    this.register(new LocalEventLogGarbageCollector(idbEventRepository))
     const remoteEventLog = this.register(new RemoteEventLog('/', treeName))
     const repository = this.register(new EventlogRepository(localEventLog))
     const treeService = this.register(new TreeService(repository))

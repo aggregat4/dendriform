@@ -1,8 +1,8 @@
 import { EventType, ReorderChildNodeEventPayload } from './eventlog'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
-import { LifecycleAware } from '../domain/domain'
 import { EventStorageListener, IdbEventRepository } from './idb-event-repository'
+import { LifecycleAware } from '../domain/lifecycle'
 
 class GcCandidate {
   constructor(readonly nodeId: string, readonly eventtype: EventType) {}

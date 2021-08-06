@@ -11,12 +11,12 @@ import {
 } from './eventlog'
 import { generateUUID } from '../utils/util'
 import { VectorClock } from '../lib/vectorclock'
-import { ActivityIndicating, Subscription, LifecycleAware } from '../domain/domain'
-import { LocalEventLogIdMapper } from './eventlog-indexeddb-peerid-mapper'
+import { LocalEventLogIdMapper } from './idb-peerid-mapper'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
-import { StoredEvent, storedEventComparator, PeerIdAndEventIdKeyType } from './eventlog-storedevent'
+import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
 import { externalToInternalVectorclockValues, mapStoredEventToDEvent } from './eventlog-utils'
-import { IdbEventRepository } from './idb-event-repository'
+import { IdbEventRepository, PeerIdAndEventIdKeyType } from './idb-event-repository'
+import { ActivityIndicating, LifecycleAware, Subscription } from '../domain/lifecycle'
 
 class EventSubscription implements Subscription {
   constructor(

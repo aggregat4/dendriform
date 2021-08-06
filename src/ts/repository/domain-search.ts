@@ -1,14 +1,12 @@
-import {
-  Filter,
-  FilteredFragment,
-  ResolvedRepositoryNode,
-  FilteredRepositoryNode,
-  QueryComponent,
-} from './domain'
 import { containsMarkup, toHtml, markupHtml, markupHtmlWithFilterHits } from '../utils/markup'
 import { isEmpty } from '../utils/util'
+import { FilteredRepositoryNode, ResolvedRepositoryNode } from './repository'
 
 const splitRegexp = new RegExp('[,\\.;\\s]+')
+
+export class QueryComponent {
+  constructor(readonly value: string) {}
+}
 
 /**
  * Splits the query into its consituents, removing whitespace and lowercasing all strings.
@@ -18,6 +16,15 @@ export function parseQuery(query: string): QueryComponent[] {
     .split(splitRegexp)
     .filter((s) => !isEmpty(s))
     .map((comp) => new QueryComponent(comp.toLowerCase()))
+}
+
+export class Filter {
+  constructor(readonly queryComponents: QueryComponent[]) {}
+}
+
+export interface FilteredFragment {
+  fragment: string
+  filterMatches: boolean
 }
 
 /**

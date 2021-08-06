@@ -1,11 +1,11 @@
 import { after, test } from '../../lib/tizzy'
 import expect from 'ceylon'
-import { LocalEventLogIdMapper } from '../../src/ts/eventlog/eventlog-indexeddb-peerid-mapper'
+import { LocalEventLogIdMapper } from '../../src/ts/eventlog/idb-peerid-mapper'
 import { deleteDB } from 'idb'
 import {
   externalToInternalVectorclockValues,
   internalToExternalVectorclockValues,
-} from 'src/ts/eventlog/eventlog-indexeddb-utils'
+} from '../../src/ts/eventlog/eventlog-utils'
 
 test('Mapping an id is reversible', async () => {
   const mapper = new LocalEventLogIdMapper('testdb')

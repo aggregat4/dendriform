@@ -5,6 +5,7 @@ export const enum KbdEventType {
   Keydown,
   Keypress,
 }
+
 export enum SemanticShortcutType {
   Undo = 'Undo',
   Redo = 'Redo',
@@ -12,6 +13,7 @@ export enum SemanticShortcutType {
   EndOfDocument = 'EndOfDocument',
   Save = 'Save',
 }
+
 export enum KbdKey {
   Enter = 'Enter',
   ArrowUp = 'ArrowUp',
@@ -25,9 +27,11 @@ export enum KbdKey {
   y = 'y',
   z = 'z',
 }
-export class KbdCode {
+
+class KbdCode {
   constructor(readonly code: number) {}
 }
+
 export enum KbdModifierType {
   Shift = 'Shift',
   Ctrl = 'Ctrl',
@@ -35,7 +39,7 @@ export enum KbdModifierType {
   Alt = 'Alt',
 }
 
-export interface TreeNodeSelector {
+interface TreeNodeSelector {
   matches(node: Element): boolean
 }
 

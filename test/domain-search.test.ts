@@ -1,8 +1,7 @@
 import { test } from '../lib/tizzy'
 import expect from 'ceylon'
 
-import { parseQuery } from '../src/ts/domain/domain-search'
-import { QueryComponent } from '../src/ts/domain/domain'
+import { parseQuery, QueryComponent } from '../src/ts/repository/domain-search'
 
 test('Query parsing empty query', () => {
   expect(parseQuery('')).toEqual([])

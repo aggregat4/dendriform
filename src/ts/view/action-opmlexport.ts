@@ -5,7 +5,7 @@ import { KeyboardEventTrigger, KbdEventType, NodeClassSelector } from './keyboar
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { repositoryNodeToOpmlDocument } from '../opml/opml-util'
 import { saveAs } from 'file-saver'
-import { NODE_IS_NOT_DELETED } from '../domain/domain'
+import { NODE_IS_NOT_DELETED } from '../repository/repository'
 
 export class OpmlExportAction extends TreeAction {
   constructor() {

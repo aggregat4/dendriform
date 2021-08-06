@@ -1,7 +1,7 @@
 import {
-  ResolvedRepositoryNode,
   createNewResolvedRepositoryNodeWithContent,
-} from '../domain/domain'
+  ResolvedRepositoryNode,
+} from '../repository/repository'
 import { generateUUID } from '../utils/util'
 
 /**

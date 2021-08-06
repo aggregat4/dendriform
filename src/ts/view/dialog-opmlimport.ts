@@ -1,16 +1,18 @@
 import { html, render } from 'lit-html'
 import { TreeActionContext } from './tree-actions'
-import { ResolvedRepositoryNode, ActivityIndicating } from '../domain/domain'
 import { parseXML } from '../utils/util'
 import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/commands'
 import { CommandExecutor } from './tree-helpers'
 import { opmlDocumentToRepositoryNodes } from '../opml/opml-util'
 import { DialogLifecycleAware } from './dialogs'
 import { sharedCommonStyles } from './shared-styles'
+import { ActivityIndicating } from '../domain/lifecycle'
+import { ResolvedRepositoryNode } from '../repository/repository'
 
 export class OpmlImportDialog
   extends HTMLElement
-  implements ActivityIndicating, DialogLifecycleAware {
+  implements ActivityIndicating, DialogLifecycleAware
+{
   private _treeActionContext: TreeActionContext
   private importing = false
   private success = null
