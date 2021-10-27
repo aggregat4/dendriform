@@ -1,6 +1,6 @@
 import { containsMarkup, toHtml, markupHtml, markupHtmlWithFilterHits } from '../utils/markup'
-import { isEmpty } from '../utils/util'
-import { FilteredRepositoryNode, ResolvedRepositoryNode } from './repository'
+import { findFirst, isEmpty } from '../utils/util'
+import { DeferredArray, RepositoryNode, ResolvedRepositoryNode } from './repository'
 
 const splitRegexp = new RegExp('[,\\.;\\s]+')
 
@@ -79,4 +79,32 @@ export function filterNode(node: ResolvedRepositoryNode, filter?: Filter): Filte
     node.node.name ? filterHtml(node.node.name, filter) : null,
     node.node.note ? filterHtml(node.node.note, filter) : null
   )
+}
+
+export class FilteredRepositoryNode {
+  private areAnyChildrenIncluded: boolean = undefined
+
+  constructor(
+    readonly node: RepositoryNode,
+    readonly children: DeferredArray<FilteredRepositoryNode>,
+    readonly filterApplied: boolean,
+    readonly filteredName: FilteredFragment,
+    readonly filteredNote: FilteredFragment
+  ) {}
+
+  isIncluded(): boolean {
+    if (this.areAnyChildrenIncluded === undefined) {
+      // We don't really care about the deferred loading here, if it is not loaded then we don't have to check any children
+      this.areAnyChildrenIncluded = !!findFirst(
+        this.children.elements,
+        (c: FilteredRepositoryNode) => c.isIncluded()
+      )
+    }
+    return (
+      !this.filterApplied ||
+      (this.filteredName && this.filteredName.filterMatches) ||
+      (this.filteredNote && this.filteredNote.filterMatches) ||
+      this.areAnyChildrenIncluded
+    )
+  }
 }

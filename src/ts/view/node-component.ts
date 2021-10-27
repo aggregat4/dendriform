@@ -2,7 +2,8 @@
 import { isCursorAtContentEditableBeginning } from '../utils/util'
 import { html, TemplateResult } from 'lit-html'
 import { unsafeHTML } from 'lit-html/directives/unsafe-html'
-import { DeferredArray, FilteredRepositoryNode, RepositoryNode } from '../repository/repository'
+import { DeferredArray, RepositoryNode } from '../repository/repository'
+import { FilteredRepositoryNode } from '../repository/search'
 
 /**
  * ☰ = trigram for heaven (U+2630)

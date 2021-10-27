@@ -1,4 +1,4 @@
-import { EventType, ReorderChildNodeEventPayload } from './eventlog'
+import { EventType, ReorderChildNodeEventPayload } from './eventlog-domain'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
 import { EventStorageListener, IdbEventRepository } from './idb-event-repository'

@@ -1,4 +1,4 @@
-import { DEvent, EventPayloadType } from '../eventlog/eventlog'
+import { DEvent, EventPayloadType } from '../eventlog/eventlog-domain'
 import { VectorClock, VectorClockValuesType } from '../lib/vectorclock'
 
 type ServerEventClock = VectorClockValuesType

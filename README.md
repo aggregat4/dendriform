@@ -132,6 +132,11 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 ## TODOs
 
+1. Refactor towards a move-op model as per Kleppmann
+  1. I think Lamport timestamps offer sufficient semantics to order our events
+  1. We would need to reduce our kind of events to the single move operation (reparent in our case)
+  1. We need to store the logoot sequence ID inside of the child node payload so we can reconstruct the logoot sequence once the parent know who its children are . This also means getting rid of the logoot delete events, which _should_ be fine if we alwazs construct the sequence anew based on a consistent set of children
+
 1. Refactoring of repository and idb: repo is refactored out, it's much better. Need to rename the files and inject repo into everything, also garbage collector, maybe extract metrics package from eventlog?
 1. Implement tests for all functionality: In order to trust the implementation I need tests for everything
   * Integration tests

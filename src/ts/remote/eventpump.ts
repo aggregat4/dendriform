@@ -1,4 +1,4 @@
-import { DEventLog, Events } from '../eventlog/eventlog'
+import { DEventLog, Events } from '../eventlog/eventlog-domain'
 import { RemoteEventLog } from './eventlog-remote'
 import { JobScheduler, BackoffWithJitterTimeoutStrategy } from '../utils/jobscheduler'
 import { IDBPDatabase, DBSchema, openDB } from 'idb'

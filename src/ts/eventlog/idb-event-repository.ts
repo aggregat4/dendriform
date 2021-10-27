@@ -1,6 +1,6 @@
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
-import { EventType } from './eventlog'
+import { EventType } from './eventlog-domain'
 import { PeerMetadata, StoredEvent } from './eventlog-storedevent'
 
 export type PeerIdAndEventIdKeyType = [number, number]

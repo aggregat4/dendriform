@@ -7,7 +7,7 @@ import {
   OpenNodeByIdCommandPayload,
   CreateChildNodeCommandPayload,
 } from '../commands/commands'
-import { Filter, filterNode, parseQuery } from '../repository/domain-search'
+import { Filter, FilteredRepositoryNode, filterNode, parseQuery } from '../repository/search'
 import { TreeService } from '../service/tree-service'
 import {
   debounce,
@@ -54,7 +54,6 @@ import { OpmlImportDialog } from './dialog-opmlimport'
 import { OpmlExportAction } from './action-opmlexport'
 import './activity-indicator-component' // for side effects
 import {
-  FilteredRepositoryNode,
   LoadedTree,
   NODE_IS_NOT_COMPLETED,
   NODE_IS_NOT_DELETED,

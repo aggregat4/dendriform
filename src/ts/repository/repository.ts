@@ -1,25 +1,17 @@
 import { RelativeNodePosition } from '../domain/domain'
 import { LifecycleAware, Subscription } from '../domain/lifecycle'
 import { secondsSinceEpoch } from '../utils/dateandtime'
-import { findFirst, Predicate } from '../utils/util'
-import { FilteredFragment } from './domain-search'
+import { Predicate } from '../utils/util'
 
 export interface DeferredArray<T> {
   loaded: boolean
   elements: T[]
 }
 
-// const NODE_IS_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) => !!node.deleted
 export const NODE_IS_NOT_DELETED: Predicate<RepositoryNode> = (node: RepositoryNode) =>
   !node.deleted
 export const NODE_IS_NOT_COMPLETED: Predicate<RepositoryNode> = (node: RepositoryNode) =>
   !node.completed
-// export const NODE_NOT_DELETED_AND_NOT_COMPLETED = createCompositeAndPredicate([
-//   NODE_IS_NOT_DELETED,
-//   NODE_IS_NOT_COMPLETED,
-// ])
-// export const NODE_IS_NOT_COLLAPSED: Predicate<RepositoryNode> = (node: RepositoryNode) =>
-//   !node.collapsed
 
 export interface LoadedTree {
   status: Status
@@ -56,34 +48,6 @@ function createNewRepositoryNodeWithContent(
   }
 }
 
-export class FilteredRepositoryNode {
-  private areAnyChildrenIncluded: boolean = undefined
-
-  constructor(
-    readonly node: RepositoryNode,
-    readonly children: DeferredArray<FilteredRepositoryNode>,
-    readonly filterApplied: boolean,
-    readonly filteredName: FilteredFragment,
-    readonly filteredNote: FilteredFragment
-  ) {}
-
-  isIncluded(): boolean {
-    if (this.areAnyChildrenIncluded === undefined) {
-      // We don't really care about the deferred loading here, if it is not loaded then we don't have to check any children
-      this.areAnyChildrenIncluded = !!findFirst(
-        this.children.elements,
-        (c: FilteredRepositoryNode) => c.isIncluded()
-      )
-    }
-    return (
-      !this.filterApplied ||
-      (this.filteredName && this.filteredName.filterMatches) ||
-      (this.filteredNote && this.filteredNote.filterMatches) ||
-      this.areAnyChildrenIncluded
-    )
-  }
-}
-
 export const enum State {
   LOADING,
   LOADED,
@@ -113,8 +77,12 @@ export interface ResolvedRepositoryNode {
 }
 
 export interface Repository extends LifecycleAware {
+  loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode>
+
   createNode(id: string, name: string, content: string, synchronous: boolean): Promise<void>
+
   updateNode(node: RepositoryNode, synchronous: boolean): Promise<void>
+
   reparentNode(
     childId: string,
     parentId: string,
@@ -123,8 +91,9 @@ export interface Repository extends LifecycleAware {
   ): Promise<void>
 
   getChildIds(nodeId: string): Promise<string[]>
+
   getParentId(nodeId: string): Promise<string>
-  loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode>
+
   loadTree(
     nodeId: string,
     nodeFilter: Predicate<RepositoryNode>,

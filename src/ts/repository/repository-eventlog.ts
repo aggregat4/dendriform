@@ -9,7 +9,7 @@ import {
   LogootReorderOperation,
   createNewAddOrUpdateNodeEventPayload,
   NodeFlags,
-} from '../eventlog/eventlog'
+} from '../eventlog/eventlog-domain'
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
 import { RelativeNodePosition } from '../domain/domain'
 import { atomIdent } from '../lib/modules/logootsequence.js'

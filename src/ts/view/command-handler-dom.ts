@@ -1,5 +1,5 @@
 import { RelativeLinearPosition } from '../domain/domain'
-import { filterNode } from '../repository/domain-search'
+import { filterNode } from '../repository/search'
 import {
   CloseNodeByIdCommandPayload,
   Command,

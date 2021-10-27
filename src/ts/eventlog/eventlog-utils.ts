@@ -1,5 +1,5 @@
 import { VectorClock, VectorClockValuesType } from '../lib/vectorclock'
-import { DEvent } from './eventlog'
+import { DEvent } from './eventlog-domain'
 import { LocalEventLogIdMapper } from './idb-peerid-mapper'
 import { StoredEvent } from './eventlog-storedevent'
 

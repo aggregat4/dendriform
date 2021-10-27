@@ -1,5 +1,5 @@
 import { VectorClock, VectorClockValuesType } from '../lib/vectorclock'
-import { EventPayloadType } from './eventlog'
+import { EventPayloadType } from './eventlog-domain'
 
 export interface PeerMetadata {
   eventlogid: string

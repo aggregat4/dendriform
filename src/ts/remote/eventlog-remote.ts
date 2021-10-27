@@ -1,5 +1,5 @@
 import { serializeServerEvent, ServerEvents, deserializeServerEvents } from './serialization'
-import { DEvent, Events } from '../eventlog/eventlog'
+import { DEvent, Events } from '../eventlog/eventlog-domain'
 import { assertNonEmptyString } from '../utils/util'
 
 type ServerState = { [key: string]: number }
