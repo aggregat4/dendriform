@@ -22,7 +22,7 @@ export class Filter {
   constructor(readonly queryComponents: QueryComponent[]) {}
 }
 
-export interface FilteredFragment {
+interface FilteredFragment {
   fragment: string
   filterMatches: boolean
 }

@@ -10,10 +10,10 @@ import puppeteer from 'puppeteer'
   })
   const page = await browser.newPage()
   page.on('pageerror', (e) => {
-    console.log(`page error occurred: `, e)
+    console.error(`error occurred: `, e)
   })
   page.on('console', (e) => {
-    console.log(`page console event: `, e.text())
+    console.info(`console: `, e.text())
   })
   await page.goto(`file://${process.cwd()}/${process.env.TIZZY_ITEST_RELATIVE_FILENAME}`)
   try {
@@ -21,9 +21,9 @@ import puppeteer from 'puppeteer'
     const status = await page.evaluate(() => {
       return window['integrationTestStatus'] || 'status div found, but no status stored'
     })
-    console.log(`integration test status: `, status)
+    console.info(`integration test status: `, status)
   } catch (error) {
-    console.log(`integration test error: `, error)
+    console.error(`integration test error: `, error)
   } finally {
     await browser.close()
   }
