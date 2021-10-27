@@ -136,8 +136,13 @@ What's missing is to also throttle the actual garbage collection itself (deletin
   1. I think Lamport timestamps offer sufficient semantics to order our events
   1. We would need to reduce our kind of events to the single move operation (reparent in our case)
   1. We need to store the logoot sequence ID inside of the child node payload so we can reconstruct the logoot sequence once the parent know who its children are . This also means getting rid of the logoot delete events, which _should_ be fine if we alwazs construct the sequence anew based on a consistent set of children
+  1. Proposal for a process:
+    1. Move from individual event payload fields to a payload blob
+    1. Factor out REORDER_CHILD event by storing logoot ids in the child nodes and doing lazy rebuilding of the logoot sequence. This also implies no longer using logoot deletes
+    1. Merge the ADD_OR_UPDATE and the REPARENT event into a reparent event (this may involve removing the deleted flag and instead moving to trash node)
+    1. Move from vector clocks to lamport timestamps
+    1. Investigate how to proceed to refactor current implementation to the Kleppman omove-op  model (efficient query and storage needed, redo garbage collection?)
 
-1. Refactoring of repository and idb: repo is refactored out, it's much better. Need to rename the files and inject repo into everything, also garbage collector, maybe extract metrics package from eventlog?
 1. Implement tests for all functionality: In order to trust the implementation I need tests for everything
   * Integration tests
     1. I implemented a "manual" approach using puppeteer:
