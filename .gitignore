@@ -7,3 +7,4 @@ target/
 node/
 .settings/
 .project
+dependencygraph.svg
