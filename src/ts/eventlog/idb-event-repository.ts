@@ -1,10 +1,8 @@
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
-import { EventType } from './eventlog-domain'
 import { PeerMetadata, StoredEvent } from './eventlog-storedevent'
 
 export type PeerIdAndEventIdKeyType = [number, number]
-type EventTypeAndTreenodeIdKeyType = [number, string]
 
 interface EventStoreSchema extends DBSchema {
   // peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
@@ -19,8 +17,7 @@ interface EventStoreSchema extends DBSchema {
     value: StoredEvent
     indexes: {
       eventid: number
-      eventtype: number
-      'eventtype-and-treenodeid': EventTypeAndTreenodeIdKeyType
+      treenodeid: string
       'peerid-and-eventid': PeerIdAndEventIdKeyType
     }
   }
@@ -50,8 +47,7 @@ export class IdbEventRepository implements LifecycleAware {
             autoIncrement: false, // we generate our own keys, this is required since compound indexes with an auto-incremented key do not work everywhere (yet)
           })
           eventsStore.createIndex('eventid', 'eventid')
-          eventsStore.createIndex('eventtype', 'eventtype')
-          eventsStore.createIndex('eventtype-and-treenodeid', ['eventtype', 'treenodeid'])
+          eventsStore.createIndex('treenodeid', 'treenodeid')
           eventsStore.createIndex('peerid-and-eventid', ['peerid', 'eventid'])
         },
       })
@@ -158,12 +154,12 @@ export class IdbEventRepository implements LifecycleAware {
     return await this.db.getAllFromIndex('events', 'peerid-and-eventid', range)
   }
 
-  async loadEventsFromType(eventType: EventType) {
-    return await this.db.getAllFromIndex('events', 'eventtype', eventType)
+  async loadAllEvents(): Promise<StoredEvent[]> {
+    return await this.db.getAll('events')
   }
 
-  async loadStoredEvents(eventType: EventType, nodeId: string): Promise<StoredEvent[]> {
-    return await this.db.getAllFromIndex('events', 'eventtype-and-treenodeid', [eventType, nodeId])
+  async loadEventsForNode(nodeId: string): Promise<StoredEvent[]> {
+    return await this.db.getAllFromIndex('events', 'treenodeid', nodeId)
   }
 
   // assuming that the type parameters for an AsyncGenerator are:

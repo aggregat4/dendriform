@@ -30,6 +30,7 @@ export class TreeServiceCommandHandler implements CommandHandler {
       return () =>
         this.treeService.splitNode(
           payload.nodeId,
+          payload.nodeParentId,
           payload.remainingNodeName,
           payload.siblingId,
           payload.newNodeName,
@@ -40,13 +41,21 @@ export class TreeServiceCommandHandler implements CommandHandler {
         this.treeService.mergeNodes(
           payload.sourceNodeId,
           payload.sourceNodeName,
+          payload.sourceParentId,
           payload.targetNodeId,
           payload.targetNodeName,
+          payload.targetParentId,
           payload.mergeNameOrder,
           command.synchronous
         )
     } else if (payload instanceof RenameNodeByIdCommandPayload) {
-      return () => this.treeService.renameNode(payload.nodeId, payload.newName, command.synchronous)
+      return () =>
+        this.treeService.renameNode(
+          payload.nodeId,
+          payload.parentId,
+          payload.newName,
+          command.synchronous
+        )
     } else if (payload instanceof ReparentNodeByIdCommandPayload) {
       return () =>
         this.treeService.reparentNode(
@@ -56,19 +65,29 @@ export class TreeServiceCommandHandler implements CommandHandler {
           command.synchronous
         )
     } else if (payload instanceof OpenNodeByIdCommandPayload) {
-      return () => this.treeService.openNode(payload.nodeId, command.synchronous)
+      return () => this.treeService.openNode(payload.nodeId, payload.parentId, command.synchronous)
     } else if (payload instanceof CloseNodeByIdCommandPayload) {
-      return () => this.treeService.closeNode(payload.nodeId, command.synchronous)
+      return () => this.treeService.closeNode(payload.nodeId, payload.parentId, command.synchronous)
     } else if (payload instanceof DeleteNodeByIdCommandPayload) {
-      return () => this.treeService.deleteNode(payload.nodeId, command.synchronous)
+      return () =>
+        this.treeService.deleteNode(payload.nodeId, payload.parentId, command.synchronous)
     } else if (payload instanceof UndeleteNodeByIdCommandPayload) {
-      return () => this.treeService.undeleteNode(payload.nodeId, command.synchronous)
+      return () =>
+        this.treeService.undeleteNode(payload.nodeId, payload.parentId, command.synchronous)
     } else if (payload instanceof CompleteNodeByIdCommandPayload) {
-      return () => this.treeService.completeNode(payload.nodeId, command.synchronous)
+      return () =>
+        this.treeService.completeNode(payload.nodeId, payload.parentId, command.synchronous)
     } else if (payload instanceof UnCompleteNodeByIdCommandPayload) {
-      return () => this.treeService.unCompleteNode(payload.nodeId, command.synchronous)
+      return () =>
+        this.treeService.unCompleteNode(payload.nodeId, payload.parentId, command.synchronous)
     } else if (payload instanceof UpdateNoteByIdCommandPayload) {
-      return () => this.treeService.updateNote(payload.nodeId, payload.newNote, command.synchronous)
+      return () =>
+        this.treeService.updateNote(
+          payload.nodeId,
+          payload.parentId,
+          payload.newNote,
+          command.synchronous
+        )
     } else if (payload instanceof CreateChildNodeCommandPayload) {
       return () =>
         this.treeService.createChildNode(

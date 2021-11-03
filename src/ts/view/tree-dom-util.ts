@@ -92,6 +92,10 @@ export function getParentNode(node: Element): Element {
   return node.parentElement.parentElement
 }
 
+export function getParentNodeId(node: Element): string {
+  return getNodeId(getParentNode(node))
+}
+
 export function hasChildren(node: Element): boolean {
   return (
     node.children.length > 1 &&

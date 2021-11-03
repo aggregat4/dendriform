@@ -1,5 +1,5 @@
 import { VectorClock, VectorClockValuesType } from '../lib/vectorclock'
-import { EventPayloadType } from './eventlog-domain'
+import { DEventPayload } from './eventlog-domain'
 
 export interface PeerMetadata {
   eventlogid: string
@@ -12,11 +12,11 @@ export interface PeerMetadata {
 export interface StoredEvent {
   eventid: number
   localId: number
-  eventtype: number
   treenodeid: string
+  parentnodeid: string
   peerid: number // these are remapped peerids, from the external string to a number
   vectorclock: VectorClockValuesType
-  payload: EventPayloadType
+  payload: DEventPayload
 }
 
 /**

@@ -4,12 +4,11 @@ import { atomIdent } from '../lib/modules/logootsequence.js'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 import { Subscription } from '../domain/lifecycle'
 
-export const enum EventType {
-  ADD_OR_UPDATE_NODE,
-  REPARENT_NODE,
-  REORDER_CHILD,
+/* export const enum EventType {
+  // ADD_OR_UPDATE_NODE,
+  // REPARENT_NODE,
 }
-
+ */
 export const enum NodeFlags {
   deleted = 1,
   collapsed = 2,
@@ -25,7 +24,7 @@ export const enum NodeFlags {
  * The created and updated timestamps are stored as the number of seconds since the epoch
  * because we don't need more than that accuracy and we save space.
  */
-export interface AddOrUpdateNodeEventPayload {
+export interface DEventPayload {
   name: string
   note: string
   flags: number // bitmask as per NodeFlags
@@ -33,14 +32,14 @@ export interface AddOrUpdateNodeEventPayload {
   updated: number // epoch seconds
 }
 
-export function createNewAddOrUpdateNodeEventPayload(
+export function createNewDEventPayload(
   name: string,
   note: string,
   deleted: boolean,
   collapsed: boolean,
   completed: boolean,
   created?: number
-): AddOrUpdateNodeEventPayload {
+): DEventPayload {
   return {
     name,
     note,
@@ -53,12 +52,12 @@ export function createNewAddOrUpdateNodeEventPayload(
     updated: secondsSinceEpoch(),
   }
 }
-
+/* 
 export interface ReparentNodeEventPayload {
   parentId: string
 }
-
-export const enum LogootReorderOperation {
+ */
+/* export const enum LogootReorderOperation {
   INSERT,
   DELETE,
 }
@@ -68,22 +67,27 @@ export interface ReorderChildNodeEventPayload {
   position: atomIdent // this is a logoot position/sequence identifier, a bunch of nested arrays
   childId: string
   parentId: string
-}
+} */
 
-export type EventPayloadType =
-  | AddOrUpdateNodeEventPayload
-  | ReparentNodeEventPayload
-  | ReorderChildNodeEventPayload
+/* export type EventPayloadType = AddOrUpdateNodeEventPayload | ReparentNodeEventPayload
+ */
 
 export class DEvent {
   constructor(
     // This id is only guaranteed to be unique together with the originator
     readonly localId: number,
-    readonly type: EventType,
+    // readonly type: EventType,
     readonly originator: string,
     public clock: VectorClock,
     readonly nodeId: string,
-    readonly payload: EventPayloadType
+    readonly parentId: string,
+    readonly payload: {
+      name: string
+      note: string
+      flags: number // bitmask as per NodeFlags
+      created: number // epoch seconds
+      updated: number // epoch seconds
+    }
   ) {}
 }
 
@@ -103,9 +107,10 @@ export interface Events {
 
 export interface DEventSource {
   publish(
-    type: EventType,
+    // type: EventType,
     nodeId: string,
-    payload: EventPayloadType,
+    parentId: string,
+    payload: DEventPayload,
     synchronous: boolean
   ): Promise<void>
 }
@@ -123,21 +128,17 @@ export interface DEventLog extends DEventSource {
   insert(events: DEvent[], synchronous: boolean): Promise<void>
   subscribe(subscriber: EventSubscriber): Subscription
   /**
-   * Loads all events with a counter/eventid that is _higher_ than the provided number.
-   * @return An array that is causally sorted by vectorclock and peerid.
+   * Loads all local events with a counter/eventid that is _higher_ than the provided number.
+   * @return An array that contains the raw events, not causally sorted and deduplicated.
    * @throws CounterTooHighError when the provided counter is higher than the max counter
    * of the eventlog.
    */
-  getEventsSince(
-    peerId: string,
-    fromCounterNotInclusive: number,
-    batchSize: number
-  ): Promise<Events>
+  getRawLocalEventsSince(fromCounterNotInclusive: number, batchSize: number): Promise<Events>
   /**
-   * Loads all events from a specific type.
+   * Loads all events
    * @return An array that is causally sorted by vectorclock and peerid.
    */
-  getAllEventsFromType(eventType: EventType): Promise<Events>
+  getAllEvents(): Promise<Events>
 
   /**
    * Gets the current, latest (after GC) structural event for a node, with type

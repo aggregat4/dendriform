@@ -1,13 +1,11 @@
 import {
   DEvent,
   DEventLog,
-  EventType,
   EventSubscriber,
   DEventSource,
   CounterTooHighError,
   Events,
-  EventPayloadType,
-  createNewAddOrUpdateNodeEventPayload,
+  DEventPayload,
 } from './eventlog-domain'
 import { generateUUID } from '../utils/util'
 import { VectorClock } from '../lib/vectorclock'
@@ -89,17 +87,16 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     await this.loadOrCreateMetadata()
     const maxEventId = await this.repository.getMaxEventId()
     this.counter = maxEventId >= 0 ? maxEventId : 0
-    // Make sure we have a ROOT node and if not, create it
+    /*     // Make sure we have a ROOT node and if not, create it
     const rootNode = await this.getNodeEvent('ROOT')
     if (!rootNode) {
       await this.publish(
-        EventType.ADD_OR_UPDATE_NODE,
         'ROOT',
         createNewAddOrUpdateNodeEventPayload('ROOT', null, false, false, false),
         true
       )
     }
-    // start async event storage
+ */ // start async event storage
     await this.storageQueueDrainer.start(true)
   }
 
@@ -165,35 +162,21 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
 
   private async store(events: DEvent[]): Promise<void> {
     const mappedEvents = await Promise.all(
-      events
-        // This is some (ugly?) special casing: we do not persist and create or update events on the ROOT node
-        // performed by other peers. This is to make sure there is always only one ROOT node on each peer
-        .filter(
-          (e) =>
-            !(
-              e.type === EventType.ADD_OR_UPDATE_NODE &&
-              e.nodeId === 'ROOT' &&
-              e.originator !== this.peerId
-            )
-        )
-        .map(async (e) => {
-          // We preincrement the counter because our semantics are that counter is always the current
-          // highest existing ID in the database
-          const newId = ++this.counter
-          return {
-            eventid: newId,
-            // the local id exists when the DEvent comes from outside but it is -1 when it originates on this client
-            localId: e.localId !== -1 ? e.localId : newId,
-            eventtype: e.type,
-            treenodeid: e.nodeId,
-            peerid: await this.peerIdMapper.externalToInternalPeerId(e.originator),
-            vectorclock: await externalToInternalVectorclockValues(
-              this.peerIdMapper,
-              e.clock.values
-            ),
-            payload: e.payload,
-          }
-        })
+      events.map(async (e) => {
+        // We preincrement the counter because our semantics are that counter is always the current
+        // highest existing ID in the database
+        const newId = ++this.counter
+        return {
+          eventid: newId,
+          // the local id exists when the DEvent comes from outside but it is -1 when it originates on this client
+          localId: e.localId !== -1 ? e.localId : newId,
+          treenodeid: e.nodeId,
+          parentnodeid: e.parentId,
+          peerid: await this.peerIdMapper.externalToInternalPeerId(e.originator),
+          vectorclock: await externalToInternalVectorclockValues(this.peerIdMapper, e.clock.values),
+          payload: e.payload,
+        }
+      })
     )
     await this.repository.storeEvents(mappedEvents)
   }
@@ -220,9 +203,9 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   async publish(
-    type: EventType,
     nodeId: string,
-    payload: EventPayloadType,
+    parentId: string,
+    payload: DEventPayload,
     synchronous: boolean
   ): Promise<void> {
     // We update the vectorclock for our own peer only in this location since we need a continuously up to date view
@@ -234,7 +217,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     this.vectorClock.increment(this.peerId)
     // Locally generated events have no localId _yet_, it is filled with the current maxCounter when storing the event
     await this.insert(
-      [new DEvent(-1, type, this.peerId, this.vectorClock, nodeId, payload)],
+      [new DEvent(-1, this.peerId, this.vectorClock, nodeId, parentId, payload)],
       synchronous
     )
   }
@@ -283,8 +266,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
   }
 
-  async getEventsSince(
-    peerId: string,
+  async getRawLocalEventsSince(
     fromCounterNotInclusive: number,
     batchSize: number
   ): Promise<Events> {
@@ -294,27 +276,26 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
           ` but events were requested since ${fromCounterNotInclusive}`
       )
     }
-    const localPeerId = await this.peerIdMapper.externalToInternalPeerId(peerId)
+    const localPeerId = await this.peerIdMapper.externalToInternalPeerId(this.getPeerId())
     const lowerBound = [localPeerId, fromCounterNotInclusive] as PeerIdAndEventIdKeyType
     const upperBound = [localPeerId, fromCounterNotInclusive + batchSize] as PeerIdAndEventIdKeyType
     const events = await this.repository.loadEventsSince(lowerBound, upperBound)
-    return this.processRetrievedEvents(events)
+    return {
+      counter: this.counter,
+      events: events.map((e) => mapStoredEventToDEvent(this.peerIdMapper, e)),
+    }
   }
 
-  async getAllEventsFromType(eventType: EventType): Promise<Events> {
-    const storedEvents = await this.repository.loadEventsFromType(eventType)
-    return this.processRetrievedEvents(storedEvents)
-  }
-
-  private processRetrievedEvents(storedEvents: StoredEvent[]): Events {
-    storedEvents.sort(storedEventComparator)
+  async getAllEvents(): Promise<Events> {
+    const events = await this.repository.loadAllEvents()
+    events.sort(storedEventComparator)
     // This code is a bit of a cop out: we should not need this since this.counter is always
     // set to the highest stored event id when we insert() it into the database.
     // However we observed a counter being one off (and lower) than the real max event
     // and this causes a endless loop of claiming to have new events and pushing it to the
     // server. This is a sort of sanity check to correct the counter should it be off.
     // I have no idea why the code in insert() should not suffice.
-    for (const event of storedEvents) {
+    for (const event of events) {
       if (event.eventid > this.counter) {
         throw Error(
           `Unexpected state: local counter is not the max event id in the db, this should not happen (see insert())`
@@ -323,12 +304,12 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     }
     return {
       counter: this.counter,
-      events: storedEvents.map((e) => mapStoredEventToDEvent(this.peerIdMapper, e)),
+      events: events.map((e) => mapStoredEventToDEvent(this.peerIdMapper, e)),
     }
   }
 
   async getNodeEvent(nodeId: string): Promise<DEvent> {
-    const events = await this.repository.loadStoredEvents(EventType.ADD_OR_UPDATE_NODE, nodeId)
+    const events = await this.repository.loadEventsForNode(nodeId)
     if (events.length === 0) {
       return null
     }

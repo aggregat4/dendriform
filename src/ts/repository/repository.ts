@@ -79,12 +79,18 @@ export interface ResolvedRepositoryNode {
 export interface Repository extends LifecycleAware {
   loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode>
 
-  createNode(id: string, name: string, content: string, synchronous: boolean): Promise<void>
+  createNode(
+    id: string,
+    parentId: string,
+    name: string,
+    content: string,
+    synchronous: boolean
+  ): Promise<void>
 
-  updateNode(node: RepositoryNode, synchronous: boolean): Promise<void>
+  updateNode(node: RepositoryNode, parentId: string, synchronous: boolean): Promise<void>
 
   reparentNode(
-    childId: string,
+    node: RepositoryNode,
     parentId: string,
     position: RelativeNodePosition,
     synchronous: boolean

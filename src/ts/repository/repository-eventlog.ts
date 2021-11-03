@@ -1,20 +1,17 @@
 import { LoadedTree, Repository, RepositoryNode, ResolvedRepositoryNode, State } from './repository'
 import {
-  AddOrUpdateNodeEventPayload,
   DEventLog,
-  EventType,
-  ReparentNodeEventPayload,
   DEvent,
-  ReorderChildNodeEventPayload,
-  LogootReorderOperation,
-  createNewAddOrUpdateNodeEventPayload,
   NodeFlags,
+  createNewDEventPayload,
+  DEventPayload,
 } from '../eventlog/eventlog-domain'
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
 import { RelativeNodePosition } from '../domain/domain'
 import { atomIdent } from '../lib/modules/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 import { LifecycleAware, Subscription } from '../domain/lifecycle'
+import { boundAttributeSuffix } from 'lit-html/lib/template'
 
 class NodeNotFoundError extends Error {}
 
@@ -85,13 +82,9 @@ export class EventlogRepository implements Repository, LifecycleAware {
    */
   private eventLogListener(events: DEvent[]): void {
     for (const event of events) {
-      if (event.type === EventType.REORDER_CHILD || event.type === EventType.REPARENT_NODE) {
-        // in case of structural tree changes we need to rebuild the maps first, then notify,
-        // otherwise we would miss new nodes being added (as they would not be in the tree structure maps)
-        this.debouncedRebuildAndNotify(event.nodeId)
-      } else {
-        this.debouncedNotifyNodeChangeSubscribers(event.nodeId)
-      }
+      // in case of structural tree changes we need to rebuild the maps first, then notify,
+      // otherwise we would miss new nodes being added (as they would not be in the tree structure maps)
+      this.debouncedRebuildAndNotify(event.nodeId)
     }
   }
 
@@ -128,30 +121,28 @@ export class EventlogRepository implements Repository, LifecycleAware {
   private async rebuildTreeStructureMaps(): Promise<void> {
     const newChildParentMap = {}
     const newParentChildMap = {}
-    const reparentEvents = await this.eventLog.getAllEventsFromType(EventType.REPARENT_NODE)
+    const reparentEvents = await this.eventLog.getAllEvents()
     reparentEvents.events.forEach((event) => {
-      const treeEventPayload = event.payload as ReparentNodeEventPayload
       const nodeId = event.nodeId
-      const parentId = treeEventPayload.parentId
+      const parentId = event.parentId
       // updates to the tree structure that would cause cycles are not applied
       // since these are in causal order this will be consistent across clients
       if (!EventlogRepository.causesCycle(newChildParentMap, nodeId, parentId)) {
         newChildParentMap[nodeId] = parentId
       }
     })
-    const reorderEvents = await this.eventLog.getAllEventsFromType(EventType.REORDER_CHILD)
+    /*     const reorderEvents = await this.eventLog.getAllEventsFromType(EventType.REORDER_CHILD)
     reorderEvents.events.forEach((event) => {
       const childOrderEventPayload = event.payload as ReorderChildNodeEventPayload
       EventlogRepository.insertInParentChildMap(
         newParentChildMap,
         childOrderEventPayload.childId,
         childOrderEventPayload.parentId,
-        childOrderEventPayload.operation,
         childOrderEventPayload.position,
         this.eventLog.getPeerId()
       )
     })
-    this.childParentMap = newChildParentMap
+ */ this.childParentMap = newChildParentMap
     this.parentChildMap = newParentChildMap
   }
 
@@ -177,7 +168,6 @@ export class EventlogRepository implements Repository, LifecycleAware {
     parentChildMap,
     childId: string,
     parentId: string,
-    operation: LogootReorderOperation,
     position: atomIdent,
     peerId: string
   ): void {
@@ -186,24 +176,27 @@ export class EventlogRepository implements Repository, LifecycleAware {
       parentId,
       peerId
     )
-    if (operation === LogootReorderOperation.DELETE) {
-      seq.deleteAtAtomIdent(position)
-    } else {
-      seq.insertAtAtomIdent(childId, position)
-    }
+    seq.insertAtAtomIdent(childId, position)
   }
 
-  createNode(id: string, name: string, content: string, synchronous: boolean): Promise<void> {
+  createNode(
+    id: string,
+    parentId: string,
+    name: string,
+    content: string,
+    synchronous: boolean
+  ): Promise<void> {
     return this.eventLog.publish(
-      EventType.ADD_OR_UPDATE_NODE,
       id,
-      createNewAddOrUpdateNodeEventPayload(name, content, false, false, false),
+      parentId,
+      createNewDEventPayload(name, content, false, false, false),
       synchronous
     )
   }
 
-  async updateNode(node: RepositoryNode, synchronous: boolean): Promise<void> {
-    if (!!node.deleted) {
+  // TODO: consider merging this with reparentnode in the future
+  async updateNode(node: RepositoryNode, parentId: string, synchronous: boolean): Promise<void> {
+    /* if (!!node.deleted) {
       // here we assume the node just got deleted, this is not necessarily correct, one could
       // also update a node that was already deleted but doing it twice doesn't hurt? And we
       // have no good way to recognize if it was really deleted
@@ -212,11 +205,11 @@ export class EventlogRepository implements Repository, LifecycleAware {
         throw new Error(`Parent not known for node ${node._id} therefore can not delete this node`)
       }
       await this.deleteNode(node._id, parentId, synchronous)
-    }
+    } */
     await this.eventLog.publish(
-      EventType.ADD_OR_UPDATE_NODE,
       node._id,
-      createNewAddOrUpdateNodeEventPayload(
+      parentId,
+      createNewDEventPayload(
         node.name,
         node.note,
         !!node.deleted,
@@ -237,33 +230,44 @@ export class EventlogRepository implements Repository, LifecycleAware {
    * Assumption: we don't perform a cycle check here since we assume
    */
   async reparentNode(
-    childId: string,
+    node: RepositoryNode,
     parentId: string,
     position: RelativeNodePosition,
     synchronous: boolean
   ): Promise<void> {
-    const oldParentId = this.childParentMap[childId]
+    /* 
+    const oldParentId = this.childParentMap[node._id]
     if (oldParentId) {
       // always publish a delete event if the node was already in the child list:
       // if we move to a new parent the node needs to disappear unde the old parent
       // and if we move inside of the existing parent, then we don't want to see that node
       // appear multiple times.
       await this.deleteNode(childId, oldParentId, synchronous)
-    }
+    } */
     // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
-    this.childParentMap[childId] = parentId
+    this.childParentMap[node._id] = parentId
     const seq: LogootSequenceWrapper = EventlogRepository.getOrCreateSeqForParent(
       this.parentChildMap,
       parentId,
       this.eventLog.getPeerId()
     )
-    const insertionPosition = seq.insertElement(childId, position, this.eventLog.getCounter())
-    if (oldParentId !== parentId) {
-      // publish a reparent event when we have a new parent
-      await this.eventLog.publish(EventType.REPARENT_NODE, childId, { parentId }, synchronous)
-    }
-    // publish insert reorder event on new parent
+    // TODO: store logoot position in the payload
+    const insertionPosition = seq.insertElement(node._id, position, this.eventLog.getCounter())
+    return this.eventLog.publish(
+      node._id,
+      parentId,
+      createNewDEventPayload(
+        node.name,
+        node.note,
+        !!node.deleted,
+        !!node.collapsed,
+        !!node.completed,
+        node.created
+      ),
+      synchronous
+    )
+    /* // publish insert reorder event on new parent
     return this.eventLog.publish(
       EventType.REORDER_CHILD,
       parentId,
@@ -274,10 +278,10 @@ export class EventlogRepository implements Repository, LifecycleAware {
         parentId,
       },
       synchronous
-    )
+    ) */
   }
 
-  private deleteNode(childId: string, parentId: string, synchronous: boolean): Promise<void> {
+  /* private deleteNode(childId: string, parentId: string, synchronous: boolean): Promise<void> {
     const seq: LogootSequenceWrapper = this.parentChildMap[parentId]
     if (seq) {
       const deletePosition = seq.deleteElement(childId)
@@ -298,7 +302,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
       }
     }
     return Promise.resolve()
-  }
+  } */
 
   private static getOrCreateSeqForParent(
     parentChildMap: { [key in string]: LogootSequenceWrapper },
@@ -317,10 +321,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
   async loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode> {
     return this.eventLog.getNodeEvent(nodeId).then((nodeEvent) => {
       if (nodeEvent) {
-        const node = this.mapEventToRepositoryNode(
-          nodeId,
-          nodeEvent.payload as AddOrUpdateNodeEventPayload
-        )
+        const node = this.mapEventToRepositoryNode(nodeId, nodeEvent.payload)
         if (nodeFilter(node)) {
           return Promise.resolve(node)
         }
@@ -328,10 +329,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     })
   }
 
-  private mapEventToRepositoryNode(
-    nodeId: string,
-    eventPayload: AddOrUpdateNodeEventPayload
-  ): RepositoryNode {
+  private mapEventToRepositoryNode(nodeId: string, eventPayload: DEventPayload): RepositoryNode {
     return {
       _id: nodeId,
       name: eventPayload.name,
@@ -394,15 +392,12 @@ export class EventlogRepository implements Repository, LifecycleAware {
     nodeFilter: Predicate<RepositoryNode>,
     loadCollapsedChildren: boolean
   ): Promise<ResolvedRepositoryNode> {
-    const nodeEvents = await this.eventLog.getAllEventsFromType(EventType.ADD_OR_UPDATE_NODE)
+    const nodeEvents = await this.eventLog.getAllEvents()
     const nodeMap = new Map<string, RepositoryNode>()
     for (const nodeEvent of nodeEvents.events) {
       nodeMap.set(
         nodeEvent.nodeId,
-        this.mapEventToRepositoryNode(
-          nodeEvent.nodeId,
-          nodeEvent.payload as AddOrUpdateNodeEventPayload
-        )
+        this.mapEventToRepositoryNode(nodeEvent.nodeId, nodeEvent.payload)
       )
     }
     return this.loadTreeNodeBulk(nodeId, nodeMap, nodeFilter, loadCollapsedChildren)

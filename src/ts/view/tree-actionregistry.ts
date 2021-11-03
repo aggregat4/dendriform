@@ -24,6 +24,7 @@ import {
   hasParentNode,
   findLastChildNode,
   isNodeCompleted,
+  getParentNodeId,
 } from './tree-dom-util'
 import {
   getCursorPos,
@@ -114,6 +115,7 @@ class UpdateNameAction extends TreeAction {
     const targetNode = getClosestNodeElement(event.target as Element)
     const nodeId = getNodeId(targetNode)
     const newName = getNodeName(targetNode)
+    const parentNodeId = getParentNodeId(targetNode)
     const oldName = treeActionContext.transientStateManager.getState().focusNodePreviousName
     // const beforeFocusNodeId = nodeId
     // const beforeFocusPos = treeActionContext.transientStateManager.getState().focusNodePreviousPos
@@ -126,7 +128,7 @@ class UpdateNameAction extends TreeAction {
     )
     // the update itself is inline, but we may need to update attributes of other elements like embdeddedLinks
     await treeActionContext.commandExecutor.performWithDom(
-      new CommandBuilder(new RenameNodeByIdCommandPayload(nodeId, oldName, newName))
+      new CommandBuilder(new RenameNodeByIdCommandPayload(nodeId, parentNodeId, oldName, newName))
         .isUndoable()
         // .withBeforeFocusNodeId(beforeFocusNodeId)
         // .withBeforeFocusPos(beforeFocusPos)
@@ -148,6 +150,7 @@ class UpdateNoteAction extends TreeAction {
   async handle(event: Event, treeActionContext: TreeActionContext) {
     const targetNode = getClosestNodeElement(event.target as Element)
     const nodeId = getNodeId(targetNode)
+    const parentNodeId = getParentNodeId(targetNode)
     const name = getNodeName(targetNode)
     const newNote = getNodeNote(targetNode)
     const oldNote = treeActionContext.transientStateManager.getState().focusNodePreviousNote
@@ -160,7 +163,7 @@ class UpdateNoteAction extends TreeAction {
     )
     // updates are de facto inline but we may need to update further elements like links
     await treeActionContext.commandExecutor.performWithDom(
-      new CommandBuilder(new UpdateNoteByIdCommandPayload(nodeId, oldNote, newNote))
+      new CommandBuilder(new UpdateNoteByIdCommandPayload(nodeId, parentNodeId, oldNote, newNote))
         .isUndoable()
         .build()
     )
@@ -184,6 +187,7 @@ class SplitNodeAction extends TreeAction {
     event.preventDefault()
     const targetNode = getClosestNodeElement(event.target as Element)
     const nodeId = getNodeId(targetNode)
+    const parentNodeId = getParentNodeId(targetNode)
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
     const afterSplitNamePart = getTextAfterCursor(event) || ''
     const newNodeId = generateUUID()
@@ -197,7 +201,9 @@ class SplitNodeAction extends TreeAction {
     const command = new CommandBuilder(
       new SplitNodeByIdCommandPayload(
         newNodeId,
+        parentNodeId,
         nodeId,
+        parentNodeId,
         beforeSplitNamePart,
         afterSplitNamePart,
         MergeNameOrder.SOURCE_TARGET
@@ -439,7 +445,8 @@ class DeleteNodeAction extends TreeAction {
 
 async function deleteNode(node: Element, commandExecutor: CommandExecutor): Promise<void> {
   const nodeId = getNodeId(node)
-  const builder = new CommandBuilder(new DeleteNodeByIdCommandPayload(nodeId))
+  const parentNodeId = getParentNodeId(node)
+  const builder = new CommandBuilder(new DeleteNodeByIdCommandPayload(nodeId, parentNodeId))
     .isUndoable()
     .withBeforeFocusNodeId(nodeId)
     .withBeforeFocusPos(getCursorPos())
@@ -472,14 +479,15 @@ class CompleteNodeAction extends TreeAction {
 
 async function toggleNodeCompletion(node: Element, commandExecutor: CommandExecutor) {
   const nodeId = getNodeId(node)
+  const parentNodeId = getParentNodeId(node)
   if (isNodeCompleted(node)) {
-    const builder = new CommandBuilder(new UnCompleteNodeByIdCommandPayload(nodeId))
+    const builder = new CommandBuilder(new UnCompleteNodeByIdCommandPayload(nodeId, parentNodeId))
       .isUndoable()
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(getCursorPos())
     await commandExecutor.performWithDom(builder.build())
   } else {
-    let builder = new CommandBuilder(new CompleteNodeByIdCommandPayload(nodeId))
+    let builder = new CommandBuilder(new CompleteNodeByIdCommandPayload(nodeId, parentNodeId))
       .isUndoable()
       .withBeforeFocusNodeId(nodeId)
       .withBeforeFocusPos(getCursorPos())
@@ -521,15 +529,19 @@ class MergeNodeWithPreviousAction extends TreeAction {
         }
         event.preventDefault()
         const sourceNodeId = getNodeId(sourceNode)
+        const sourceNodeParentId = getParentNodeId(sourceNode)
         const sourceNodeName = getNodeName(sourceNode)
         const targetNodeId = getNodeId(targetNode)
+        const targetNodeParentId = getParentNodeId(targetNode)
         const targetNodeName = getNodeName(targetNode)
         const command = new CommandBuilder(
           new MergeNodesByIdCommandPayload(
             sourceNodeId,
             sourceNodeName,
+            sourceNodeParentId,
             targetNodeId,
             targetNodeName,
+            targetNodeParentId,
             MergeNameOrder.SOURCE_TARGET
           )
         )
@@ -569,14 +581,18 @@ class MergeNodeWithNextAction extends TreeAction {
       }
       const sourceNodeId = getNodeId(sourceNode)
       const sourceNodeName = getNodeName(sourceNode)
+      const sourceNodeParentId = getParentNodeId(sourceNode)
       const targetNodeId = getNodeId(targetNode)
       const targetNodeName = getNodeName(targetNode)
+      const targetNodeParentId = getParentNodeId(targetNode)
       const command = new CommandBuilder(
         new MergeNodesByIdCommandPayload(
           sourceNodeId,
           sourceNodeName,
+          sourceNodeParentId,
           targetNodeId,
           targetNodeName,
+          targetNodeParentId,
           MergeNameOrder.SOURCE_TARGET
         )
       )

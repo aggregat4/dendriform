@@ -40,6 +40,7 @@ import {
   isInNameNode,
   isFilterTag,
   extractFilterText,
+  getParentNodeId,
 } from './tree-dom-util'
 import { TreeActionContext } from './tree-actions'
 import { CommandExecutor, TransientState } from './tree-helpers'
@@ -341,10 +342,11 @@ export class Tree extends HTMLElement implements CommandExecutor {
       // NOTE: we can use the getNodeForNameElement function even though this is the
       // collapseElement because they are siblings
       const node = getClosestNodeElement(clickedElement)
+      const parentNodeId = getParentNodeId(node)
       const nodeClosed = isNodeClosed(node)
       const payload = nodeClosed
-        ? new OpenNodeByIdCommandPayload(getNodeId(node))
-        : new CloseNodeByIdCommandPayload(getNodeId(node))
+        ? new OpenNodeByIdCommandPayload(getNodeId(node), parentNodeId)
+        : new CloseNodeByIdCommandPayload(getNodeId(node), parentNodeId)
       await this.performWithDom(
         new CommandBuilder(payload)
           .isUndoable()

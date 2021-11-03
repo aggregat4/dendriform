@@ -99,7 +99,9 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
   // uses parameter properties to have a sort of data class
   constructor(
     readonly siblingId: string,
+    readonly siblingParentId: string,
     readonly nodeId: string,
+    readonly nodeParentId: string,
     readonly newNodeName: string,
     readonly remainingNodeName: string,
     readonly mergeNameOrder: MergeNameOrder
@@ -108,8 +110,10 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
   inverse(): CommandPayload {
     return new MergeNodesByIdCommandPayload(
       this.siblingId,
+      this.siblingParentId,
       this.newNodeName,
       this.nodeId,
+      this.nodeParentId,
       this.remainingNodeName,
       this.mergeNameOrder
     )
@@ -124,15 +128,19 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
   constructor(
     readonly sourceNodeId: string,
     readonly sourceNodeName: string,
+    readonly sourceParentId: string,
     readonly targetNodeId: string,
     readonly targetNodeName: string,
+    readonly targetParentId: string,
     readonly mergeNameOrder: MergeNameOrder
   ) {}
 
   inverse(): CommandPayload {
     return new SplitNodeByIdCommandPayload(
       this.sourceNodeId,
+      this.sourceParentId,
       this.targetNodeId,
+      this.targetParentId,
       this.sourceNodeName,
       this.targetNodeName,
       this.mergeNameOrder
@@ -145,10 +153,15 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
 }
 
 export class RenameNodeByIdCommandPayload implements CommandPayload {
-  constructor(readonly nodeId: string, readonly oldName: string, readonly newName: string) {}
+  constructor(
+    readonly nodeId: string,
+    readonly parentId: string,
+    readonly oldName: string,
+    readonly newName: string
+  ) {}
 
   inverse(): CommandPayload {
-    return new RenameNodeByIdCommandPayload(this.nodeId, this.newName, this.oldName)
+    return new RenameNodeByIdCommandPayload(this.nodeId, this.parentId, this.newName, this.oldName)
   }
 
   requiresRender(): boolean {
@@ -184,10 +197,10 @@ export class ReparentNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class OpenNodeByIdCommandPayload implements CommandPayload {
-  constructor(readonly nodeId: string) {}
+  constructor(readonly nodeId: string, readonly parentId: string) {}
 
   inverse(): CommandPayload {
-    return new CloseNodeByIdCommandPayload(this.nodeId)
+    return new CloseNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
   requiresRender(): boolean {
@@ -196,10 +209,10 @@ export class OpenNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class CloseNodeByIdCommandPayload implements CommandPayload {
-  constructor(readonly nodeId: string) {}
+  constructor(readonly nodeId: string, readonly parentId: string) {}
 
   inverse(): CommandPayload {
-    return new OpenNodeByIdCommandPayload(this.nodeId)
+    return new OpenNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
   requiresRender(): boolean {
@@ -208,10 +221,10 @@ export class CloseNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class DeleteNodeByIdCommandPayload implements CommandPayload {
-  constructor(readonly nodeId: string) {}
+  constructor(readonly nodeId: string, readonly parentId: string) {}
 
   inverse(): CommandPayload {
-    return new UndeleteNodeByIdCommandPayload(this.nodeId)
+    return new UndeleteNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
   requiresRender(): boolean {
@@ -220,10 +233,10 @@ export class DeleteNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class UndeleteNodeByIdCommandPayload implements CommandPayload {
-  constructor(readonly nodeId: string) {}
+  constructor(readonly nodeId: string, readonly parentId: string) {}
 
   inverse(): CommandPayload {
-    return new DeleteNodeByIdCommandPayload(this.nodeId)
+    return new DeleteNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
   // we need the node to reappear in the tree: therefore we trigger a rerender and it will get loaded
@@ -233,10 +246,10 @@ export class UndeleteNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class CompleteNodeByIdCommandPayload implements CommandPayload {
-  constructor(readonly nodeId: string) {}
+  constructor(readonly nodeId: string, readonly parentId: string) {}
 
   inverse(): CommandPayload {
-    return new UnCompleteNodeByIdCommandPayload(this.nodeId)
+    return new UnCompleteNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
   // In case the tree is set to not show completed nodes, we need a rerender since
@@ -247,10 +260,10 @@ export class CompleteNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
-  constructor(readonly nodeId: string) {}
+  constructor(readonly nodeId: string, readonly parentId: string) {}
 
   inverse(): CommandPayload {
-    return new CompleteNodeByIdCommandPayload(this.nodeId)
+    return new CompleteNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
   // Changes the tree structure: undo can cause an uncomplete of a node that needs to reappear (see undelete)
@@ -261,10 +274,15 @@ export class UnCompleteNodeByIdCommandPayload implements CommandPayload {
 }
 
 export class UpdateNoteByIdCommandPayload implements CommandPayload {
-  constructor(readonly nodeId: string, readonly oldNote: string, readonly newNote: string) {}
+  constructor(
+    readonly nodeId: string,
+    readonly parentId: string,
+    readonly oldNote: string,
+    readonly newNote: string
+  ) {}
 
   inverse(): CommandPayload {
-    return new UpdateNoteByIdCommandPayload(this.nodeId, this.newNote, this.oldNote)
+    return new UpdateNoteByIdCommandPayload(this.nodeId, this.parentId, this.newNote, this.oldNote)
   }
 
   requiresRender(): boolean {
@@ -281,7 +299,7 @@ export class CreateChildNodeCommandPayload implements CommandPayload {
   ) {}
 
   inverse(): CommandPayload {
-    return new DeleteNodeByIdCommandPayload(this.nodeId)
+    return new DeleteNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
   requiresRender(): boolean {

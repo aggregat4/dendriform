@@ -139,8 +139,7 @@ export class EventPump implements LifecycleAware {
    * @throws something on server contact failure
    */
   private async drainLocalEvents(maxServerEventId: number): Promise<void> {
-    const events: Events = await this.localEventLog.getEventsSince(
-      this.localEventLog.getPeerId(),
+    const events: Events = await this.localEventLog.getRawLocalEventsSince(
       maxServerEventId,
       this.EVENT_TRANSMISSION_BATCH_SIZE
     )

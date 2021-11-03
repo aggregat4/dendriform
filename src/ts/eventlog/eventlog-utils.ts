@@ -41,10 +41,10 @@ export function mapStoredEventToDEvent(
 ): DEvent {
   return new DEvent(
     ev.localId,
-    ev.eventtype,
     peerIdMapper.internalToExternalPeerId(Number(ev.peerid)),
     new VectorClock(internalToExternalVectorclockValues(peerIdMapper, ev.vectorclock)),
     ev.treenodeid,
+    ev.parentnodeid,
     ev.payload
   )
 }

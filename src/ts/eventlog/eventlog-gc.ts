@@ -1,11 +1,10 @@
-import { EventType, ReorderChildNodeEventPayload } from './eventlog-domain'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
 import { EventStorageListener, IdbEventRepository } from './idb-event-repository'
 import { LifecycleAware } from '../domain/lifecycle'
 
 class GcCandidate {
-  constructor(readonly nodeId: string, readonly eventtype: EventType) {}
+  constructor(readonly nodeId: string) {}
 }
 
 export class LocalEventLogGarbageCollector implements LifecycleAware, EventStorageListener {
@@ -120,72 +119,22 @@ export class LocalEventLogGarbageCollector implements LifecycleAware, EventStora
 
   private toGcCandidate(key: string): GcCandidate {
     const firstIndexOfColon = key.indexOf(':')
-    const secondIndexOfColon = key.indexOf(':', firstIndexOfColon + 1)
-    return new GcCandidate(
-      key.slice(0, firstIndexOfColon),
-      Number(key.slice(firstIndexOfColon + 1, secondIndexOfColon))
-    )
+    return new GcCandidate(key.slice(0, firstIndexOfColon))
   }
 
   private keyForEvent(storedEvent: StoredEvent): string {
-    switch (storedEvent.eventtype) {
-      case EventType.ADD_OR_UPDATE_NODE:
-      case EventType.REPARENT_NODE:
-        return `${storedEvent.treenodeid}:${storedEvent.eventtype}:`
-      case EventType.REORDER_CHILD: {
-        const payload = storedEvent.payload as ReorderChildNodeEventPayload
-        return `${storedEvent.treenodeid}:${storedEvent.eventtype}:${payload.childId}:${payload.operation}`
-      }
-    }
+    return `${storedEvent.treenodeid}:`
   }
 
   private async garbageCollect(candidate: GcCandidate): Promise<void> {
-    const nodeEvents = await this.repository.loadStoredEvents(candidate.eventtype, candidate.nodeId)
-    // based on the eventtype we may need to partition the events for a node even further
-    const arraysToPrune: StoredEvent[][] = this.groupByEventTypeDiscriminator(
-      nodeEvents,
-      candidate.eventtype
-    )
-    for (const pruneCandidates of arraysToPrune) {
-      if (!this.garbageCollector.isScheduled()) {
-        // make sure to abort processing when we have been stopped
-        return
-      }
-      const eventsToDelete = this.findEventsToPrune(pruneCandidates)
-      if (eventsToDelete.length > 0) {
-        await this.repository.deleteEvents(eventsToDelete)
-      }
+    const nodeEvents = await this.repository.loadEventsForNode(candidate.nodeId)
+    if (!this.garbageCollector.isScheduled()) {
+      // make sure to abort processing when we have been stopped
+      return
     }
-  }
-
-  // For the child order event log we need a special garbage collection filter because
-  // with logoot events for a sequence we don't just want to retain the newest event for each
-  // parent, rather we need to retain the newest event for a particular child for that parent and
-  // additionally take into account the operation type. We need to retain the newest DELETE as well
-  // as INSERT operation so we can reliably rebuild the sequence
-  private groupByEventTypeDiscriminator(
-    nodeEvents: StoredEvent[],
-    eventtype: EventType
-  ): StoredEvent[][] {
-    switch (eventtype) {
-      // no further grouping is needed for add_or_update or reparenting events
-      case EventType.ADD_OR_UPDATE_NODE:
-      case EventType.REPARENT_NODE:
-        return [nodeEvents]
-      // LOGOOT sequences requires more specific partitioning, we need
-      // to further group by childid + operationid
-      case EventType.REORDER_CHILD: {
-        const reduced = nodeEvents.reduce(
-          (acc: { [eventKey in string]: StoredEvent[] }, val: StoredEvent) => {
-            const payload = val.payload as ReorderChildNodeEventPayload
-            const key = `${payload.childId}:${payload.operation}` // semicolon necessary!
-            ;(acc[key] = acc[key] || []).push(val)
-            return acc
-          },
-          {}
-        )
-        return Object.values(reduced)
-      }
+    const eventsToDelete = this.findEventsToPrune(nodeEvents)
+    if (eventsToDelete.length > 0) {
+      await this.repository.deleteEvents(eventsToDelete)
     }
   }
 
