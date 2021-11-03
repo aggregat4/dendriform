@@ -7,11 +7,10 @@ import {
   DEventPayload,
 } from '../eventlog/eventlog-domain'
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
-import { RelativeNodePosition } from '../domain/domain'
+import { RelativeNodePosition, RELATIVE_NODE_POSITION_END } from '../domain/domain'
 import { atomIdent } from '../lib/modules/logootsequence.js'
 import { LogootSequenceWrapper } from './logoot-sequence-wrapper'
 import { LifecycleAware, Subscription } from '../domain/lifecycle'
-import { boundAttributeSuffix } from 'lit-html/lib/template'
 
 class NodeNotFoundError extends Error {}
 
@@ -129,8 +128,13 @@ export class EventlogRepository implements Repository, LifecycleAware {
       // since these are in causal order this will be consistent across clients
       if (!EventlogRepository.causesCycle(newChildParentMap, nodeId, parentId)) {
         newChildParentMap[nodeId] = parentId
+        // TODO: this also needs to be refactored: we are no longer able to only have the "last" reparent event
+        // need to actually track all these events as move events and potentially remove children from parents first
+        // TODO: we also need to modify the cycle check to first add in the new cild and then check for cycles
       }
     })
+    // TODO: go through and build the parentChildMap from the childParentMap (using the logoot sequence in the payload)
+
     /*     const reorderEvents = await this.eventLog.getAllEventsFromType(EventType.REORDER_CHILD)
     reorderEvents.events.forEach((event) => {
       const childOrderEventPayload = event.payload as ReorderChildNodeEventPayload
@@ -184,12 +188,14 @@ export class EventlogRepository implements Repository, LifecycleAware {
     parentId: string,
     name: string,
     content: string,
-    synchronous: boolean
+    synchronous: boolean,
+    relativePosition: RelativeNodePosition
   ): Promise<void> {
+    const position = this.determineNewPositionForChild(id, parentId, relativePosition)
     return this.eventLog.publish(
       id,
       parentId,
-      createNewDEventPayload(name, content, false, false, false),
+      createNewDEventPayload(name, content, false, false, false, position),
       synchronous
     )
   }
@@ -215,10 +221,37 @@ export class EventlogRepository implements Repository, LifecycleAware {
         !!node.deleted,
         !!node.collapsed,
         !!node.completed,
-        node.created
+        this.getOrCreatePositionForChild(node._id, parentId)
       ),
       synchronous
     )
+  }
+
+  private getOrCreatePositionForChild(nodeId: string, parentId: string): atomIdent {
+    const seq: LogootSequenceWrapper = EventlogRepository.getOrCreateSeqForParent(
+      this.parentChildMap,
+      parentId,
+      this.eventLog.getPeerId()
+    )
+    const currentPosition = seq.getAtomIdentForItem(nodeId)
+    if (!currentPosition) {
+      return this.determineNewPositionForChild(nodeId, parentId, RELATIVE_NODE_POSITION_END)
+    } else {
+      return currentPosition
+    }
+  }
+
+  private determineNewPositionForChild(
+    nodeId: string,
+    parentId: string,
+    relativePosition: RelativeNodePosition
+  ): atomIdent {
+    const seq: LogootSequenceWrapper = EventlogRepository.getOrCreateSeqForParent(
+      this.parentChildMap,
+      parentId,
+      this.eventLog.getPeerId()
+    )
+    return seq.insertElement(nodeId, relativePosition, this.eventLog.getCounter())
   }
 
   /**
@@ -232,7 +265,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
   async reparentNode(
     node: RepositoryNode,
     parentId: string,
-    position: RelativeNodePosition,
+    relativePosition: RelativeNodePosition,
     synchronous: boolean
   ): Promise<void> {
     /* 
@@ -247,13 +280,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.childParentMap[node._id] = parentId
-    const seq: LogootSequenceWrapper = EventlogRepository.getOrCreateSeqForParent(
-      this.parentChildMap,
-      parentId,
-      this.eventLog.getPeerId()
-    )
-    // TODO: store logoot position in the payload
-    const insertionPosition = seq.insertElement(node._id, position, this.eventLog.getCounter())
+    const position = this.determineNewPositionForChild(node._id, parentId, relativePosition)
     return this.eventLog.publish(
       node._id,
       parentId,
@@ -263,6 +290,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
         !!node.deleted,
         !!node.collapsed,
         !!node.completed,
+        position,
         node.created
       ),
       synchronous
@@ -357,11 +385,12 @@ export class EventlogRepository implements Repository, LifecycleAware {
     loadCollapsedChildren: boolean
   ): Promise<LoadedTree> {
     try {
-      const amountOfNodesToLoad = this.determineAmountOfNodesToLoad(nodeId)
-      const tree =
-        amountOfNodesToLoad < this.MAX_NODES_TO_LOAD_INDIVIDUALLY
-          ? await this.loadTreeNodeRecursively(nodeId, nodeFilter, loadCollapsedChildren)
-          : await this.loadTreeBulk(nodeId, nodeFilter, loadCollapsedChildren)
+      // const amountOfNodesToLoad = this.determineAmountOfNodesToLoad(nodeId)
+      const tree = await this.loadTreeNodeRecursively(nodeId, nodeFilter, loadCollapsedChildren)
+      // TODO: remove this code once I know what I want to do with tree loading , for now we just leave recursive loading
+      // amountOfNodesToLoad < this.MAX_NODES_TO_LOAD_INDIVIDUALLY
+      //   ? await this.loadTreeNodeRecursively(nodeId, nodeFilter, loadCollapsedChildren)
+      //   : await this.loadTreeBulk(nodeId, nodeFilter, loadCollapsedChildren)
       if (!tree) {
         // since loadTreeNodRecursively can return null, we need to check it
         throw new NodeNotFoundError(`Node not found: ${nodeId}`)
@@ -379,6 +408,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     }
   }
 
+  /*
   private determineAmountOfNodesToLoad(nodeId: string): number {
     let childCount = 0
     for (const childNodeId of this.getChildIdsInternal(nodeId)) {
@@ -387,7 +417,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     return 1 + childCount
   }
 
-  private async loadTreeBulk(
+    private async loadTreeBulk(
     nodeId: string,
     nodeFilter: Predicate<RepositoryNode>,
     loadCollapsedChildren: boolean
@@ -460,7 +490,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     }
     return children
   }
-
+ */
   private async loadTreeNodeRecursively(
     nodeId: string,
     nodeFilter: Predicate<RepositoryNode>,

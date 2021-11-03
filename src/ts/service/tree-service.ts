@@ -1,5 +1,9 @@
 import { ALWAYS_TRUE, Predicate } from '../utils/util'
-import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
+import {
+  RelativeLinearPosition,
+  RelativeNodePosition,
+  RELATIVE_NODE_POSITION_END,
+} from '../domain/domain'
 import {
   LoadedTree,
   NODE_IS_NOT_DELETED,
@@ -48,7 +52,14 @@ export class TreeService {
     content: string,
     synchronous: boolean
   ): Promise<void> {
-    return this.repo.createNode(id, parentId, name, content, synchronous)
+    return this.repo.createNode(
+      id,
+      parentId,
+      name,
+      content,
+      synchronous,
+      RELATIVE_NODE_POSITION_END
+    )
   }
 
   loadNode(nodeId: string): Promise<RepositoryNode> {
@@ -252,6 +263,13 @@ export class TreeService {
     parentId: string,
     synchronous: boolean
   ): Promise<void> {
-    await this.repo.createNode(childId, parentId, childName, childNote, synchronous)
+    await this.repo.createNode(
+      childId,
+      parentId,
+      childName,
+      childNote,
+      synchronous,
+      RELATIVE_NODE_POSITION_END
+    )
   }
 }

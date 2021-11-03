@@ -16,7 +16,7 @@ export const enum NodeFlags {
 }
 
 /**
- * This represents a node creation or update event, some fields have formats that are optimised
+ * This represents a node event, some fields have formats that are optimised
  * for storage and not for querying.
  *
  * The flags field is a bitmask that can be read using the NodeFlags enum.
@@ -27,9 +27,22 @@ export const enum NodeFlags {
 export interface DEventPayload {
   name: string
   note: string
-  flags: number // bitmask as per NodeFlags
+  /**
+   * Bitmask as per NodeFlags.
+   */
+  flags: number
+  /**
+   * Creation timestamp in epoch seconds.
+   */
   created: number // epoch seconds
-  updated: number // epoch seconds
+  /**
+   * Last updated timestamp in epoch seconds.
+   */
+  updated: number
+  /**
+   * A logoot sequence position.
+   */
+  logootPos: atomIdent
 }
 
 export function createNewDEventPayload(
@@ -38,6 +51,7 @@ export function createNewDEventPayload(
   deleted: boolean,
   collapsed: boolean,
   completed: boolean,
+  logootPos: atomIdent,
   created?: number
 ): DEventPayload {
   return {
@@ -50,6 +64,7 @@ export function createNewDEventPayload(
       (completed ? NodeFlags.completed : 0),
     created: created || secondsSinceEpoch(),
     updated: secondsSinceEpoch(),
+    logootPos: logootPos,
   }
 }
 /* 
@@ -84,9 +99,10 @@ export class DEvent {
     readonly payload: {
       name: string
       note: string
-      flags: number // bitmask as per NodeFlags
-      created: number // epoch seconds
-      updated: number // epoch seconds
+      flags: number
+      created: number
+      updated: number
+      logootPos: atomIdent
     }
   ) {}
 }

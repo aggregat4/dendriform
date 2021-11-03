@@ -112,6 +112,14 @@ export class LogootSequenceWrapper {
       : genAtomIdent(this.peerId, peerClock, this.seq[pos][0], this.seq[pos + 1][0])
   }
 
+  getAtomIdentForItem(item: string): atomIdent | null {
+    const index = this.toArray().indexOf(item)
+    if (index === -1) {
+      return null
+    }
+    return this.getAtomIdent(index)
+  }
+
   private deleteAtIndex(pos: number): void {
     if (pos < 0 || pos >= this.length()) {
       throw new Error(

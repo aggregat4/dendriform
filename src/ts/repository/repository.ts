@@ -1,5 +1,6 @@
 import { RelativeNodePosition } from '../domain/domain'
 import { LifecycleAware, Subscription } from '../domain/lifecycle'
+import { atomIdent } from '../lib/modules/logootsequence'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 import { Predicate } from '../utils/util'
 
@@ -84,7 +85,8 @@ export interface Repository extends LifecycleAware {
     parentId: string,
     name: string,
     content: string,
-    synchronous: boolean
+    synchronous: boolean,
+    relativePosition: RelativeNodePosition
   ): Promise<void>
 
   updateNode(node: RepositoryNode, parentId: string, synchronous: boolean): Promise<void>
