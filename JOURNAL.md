@@ -1475,3 +1475,25 @@ The algorithm for the periodic sync in the new simpler approach:
 I reimplemented the eventpumpt to have this logic, this requires one new controller for the server and we need to verify whether we support "originator" instead of notForOriginator on the eventlogs endpoint.
 
 Unclear whether something is missing on the client after that but then we should start testing.
+
+## 2021-10-29
+
+1. Refactor towards a move-op model as per Kleppmann
+  1. I think Lamport timestamps offer sufficient semantics to order our events
+  1. We would need to reduce our kind of events to the single move operation (reparent in our case)
+  1. We need to store the logoot sequence ID inside of the child node payload so we can reconstruct the logoot sequence once the parent know who its children are . This also means getting rid of the logoot delete events, which _should_ be fine if we alwazs construct the sequence anew based on a consistent set of children
+  1. Proposal for a process:
+     1. ~~Move from individual event payload fields to a payload blob~~
+     1. Factor out REORDER_CHILD event by storing logoot ids in the child nodes and doing lazy rebuilding of the logoot sequence. This also implies no longer using logoot deletes
+     1. Merge the ADD_OR_UPDATE and the REPARENT event into a reparent event (this may involve removing the deleted flag and instead moving to trash node)
+     1. Move from vector clocks to lamport timestamps
+     1. Investigate how to proceed to refactor current implementation to the Kleppman omove-op  model (efficient query and storage needed, redo garbage collection?)
+
+## 2021-10-29 Refactoring the event system to a single move-op
+
+* I have no child id ordering anymore. The parentChildMap is empty, no replacement yet
+* I removed the implicit ROOT node publishing so we always have it, the idea is to try to have it as a hardcoded node, the same as TRASH
+* repository-eventlog now always does a rebuild and notify since all events are potentially structural. We "just" need to refactor rebuild at some point to do the undo/redo semantics as in kleppmann
+* All changes to nodes (moving, payload changes and reordering) causes the complete event to be duplicated. This means that even more than before we will be schlepping around notes and node name duplications. Once this refactoring is through I will need to start thinking about what to do with that data. Especially with nodes, but perhaps also the names. Should those "attachments" to a node just be child nodes of a different type (no logoot ordering, some type identifier in the payload?)? Are there other options to treat these payloads out of band? Maybe treat them all as children of another pseudo node called ATTACHMENTS and have the ability to refer to them by ID (would this also enable linking of nodes? in that case they would be special kinds of links) 
+- We definitely need to redo the map rebuilding, we can't retrieve all events every time. Also, we have a getAllLocalEvents() method on eventlog that delegates to the repository for a similar call. This is for getting the new events to send to the server. AFAICT this also causally sorts and deduplicates the events, which we probably do not want to do for sending to the server!
+* TODO: add the logoot position to the event payload!
