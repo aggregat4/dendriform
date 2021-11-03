@@ -1493,7 +1493,50 @@ Unclear whether something is missing on the client after that but then we should
 
 * I have no child id ordering anymore. The parentChildMap is empty, no replacement yet
 * I removed the implicit ROOT node publishing so we always have it, the idea is to try to have it as a hardcoded node, the same as TRASH
-* repository-eventlog now always does a rebuild and notify since all events are potentially structural. We "just" need to refactor rebuild at some point to do the undo/redo semantics as in kleppmann
+* repository-eventlog now always does a rebuild and notify when an external event comes in since all events are potentially structural. We "just" need to refactor rebuild at some point to do the undo/redo semantics as in kleppmann
 * All changes to nodes (moving, payload changes and reordering) causes the complete event to be duplicated. This means that even more than before we will be schlepping around notes and node name duplications. Once this refactoring is through I will need to start thinking about what to do with that data. Especially with nodes, but perhaps also the names. Should those "attachments" to a node just be child nodes of a different type (no logoot ordering, some type identifier in the payload?)? Are there other options to treat these payloads out of band? Maybe treat them all as children of another pseudo node called ATTACHMENTS and have the ability to refer to them by ID (would this also enable linking of nodes? in that case they would be special kinds of links) 
-- We definitely need to redo the map rebuilding, we can't retrieve all events every time. Also, we have a getAllLocalEvents() method on eventlog that delegates to the repository for a similar call. This is for getting the new events to send to the server. AFAICT this also causally sorts and deduplicates the events, which we probably do not want to do for sending to the server!
+* We definitely need to redo the map rebuilding, we can't retrieve all events every time. Also, we have a getAllLocalEvents() method on eventlog that delegates to the repository for a similar call. This is for getting the new events to send to the server. AFAICT this also causally sorts and deduplicates the events, which we probably do not want to do for sending to the server! I removed the sorting and deduplication stuff.
 * TODO: add the logoot position to the event payload!
+* I remove the bulk tree loading option and always load recursively. Will need measure whether in the future I still need bulk loading. (`repository-eventlog.ts`)
+
+## 2021-11-03
+
+Given that we need to modify our approach to really do an undo-redo cycle when getting new events, it may be beneficial to move to lamport timestamps from vector clocks.
+
+Lamport timestamps would allow us to have an index on lamport clock + peerid and to query efficiently for all events newer than a particular timestamp.
+
+I also came up with a storage scheme and maybe garbage collection for events.
+
+Assuming lamport clocks:
+- Storage IDB: eventlog (lamportclock,peerid,payload), nodes (nodeid, payload), parents (childid, parentid)
+- Storage Memory: just a parentid,child-logoot-seq 
+
+Looking up ancestors and node details is an IDB query. 
+
+Theoretically I could persist the logoout sequence with the node as well. Not sure what's the better tradeoff here. Keep in memory for now?
+
+Klepmann says that garbage collecting the log is trivial, but they assume a fixed replica set and I have a dynamic replica set (bunch of peers).
+
+I did not find an easy/obvious distributed dynamic replica set join model that may allow us to securely define the current causally stable set of events. The closest is <https://soft.vub.ac.be/~jibauwen/publications/splash19-memory-efficient-crdts-dynamic-env.pdf> but its description is incomplete (see also <http://uu.diva-portal.org/smash/get/diva2:1441174/FULLTEXT01.pdf> for an evaluation).
+
+I came to the realization that we have another approach since we do not really require a fully distributed p2p model. We do have a server that we can assume and that knows the entire "truth" so we can leverage that.
+
+Using the server we can implement a join protocol and therefore manage the replica set. It should be possible to define a protocol with a join operation (from client to server) and a currentReplicaSet operation (from client to server) that returns the current known replica set and to make sure that these are mutually locked. That is to say: any currentReplicaset queries would block until an ongoing join is finished and the other way around, a join is only allowed when all currentReplicaSets are finished.
+
+Join: join(peerid) -> new clock (one higher than the highest known clock of all currently known replicas).
+
+currentReplicaset(replicaid,clock) -> replicas(List[replicaid,clock])
+  This increases the replicaids clock to the provided value and returns the current list of all replicas and clocks
+
+A peer can then only perform garbage collection after having called currentReplicaset. This guarantees that all known replicas are included and any replicas that were just trying to join will get clocks higher than the returned values. This prevents garbage collection of events that may still get concurrent updates. If a replica goes offline for a long time, its clock will remain on a low level and prevent events concurrent or newer to be garbage collected.
+
+This will effectively allow safe garbage collection, but it does not account for nodes going offline and not returning. They could cause garbage collection to become increasingly ineffective as we can't collect garbage anymore.
+
+Perhaps there is a way to extend the membership protocol to account for this kind of situation, not sure how. Perhaps by saying that a replica is not allowed to send events to the server if it has been longer than TIME since the last synchronisation. And that it first has to get up to date with all the information and discard local events? Maybe the strategy for what to do with the aged local events that were not synchronized can be left to the user?
+
+I think we can implement this membership protocol alongside the normal event synchronisation protocol, we just need to make sure the replica clock is updated from both sides.
+
+Implementation approach:
+- implement the move-op log with the storage scheme we described above without garbage collection and with a migration to lamport clocks
+- modify the server to the new event approach and make sure the eventpump and the undo-redo ops are working
+- implement the membership protocol on the server and client 
