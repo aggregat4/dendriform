@@ -58,7 +58,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   )
 
   constructor(
-    readonly repository: IdbEventRepository,
+    readonly eventRepository: IdbEventRepository,
     readonly peerIdMapper: LocalEventLogIdMapper
   ) {}
 
@@ -75,7 +75,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   getName(): string {
-    return this.repository.getName()
+    return this.eventRepository.getName()
   }
 
   getCounter(): number {
@@ -84,7 +84,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
 
   async init(): Promise<void> {
     await this.loadOrCreateMetadata()
-    const maxEventId = await this.repository.getMaxEventId()
+    const maxEventId = await this.eventRepository.getMaxEventId()
     this.counter = maxEventId >= 0 ? maxEventId : 0
     /*     // Make sure we have a ROOT node and if not, create it
     const rootNode = await this.getNodeEvent('ROOT')
@@ -174,11 +174,11 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         }
       })
     )
-    await this.repository.storeEvents(mappedEvents)
+    await this.eventRepository.storeEvents(mappedEvents)
   }
 
   private async loadOrCreateMetadata(): Promise<void> {
-    const currentMetadata = await this.repository.loadPeerMetadata()
+    const currentMetadata = await this.eventRepository.loadPeerMetadata()
     if (!currentMetadata) {
       this.peerId = generateUUID()
       this.clock = 1
@@ -190,7 +190,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   private async saveMetadata(): Promise<void> {
-    this.repository.storePeerMetadata({
+    this.eventRepository.storePeerMetadata({
       eventlogid: this.peerId,
       clock: this.clock,
     })
@@ -273,7 +273,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     const localPeerId = await this.peerIdMapper.externalToInternalPeerId(this.getPeerId())
     const lowerBound = [localPeerId, fromCounterNotInclusive] as PeerIdAndEventIdKeyType
     const upperBound = [localPeerId, fromCounterNotInclusive + batchSize] as PeerIdAndEventIdKeyType
-    const events = await this.repository.loadEventsSince(lowerBound, upperBound)
+    const events = await this.eventRepository.loadEventsSince(lowerBound, upperBound)
     return {
       counter: this.counter,
       events: events.map((e) => mapStoredEventToDEvent(this.peerIdMapper, e)),
@@ -281,7 +281,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   async getAllEvents(): Promise<Events> {
-    const events = await this.repository.loadAllEvents()
+    const events = await this.eventRepository.loadAllEvents()
     events.sort(storedEventComparator)
     // This code is a bit of a cop out: we should not need this since this.counter is always
     // set to the highest stored event id when we insert() it into the database.
@@ -303,7 +303,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
   }
 
   async getNodeEvent(nodeId: string): Promise<DEvent> {
-    const events = await this.repository.loadEventsForNode(nodeId)
+    const events = await this.eventRepository.loadEventsForNode(nodeId)
     if (events.length === 0) {
       return null
     }
