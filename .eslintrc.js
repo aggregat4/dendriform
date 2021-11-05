@@ -8,7 +8,7 @@ module.exports = {
   parserOptions: {
     project: 'tsconfig.json',
     sourceType: 'module',
-    ecmaVersion: '2017',
+    ecmaVersion: '2018',
   },
   plugins: ['prettier'],
 }
