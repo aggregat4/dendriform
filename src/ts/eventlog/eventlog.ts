@@ -8,9 +8,9 @@ import {
   DEventPayload,
 } from './eventlog-domain'
 import { generateUUID } from '../utils/util'
-import { LocalEventLogIdMapper } from './idb-peerid-mapper'
+import { LocalEventLogIdMapper } from './idb-peerid-repository'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
-import { storedEventComparator } from './eventlog-storedevent'
+import { storedEventComparator } from './repository'
 import { mapStoredEventToDEvent } from './eventlog-utils'
 import { IdbEventRepository, PeerIdAndEventIdKeyType } from './idb-event-repository'
 import { ActivityIndicating, LifecycleAware, Subscription } from '../domain/lifecycle'
@@ -166,7 +166,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
           eventid: newId,
           // the local id exists when the DEvent comes from outside but it is -1 when it originates on this client
           localId: e.localId !== -1 ? e.localId : newId,
-          treenodeid: e.nodeId,
+          nodeid: e.nodeId,
           parentnodeid: e.parentId,
           peerid: await this.peerIdMapper.externalToInternalPeerId(e.originator),
           clock: e.clock,

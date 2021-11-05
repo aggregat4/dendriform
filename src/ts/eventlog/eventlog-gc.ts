@@ -1,5 +1,5 @@
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
-import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
+import { StoredEvent, storedEventComparator } from './repository'
 import { EventStorageListener, IdbEventRepository } from './idb-event-repository'
 import { LifecycleAware } from '../domain/lifecycle'
 

@@ -1508,6 +1508,7 @@ Lamport timestamps would allow us to have an index on lamport clock + peerid and
 I also came up with a storage scheme and maybe garbage collection for events.
 
 Assuming lamport clocks:
+
 * Storage IDB:
   * eventlog (lamportclock, peerid, payload)
   * nodes (nodeid, payload)

@@ -1,6 +1,6 @@
 import { after, test } from '../../lib/tizzy'
 import expect from 'ceylon'
-import { LocalEventLogIdMapper } from '../../src/ts/eventlog/idb-peerid-mapper'
+import { LocalEventLogIdMapper } from '../../src/ts/eventlog/idb-peerid-repository'
 import { deleteDB } from 'idb'
 
 test('Mapping an id is reversible', async () => {

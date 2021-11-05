@@ -1,6 +1,6 @@
 import { DEvent } from './eventlog-domain'
-import { LocalEventLogIdMapper } from './idb-peerid-mapper'
-import { StoredEvent } from './eventlog-storedevent'
+import { LocalEventLogIdMapper } from './idb-peerid-repository'
+import { StoredEvent } from './repository'
 
 export function mapStoredEventToDEvent(
   peerIdMapper: LocalEventLogIdMapper,

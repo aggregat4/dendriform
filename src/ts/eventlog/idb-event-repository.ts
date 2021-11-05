@@ -1,8 +1,10 @@
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
-import { PeerMetadata, StoredEvent } from './eventlog-storedevent'
+import { PeerMetadata, StoredEvent } from './repository'
 
 export type PeerIdAndEventIdKeyType = [number, number]
+
+export type ClockAndPeerIdKeyType = [number, number]
 
 interface EventStoreSchema extends DBSchema {
   // peer: 'eventlogid', // columns: eventlogid, vectorclock, counter
@@ -17,8 +19,9 @@ interface EventStoreSchema extends DBSchema {
     value: StoredEvent
     indexes: {
       eventid: number
-      treenodeid: string
-      'peerid-and-eventid': PeerIdAndEventIdKeyType
+      nodeid: string
+      'localpeerid-and-eventid': PeerIdAndEventIdKeyType
+      'clock-and-localpeerid': ClockAndPeerIdKeyType
     }
   }
 }
@@ -47,8 +50,9 @@ export class IdbEventRepository implements LifecycleAware {
             autoIncrement: false, // we generate our own keys, this is required since compound indexes with an auto-incremented key do not work everywhere (yet)
           })
           eventsStore.createIndex('eventid', 'eventid')
-          eventsStore.createIndex('treenodeid', 'treenodeid')
-          eventsStore.createIndex('peerid-and-eventid', ['peerid', 'eventid'])
+          eventsStore.createIndex('nodeid', 'nodeid')
+          eventsStore.createIndex('localpeerid-and-eventid', ['localid', 'eventid'])
+          eventsStore.createIndex('clock-and-localpeerid', ['clock', 'localid'])
         },
       })
     } catch (error) {
@@ -151,7 +155,7 @@ export class IdbEventRepository implements LifecycleAware {
 
   async loadEventsSince(lowerBound: PeerIdAndEventIdKeyType, upperBound: PeerIdAndEventIdKeyType) {
     const range = IDBKeyRange.bound(lowerBound, upperBound, true, true) // do not include lower and upper bounds themselves (open interval)
-    return await this.db.getAllFromIndex('events', 'peerid-and-eventid', range)
+    return await this.db.getAllFromIndex('events', 'localpeerid-and-eventid', range)
   }
 
   async loadAllEvents(): Promise<StoredEvent[]> {
@@ -159,7 +163,7 @@ export class IdbEventRepository implements LifecycleAware {
   }
 
   async loadEventsForNode(nodeId: string): Promise<StoredEvent[]> {
-    return await this.db.getAllFromIndex('events', 'treenodeid', nodeId)
+    return await this.db.getAllFromIndex('events', 'nodeid', nodeId)
   }
 
   // assuming that the type parameters for an AsyncGenerator are:

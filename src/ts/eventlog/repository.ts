@@ -11,7 +11,7 @@ export interface PeerMetadata {
 export interface StoredEvent {
   eventid: number
   localId: number
-  treenodeid: string
+  nodeid: string
   parentnodeid: string
   peerid: number // these are remapped peerids, from the external string to a number
   clock: number
