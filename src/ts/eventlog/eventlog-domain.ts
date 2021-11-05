@@ -4,11 +4,6 @@ import { atomIdent } from '../lib/modules/logootsequence.js'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 import { Subscription } from '../domain/lifecycle'
 
-/* export const enum EventType {
-  // ADD_OR_UPDATE_NODE,
-  // REPARENT_NODE,
-}
- */
 export const enum NodeFlags {
   deleted = 1,
   collapsed = 2,
@@ -67,25 +62,6 @@ export function createNewDEventPayload(
     logootPos: logootPos,
   }
 }
-/* 
-export interface ReparentNodeEventPayload {
-  parentId: string
-}
- */
-/* export const enum LogootReorderOperation {
-  INSERT,
-  DELETE,
-}
-
-export interface ReorderChildNodeEventPayload {
-  operation: LogootReorderOperation
-  position: atomIdent // this is a logoot position/sequence identifier, a bunch of nested arrays
-  childId: string
-  parentId: string
-} */
-
-/* export type EventPayloadType = AddOrUpdateNodeEventPayload | ReparentNodeEventPayload
- */
 
 export class DEvent {
   constructor(

@@ -268,16 +268,6 @@ export class EventlogRepository implements Repository, LifecycleAware {
     relativePosition: RelativeNodePosition,
     synchronous: boolean
   ): Promise<void> {
-    /* 
-    const oldParentId = this.childParentMap[node._id]
-    if (oldParentId) {
-      // always publish a delete event if the node was already in the child list:
-      // if we move to a new parent the node needs to disappear unde the old parent
-      // and if we move inside of the existing parent, then we don't want to see that node
-      // appear multiple times.
-      await this.deleteNode(childId, oldParentId, synchronous)
-    } */
-    // console.log(`reparenting node ${childId} to index `, insertionIndex, ` with position `, position, ` with atomIdent `, insertionAtomIdent)
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.childParentMap[node._id] = parentId
     const position = this.determineNewPositionForChild(node._id, parentId, relativePosition)
@@ -295,42 +285,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
       ),
       synchronous
     )
-    /* // publish insert reorder event on new parent
-    return this.eventLog.publish(
-      EventType.REORDER_CHILD,
-      parentId,
-      {
-        operation: LogootReorderOperation.INSERT,
-        position: insertionPosition,
-        childId,
-        parentId,
-      },
-      synchronous
-    ) */
   }
-
-  /* private deleteNode(childId: string, parentId: string, synchronous: boolean): Promise<void> {
-    const seq: LogootSequenceWrapper = this.parentChildMap[parentId]
-    if (seq) {
-      const deletePosition = seq.deleteElement(childId)
-      if (deletePosition !== null) {
-        // console.log(`removing child from local sequence in cache`)
-        // console.log(`publishing child delete event`)
-        return this.eventLog.publish(
-          EventType.REORDER_CHILD,
-          parentId,
-          {
-            operation: LogootReorderOperation.DELETE,
-            position: deletePosition,
-            childId,
-            parentId,
-          },
-          synchronous
-        )
-      }
-    }
-    return Promise.resolve()
-  } */
 
   private static getOrCreateSeqForParent(
     parentChildMap: { [key in string]: LogootSequenceWrapper },
