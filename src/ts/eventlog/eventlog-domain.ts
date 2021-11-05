@@ -1,4 +1,3 @@
-import { VectorClock } from '../lib/vectorclock'
 import { Predicate } from '../utils/util'
 import { atomIdent } from '../lib/modules/logootsequence.js'
 import { secondsSinceEpoch } from '../utils/dateandtime'
@@ -69,7 +68,7 @@ export class DEvent {
     readonly localId: number,
     // readonly type: EventType,
     readonly originator: string,
-    public clock: VectorClock,
+    public clock: number,
     readonly nodeId: string,
     readonly parentId: string,
     readonly payload: {
@@ -128,7 +127,7 @@ export interface DEventLog extends DEventSource {
   getRawLocalEventsSince(fromCounterNotInclusive: number, batchSize: number): Promise<Events>
   /**
    * Loads all events
-   * @return An array that is causally sorted by vectorclock and peerid.
+   * @return An array that is causally sorted by clock and peerid.
    */
   getAllEvents(): Promise<Events>
 

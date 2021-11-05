@@ -8,11 +8,10 @@ import {
   DEventPayload,
 } from './eventlog-domain'
 import { generateUUID } from '../utils/util'
-import { VectorClock } from '../lib/vectorclock'
 import { LocalEventLogIdMapper } from './idb-peerid-mapper'
 import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
-import { StoredEvent, storedEventComparator } from './eventlog-storedevent'
-import { externalToInternalVectorclockValues, mapStoredEventToDEvent } from './eventlog-utils'
+import { storedEventComparator } from './eventlog-storedevent'
+import { mapStoredEventToDEvent } from './eventlog-utils'
 import { IdbEventRepository, PeerIdAndEventIdKeyType } from './idb-event-repository'
 import { ActivityIndicating, LifecycleAware, Subscription } from '../domain/lifecycle'
 
@@ -35,7 +34,7 @@ class EventSubscription implements Subscription {
  */
 export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicating, LifecycleAware {
   private peerId: string
-  private vectorClock: VectorClock
+  private clock: number
   private counter: number
   private subscriptions: EventSubscription[] = []
   // event storage queue
@@ -127,17 +126,14 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
         timeSinceLastStore > this.STORAGE_QUEUE_MAX_LATENCY_MS)
     ) {
       const drainedEvents = this.storageQueue.splice(0, this.STORAGE_QUEUE_BATCH_SIZE)
-      // We need to update our knowledge about causality in the world and make sure our vectorclock
+      // We need to update our knowledge about causality in the world and make sure our clock
       // updated to the latest state for each peer that is NOT ourselves (see publish())
       // storeEvents will save metadata
       drainedEvents
         .filter((e) => e.originator !== this.getPeerId())
         .forEach((e) => {
           console.debug(`foreign event, incrementing clock`)
-          this.vectorClock.increment(this.peerId)
-          const newClock = this.vectorClock.merge(e.clock)
-          this.vectorClock = new VectorClock(newClock.values)
-          e.clock = new VectorClock(newClock.values)
+          this.clock = Math.max(this.clock, e.clock) + 1
         })
       await this.storeEvents(drainedEvents)
       this.lastStorageTimestamp = currentTime
@@ -173,7 +169,7 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
           treenodeid: e.nodeId,
           parentnodeid: e.parentId,
           peerid: await this.peerIdMapper.externalToInternalPeerId(e.originator),
-          vectorclock: await externalToInternalVectorclockValues(this.peerIdMapper, e.clock.values),
+          clock: e.clock,
           payload: e.payload,
         }
       })
@@ -185,20 +181,18 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     const currentMetadata = await this.repository.loadPeerMetadata()
     if (!currentMetadata) {
       this.peerId = generateUUID()
-      this.vectorClock = new VectorClock()
-      // always start a new vectorclock on 1 for the current peer
-      this.vectorClock.increment(this.peerId)
+      this.clock = 1
       await this.saveMetadata()
     } else {
       this.peerId = currentMetadata.eventlogid
-      this.vectorClock = new VectorClock(currentMetadata.vectorclock)
+      this.clock = currentMetadata.clock
     }
   }
 
   private async saveMetadata(): Promise<void> {
     this.repository.storePeerMetadata({
       eventlogid: this.peerId,
-      vectorclock: this.vectorClock.values,
+      clock: this.clock,
     })
   }
 
@@ -208,16 +202,16 @@ export class LocalEventLog implements DEventSource, DEventLog, ActivityIndicatin
     payload: DEventPayload,
     synchronous: boolean
   ): Promise<void> {
-    // We update the vectorclock for our own peer only in this location since we need a continuously up to date view
+    // We update the clock for our own peer only in this location since we need a continuously up to date view
     // on the world. We increment our clock for other peer data in drainStorageQueue() where we only take into account
     // other peers. This can only happen there since that is the time where we persist the current state of the world
-    // and the vectorclock should represent this.
+    // and the clock should represent this.
     // However, this has a problem: if drainstorageQue happens later than the other peers will be slightly out
-    // of date in our vectorclock. Not sure how to solve this.
-    this.vectorClock.increment(this.peerId)
+    // of date in our clock. Not sure how to solve this.
+    this.clock++
     // Locally generated events have no localId _yet_, it is filled with the current maxCounter when storing the event
     await this.insert(
-      [new DEvent(-1, this.peerId, this.vectorClock, nodeId, parentId, payload)],
+      [new DEvent(-1, this.peerId, this.clock, nodeId, parentId, payload)],
       synchronous
     )
   }

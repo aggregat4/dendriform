@@ -1,13 +1,10 @@
 import { DEvent, DEventPayload } from '../eventlog/eventlog-domain'
-import { VectorClock, VectorClockValuesType } from '../lib/vectorclock'
-
-type ServerEventClock = VectorClockValuesType
 
 type ServerEvent = {
   localId: number
   type: number
   originator: string
-  clock: ServerEventClock
+  clock: number
   nodeId: string
   parentId: string
   payload: DEventPayload
@@ -56,7 +53,7 @@ function deserializeServerEvent(serverEvent: ServerEvent): DEvent {
   return new DEvent(
     serverEvent.localId,
     serverEvent.originator,
-    new VectorClock(serverEvent.clock),
+    serverEvent.clock,
     serverEvent.nodeId,
     serverEvent.parentId,
     serverEvent.payload
