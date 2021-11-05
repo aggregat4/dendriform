@@ -1510,9 +1510,10 @@ I also came up with a storage scheme and maybe garbage collection for events.
 Assuming lamport clocks:
 
 * Storage IDB:
-  * eventlog (lamportclock, peerid, payload)
-  * nodes (nodeid, payload)
-  * parents (childid, parentid)
+  * eventRepository (lamportclock, peerid, payload)
+  * treeRepository
+    * nodes (nodeid, payload)
+    * parents (childid, parentid)
 * Storage Memory: just parentid -> child-logoot-seq 
 
 Looking up ancestors and node details is an IDB query. 
@@ -1542,5 +1543,8 @@ I think we can implement this membership protocol alongside the normal event syn
 
 Implementation approach:
 - implement the move-op log with the storage scheme we described above without garbage collection and with a migration to lamport clocks
+  - create a new IDB storage repo with two tables for nodes and child parent relationships
+  - create a new repository implementation paralell to repository-eventlog that uses the original eventlog and the new tree storage thing to implement this
+  - we should be able to seriously reduce eventlog.ts as well since a bunch of that stuff should move to the new persistence implementation
 - modify the server to the new event approach and make sure the eventpump and the undo-redo ops are working
 - implement the membership protocol on the server and client 
