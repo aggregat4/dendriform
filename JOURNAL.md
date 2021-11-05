@@ -1508,8 +1508,11 @@ Lamport timestamps would allow us to have an index on lamport clock + peerid and
 I also came up with a storage scheme and maybe garbage collection for events.
 
 Assuming lamport clocks:
-- Storage IDB: eventlog (lamportclock,peerid,payload), nodes (nodeid, payload), parents (childid, parentid)
-- Storage Memory: just a parentid,child-logoot-seq 
+* Storage IDB:
+  * eventlog (lamportclock, peerid, payload)
+  * nodes (nodeid, payload)
+  * parents (childid, parentid)
+* Storage Memory: just parentid -> child-logoot-seq 
 
 Looking up ancestors and node details is an IDB query. 
 
@@ -1523,9 +1526,9 @@ I came to the realization that we have another approach since we do not really r
 
 Using the server we can implement a join protocol and therefore manage the replica set. It should be possible to define a protocol with a join operation (from client to server) and a currentReplicaSet operation (from client to server) that returns the current known replica set and to make sure that these are mutually locked. That is to say: any currentReplicaset queries would block until an ongoing join is finished and the other way around, a join is only allowed when all currentReplicaSets are finished.
 
-Join: join(peerid) -> new clock (one higher than the highest known clock of all currently known replicas).
+**join(peerid) -> new clock** (one higher than the highest known clock of all currently known replicas).
 
-currentReplicaset(replicaid,clock) -> replicas(List[replicaid,clock])
+**currentReplicaset(replicaid,clock) -> replicas(List[replicaid,clock])**
   This increases the replicaids clock to the provided value and returns the current list of all replicas and clocks
 
 A peer can then only perform garbage collection after having called currentReplicaset. This guarantees that all known replicas are included and any replicas that were just trying to join will get clocks higher than the returned values. This prevents garbage collection of events that may still get concurrent updates. If a replica goes offline for a long time, its clock will remain on a low level and prevent events concurrent or newer to be garbage collected.
