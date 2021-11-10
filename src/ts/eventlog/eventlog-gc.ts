@@ -123,7 +123,7 @@ export class LocalEventLogGarbageCollector implements LifecycleAware, EventStora
   }
 
   private keyForEvent(storedEvent: StoredEvent): string {
-    return `${storedEvent.treenodeid}:`
+    return `${storedEvent.nodeid}:`
   }
 
   private async garbageCollect(candidate: GcCandidate): Promise<void> {

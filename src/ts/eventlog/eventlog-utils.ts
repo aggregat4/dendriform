@@ -10,7 +10,7 @@ export function mapStoredEventToDEvent(
     ev.localId,
     peerIdMapper.internalToExternalPeerId(Number(ev.peerid)),
     ev.clock,
-    ev.treenodeid,
+    ev.nodeid,
     ev.parentnodeid,
     ev.payload
   )

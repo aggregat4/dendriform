@@ -1,6 +1,5 @@
 import { RelativeNodePosition } from '../domain/domain'
 import { LifecycleAware, Subscription } from '../domain/lifecycle'
-import { atomIdent } from '../lib/modules/logootsequence'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 import { Predicate } from '../utils/util'
 
