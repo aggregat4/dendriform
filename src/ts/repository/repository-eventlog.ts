@@ -213,7 +213,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
       await this.deleteNode(node._id, parentId, synchronous)
     } */
     await this.eventLog.publish(
-      node._id,
+      node.id,
       parentId,
       createNewDEventPayload(
         node.name,
@@ -221,7 +221,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
         !!node.deleted,
         !!node.collapsed,
         !!node.completed,
-        this.getOrCreatePositionForChild(node._id, parentId)
+        this.getOrCreatePositionForChild(node.id, parentId)
       ),
       synchronous
     )
@@ -269,10 +269,10 @@ export class EventlogRepository implements Repository, LifecycleAware {
     synchronous: boolean
   ): Promise<void> {
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
-    this.childParentMap[node._id] = parentId
-    const position = this.determineNewPositionForChild(node._id, parentId, relativePosition)
+    this.childParentMap[node.id] = parentId
+    const position = this.determineNewPositionForChild(node.id, parentId, relativePosition)
     return this.eventLog.publish(
-      node._id,
+      node.id,
       parentId,
       createNewDEventPayload(
         node.name,
@@ -314,7 +314,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
 
   private mapEventToRepositoryNode(nodeId: string, eventPayload: DEventPayload): RepositoryNode {
     return {
-      _id: nodeId,
+      id: nodeId,
       name: eventPayload.name,
       note: eventPayload.note,
       // tslint:disable-next-line:no-bitwise
@@ -497,7 +497,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     if (parentId && parentId !== ' ROOT') {
       const parent = await this.loadNode(parentId, ALWAYS_TRUE)
       ancestors.push(parent)
-      return this.loadAncestors(parent._id, ancestors)
+      return this.loadAncestors(parent.id, ancestors)
     } else {
       return Promise.resolve(ancestors)
     }

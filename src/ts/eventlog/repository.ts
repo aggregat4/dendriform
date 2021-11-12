@@ -19,6 +19,29 @@ export interface StoredEvent {
 }
 
 /**
+ * Metadata about the state of the local replica.
+ */
+export interface Replica {
+  replicaId: string
+  clock: number
+}
+
+/**
+ * A representation of all the log moves that we need to persist to allow
+ * for processing new incoming events. This table will be garbage collected
+ * once we can identify at what clock we are causally stable.
+ */
+export interface LogMoveRecord {
+  clock: number
+  replicaId: string
+  oldParentId: string
+  oldPayload: DEventPayload
+  newParentId: string
+  newParentPayload: DEventPayload
+  childId: string
+}
+
+/**
  * Events are totally ordered by comparing their lamport clocks and in case of equal
  * lamport clocks by comparing their peerid.
  *

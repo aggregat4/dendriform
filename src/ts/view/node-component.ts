@@ -15,10 +15,10 @@ const nodeTemplate = (
 ) =>
   // prettier-ignore
   html`<div
-  id="${node.node._id}"
+  id="${node.node.id}"
   class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}">
   <div class="nc">
-    <a href="#node=${node.node._id}" title="Focus on this node"></a>
+    <a href="#node=${node.node.id}" title="Focus on this node"></a>
     <div class="name" contenteditable="true">${unsafeHTML(node.filteredName ? node.filteredName.fragment : '')}</div>
     <span
       class="toggle ${node.children.loaded && !node.node.collapsed && children.elements.length === 0
@@ -45,7 +45,7 @@ function getChildElements(treeNode: FilteredRepositoryNode): DeferredArray<Filte
 }
 
 function isRoot(node: RepositoryNode): boolean {
-  return node._id === 'ROOT'
+  return node.id === 'ROOT'
 }
 
 /**

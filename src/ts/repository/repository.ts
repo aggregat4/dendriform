@@ -20,7 +20,7 @@ export interface LoadedTree {
 }
 
 export interface RepositoryNode {
-  _id: string
+  id: string
   name: string
   note: string
   deleted: boolean
@@ -36,7 +36,7 @@ function createNewRepositoryNodeWithContent(
   content: string
 ): RepositoryNode {
   return {
-    _id: id,
+    id: id,
     name,
     note: content,
     deleted: false,

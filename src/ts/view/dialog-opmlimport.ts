@@ -158,7 +158,7 @@ export class OpmlImportDialog
     parentId: string
   ): Promise<void> {
     const command = new CommandBuilder(
-      new CreateChildNodeCommandPayload(node.node._id, node.node.name, node.node.note, parentId)
+      new CreateChildNodeCommandPayload(node.node.id, node.node.name, node.node.note, parentId)
     )
       .isUndoable()
       .isBatch()
@@ -168,7 +168,7 @@ export class OpmlImportDialog
     await commandExecutor.performWithDom(command)
     // NOTE: this assumes that the children are always loaded
     for (const childNode of node.children.elements) {
-      await this.createNode(commandExecutor, childNode, node.node._id)
+      await this.createNode(commandExecutor, childNode, node.node.id)
     }
   }
 

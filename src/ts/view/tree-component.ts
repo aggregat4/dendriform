@@ -125,7 +125,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
       <div class="breadcrumbs">
         ${this.getFullParents().map(
           (parent) => html` <span>
-            <a href="#node=${parent._id}" data-id="${parent._id}" title="Open node '${parent.name}'"
+            <a href="#node=${parent.id}" data-id="${parent.id}" title="Open node '${parent.name}'"
               >${this.renderNodeName(parent.name)}</a
             >
           </span>`
@@ -299,7 +299,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
   }
 
   private async rerenderTree(): Promise<void> {
-    await this.loadNode(this.filteredTreeRoot.node._id)
+    await this.loadNode(this.filteredTreeRoot.node.id)
   }
 
   private async onBackgroundTreeChange(): Promise<void> {
@@ -443,7 +443,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
   private async onAddNodeButtonClick(): Promise<void> {
     const newNodeId = generateUUID()
     const command = new CommandBuilder(
-      new CreateChildNodeCommandPayload(newNodeId, '', null, this.filteredTreeRoot.node._id)
+      new CreateChildNodeCommandPayload(newNodeId, '', null, this.filteredTreeRoot.node.id)
     )
       .isUndoable()
       .isBatch()
