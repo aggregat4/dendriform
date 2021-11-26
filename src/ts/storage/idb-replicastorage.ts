@@ -2,17 +2,26 @@
 // Having this persisted tree storage will allow us to garbage collect the event log
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
-import { Replica } from '../eventlog/repository'
+import { generateUUID } from '../utils/util'
+
+/**
+ * Metadata about the state of the local replica.
+ */
+export interface ReplicaRecord {
+  replicaId: string
+  clock: number
+}
 
 interface ReplicaSchema extends DBSchema {
   replica: {
     key: string
-    value: Replica
+    value: ReplicaRecord
   }
 }
 
 export class IdbReplicaStorage implements LifecycleAware {
   private db: IDBPDatabase<ReplicaSchema>
+  private replica: ReplicaRecord
 
   constructor(readonly dbName: string) {}
 
@@ -25,6 +34,20 @@ export class IdbReplicaStorage implements LifecycleAware {
         })
       },
     })
+    this.loadOrCreateReplica()
+  }
+
+  private async loadOrCreateReplica(): Promise<void> {
+    const replica = await this.loadReplica()
+    if (replica == null) {
+      this.replica = {
+        replicaId: generateUUID(),
+        clock: 1,
+      }
+      await this.storeReplica(this.replica)
+    } else {
+      this.replica = replica
+    }
   }
 
   async deinit(): Promise<void> {
@@ -34,7 +57,23 @@ export class IdbReplicaStorage implements LifecycleAware {
     }
   }
 
-  async loadReplica(): Promise<Replica> {
+  getReplicaId(): string {
+    return this.replica.replicaId
+  }
+
+  getClock(): number {
+    return this.replica.clock
+  }
+
+  // TODO:  this seems like it may be a bottleneck if we need to store the clock all the time
+  // maybe consider moving towards not explicitly storing this but deriving it from the actual
+  // clock values in the log? (reverse index access)
+  async setClock(clock: number): Promise<void> {
+    this.replica.clock = clock
+    await this.storeReplica(this.replica)
+  }
+
+  private async loadReplica(): Promise<ReplicaRecord> {
     return this.db.getAll('replica').then(async (replicas) => {
       if (!replicas || replicas.length === 0) {
         return null
@@ -44,7 +83,7 @@ export class IdbReplicaStorage implements LifecycleAware {
     })
   }
 
-  async storeReplica(replica: Replica) {
+  private async storeReplica(replica: ReplicaRecord) {
     const tx = this.db.transaction('replica', 'readwrite')
     await tx.store.put(replica)
   }

@@ -1543,8 +1543,22 @@ I think we can implement this membership protocol alongside the normal event syn
 
 Implementation approach:
 - implement the move-op log with the storage scheme we described above without garbage collection and with a migration to lamport clocks
-  - create a new IDB storage repo with two tables for nodes and child parent relationships
+  - create a new IDB storage repo with a table for nodes with their parent relationship
   - create a new repository implementation paralell to repository-eventlog that uses the original eventlog and the new tree storage thing to implement this
   - we should be able to seriously reduce eventlog.ts as well since a bunch of that stuff should move to the new persistence implementation
 - modify the server to the new event approach and make sure the eventpump and the undo-redo ops are working
 - implement the membership protocol on the server and client 
+
+
+## 2021-11-17 Notes on reimplementation
+
+It's all a bit complicated in my head, but I am in the middle of trying to build up my backend based on log move records and I need to write some stuff down.
+
+I have removed the localId from all event storage in the new schema. This used to be used for determining a counter to determine what events we have already seen or not. I have the feeling that this should be solvable with purely the lamport clock value. That should suffice as a watershed to identify new events (as long as I couple it to a replica id).
+
+I can send events that are higher than a certain clock value for my own replica and I can requests events with a certain clock value for other replicas since I can assume the invariant that clocks are monotonically increasing for all events. There can never be a newer event from a certain replica that has the same or a lower clock than the ones I know.
+
+
+## 2021-11-26 implementation notes
+
+I have added a setClock method on the IdbReplicaStorage, but this seems like a bottleneck. Perhaps rather derive the current maxclock from the actual logmoverecords?

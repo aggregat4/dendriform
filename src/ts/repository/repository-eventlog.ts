@@ -4,7 +4,7 @@ import {
   DEvent,
   NodeFlags,
   createNewDEventPayload,
-  DEventPayload,
+  NodeMetadata,
 } from '../eventlog/eventlog-domain'
 import { Predicate, debounce, ALWAYS_TRUE } from '../utils/util'
 import { RelativeNodePosition, RELATIVE_NODE_POSITION_END } from '../domain/domain'
@@ -192,7 +192,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     relativePosition: RelativeNodePosition
   ): Promise<void> {
     const position = this.determineNewPositionForChild(id, parentId, relativePosition)
-    return this.eventLog.publish(
+    return this.eventLog.addLocalEvent(
       id,
       parentId,
       createNewDEventPayload(name, content, false, false, false, position),
@@ -212,7 +212,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
       }
       await this.deleteNode(node._id, parentId, synchronous)
     } */
-    await this.eventLog.publish(
+    await this.eventLog.addLocalEvent(
       node.id,
       parentId,
       createNewDEventPayload(
@@ -271,7 +271,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     // LOCAL: if we have a local change (not a remote peer) then we can directly update the cache without rebuilding
     this.childParentMap[node.id] = parentId
     const position = this.determineNewPositionForChild(node.id, parentId, relativePosition)
-    return this.eventLog.publish(
+    return this.eventLog.addLocalEvent(
       node.id,
       parentId,
       createNewDEventPayload(
@@ -312,7 +312,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     })
   }
 
-  private mapEventToRepositoryNode(nodeId: string, eventPayload: DEventPayload): RepositoryNode {
+  private mapEventToRepositoryNode(nodeId: string, eventPayload: NodeMetadata): RepositoryNode {
     return {
       id: nodeId,
       name: eventPayload.name,
@@ -503,10 +503,7 @@ export class EventlogRepository implements Repository, LifecycleAware {
     }
   }
 
-  subscribeToChanges(
-    parentNodeId: string,
-    nodeChangeListener: (nodeId: string) => void
-  ): Subscription {
+  subscribeToChanges(parentNodeId: string, nodeChangeListener: () => void): Subscription {
     const subscription = new NodeChangedSubscription(
       parentNodeId,
       nodeChangeListener,

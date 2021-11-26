@@ -18,7 +18,7 @@ export const enum NodeFlags {
  * The created and updated timestamps are stored as the number of seconds since the epoch
  * because we don't need more than that accuracy and we save space.
  */
-export interface DEventPayload {
+export interface NodeMetadata {
   name: string
   note: string
   /**
@@ -47,7 +47,7 @@ export function createNewDEventPayload(
   completed: boolean,
   logootPos: atomIdent,
   created?: number
-): DEventPayload {
+): NodeMetadata {
   return {
     name,
     note,
@@ -64,21 +64,11 @@ export function createNewDEventPayload(
 
 export class DEvent {
   constructor(
-    // This id is only guaranteed to be unique together with the originator
-    readonly localId: number,
-    // readonly type: EventType,
     readonly originator: string,
     public clock: number,
     readonly nodeId: string,
     readonly parentId: string,
-    readonly payload: {
-      name: string
-      note: string
-      flags: number
-      created: number
-      updated: number
-      logootPos: atomIdent
-    }
+    readonly payload: NodeMetadata
   ) {}
 }
 
@@ -96,17 +86,22 @@ export interface Events {
   events: DEvent[]
 }
 
-export interface DEventSource {
-  publish(
-    // type: EventType,
+export interface DEventLog {
+  /**
+   * This adds a local event where the originator and clock of the event is set
+   * by the system.
+   */
+  addLocalEvent(
     nodeId: string,
     parentId: string,
-    payload: DEventPayload,
+    payload: NodeMetadata,
     synchronous: boolean
   ): Promise<void>
-}
-
-export interface DEventLog extends DEventSource {
+  /**
+   * This adds a remote event from another replica to the event log.
+   * This is potentially asynchronous.
+   */
+  addRemoteEvent(events: DEvent[]): Promise<void>
   /**
    *  A globally unique ID identifying this peer in a multi-peer environment
    */
@@ -116,7 +111,6 @@ export interface DEventLog extends DEventSource {
    */
   getName(): string
   getCounter(): number
-  insert(events: DEvent[], synchronous: boolean): Promise<void>
   subscribe(subscriber: EventSubscriber): Subscription
   /**
    * Loads all local events with a counter/eventid that is _higher_ than the provided number.
@@ -132,6 +126,8 @@ export interface DEventLog extends DEventSource {
   getAllEvents(): Promise<Events>
 
   /**
+   * TODO: maybe don't need that anymore.
+   *
    * Gets the current, latest (after GC) structural event for a node, with type
    * EventType.ADD_OR_UPDATE_NODE.
    */

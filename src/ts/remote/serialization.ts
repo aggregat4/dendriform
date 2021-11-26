@@ -1,13 +1,12 @@
-import { DEvent, DEventPayload } from '../eventlog/eventlog-domain'
+import { DEvent, NodeMetadata } from '../eventlog/eventlog-domain'
 
 type ServerEvent = {
-  localId: number
   type: number
   originator: string
   clock: number
   nodeId: string
   parentId: string
-  payload: DEventPayload
+  payload: NodeMetadata
 }
 
 type ServerEventWrapper = {
@@ -51,7 +50,6 @@ export function deserializeServerEvents(events: ServerEventWrapper[]): DEvent[] 
  */
 function deserializeServerEvent(serverEvent: ServerEvent): DEvent {
   return new DEvent(
-    serverEvent.localId,
     serverEvent.originator,
     serverEvent.clock,
     serverEvent.nodeId,

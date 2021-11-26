@@ -13,6 +13,8 @@ import { storedEventComparator } from './repository'
 import { mapStoredEventToDEvent } from './eventlog-utils'
 import { IdbEventRepository, PeerIdAndEventIdKeyType } from './idb-event-repository'
 import { ActivityIndicating, LifecycleAware, Subscription } from '../domain/lifecycle'
+import { IdbLogMoveStorage } from '../storage/idb-logmovestorage'
+import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 
 class EventSubscription implements Subscription {
   constructor(
@@ -34,7 +36,6 @@ class EventSubscription implements Subscription {
 export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAware {
   private peerId: string
   private clock: number
-  private counter: number
   private subscriptions: EventSubscription[] = []
   // event storage queue
   private storageQueue: DEvent[] = []
@@ -57,8 +58,8 @@ export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAw
   )
 
   constructor(
-    readonly eventRepository: IdbEventRepository,
-    readonly peerIdMapper: LocalEventLogIdMapper
+    readonly logMoveStorage: IdbLogMoveStorage,
+    readonly replicaStorage: IdbReplicaStorage
   ) {}
 
   isActive(): boolean {
@@ -74,27 +75,11 @@ export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAw
   }
 
   getName(): string {
-    return this.eventRepository.getName()
-  }
-
-  getCounter(): number {
-    return this.counter
+    return this.logMoveStorage.getName()
   }
 
   async init(): Promise<void> {
     await this.loadOrCreateMetadata()
-    const maxEventId = await this.eventRepository.getMaxEventId()
-    this.counter = maxEventId >= 0 ? maxEventId : 0
-    /*     // Make sure we have a ROOT node and if not, create it
-    const rootNode = await this.getNodeEvent('ROOT')
-    if (!rootNode) {
-      await this.publish(
-        'ROOT',
-        createNewAddOrUpdateNodeEventPayload('ROOT', null, false, false, false),
-        true
-      )
-    }
- */ // start async event storage
     await this.storageQueueDrainer.start(true)
   }
 
@@ -171,7 +156,7 @@ export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAw
         }
       })
     )
-    await this.eventRepository.storeEvents(mappedEvents)
+    await this.logMoveStorage.storeEvents(mappedEvents)
   }
 
   private async loadOrCreateMetadata(): Promise<void> {
@@ -210,13 +195,17 @@ export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAw
     await this.insert([new DEvent(this.peerId, this.clock, nodeId, parentId, payload)], synchronous)
   }
 
+  async addRemoteEvent(events: DEvent[]): Promise<void> {
+    await this.insert(events, false)
+  }
+
   /**
    * 1. persist the event in indexeddb
    * 2. async notify any subscribers that are interested
    *
    * @param events The events to persist and rebroadcast.
    */
-  async insert(events: DEvent[], synchronous: boolean): Promise<void> {
+  private async insert(events: DEvent[], synchronous: boolean): Promise<void> {
     if (events.length === 0) {
       return
     }

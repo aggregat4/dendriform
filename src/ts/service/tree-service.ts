@@ -249,10 +249,7 @@ export class TreeService {
       .then(() => this.deleteNode(sourceNodeId, sourceParentId, synchronous))
   }
 
-  subscribeToChanges(
-    parentNodeId: string,
-    nodeChangeListener: (nodeId: string) => void
-  ): Subscription {
+  subscribeToChanges(parentNodeId: string, nodeChangeListener: () => void): Subscription {
     return this.repo.subscribeToChanges(parentNodeId, nodeChangeListener)
   }
 

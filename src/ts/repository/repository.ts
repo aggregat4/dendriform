@@ -107,8 +107,5 @@ export interface Repository extends LifecycleAware {
     loadCollapsedChildren: boolean
   ): Promise<LoadedTree>
 
-  subscribeToChanges(
-    parentNodeId: string,
-    nodeChangeListener: (nodeId: string) => void
-  ): Subscription
+  subscribeToChanges(parentNodeId: string, nodeChangeListener: () => void): Subscription
 }

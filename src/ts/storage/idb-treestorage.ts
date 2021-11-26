@@ -2,10 +2,12 @@
 // Having this persisted tree storage will allow us to garbage collect the event log
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
+import { atomIdent } from '../lib/modules/logootsequence'
 import { RepositoryNode } from '../repository/repository'
 
 export interface StoredNode extends RepositoryNode {
-  parentId: number
+  parentId: string
+  logootPos: atomIdent
 }
 
 interface TreeStoreSchema extends DBSchema {
@@ -44,5 +46,13 @@ export class IdbTreeStorage implements LifecycleAware {
 
   async storeNode(node: StoredNode): Promise<void> {
     await this.db.put('nodes', node)
+  }
+
+  async *nodeGenerator(): AsyncGenerator<StoredNode, void, void> {
+    let cursor = await this.db.transaction('nodes').store.openCursor()
+    while (cursor) {
+      yield cursor.value
+      cursor = await cursor.continue()
+    }
   }
 }

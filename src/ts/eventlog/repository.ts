@@ -1,4 +1,4 @@
-import { DEventPayload } from './eventlog-domain'
+import { NodeMetadata } from './eventlog-domain'
 
 export interface PeerMetadata {
   eventlogid: string
@@ -10,35 +10,11 @@ export interface PeerMetadata {
  */
 export interface StoredEvent {
   eventid: number
-  localId: number
   nodeid: string
   parentnodeid: string
   peerid: number // these are remapped peerids, from the external string to a number
   clock: number
-  payload: DEventPayload
-}
-
-/**
- * Metadata about the state of the local replica.
- */
-export interface Replica {
-  replicaId: string
-  clock: number
-}
-
-/**
- * A representation of all the log moves that we need to persist to allow
- * for processing new incoming events. This table will be garbage collected
- * once we can identify at what clock we are causally stable.
- */
-export interface LogMoveRecord {
-  clock: number
-  replicaId: string
-  oldParentId: string
-  oldPayload: DEventPayload
-  newParentId: string
-  newParentPayload: DEventPayload
-  childId: string
+  payload: NodeMetadata
 }
 
 /**

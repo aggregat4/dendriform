@@ -11,7 +11,3 @@ export interface ActivityIndicating {
   isActive(): boolean
   getActivityTitle(): string
 }
-
-export interface Subscription {
-  cancel(): void
-}

@@ -21,11 +21,16 @@ function insertMut(seq: sequence, index: number, anAtom: atom) {
 export class LogootSequenceWrapper {
   private seq: sequence = emptySequence()
 
-  constructor(readonly peerId: string) {}
+  constructor() {}
 
-  insertElement(element: string, position: RelativeNodePosition, clock: number): atomIdent {
+  insertElement(
+    element: string,
+    position: RelativeNodePosition,
+    clock: number,
+    siteId: string
+  ): atomIdent {
     const insertionIndex = this.getChildInsertionIndex(position)
-    const insertionAtomIdent = this.getAtomIdentForInsertionIndex(insertionIndex, clock)
+    const insertionAtomIdent = this.getAtomIdentForInsertionIndex(insertionIndex, clock, siteId)
     this.insertAtAtomIdent(element, insertionAtomIdent)
     return insertionAtomIdent
   }
@@ -98,18 +103,18 @@ export class LogootSequenceWrapper {
   }
 
   // TODO: only public for tests, how to handle?
-  getAtomIdentForInsertionIndex(pos: number, peerClock: number): atomIdent {
+  getAtomIdentForInsertionIndex(pos: number, peerClock: number, siteId: string): atomIdent {
     if (pos < 0) {
       throw new Error(`Invalid positionn ${pos}`)
     }
     return pos >= this.length()
       ? genAtomIdent(
-          this.peerId,
+          siteId,
           peerClock,
           this.seq[this.seq.length - 2][0],
           this.seq[this.seq.length - 1][0]
         )
-      : genAtomIdent(this.peerId, peerClock, this.seq[pos][0], this.seq[pos + 1][0])
+      : genAtomIdent(siteId, peerClock, this.seq[pos][0], this.seq[pos + 1][0])
   }
 
   getAtomIdentForItem(item: string): atomIdent | null {

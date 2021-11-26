@@ -11,3 +11,7 @@ export interface RelativeNodePosition {
 }
 
 export const RELATIVE_NODE_POSITION_END = { beforeOrAfter: RelativeLinearPosition.END }
+
+export interface Subscription {
+  cancel(): void
+}

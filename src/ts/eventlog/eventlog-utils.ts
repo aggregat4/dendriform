@@ -7,7 +7,6 @@ export function mapStoredEventToDEvent(
   ev: StoredEvent
 ): DEvent {
   return new DEvent(
-    ev.localId,
     peerIdMapper.internalToExternalPeerId(Number(ev.peerid)),
     ev.clock,
     ev.nodeid,
