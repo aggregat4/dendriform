@@ -1,5 +1,5 @@
-import { RelativeNodePosition } from '../domain/domain'
-import { LifecycleAware, Subscription } from '../domain/lifecycle'
+import { RelativeNodePosition, Subscription } from '../domain/domain'
+import { LifecycleAware } from '../domain/lifecycle'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 import { Predicate } from '../utils/util'
 

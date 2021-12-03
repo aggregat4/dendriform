@@ -163,7 +163,8 @@ export class EventPump implements LifecycleAware {
     )
     if (events.events.length > 0) {
       // This can be async, the client should see the changes eventually
-      await this.localEventLog.insert(events.events, false)
+      // TODO: implement
+      // await this.localEventLog.insert(events.events, false)
       this.maxLocalEventIds[originator] = events.counter
       await this.saveMetadata()
     }

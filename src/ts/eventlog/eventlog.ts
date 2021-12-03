@@ -12,18 +12,18 @@ import { JobScheduler, FixedTimeoutStrategy } from '../utils/jobscheduler'
 import { storedEventComparator } from './repository'
 import { mapStoredEventToDEvent } from './eventlog-utils'
 import { IdbEventRepository, PeerIdAndEventIdKeyType } from './idb-event-repository'
-import { ActivityIndicating, LifecycleAware, Subscription } from '../domain/lifecycle'
+import { ActivityIndicating, LifecycleAware } from '../domain/lifecycle'
 
-class EventSubscription implements Subscription {
-  constructor(
-    readonly cancelCallback: (subscription: Subscription) => void,
-    readonly subscriber: EventSubscriber
-  ) {}
+// class EventSubscription implements Subscription {
+//   constructor(
+//     readonly cancelCallback: (subscription: Subscription) => void,
+//     readonly subscriber: EventSubscriber
+//   ) {}
 
-  cancel(): void {
-    this.cancelCallback(this)
-  }
-}
+//   cancel(): void {
+//     this.cancelCallback(this)
+//   }
+// }
 
 /**
  * An event log implementation for the client that uses IndexedDb as a persistent
@@ -35,7 +35,7 @@ export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAw
   private peerId: string
   private clock: number
   private counter: number
-  private subscriptions: EventSubscription[] = []
+  // private subscriptions: EventSubscription[] = []
   // event storage queue
   private storageQueue: DEvent[] = []
   private lastStorageTimestamp = 0
@@ -60,6 +60,9 @@ export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAw
     readonly eventRepository: IdbEventRepository,
     readonly peerIdMapper: LocalEventLogIdMapper
   ) {}
+  addRemoteEvent(events: DEvent[]): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
 
   isActive(): boolean {
     return this.storageQueue.length > 0
@@ -142,7 +145,7 @@ export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAw
   private async storeEvents(events: DEvent[]): Promise<void> {
     await this.store(events)
     await this.saveMetadata()
-    this.notifySubscribers(events)
+    // this.notifySubscribers(events)
     // DEBUG timing output
     // TODO: put this in some metrics package with generic measurements so we can more easily instrument?
     this.storeCount += events.length
@@ -231,28 +234,28 @@ export class LocalEventLog implements DEventLog, ActivityIndicating, LifecycleAw
     }
   }
 
-  subscribe(subscriber: EventSubscriber): Subscription {
-    const subscription = new EventSubscription(
-      (subToCancel) =>
-        (this.subscriptions = this.subscriptions.filter((sub) => sub !== subToCancel)),
-      subscriber
-    )
-    this.subscriptions.push(subscription)
-    return subscription
-  }
+  // subscribe(subscriber: EventSubscriber): Subscription {
+  //   const subscription = new EventSubscription(
+  //     (subToCancel) =>
+  //       (this.subscriptions = this.subscriptions.filter((sub) => sub !== subToCancel)),
+  //     subscriber
+  //   )
+  //   this.subscriptions.push(subscription)
+  //   return subscription
+  // }
 
-  private notifySubscribers(events: DEvent[]): void {
-    for (const subscription of this.subscriptions) {
-      const subscriber = subscription.subscriber
-      const filteredEvents = events.filter((e) => subscriber.filter(e))
-      if (filteredEvents.length > 0) {
-        window.setTimeout(() => {
-          // console.debug(`Notifying subscriber`)
-          subscriber.notify(filteredEvents)
-        }, 0) // schedule at the earliest convenience
-      }
-    }
-  }
+  // private notifySubscribers(events: DEvent[]): void {
+  //   for (const subscription of this.subscriptions) {
+  //     const subscriber = subscription.subscriber
+  //     const filteredEvents = events.filter((e) => subscriber.filter(e))
+  //     if (filteredEvents.length > 0) {
+  //       window.setTimeout(() => {
+  //         // console.debug(`Notifying subscriber`)
+  //         subscriber.notify(filteredEvents)
+  //       }, 0) // schedule at the earliest convenience
+  //     }
+  //   }
+  // }
 
   async getRawLocalEventsSince(
     fromCounterNotInclusive: number,

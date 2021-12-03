@@ -3,6 +3,7 @@ import {
   RelativeLinearPosition,
   RelativeNodePosition,
   RELATIVE_NODE_POSITION_END,
+  Subscription,
 } from '../domain/domain'
 import {
   LoadedTree,
@@ -12,7 +13,6 @@ import {
   State,
 } from '../repository/repository'
 import { MergeNameOrder } from './service'
-import { Subscription } from '../domain/lifecycle'
 
 export class TreeService {
   constructor(readonly repo: Repository) {}

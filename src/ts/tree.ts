@@ -5,13 +5,12 @@ import { TreeService } from './service/tree-service'
 import { TreeServiceCommandHandler } from './commands/command-handler-tree-service'
 import { UndoableCommandHandler } from './commands/command-handler-undoable'
 import { Tree } from './view/tree-component'
-import { EventlogRepository } from './repository/repository-eventlog'
 import { LocalEventLog } from './eventlog/eventlog'
 import { RemoteEventLog } from './remote/eventlog-remote'
 import { EventPump } from './remote/eventpump'
 import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
 import { LocalEventLogIdMapper } from './eventlog/idb-peerid-repository'
-import { isLifecycleAware, LifecycleAware } from './domain/lifecycle'
+import { deinitAll, isLifecycleAware, LifecycleAware } from './domain/lifecycle'
 import { IdbEventRepository } from './eventlog/idb-event-repository'
 import { LocalEventLogGarbageCollector } from './eventlog/eventlog-gc'
 
@@ -23,49 +22,31 @@ export class TreeManager {
 
   private async createAndInitTree(treeName: string): Promise<Tree> {
     if (this.currentInitializer !== null) {
-      await this.deinitAll()
+      await deinitAll(this.initializables)
       this.currentInitializer = null
     }
-    const idbEventRepository = this.register(new IdbEventRepository(treeName))
-    const peerIdMapper = this.register(new LocalEventLogIdMapper(treeName + '-peerid-mapping'))
-    const localEventLog = this.register(new LocalEventLog(idbEventRepository, peerIdMapper))
-    this.register(new LocalEventLogGarbageCollector(idbEventRepository))
-    const remoteEventLog = this.register(new RemoteEventLog('/', treeName))
-    const repository = this.register(new EventlogRepository(localEventLog))
-    const treeService = this.register(new TreeService(repository))
-    const treeServiceCommandHandler = this.register(new TreeServiceCommandHandler(treeService))
-    const commandHandler = this.register(new UndoableCommandHandler(treeServiceCommandHandler))
-    const treeActionRegistry = this.register(new TreeActionRegistry())
-    registerTreeActions(treeActionRegistry)
-    const tree = this.register(
-      new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
-    )
-    // tree.commandHandler = commandHandler
-    // tree.treeService = treeService
-    // tree.treeActionRegistry = treeActionRegistry
-    // tree.activityIndicating = localEventLog
-    this.register(new EventPump(localEventLog, remoteEventLog, localEventLog.getPeerId()))
-    await this.initAll()
-    return tree
-  }
-
-  private register(object: any): any {
-    if (isLifecycleAware(object)) {
-      this.initializables.push(object)
-    }
-    return object
-  }
-
-  private async initAll(): Promise<void> {
-    for (const initializable of this.initializables) {
-      await initializable.init()
-    }
-  }
-
-  private async deinitAll(): Promise<void> {
-    while (this.initializables.length > 0) {
-      await this.initializables.pop().deinit()
-    }
+    // const idbEventRepository = this.register(new IdbEventRepository(treeName))
+    // const peerIdMapper = this.register(new LocalEventLogIdMapper(treeName + '-peerid-mapping'))
+    // const localEventLog = this.register(new LocalEventLog(idbEventRepository, peerIdMapper))
+    // this.register(new LocalEventLogGarbageCollector(idbEventRepository))
+    // const remoteEventLog = this.register(new RemoteEventLog('/', treeName))
+    // const repository = this.register(new EventlogRepository(localEventLog))
+    // const treeService = this.register(new TreeService(repository))
+    // const treeServiceCommandHandler = this.register(new TreeServiceCommandHandler(treeService))
+    // const commandHandler = this.register(new UndoableCommandHandler(treeServiceCommandHandler))
+    // const treeActionRegistry = this.register(new TreeActionRegistry())
+    // registerTreeActions(treeActionRegistry)
+    // const tree = this.register(
+    //   new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
+    // )
+    // // tree.commandHandler = commandHandler
+    // // tree.treeService = treeService
+    // // tree.treeActionRegistry = treeActionRegistry
+    // // tree.activityIndicating = localEventLog
+    // this.register(new EventPump(localEventLog, remoteEventLog, localEventLog.getPeerId()))
+    // await this.initAll()
+    // return tree
+    return null
   }
 
   async loadNode(nodeId: string): Promise<void> {

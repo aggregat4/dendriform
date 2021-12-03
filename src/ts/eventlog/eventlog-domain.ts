@@ -1,7 +1,6 @@
 import { Predicate } from '../utils/util'
 import { atomIdent } from '../lib/modules/logootsequence.js'
 import { secondsSinceEpoch } from '../utils/dateandtime'
-import { Subscription } from '../domain/lifecycle'
 
 export const enum NodeFlags {
   deleted = 1,
@@ -111,7 +110,7 @@ export interface DEventLog {
    */
   getName(): string
   getCounter(): number
-  subscribe(subscriber: EventSubscriber): Subscription
+  // subscribe(subscriber: EventSubscriber): Subscription
   /**
    * Loads all local events with a counter/eventid that is _higher_ than the provided number.
    * @return An array that contains the raw events, not causally sorted and deduplicated.

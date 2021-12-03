@@ -63,7 +63,8 @@ import {
   State,
   Status,
 } from '../repository/repository'
-import { ActivityIndicating, Subscription } from '../domain/lifecycle'
+import { ActivityIndicating } from '../domain/lifecycle'
+import { Subscription } from '../domain/domain'
 
 class TreeConfig {
   showCompleted = false

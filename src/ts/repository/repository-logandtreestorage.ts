@@ -1,14 +1,20 @@
-import { RelativeNodePosition } from '../domain/domain'
+import {
+  RelativeNodePosition,
+  RELATIVE_NODE_POSITION_END,
+  RELATIVE_NODE_POSITION_UNCHANGED,
+  Subscription,
+} from '../domain/domain'
 import { LifecycleAware } from '../domain/lifecycle'
 import { DEventLog } from '../eventlog/eventlog-domain'
 import { MoveOpTree } from '../moveoperation/moveoperation'
+import { secondsSinceEpoch } from '../utils/dateandtime'
 import { Predicate } from '../utils/util'
 import { LoadedTree, Repository, RepositoryNode } from './repository'
 
 // TODO: most of the real implementation (also subscribe to eventlog to update treeStorageStructure and notify subscribers)
 export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
-  constructor(readonly moveOpTree: MoveOpTree, readonly eventLog: DEventLog) {}
-
+  constructor(readonly moveOpTree: MoveOpTree) {}
+  // , readonly eventLog: DEventLog
   async init(): Promise<void> {}
 
   async deinit(): Promise<void> {}
@@ -30,14 +36,26 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
     synchronous: boolean,
     relativePosition: RelativeNodePosition
   ): Promise<void> {
-    await this.moveOpTree.createNewNode(id, parentId, name, content, relativePosition)
-    // TODO: this is where I left off, I just implemented this (maybe)
-    // TODO: write tests for this part (from storage up to here?)?
-    // TODO: implement synchronous and non synchronous storage if it becomes relevant
+    await this.moveOpTree.updateNode(
+      {
+        id: id,
+        name: name,
+        note: content,
+        collapsed: false,
+        completed: false,
+        deleted: false,
+        created: secondsSinceEpoch(),
+        updated: secondsSinceEpoch(),
+      },
+      parentId,
+      relativePosition
+    )
+    // TODO: implement synchronous and asynchronous storage if it becomes relevant
   }
 
   async updateNode(node: RepositoryNode, parentId: string, synchronous: boolean): Promise<void> {
-    throw new Error('Method not implemented.')
+    await this.moveOpTree.updateNode(node, parentId, RELATIVE_NODE_POSITION_UNCHANGED)
+    // TODO: implement synchronous and asynchronous storage if it becomes relevant
   }
 
   async reparentNode(
@@ -46,7 +64,8 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
     position: RelativeNodePosition,
     synchronous: boolean
   ): Promise<void> {
-    throw new Error('Method not implemented.')
+    await this.moveOpTree.updateNode(node, parentId, position)
+    // TODO: implement synchronous and asynchronous storage if it becomes relevant
   }
 
   async getChildIds(nodeId: string): Promise<string[]> {

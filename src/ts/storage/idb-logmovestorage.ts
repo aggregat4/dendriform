@@ -23,7 +23,7 @@ export type ClockAndPeerIdKeyType = [number, number]
 
 interface LogMoveSchema extends DBSchema {
   events: {
-    key: ['clock', 'peerid']
+    key: [number, string]
     value: LogMoveRecord
     indexes: {
       nodeid: string
@@ -45,8 +45,8 @@ export class IdbLogMoveStorage implements LifecycleAware {
   async init(): Promise<void> {
     this.db = await openDB<LogMoveSchema>(this.dbName, 1, {
       upgrade(db) {
-        const eventsStore = db.createObjectStore('events', {
-          keyPath: 'eventid',
+        db.createObjectStore('events', {
+          keyPath: ['clock', 'replicaId'],
           autoIncrement: false, // we generate our own keys, this is required since compound indexes with an auto-incremented key do not work everywhere (yet)
         })
         // eventsStore.createIndex('nodeid', 'nodeid')
@@ -96,7 +96,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
       }
       return tx.done
     } catch (error) {
-      console.error(`store error: `, error)
+      console.error(`store error: `, JSON.stringify(error))
     }
   }
 }

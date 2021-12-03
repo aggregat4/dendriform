@@ -2,6 +2,7 @@ import { run } from '../../lib/tizzy'
 import { ConsoleReporter } from '../../lib/tizzy-console-reporter'
 
 import './peeridmapper.test'
+import './logmove-repository.test'
 
 // Run tests async since the trun is async
 ;(async () => await run(new ConsoleReporter(), 'All Browser Tests'))()
