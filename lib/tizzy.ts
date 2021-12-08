@@ -37,11 +37,11 @@ export async function run(reporter: Reporter, headline: string): Promise<boolean
       await test.fn()
       reporter.success(test.name)
     } catch (e) {
-      for (const fn of afterTests) await fn()
       reporter.failure(test.name, e)
       return false
+    } finally {
+      for (const fn of afterTests) await fn()
     }
   }
-  for (const fn of afterTests) await fn()
-  reporter.end(tests.length)
+  return true
 }

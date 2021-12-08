@@ -60,6 +60,9 @@ export interface Status {
   msg?: string
 }
 
+export const STATUS_LOADED: Status = { state: State.LOADED }
+export const STATUS_NOT_FOUND: Status = { state: State.NOT_FOUND }
+
 export function createNewResolvedRepositoryNodeWithContent(
   id: string,
   name: string,

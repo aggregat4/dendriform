@@ -178,6 +178,16 @@ export class MoveOpTree implements LifecycleAware {
     return this.treeStore.loadNode(nodeId)
   }
 
+  getChildIds(nodeId: string): string[] {
+    const children = this.parentChildMap[nodeId]
+    if (children) {
+      return children.toArray()
+    } else {
+      // TODO: maybe  throw here because we expect to get a valid parent?
+      return null
+    }
+  }
+
   subscribeToSubtreeChanges(parentId: string, nodeChangeListener: () => void): Subscription {
     const subscription = new SubtreeChangedSubscription(
       parentId,
