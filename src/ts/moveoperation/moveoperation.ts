@@ -1,19 +1,12 @@
-import { CompleteNodeByIdCommandPayload } from '../commands/commands'
-import {
-  RelativeLinearPosition,
-  RelativeNodePosition,
-  RELATIVE_NODE_POSITION_END,
-  Subscription,
-} from '../domain/domain'
+import { RelativeLinearPosition, RelativeNodePosition, Subscription } from '../domain/domain'
 import { LifecycleAware } from '../domain/lifecycle'
 import { NodeFlags, NodeMetadata } from '../eventlog/eventlog-domain'
-import { atom, atomIdent } from '../lib/modules/logootsequence'
+import { atomIdent } from '../lib/modules/logootsequence'
 import { LogootSequenceWrapper } from '../repository/logoot-sequence-wrapper'
 import { RepositoryNode } from '../repository/repository'
 import { IdbLogMoveStorage } from '../storage/idb-logmovestorage'
 import { IdbReplicaStorage } from '../storage/idb-replicastorage'
-import { IdbTreeStorage, StoredNode } from '../storage/idb-treestorage'
-import { secondsSinceEpoch } from '../utils/dateandtime'
+import { IdbTreeStorage, ROOT_STORED_NODE, StoredNode } from '../storage/idb-treestorage'
 import { assert } from '../utils/util'
 
 export interface LocalMoveOp {
@@ -70,8 +63,8 @@ export class MoveOpTree implements LifecycleAware {
     const newParentChildMap = {}
     // iterate over all nodes in tree storage and add them to the tree
     for await (const node of this.treeStore.nodeGenerator()) {
-      const childSeq = this.getOrCreateSeqForParent(node.parentId, newParentChildMap)
-      childSeq.insertAtAtomIdent(node.id, node.logootPos)
+      const parentSeq = this.getOrCreateSeqForParent(node.parentId, newParentChildMap)
+      parentSeq.insertAtAtomIdent(node.id, node.logootPos)
     }
     this.parentChildMap = newParentChildMap
   }
@@ -175,16 +168,24 @@ export class MoveOpTree implements LifecycleAware {
   }
 
   async loadNode(nodeId: string): Promise<StoredNode> {
-    return this.treeStore.loadNode(nodeId)
+    if (nodeId == 'ROOT') {
+      return ROOT_STORED_NODE
+    } else {
+      return this.treeStore.loadNode(nodeId)
+    }
   }
 
+  /**
+   * Returns the children of the current node from our cache.
+   * @returns The array of children. In case the node is not known in our cache an empty list is returned.
+   *          The caller is responsible for verifying whether the node actually exists.
+   */
   getChildIds(nodeId: string): string[] {
     const children = this.parentChildMap[nodeId]
     if (children) {
       return children.toArray()
     } else {
-      // TODO: maybe  throw here because we expect to get a valid parent?
-      return null
+      return []
     }
   }
 

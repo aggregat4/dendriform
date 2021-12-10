@@ -12,12 +12,12 @@ import puppeteer from 'puppeteer'
   page.on('pageerror', (e) => {
     console.error(`error occurred: `, e)
   })
-  page.on('console', (e) => {
-    console.info(`console: `, e.text())
+  page.on('console', (msg) => {
+    console.info(`console ${msg.type()}:`, msg.text())
   })
   await page.goto(`file://${process.cwd()}/${process.env.TIZZY_ITEST_RELATIVE_FILENAME}`)
   try {
-    await page.waitForSelector('#integration-test-status', { timeout: 5000 })
+    await page.waitForSelector('#integration-test-status', { timeout: 15000 })
     const status = await page.evaluate(() => {
       return window['integrationTestStatus'] || 'status div found, but no status stored'
     })

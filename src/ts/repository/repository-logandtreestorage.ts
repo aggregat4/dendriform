@@ -6,7 +6,7 @@ import {
 import { LifecycleAware } from '../domain/lifecycle'
 import { MoveOpTree } from '../moveoperation/moveoperation'
 import { secondsSinceEpoch } from '../utils/dateandtime'
-import { Predicate } from '../utils/util'
+import { assert, Predicate } from '../utils/util'
 import {
   LoadedTree,
   Repository,
@@ -100,6 +100,10 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
         }
       }
       const storedNode = await this.moveOpTree.loadNode(nodeId)
+      assert(
+        storedNode != null,
+        `Since we have just loaded a tree for the node with id ${nodeId}, it must exist`
+      )
       const ancestors = []
       if (storedNode.parentId) {
         await this.loadAncestors(storedNode.parentId, ancestors)
@@ -110,7 +114,7 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
         ancestors: ancestors,
       }
     } catch (e) {
-      console.error(`Error loading tree from storage: `, e)
+      console.error(`Error loading tree from storage: `, e.toString(), e)
       return { status: { state: State.ERROR, msg: `Error loading tree` } }
     }
   }
@@ -124,13 +128,10 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
     if (!node) {
       return null
     }
-    const childIds = this.getChildIds(node.id)
+    const childIds = await this.getChildIds(node.id)
     if (!node.collapsed || loadCollapsedChildren) {
-      // TODO: verify whether we are really deferred here, since we _are_ awaiting the promise, not sure about this
       const children = await Promise.all(
-        (
-          await childIds
-        ).map(
+        childIds.map(
           async (childId) =>
             await this.loadTreeRecursive(childId, nodeFilter, loadCollapsedChildren)
         )
@@ -143,7 +144,7 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
       return {
         node,
         children: {
-          loaded: (await childIds).length === 0 ? true : false,
+          loaded: childIds.length === 0 ? true : false,
           elements: [],
         },
       }

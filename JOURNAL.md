@@ -1562,3 +1562,9 @@ I can send events that are higher than a certain clock value for my own replica 
 ## 2021-11-26 implementation notes
 
 I have added a setClock method on the IdbReplicaStorage, but this seems like a bottleneck. Perhaps rather derive the current maxclock from the actual logmoverecords?
+
+## 2021-12-10 uncertainty about how to handle the ROOT node
+
+It is unclear to me where we want to handle the special case that is the ROOT node. For now I have added the ROOT node as a special case to the moveoperation.ts loadNode method.
+
+BTW tests are absolutely critical for all the functionality. Don't believe I didn't have any for the storage before. :facepalm:

@@ -6,42 +6,23 @@ export interface Reporter {
 }
 
 const suite = []
-const beforeTests = []
-const afterTests = []
-const onlyTests = []
 
 export function test(name, fn) {
   suite.push({ name, fn })
 }
 
-export function only(name, fn) {
-  onlyTests.push({ name, fn })
-}
-
-export function before(fn) {
-  beforeTests.push(fn)
-}
-export function after(fn) {
-  afterTests.push(fn)
-}
-export function skip(fn) {
-  // intentionally left blank, this function is just a helper for the client to identify skips
-}
-
 export async function run(reporter: Reporter, headline: string): Promise<boolean> {
-  const tests = onlyTests[0] ? onlyTests : suite
-  reporter.start(headline)
-  for (const test of tests) {
+  reporter.start(`Starting ${headline} with ${suite.length} tests`)
+  let success = true
+  for (const test of suite) {
     try {
-      for (const fn of beforeTests) await fn()
       await test.fn()
       reporter.success(test.name)
     } catch (e) {
       reporter.failure(test.name, e)
-      return false
-    } finally {
-      for (const fn of afterTests) await fn()
+      success = false
     }
   }
-  return true
+  reporter.end(suite.length)
+  return success
 }

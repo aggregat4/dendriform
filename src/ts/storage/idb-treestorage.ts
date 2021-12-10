@@ -10,6 +10,19 @@ export interface StoredNode extends RepositoryNode {
   logootPos: atomIdent
 }
 
+export const ROOT_STORED_NODE: StoredNode = {
+  id: 'ROOT',
+  name: 'ROOT',
+  note: null,
+  collapsed: false,
+  deleted: false,
+  completed: false,
+  created: 0,
+  updated: 0,
+  parentId: null,
+  logootPos: null,
+}
+
 interface TreeStoreSchema extends DBSchema {
   nodes: {
     key: string

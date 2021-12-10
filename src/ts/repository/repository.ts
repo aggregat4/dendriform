@@ -30,6 +30,17 @@ export interface RepositoryNode {
   updated: number // seconds since the epoch
 }
 
+export const ROOT_NODE: RepositoryNode = {
+  id: 'ROOT',
+  name: 'ROOT',
+  note: null,
+  collapsed: false,
+  deleted: false,
+  completed: false,
+  created: 0,
+  updated: 0,
+}
+
 function createNewRepositoryNodeWithContent(
   id: string,
   name: string,

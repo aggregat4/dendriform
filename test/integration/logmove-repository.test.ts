@@ -1,5 +1,4 @@
-import test from 'oletus'
-// import { after, test } from '../../lib/tizzy'
+import { test } from '../../lib/tizzy'
 import expect from 'ceylon'
 import { deleteDB } from 'idb'
 import { LogAndTreeStorageRepository } from 'src/ts/repository/repository-logandtreestorage'
@@ -11,32 +10,34 @@ import { RELATIVE_NODE_POSITION_END } from 'src/ts/domain/domain'
 import { ALWAYS_TRUE } from 'src/ts/utils/util'
 import { deinitAll, initAll, LifecycleAware, register } from 'src/ts/domain/lifecycle'
 import { secondsSinceEpoch } from 'src/ts/utils/dateandtime'
-import { StrictAssertModule } from 'oletus/assert'
+import { ROOT_NODE } from 'src/ts/repository/repository'
 
-const testWithRepo = async (
-  title: string,
-  implementation: (t: StrictAssertModule, repo: LogAndTreeStorageRepository) => Promise<void>
-) => {
-  const initializables = []
-  const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
-  const logMoveStore = register(new IdbLogMoveStorage('logmovestoredb'), initializables)
-  const treeStore = register(new IdbTreeStorage('treestoredb'), initializables)
-  const moveOpTree = register(new MoveOpTree(replicaStore, logMoveStore, treeStore), initializables)
-  const repo = register(new LogAndTreeStorageRepository(moveOpTree), initializables)
-  await initAll(initializables)
-  try {
-    await test(title, (t) => implementation(t, repo))
-  } finally {
-    await deinitAll(initializables)
-    deleteDB('replicastoredb')
-    deleteDB('logmovestoredb')
-    deleteDB('treestoredb')
+function testWithRepo(t: (repo: LogAndTreeStorageRepository) => Promise<void>): () => void {
+  return async () => {
+    const initializables = []
+    const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
+    const logMoveStore = register(new IdbLogMoveStorage('logmovestoredb'), initializables)
+    const treeStore = register(new IdbTreeStorage('treestoredb'), initializables)
+    const moveOpTree = register(
+      new MoveOpTree(replicaStore, logMoveStore, treeStore),
+      initializables
+    )
+    const repo = register(new LogAndTreeStorageRepository(moveOpTree), initializables)
+    await initAll(initializables)
+    try {
+      await t(repo)
+    } finally {
+      await deinitAll(initializables)
+      deleteDB('replicastoredb')
+      deleteDB('logmovestoredb')
+      deleteDB('treestoredb')
+    }
   }
 }
 
-testWithRepo(
+test(
   'Creating a new node with just a name as a child of ROOT and then changing it',
-  async (t, repo) => {
+  testWithRepo(async (repo) => {
     await repo.createNode('abc123', 'ROOT', 'foobar', null, true, RELATIVE_NODE_POSITION_END)
     const loadedNode = await repo.loadNode('abc123', ALWAYS_TRUE)
     // t.notEqual(loadedNode, null)
@@ -65,17 +66,21 @@ testWithRepo(
     expect(updatedNode.collapsed).toBeTrue('collapsed should be true')
     expect(updatedNode.completed).toBeTrue('completed should be true')
     expect(updatedNode.deleted).toBeTrue('deleted should be true')
-  }
+  })
 )
 
-testWithRepo('Moving nodes between  parents', async (t, repo) => {
-  await repo.createNode('parent1', 'ROOT', null, null, true, RELATIVE_NODE_POSITION_END)
-  await repo.createNode('parent2', 'ROOT', null, null, true, RELATIVE_NODE_POSITION_END)
-  await repo.createNode('child1', 'parent1', null, null, true, RELATIVE_NODE_POSITION_END)
-  const rootNode = await repo.loadNode('ROOT', ALWAYS_TRUE)
-  const parent1Node = await repo.loadNode('parent1', ALWAYS_TRUE)
-  const child1Node = await repo.loadNode('child1', ALWAYS_TRUE)
-  const child1Tree = await repo.loadTree('child1', ALWAYS_TRUE, true)
-  expect(child1Tree.ancestors).toEqual([parent1Node, rootNode])
-  //await repo.reparentNode(child1Node, 'parent2', RELATIVE_NODE_POSITION_END, true)
-})
+test(
+  'Moving nodes between parents',
+  testWithRepo(async (repo) => {
+    await repo.createNode('parent1', 'ROOT', null, null, true, RELATIVE_NODE_POSITION_END)
+    await repo.createNode('parent2', 'ROOT', null, null, true, RELATIVE_NODE_POSITION_END)
+    await repo.createNode('child1', 'parent1', null, null, true, RELATIVE_NODE_POSITION_END)
+    const rootNode = ROOT_NODE
+    const parent1Node = await repo.loadNode('parent1', ALWAYS_TRUE)
+    const child1Node = await repo.loadNode('child1', ALWAYS_TRUE)
+    const child1Tree = await repo.loadTree('child1', ALWAYS_TRUE, true)
+    expect(child1Tree.ancestors).toEqual([parent1Node, rootNode])
+    // TODO: this is where I left off: the assertion above failes because the one rootnode is really a StoredNode and the other a RepositoryNode. Since one derives from the other they are not exactly the same. Manual assertion? (two fields extra in the one)
+    //await repo.reparentNode(child1Node, 'parent2', RELATIVE_NODE_POSITION_END, true)
+  })
+)
