@@ -145,12 +145,14 @@ describe('something' , () => {
 Something like testWithRepo could just be delegating to describe but how would I solve passing a function with specific parameters to nested describes? Some generics trickery?
 1. IMPROVEMENT: upgrade to lit-html 2, see https://lit.dev/docs/releases/upgrade/
 1. IMPROVEMENT: maybe consider trying https://talwindcss.com/ and give that a go here. I am curious how it feels.
+
+Old TODOs:
+
 1. BUG: marking as completed is broken, seems to render too many nodes as completed?
 1. BUG: after opml import you can not expand (or collapse) the newly imported nodes
 1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
 1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
 1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it? How do you ever delete a document?
-1. Try out remote containers in Visual Studio code: could define my dev environment with it and use VS Code as a remote editor
 1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Add a feature to quickly move nodes to another parent node. Either with a bunch of fixed targets and autocomplete and remembering the last used? is last used an antipattern since you may need a different one each time? Or based on tags somehow? Or autocomplete on all nodes with last used?
 1. Move garbage collection to a web worker, maybe use comlink?
@@ -163,9 +165,6 @@ Something like testWithRepo could just be delegating to describe but how would I
 1. Escape should dismiss dialogs
 1. Redesign the menu: trigger it differently on desktop and have an alternative for mobile
 
-1. Think through the performance of deleting a root node of a huge subtree: what does that mean for client storage? Do we keep any of those events?
-1. Importing OPML first seems to hang in the import dialog before dismissing it, this is probably the DOM update blocking everything, can we avoid that? This is only noticeable for really large imports.
-1. I probably need some kind of forced garbage collect where on a peer a user confirms that this is the master copy and some sort of synchronous operation happens that forces a reset. What does that mean? Generate a snapshot on the server and have clients load this? This means putting data structure knowhow on the server. Or the client generates a snapshot and sends it to the server, but this means that all clients need to have the same software version.
 1. We need some sort of versioning support: when the software evolves and it is running "in production" we need a way to gracefully upgrade. Our two external interfaces are the remote events and the local indexeddb storage of events. The local store can theoretically be recreated completely but we need to identify the version change, remote events we could maybe transform?
 1. Check if it works on iOS and Android
 1. i18n
@@ -176,17 +175,3 @@ Something like testWithRepo could just be delegating to describe but how would I
 1. MAYBE Implement moving up and down with arrow keys and maintaining approximate character position
 1. MAYBE Implement fancier UNDO for text: if I ever want fancier undo like in sublime text (on whitespace boundaries) then I need to actually handle direct keydown events and determine the input events myself because here I can no longer (easily) discern between single character updates and some larger input events like pasting or CTRL+BACKSPACE
 1. Make dialog positioning smarter by taking into account how much room we have on all sides.
-
-Test commit.
-
-## Research
-
-If I read <https://martin.kleppmann.com/papers/move-op.pdf> correctly this project implements not exactly the same thing but it is very close. That paper describes a CRDT for modeling a tree _without_ ordered children. It also uses timestamped (lamport timestamps) events (all events are "move operations"). It describes an extension of the algorithm (but only roughly) for ordered children by using a Logoot or RGA CRDT for the childlist on each node. Exactly like we do.
-
-Some comparisons between the paper and our implementation:
-- In the paper when a remote event comes in that lives somewhere in the history of all events, they undo all the events up until that point and then redo with the new event inserted. In contrast in dendriform we redo the entire tree cache afteer getting remote updates. Our implementation may be more performant for one peer editing the tree at a time (in aggregate) while their approach may be better for highly concurrent scenarios.
-- In the paper they only have one operation/event: the move operation. All changes such as renames, reparenting and deletes are modeled using this operation. For a rename the metadata is changed but the parent is the same. For deletes they just move the node to a "trash" parent and reparenting is basically the move itsel.
-- They resolve the two possible conflicts (concurrent moves and cycle generation) in the same way as us. With concurrent moves the last one wins and cycle generating events/operations are just discarded.
-- The paper does not describe any garbage collection strategies. I implemented this in dendriform explicitly because node names are the basic content of the tree and will change relatively often, causing a lot of redundant rename events to exist. Obviously this editing also dies down after a while. If the content of a dendriform CRDT node would not be a complete node itself than maybe the math would be different. Also still untested whether dendriform's garbage collection is strictly necessary for performance.
-
-TODO: I need to describe the intended nature of how the usage pattern of dendriform since that informs a lot of the implementation and architectural choices I made (no "real" concurrent editing, central server, nodes are potentially large texts, etc).
