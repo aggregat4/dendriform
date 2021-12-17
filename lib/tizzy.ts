@@ -11,6 +11,10 @@ export function test(name, fn) {
   suite.push({ name, fn })
 }
 
+export function fail(msg: string) {
+  throw new Error(msg)
+}
+
 export async function run(reporter: Reporter, headline: string): Promise<boolean> {
   reporter.start(`Starting ${headline} with ${suite.length} tests`)
   let success = true

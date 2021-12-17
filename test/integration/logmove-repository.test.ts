@@ -1,4 +1,4 @@
-import { test } from '../../lib/tizzy'
+import { test, fail } from '../../lib/tizzy'
 import expect from 'ceylon'
 import { deleteDB } from 'idb'
 import { LogAndTreeStorageRepository } from 'src/ts/repository/repository-logandtreestorage'
@@ -79,8 +79,26 @@ test(
     const parent1Node = await repo.loadNode('parent1', ALWAYS_TRUE)
     const child1Node = await repo.loadNode('child1', ALWAYS_TRUE)
     const child1Tree = await repo.loadTree('child1', ALWAYS_TRUE, true)
-    expect(child1Tree.ancestors).toEqual([parent1Node, rootNode])
-    // TODO: this is where I left off: the assertion above failes because the one rootnode is really a StoredNode and the other a RepositoryNode. Since one derives from the other they are not exactly the same. Manual assertion? (two fields extra in the one)
-    //await repo.reparentNode(child1Node, 'parent2', RELATIVE_NODE_POSITION_END, true)
+    // I can't easily compare the objects directly since the stored nodes are really StoredNode objects
+    // and they contain 2 additional properties (parentId and logootPos)
+    expect(child1Tree.ancestors.map((a) => a.id)).toEqual([parent1Node, rootNode].map((a) => a.id))
+    expect(child1Tree.tree.children.elements).toHaveLength(0)
+    expect(await repo.getChildIds('parent1')).toEqual([child1Node.id])
+    expect(await repo.getParentId('child1')).toEqual('parent1')
+    await repo.reparentNode(child1Node, 'parent2', RELATIVE_NODE_POSITION_END, true)
+    const newChild1Tree = await repo.loadTree('child1', ALWAYS_TRUE, true)
+    expect(newChild1Tree.ancestors.map((a) => a.id)).toEqual(['parent2', 'ROOT'])
+    // Move to non existent parent
+    try {
+      await repo.reparentNode(child1Node, 'nonexistentparent', RELATIVE_NODE_POSITION_END, true)
+      fail('We should not be able to reparent to a non existing parent node')
+    } catch (e) {
+      // this is expected, it should throw because the parent does not exist
+    }
+    // move the child back to original parent
+    await repo.reparentNode(child1Node, 'parent1', RELATIVE_NODE_POSITION_END, true)
+    expect(await repo.getChildIds('parent1')).toEqual([child1Node.id])
+    expect(await repo.getChildIds('parent2')).toEqual([])
+    expect(await repo.getParentId('child1')).toEqual('parent1')
   })
 )

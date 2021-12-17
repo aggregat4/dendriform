@@ -1,4 +1,9 @@
-import { RelativeLinearPosition, RelativeNodePosition, Subscription } from '../domain/domain'
+import {
+  RelativeLinearPosition,
+  RelativeNodePosition,
+  RELATIVE_NODE_POSITION_UNCHANGED,
+  Subscription,
+} from '../domain/domain'
 import { LifecycleAware } from '../domain/lifecycle'
 import { NodeFlags, NodeMetadata } from '../eventlog/eventlog-domain'
 import { atomIdent } from '../lib/modules/logootsequence'
@@ -113,48 +118,103 @@ export class MoveOpTree implements LifecycleAware {
   }
 
   /**
-   * Only updates the node itself, not the parent and not the position in the parent child list.
+   * This update operation will check whether the node already existed and if so record the appropriate
+   * change event.
    */
   async updateNode(node: RepositoryNode, parentId: string, relativePosition: RelativeNodePosition) {
+    // we need to retrieve the current (or old) node so we can record the change from old to new
+    const oldNode = await this.treeStore.loadNode(node.id)
+    if (oldNode != null) {
+      await this.updateExistingNode(oldNode, node, parentId, relativePosition)
+    } else {
+      await this.createNewNode(node, parentId, relativePosition)
+    }
+  }
+
+  private async createNewNode(
+    node: RepositoryNode,
+    parentId: string,
+    relativePosition: RelativeNodePosition
+  ) {
+    assert(
+      relativePosition != RELATIVE_NODE_POSITION_UNCHANGED,
+      'When creating a new node you must provide a relative position'
+    )
     const clock = this.replicaStore.getClock() + 1
     // TODO: remove clock storage bottleneck
     await this.replicaStore.setClock(clock)
-    const seq = this.getOrCreateSeqForParent(parentId, this.parentChildMap)
+    const newParentSeq = this.getOrCreateSeqForParent(parentId, this.parentChildMap)
     assert(
-      seq !== null,
+      newParentSeq !== null,
       'When updating a node we assume that the parent is known in our parent child map'
     )
-    const oldLogootPos = seq.getAtomIdentForItem(node.id)
+    const newLogootPos = newParentSeq.insertElement(
+      node.id,
+      relativePosition,
+      clock,
+      this.replicaStore.getReplicaId()
+    )
+    const localMoveOp = {
+      nodeId: node.id,
+      parentId: parentId,
+      metadata: toNodeMetaData(node, newLogootPos),
+    }
+    await this.recordLocalMoveOp(localMoveOp, null, null, clock)
+  }
+
+  private async updateExistingNode(
+    oldNode: StoredNode,
+    node: RepositoryNode,
+    parentId: string,
+    relativePosition: RelativeNodePosition
+  ) {
+    assert(oldNode != null, 'You must provide an existing node if you are going to change it')
+    assert(
+      !(oldNode.parentId != parentId && relativePosition == RELATIVE_NODE_POSITION_UNCHANGED),
+      'When we claim that the position of the node is UNCHANGED, we can not be moving it between two different parents'
+    )
+    const clock = this.replicaStore.getClock() + 1
+    // TODO: remove clock storage bottleneck
+    await this.replicaStore.setClock(clock)
+    const newParentSeq = this.getOrCreateSeqForParent(parentId, this.parentChildMap)
+    assert(
+      newParentSeq !== null,
+      'When updating a node we assume that the parent is known in our parent child map'
+    )
+    const oldParentSeq = this.getOrCreateSeqForParent(oldNode.parentId, this.parentChildMap)
+    assert(
+      oldParentSeq !== null,
+      'When updating a node we assume that the old parent is known in our parent child map'
+    )
+    const oldLogootPos = oldParentSeq.getAtomIdentForItem(node.id)
+    assert(oldLogootPos != null, 'When a node is already in the tree it must also have a position')
     assert(
       !(oldLogootPos == null && relativePosition.beforeOrAfter == RelativeLinearPosition.UNCHANGED),
       'If we are claiming that the position of a node among its siblings is unchanged, it should at least exist among those siblings'
     )
-    if (
-      oldLogootPos != null &&
-      relativePosition.beforeOrAfter != RelativeLinearPosition.UNCHANGED
-    ) {
-      seq.deleteAtAtomIdent(oldLogootPos)
+    if (relativePosition.beforeOrAfter != RelativeLinearPosition.UNCHANGED) {
+      oldParentSeq.deleteAtAtomIdent(oldLogootPos)
     }
-    const logootPos =
+    const newLogootPos =
       relativePosition.beforeOrAfter != RelativeLinearPosition.UNCHANGED
-        ? seq.insertElement(node.id, relativePosition, clock, this.replicaStore.getReplicaId())
+        ? newParentSeq.insertElement(
+            node.id,
+            relativePosition,
+            clock,
+            this.replicaStore.getReplicaId()
+          )
         : oldLogootPos
     const localMoveOp = {
       nodeId: node.id,
       parentId: parentId,
-      metadata: toNodeMetaData(node, logootPos),
+      metadata: toNodeMetaData(node, newLogootPos),
     }
-    const oldNode = await this.treeStore.loadNode(node.id)
-    if (oldNode) {
-      await this.recordLocalMoveOp(
-        localMoveOp,
-        oldNode.parentId,
-        toNodeMetaData(oldNode, oldNode.logootPos),
-        clock
-      )
-    } else {
-      await this.recordLocalMoveOp(localMoveOp, null, null, clock)
-    }
+    await this.recordLocalMoveOp(
+      localMoveOp,
+      oldNode.parentId,
+      toNodeMetaData(oldNode, oldNode.logootPos),
+      clock
+    )
   }
 
   // for remote updates where we have full events coming in
