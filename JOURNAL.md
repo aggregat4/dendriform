@@ -1512,13 +1512,12 @@ Assuming lamport clocks:
 * Storage IDB:
   * eventRepository (lamportclock, peerid, payload)
   * treeRepository
-    * nodes (nodeid, payload)
-    * parents (childid, parentid)
+    * nodes (nodeid, parentid, payload)
 * Storage Memory: just parentid -> child-logoot-seq 
 
 Looking up ancestors and node details is an IDB query. 
 
-Theoretically I could persist the logoout sequence with the node as well. Not sure what's the better tradeoff here. Keep in memory for now?
+Theoretically I could persist the logoot sequence with the node as well. Not sure what's the better tradeoff here. Keep in memory for now?
 
 Klepmann says that garbage collecting the log is trivial, but they assume a fixed replica set and I have a dynamic replica set (bunch of peers).
 
@@ -1530,10 +1529,13 @@ Using the server we can implement a join protocol and therefore manage the repli
 
 **join(peerid) -> new clock** (one higher than the highest known clock of all currently known replicas).
 
-**currentReplicaset(replicaid,clock) -> replicas(List[replicaid,clock])**
-  This increases the replicaids clock to the provided value and returns the current list of all replicas and clocks
+**updateReplicaset(replicaid,clock) -> replicas(List[replicaid,clock])**
+  This increases the replica'id's clock to the provided value and returns the current list of all replicas and clocks (including the new one)
 
-A peer can then only perform garbage collection after having called currentReplicaset. This guarantees that all known replicas are included and any replicas that were just trying to join will get clocks higher than the returned values. This prevents garbage collection of events that may still get concurrent updates. If a replica goes offline for a long time, its clock will remain on a low level and prevent events concurrent or newer to be garbage collected.
+A peer can only call updateReplicaset after having sent all remaining events to the server, and getting all remaining events from the server.
+
+TODO: check this logic: how do we prevent 
+A peer can then only perform garbage collection after having called updateReplicaset. This guarantees that all known replicas are included and any replicas that were just trying to join will get clocks higher than the returned values. This prevents garbage collection of events that may still get concurrent updates. If a replica goes offline for a long time, its clock will remain on a low level and prevent events concurrent or newer to be garbage collected.
 
 This will effectively allow safe garbage collection, but it does not account for nodes going offline and not returning. They could cause garbage collection to become increasingly ineffective as we can't collect garbage anymore.
 
@@ -1567,4 +1569,4 @@ I have added a setClock method on the IdbReplicaStorage, but this seems like a b
 
 It is unclear to me where we want to handle the special case that is the ROOT node. For now I have added the ROOT node as a special case to the moveoperation.ts loadNode method.
 
-BTW tests are absolutely critical for all the functionality. Don't believe I didn't have any for the storage before. :facepalm:
+BTW tests are absolutely critical for all the functionality. Can't believe I didn't have any for the storage before. :facepalm:

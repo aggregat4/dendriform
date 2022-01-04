@@ -61,6 +61,10 @@ export class IdbTreeStorage implements LifecycleAware {
     await this.db.put('nodes', node)
   }
 
+  async deleteNode(nodeId: string): Promise<void> {
+    await this.db.delete('nodes', nodeId)
+  }
+
   async *nodeGenerator(): AsyncGenerator<StoredNode, void, void> {
     let cursor = await this.db.transaction('nodes').store.openCursor()
     while (cursor) {

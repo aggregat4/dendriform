@@ -22,7 +22,7 @@ export type PeerIdAndEventIdKeyType = [number, number]
 export type ClockAndPeerIdKeyType = [number, number]
 
 interface LogMoveSchema extends DBSchema {
-  events: {
+  logmoveops: {
     key: [number, string]
     value: LogMoveRecord
     indexes: {
@@ -45,7 +45,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
   async init(): Promise<void> {
     this.db = await openDB<LogMoveSchema>(this.dbName, 1, {
       upgrade(db) {
-        db.createObjectStore('events', {
+        db.createObjectStore('logmoveops', {
           keyPath: ['clock', 'replicaId'],
           autoIncrement: false, // we generate our own keys, this is required since compound indexes with an auto-incremented key do not work everywhere (yet)
         })
@@ -84,7 +84,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
   }
 
   async storeEvents(events: LogMoveRecord[]): Promise<void> {
-    const tx = this.db.transaction('events', 'readwrite')
+    const tx = this.db.transaction('logmoveops', 'readwrite')
     try {
       // This is an efficient bulk add that does not wait for the success callback, inspired by
       // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
@@ -97,6 +97,31 @@ export class IdbLogMoveStorage implements LifecycleAware {
       return tx.done
     } catch (error) {
       console.error(`store error: `, JSON.stringify(error))
+    }
+  }
+
+  async deleteAllNewerLogmoveRecordsInReverse(
+    clock: number,
+    replicaId: string,
+    callback: (logmoveop: LogMoveRecord) => void
+  ): Promise<void> {
+    let cursor = await this.db
+      .transaction('logmoveops', 'readwrite')
+      // iterate over the logmoverecords in reverse, newest logmoveop first
+      .store.openCursor(null, 'prev')
+    while (cursor) {
+      const currentRecord = cursor.value
+      // This is our total ordering operator on logmoverecords
+      if (
+        currentRecord.clock > clock ||
+        (currentRecord.clock == clock && currentRecord.replicaId > replicaId)
+      ) {
+        callback(currentRecord)
+        cursor.delete()
+        cursor = await cursor.continue()
+      } else {
+        return
+      }
     }
   }
 }

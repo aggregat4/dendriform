@@ -42,7 +42,7 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
     synchronous: boolean,
     relativePosition: RelativeNodePosition
   ): Promise<void> {
-    await this.moveOpTree.updateNode(
+    await this.moveOpTree.updateLocalNode(
       {
         id: id,
         name: name,
@@ -60,7 +60,7 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
   }
 
   async updateNode(node: RepositoryNode, parentId: string, synchronous: boolean): Promise<void> {
-    await this.moveOpTree.updateNode(node, parentId, RELATIVE_NODE_POSITION_UNCHANGED)
+    await this.moveOpTree.updateLocalNode(node, parentId, RELATIVE_NODE_POSITION_UNCHANGED)
     // TODO: implement synchronous and asynchronous storage if it becomes relevant
   }
 
@@ -70,7 +70,7 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
     position: RelativeNodePosition,
     synchronous: boolean
   ): Promise<void> {
-    await this.moveOpTree.updateNode(node, parentId, position)
+    await this.moveOpTree.updateLocalNode(node, parentId, position)
     // TODO: implement synchronous and asynchronous storage if it becomes relevant
   }
 
@@ -101,7 +101,7 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
       }
       const storedNode = await this.moveOpTree.loadNode(nodeId)
       assert(
-        storedNode != null,
+        !!storedNode,
         `Since we have just loaded a tree for the node with id ${nodeId}, it must exist`
       )
       const ancestors = []
