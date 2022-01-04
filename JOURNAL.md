@@ -1570,3 +1570,11 @@ I have added a setClock method on the IdbReplicaStorage, but this seems like a b
 It is unclear to me where we want to handle the special case that is the ROOT node. For now I have added the ROOT node as a special case to the moveoperation.ts loadNode method.
 
 BTW tests are absolutely critical for all the functionality. Can't believe I didn't have any for the storage before. :facepalm:
+
+## 2022-01-04
+
+I have implemented the missing support for remote move operations in the moveoperation.ts. Theoretically this makes the backend for the repository feature complete.
+
+It is still annoying that there is such a duplication in logic between updateLocal and updateRemote methods. Can't find a good way to abstract out the common logic. I will at least need tests to check this.
+
+Which brings us to the next todo: write tests for all that new remote update logic and perhaps also its interaction with local updates!
