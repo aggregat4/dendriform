@@ -7,8 +7,12 @@
     "url": "https://github.com/aggregat4/dendriform"
   },
   "engines": {
-    "node": ">=14.17.1",
-    "npm": ">=7.18.1"
+    "node": ">=17.3.1",
+    "npm": ">=8.3.0"
+  },
+  "volta": {
+    "node": "17.3.1",
+    "npm": "8.3.0"
   },
   "main": "main.js",
   "scripts": {
@@ -35,23 +39,23 @@
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/file-saver": "2.0.3",
+    "@types/file-saver": "2.0.5",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
-    "esbuild": "0.13.9",
-    "eslint": "8.1.0",
+    "esbuild": "0.14.11",
+    "eslint": "8.6.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-prettier": "4.0.0",
-    "jsdom": "18.0.0",
+    "jsdom": "19.0.0",
     "jsdom-global": "3.0.2",
-    "prettier": "2.4.1",
-    "puppeteer": "10.4.0",
+    "prettier": "2.5.1",
+    "puppeteer": "13.0.1",
     "ts-node": "10.4.0",
-    "typescript": "4.4.4"
+    "typescript": "4.5.4"
   },
   "dependencies": {
     "file-saver": "2.0.5",
-    "idb": "6.1.5",
+    "idb": "7.0.0",
     "lit-html": "1.4.1"
   }
 }
