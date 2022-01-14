@@ -28,6 +28,7 @@
     "cbt": "npm run clean && npm run bt",
     "audit": "npm audit --omit dev",
     "watch": "npx chokidar-cli 'src/**/*.*' --initial -c 'npm run bt'",
+    "watchit": "npx chokidar-cli 'src/**/*.*' 'test/**/*.*' --initial -c 'npm run cbt'",
     "serve": "npx http-server dist",
     "sloc": "npx sloc src",
     "unused-exports": "npx ts-prune",
