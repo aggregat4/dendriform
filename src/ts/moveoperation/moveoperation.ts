@@ -196,7 +196,7 @@ export class MoveOpTree implements LifecycleAware {
     oldParentId: string,
     oldPayload: NodeMetadata
   ): Promise<void> {
-    this.logMoveStore.storeEvents([
+    await this.logMoveStore.storeEvents([
       {
         clock: moveOp.clock,
         replicaId: moveOp.replicaId,
@@ -226,7 +226,7 @@ export class MoveOpTree implements LifecycleAware {
   async applyMoveOp(moveOp: MoveOp): Promise<void> {
     const undoneLogMoveOps = []
     // UNDO all the newer logmoveops
-    this.logMoveStore.deleteAllNewerLogmoveRecordsInReverse(
+    await this.logMoveStore.undoAllNewerLogmoveRecordsInReverse(
       moveOp.clock,
       moveOp.replicaId,
       async (logMoveOp: LogMoveRecord) => {
@@ -235,11 +235,11 @@ export class MoveOpTree implements LifecycleAware {
       }
     )
     // APPLY the new logmoveop
-    this.updateRemoteNode(moveOp)
+    await this.updateRemoteNode(moveOp)
     // REDO all the logmoveops, but with a proper moveOperation so we can check for cycles, etc.
     // This will also update the child parent maps and treestore.
-    undoneLogMoveOps.reverse().map((logMoveOp: LogMoveRecord) => {
-      this.updateRemoteNode({
+    undoneLogMoveOps.reverse().map(async (logMoveOp: LogMoveRecord) => {
+      await this.updateRemoteNode({
         nodeId: logMoveOp.childId,
         clock: logMoveOp.clock,
         parentId: logMoveOp.newParentId,
@@ -293,22 +293,24 @@ export class MoveOpTree implements LifecycleAware {
    * This update operation will check whether the node already existed and if so record the appropriate
    * change event.
    */
-  async updateRemoteNode(moveOp: MoveOp) {
+  private async updateRemoteNode(moveOp: MoveOp) {
     const clock = this.replicaStore.getClock() + 1
     // TODO: remove clock storage bottleneck (this will also remove spurious clock updates if we reject operations because of cycles)
     await this.replicaStore.setClock(clock)
     const newParentSeq = this.getSeqForParent(moveOp.parentId, this.parentChildMap)
-    assert(
-      newParentSeq != null,
-      'When updating a node we assume that the parent is known in our parent child map'
-    )
     // if the referenced parent is unknown, we ignore this move op, it may be that we get the move op to create the parent sometime later
     if (newParentSeq == null) {
+      console.debug(
+        `Referenced parent ${moveOp.parentId} is unknown so we are ignore the moveOp entirely`
+      )
       return
     }
     // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
     // This prevents cycles
     if (isAncestorOf(moveOp.nodeId, moveOp.parentId, this.childParentMap)) {
+      console.debug(
+        `The new node ${moveOp.nodeId} is an ancestor f ${moveOp.parentId}, can not apply operation`
+      )
       return
     }
     // we need to retrieve the current (or old) node so we can record the change from old to new (if it exists)

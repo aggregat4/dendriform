@@ -83,24 +83,26 @@ export class IdbLogMoveStorage implements LifecycleAware {
     return this.dbName
   }
 
-  async storeEvents(events: LogMoveRecord[]): Promise<void> {
+  async storeEvents(logMoveRecords: LogMoveRecord[]): Promise<void> {
     const tx = this.db.transaction('logmoveops', 'readwrite')
     try {
       // This is an efficient bulk add that does not wait for the success callback, inspired by
       // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
-      let i = 0
-      for (; i < events.length; i++) {
+      for (const logMoveRecord of logMoveRecords) {
         // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
-        await tx.store.add(events[i])
-        this.notifyListeners((listener: EventStorageListener) => listener.eventStored(events[i]))
+        tx.store.add(logMoveRecord)
+        // TODO: this needs to be move to an async op at this point the events are not stored yet
+        this.notifyListeners((listener: EventStorageListener) =>
+          listener.eventStored(logMoveRecord)
+        )
       }
-      return tx.done
+      await tx.done
     } catch (error) {
       console.error(`store error: `, JSON.stringify(error))
     }
   }
 
-  async deleteAllNewerLogmoveRecordsInReverse(
+  async undoAllNewerLogmoveRecordsInReverse(
     clock: number,
     replicaId: string,
     callback: (logmoveop: LogMoveRecord) => void

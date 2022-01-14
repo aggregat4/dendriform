@@ -8,7 +8,7 @@ import { IdbLogMoveStorage } from 'src/ts/storage/idb-logmovestorage'
 import { IdbTreeStorage } from 'src/ts/storage/idb-treestorage'
 import { RELATIVE_NODE_POSITION_END } from 'src/ts/domain/domain'
 import { ALWAYS_TRUE } from 'src/ts/utils/util'
-import { deinitAll, initAll, LifecycleAware, register } from 'src/ts/domain/lifecycle'
+import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
 import { secondsSinceEpoch } from 'src/ts/utils/dateandtime'
 import { ROOT_NODE } from 'src/ts/repository/repository'
 

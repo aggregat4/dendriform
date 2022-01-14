@@ -6,6 +6,7 @@ import { ConsoleReporter } from '../../lib/tizzy-console-reporter'
 
 // import './peeridmapper.test'
 import './logmove-repository.test'
+import './moveop-tree.test'
 
 // Run tests async since the trun is async
 ;(async () => {
