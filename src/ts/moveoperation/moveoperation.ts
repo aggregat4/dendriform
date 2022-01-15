@@ -103,7 +103,6 @@ export class MoveOpTree implements LifecycleAware {
     relativePosition: RelativeNodePosition
   ) {
     const replicaId = this.replicaStore.getReplicaId()
-
     const clock = this.replicaStore.getClock() + 1
     // TODO: remove clock storage bottleneck (this will also remove spurious clock updates if we reject operations because of cycles)
     await this.replicaStore.setClock(clock)
@@ -145,50 +144,46 @@ export class MoveOpTree implements LifecycleAware {
         relativePosition.beforeOrAfter != RelativeLinearPosition.UNCHANGED
           ? newParentSeq.insertElement(node.id, relativePosition, clock, replicaId)
           : oldLogootPos
-      await this.updateExistingNode(oldNode, node, parentId, newLogootPos, clock, replicaId)
+      const moveOp = {
+        nodeId: node.id,
+        parentId: parentId,
+        metadata: toNodeMetaData(node, newLogootPos),
+        replicaId,
+        clock,
+      }
+      await this.recordMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
+      await this.storeTreeNode(toStoredNode(moveOp))
     } else {
       assert(
         relativePosition != RELATIVE_NODE_POSITION_UNCHANGED,
         'When creating a new node you must provide a relative position'
       )
       const newLogootPos = newParentSeq.insertElement(node.id, relativePosition, clock, replicaId)
-      await this.createNewNode(node, parentId, newLogootPos, clock, replicaId)
+      const moveOp = {
+        nodeId: node.id,
+        parentId: parentId,
+        metadata: toNodeMetaData(node, newLogootPos),
+        replicaId,
+        clock,
+      }
+      await this.recordMoveOp(moveOp, null, null)
+      await this.storeTreeNode(toStoredNode(moveOp))
     }
   }
 
-  private async createNewNode(
-    node: RepositoryNode,
-    parentId: string,
-    newLogootPos: atomIdent,
-    clock: number,
-    replicaId: string
-  ) {
-    const moveOp = {
-      nodeId: node.id,
-      parentId: parentId,
-      metadata: toNodeMetaData(node, newLogootPos),
-      replicaId,
-      clock,
-    }
-    await this.recordMoveOp(moveOp, null, null)
-  }
-
-  private async updateExistingNode(
-    oldNode: StoredNode,
-    node: RepositoryNode,
-    parentId: string,
-    newLogootPos: atomIdent,
-    clock: number,
-    replicaId: string
-  ) {
-    const moveOp = {
-      nodeId: node.id,
-      parentId: parentId,
-      metadata: toNodeMetaData(node, newLogootPos),
-      replicaId,
-      clock,
-    }
-    await this.recordMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
+  private async recordUnappliedMoveOp(moveOp: MoveOp): Promise<void> {
+    await this.logMoveStore.storeEvents([
+      {
+        clock: moveOp.clock,
+        replicaId: moveOp.replicaId,
+        oldParentId: null,
+        oldPayload: null,
+        newParentId: moveOp.parentId,
+        newPayload: moveOp.metadata,
+        childId: moveOp.nodeId,
+        applied: false,
+      },
+    ])
   }
 
   private async recordMoveOp(
@@ -205,13 +200,34 @@ export class MoveOpTree implements LifecycleAware {
         newParentId: moveOp.parentId,
         newPayload: moveOp.metadata,
         childId: moveOp.nodeId,
+        applied: true,
       },
     ])
-    await this.treeStore.storeNode(toStoredNode(moveOp))
+  }
+
+  private async updateMoveOp(
+    moveOp: MoveOp,
+    oldParentId: string,
+    oldPayload: NodeMetadata
+  ): Promise<void> {
+    await this.logMoveStore.updateEvent({
+      clock: moveOp.clock,
+      replicaId: moveOp.replicaId,
+      oldParentId: oldParentId,
+      oldPayload: oldPayload,
+      newParentId: moveOp.parentId,
+      newPayload: moveOp.metadata,
+      childId: moveOp.nodeId,
+      applied: true,
+    })
+  }
+
+  private async storeTreeNode(storedNode: StoredNode): Promise<void> {
+    await this.treeStore.storeNode(storedNode)
     // TODO: consider moving tree caching and sequence management to the TreeStore?
     // in case we create a new node we also need to make an empty logootsequence
-    this.getOrCreateSeqForParent(moveOp.nodeId, this.parentChildMap)
-    this.childParentMap[moveOp.nodeId] = moveOp.parentId
+    this.getOrCreateSeqForParent(storedNode.id, this.parentChildMap)
+    this.childParentMap[storedNode.id] = storedNode.parentId
   }
 
   /**
@@ -234,6 +250,7 @@ export class MoveOpTree implements LifecycleAware {
         await this.undoLogMoveOp(logMoveOp)
       }
     )
+    console.debug(`I have ${undoneLogMoveOps.length} logmoverecords that I undid and will redo`)
     // APPLY the new logmoveop
     await this.updateRemoteNode(moveOp)
     // REDO all the logmoveops, but with a proper moveOperation so we can check for cycles, etc.
@@ -250,6 +267,9 @@ export class MoveOpTree implements LifecycleAware {
   }
 
   private async undoLogMoveOp(logMoveOp: LogMoveRecord) {
+    if (!logMoveOp.applied) {
+      return
+    }
     if (logMoveOp.oldParentId == null) {
       // the node was new, undoing just means deleting
       await this.treeStore.deleteNode(logMoveOp.childId)
@@ -294,14 +314,17 @@ export class MoveOpTree implements LifecycleAware {
    * change event.
    */
   private async updateRemoteNode(moveOp: MoveOp) {
-    const clock = this.replicaStore.getClock() + 1
+    const clock = this.replicaStore.getClock()
     // TODO: remove clock storage bottleneck (this will also remove spurious clock updates if we reject operations because of cycles)
-    await this.replicaStore.setClock(clock)
+    await this.replicaStore.setClock(Math.max(clock, moveOp.clock) + 1)
+    // We always at least record the event, even if we cannot apply it right now
+    // we may be able to apply it in the future once more events come in
+    this.recordUnappliedMoveOp(moveOp)
     const newParentSeq = this.getSeqForParent(moveOp.parentId, this.parentChildMap)
     // if the referenced parent is unknown, we ignore this move op, it may be that we get the move op to create the parent sometime later
     if (newParentSeq == null) {
       console.debug(
-        `Referenced parent ${moveOp.parentId} is unknown so we are ignore the moveOp entirely`
+        `Referenced parent ${moveOp.parentId} for node ${moveOp.nodeId} is unknown so we are ignoring the moveOp entirely`
       )
       return
     }
@@ -316,6 +339,7 @@ export class MoveOpTree implements LifecycleAware {
     // we need to retrieve the current (or old) node so we can record the change from old to new (if it exists)
     const oldNode = await this.loadNode(moveOp.nodeId)
     if (oldNode != null) {
+      console.debug(`We have an existing node with id ${moveOp.nodeId}`)
       const oldParentSeq = this.getSeqForParent(oldNode.parentId, this.parentChildMap)
       assert(
         oldParentSeq != null,
@@ -326,26 +350,15 @@ export class MoveOpTree implements LifecycleAware {
         oldLogootPos != null,
         'When a node is already in the tree it must also have a position'
       )
-      if (moveOp.parentId != oldNode.parentId) {
-        oldParentSeq.deleteAtAtomIdent(oldLogootPos)
-      }
-      await this.updateExistingNode(
-        oldNode,
-        toStoredNode(moveOp),
-        moveOp.parentId,
-        moveOp.metadata.logootPos,
-        clock,
-        moveOp.replicaId
-      )
-    } else {
+      oldParentSeq.deleteAtAtomIdent(oldLogootPos)
       newParentSeq.insertAtAtomIdent(moveOp.nodeId, moveOp.metadata.logootPos)
-      await this.createNewNode(
-        toStoredNode(moveOp),
-        moveOp.parentId,
-        moveOp.metadata.logootPos,
-        clock,
-        moveOp.replicaId
-      )
+      await this.updateMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldLogootPos))
+      await this.storeTreeNode(toStoredNode(moveOp))
+    } else {
+      console.debug(`Inserting a new node with id ${moveOp.nodeId}`)
+      newParentSeq.insertAtAtomIdent(moveOp.nodeId, moveOp.metadata.logootPos)
+      await this.updateMoveOp(moveOp, null, null)
+      await this.storeTreeNode(toStoredNode(moveOp))
     }
   }
 

@@ -15,6 +15,13 @@ export interface LogMoveRecord {
   newParentId: string
   newPayload: NodeMetadata
   childId: string
+  /**
+   * We need to store all lovemoverecords regardless of whether we applied them or not.
+   * We may decline to apply an event if perhaps its parent is not yet known at this time
+   * because the parent creation event has not arrived yet. When we undo the logmoverecords
+   * we need to be able to determine whether or not this event was applied.
+   */
+  applied: boolean
 }
 
 export type PeerIdAndEventIdKeyType = [number, number]
@@ -100,6 +107,10 @@ export class IdbLogMoveStorage implements LifecycleAware {
     } catch (error) {
       console.error(`store error: `, JSON.stringify(error))
     }
+  }
+
+  async updateEvent(logMoveRecord: LogMoveRecord): Promise<void> {
+    this.db.put('logmoveops', logMoveRecord)
   }
 
   async undoAllNewerLogmoveRecordsInReverse(

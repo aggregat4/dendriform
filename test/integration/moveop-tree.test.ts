@@ -1,17 +1,14 @@
 import { test, fail } from '../../lib/tizzy'
 import expect from 'ceylon'
 import { deleteDB } from 'idb'
-import { LogAndTreeStorageRepository } from 'src/ts/repository/repository-logandtreestorage'
-import { MoveOpTree } from 'src/ts/moveoperation/moveoperation'
+import { MoveOp, MoveOpTree } from 'src/ts/moveoperation/moveoperation'
 import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
 import { IdbLogMoveStorage } from 'src/ts/storage/idb-logmovestorage'
 import { IdbTreeStorage } from 'src/ts/storage/idb-treestorage'
 import { RELATIVE_NODE_POSITION_END } from 'src/ts/domain/domain'
-import { ALWAYS_TRUE } from 'src/ts/utils/util'
-import { deinitAll, initAll, LifecycleAware, register } from 'src/ts/domain/lifecycle'
-import { secondsSinceEpoch } from 'src/ts/utils/dateandtime'
-import { ROOT_NODE } from 'src/ts/repository/repository'
+import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
 import { LogootSequenceWrapper } from 'src/ts/repository/logoot-sequence-wrapper'
+import { atomIdent } from 'src/ts/lib/modules/logootsequence'
 
 function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () => void {
   return async () => {
@@ -35,95 +32,121 @@ function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () =>
   }
 }
 
+function createMoveOp(
+  clock: number,
+  nodeId: string,
+  parentId: string,
+  replicaId: string,
+  created: number,
+  logootPos: atomIdent
+): MoveOp {
+  return {
+    clock: clock,
+    nodeId: nodeId,
+    parentId: parentId,
+    replicaId: replicaId,
+    metadata: {
+      name: parentId,
+      note: null,
+      created: created,
+      updated: new Date().getTime(),
+      flags: 0,
+      logootPos: logootPos,
+    },
+  }
+}
+
 test(
   'Remote replica updates from the same replica in order',
   testWithMoveOpTree(async (moveOpTree) => {
     let clock = 1
     const parentseq = new LogootSequenceWrapper()
     const pos1 = parentseq.insertElement('parent1', RELATIVE_NODE_POSITION_END, clock, 'replica1')
-    await moveOpTree.applyMoveOp({
-      clock: clock,
-      nodeId: 'parent1',
-      parentId: 'ROOT',
-      replicaId: 'replica1',
-      metadata: {
-        name: 'parent1',
-        note: null,
-        created: new Date().getTime(),
-        updated: new Date().getTime(),
-        flags: 0,
-        logootPos: pos1,
-      },
-    })
+    await moveOpTree.applyMoveOp(
+      createMoveOp(clock, 'parent1', 'ROOT', 'replica1', new Date().getTime(), pos1)
+    )
     clock++
     const pos2 = parentseq.insertElement('parent2', RELATIVE_NODE_POSITION_END, clock, 'replica1')
-    await moveOpTree.applyMoveOp({
-      clock: clock,
-      nodeId: 'parent2',
-      parentId: 'ROOT',
-      replicaId: 'replica1',
-      metadata: {
-        name: 'parent2',
-        note: null,
-        created: new Date().getTime(),
-        updated: new Date().getTime(),
-        flags: 0,
-        logootPos: pos2,
-      },
-    })
+    await moveOpTree.applyMoveOp(
+      createMoveOp(clock, 'parent2', 'ROOT', 'replica1', new Date().getTime(), pos2)
+    )
     clock++
     const childseq = new LogootSequenceWrapper()
     const childpos = childseq.insertElement('child1', RELATIVE_NODE_POSITION_END, clock, 'replica1')
-    await moveOpTree.applyMoveOp({
-      clock: clock,
-      nodeId: 'child1',
-      parentId: 'parent1',
-      replicaId: 'replica1',
-      metadata: {
-        name: 'child1',
-        note: null,
-        created: new Date().getTime(),
-        updated: new Date().getTime(),
-        flags: 0,
-        logootPos: childpos,
-      },
-    })
-    const rootNode = ROOT_NODE
-    const parent1Node = await moveOpTree.loadNode('parent1')
+    const childTime = new Date().getTime()
+    await moveOpTree.applyMoveOp(
+      createMoveOp(clock, 'child1', 'parent1', 'replica1', childTime, childpos)
+    )
     const child1Node = await moveOpTree.loadNode('child1')
     // I can't easily compare the objects directly since the stored nodes are really StoredNode objects
     // and they contain 2 additional properties (parentId and logootPos)
     expect(child1Node).toExist('child1 should exist')
     expect(child1Node.parentId).toEqual('parent1')
     expect(moveOpTree.getChildIds('parent1')).toEqual([child1Node.id])
+    // reparent child1 to parent2
+    clock++
+    const childnewseq = new LogootSequenceWrapper()
+    const childnewpos = childnewseq.insertElement(
+      'child1',
+      RELATIVE_NODE_POSITION_END,
+      clock,
+      'replica1'
+    )
+    await moveOpTree.applyMoveOp(
+      createMoveOp(clock, 'child1', 'parent2', 'replica1', childTime, childnewpos)
+    )
+    const child1NewNode = await moveOpTree.loadNode('child1')
+    expect(child1NewNode).toExist('child1 should exist')
+    expect(child1NewNode.parentId).toEqual('parent2')
+    expect(moveOpTree.getChildIds('parent1')).toEqual([])
+    expect(moveOpTree.getChildIds('parent2')).toEqual([child1NewNode.id])
+  })
+)
 
-    // await repo.createNode('parent1', 'ROOT', null, null, true, RELATIVE_NODE_POSITION_END)
-    // await repo.createNode('parent2', 'ROOT', null, null, true, RELATIVE_NODE_POSITION_END)
-    // await repo.createNode('child1', 'parent1', null, null, true, RELATIVE_NODE_POSITION_END)
-    // const rootNode = ROOT_NODE
-    // const parent1Node = await repo.loadNode('parent1', ALWAYS_TRUE)
-    // const child1Node = await repo.loadNode('child1', ALWAYS_TRUE)
-    // const child1Tree = await repo.loadTree('child1', ALWAYS_TRUE, true)
-    // // I can't easily compare the objects directly since the stored nodes are really StoredNode objects
-    // // and they contain 2 additional properties (parentId and logootPos)
-    // expect(child1Tree.ancestors.map((a) => a.id)).toEqual([parent1Node, rootNode].map((a) => a.id))
-    // expect(child1Tree.tree.children.elements).toHaveLength(0)
-    // expect(await repo.getChildIds('parent1')).toEqual([child1Node.id])
-    // expect(await repo.getParentId('child1')).toEqual('parent1')
-    // await repo.reparentNode(child1Node, 'parent2', RELATIVE_NODE_POSITION_END, true)
-    // const newChild1Tree = await repo.loadTree('child1', ALWAYS_TRUE, true)
-    // expect(newChild1Tree.ancestors.map((a) => a.id)).toEqual(['parent2', 'ROOT'])
-    // // Move to non existent parent
-    // try {
-    //   await repo.reparentNode(child1Node, 'nonexistentparent', RELATIVE_NODE_POSITION_END, true)
-    //   fail('We should not be able to reparent to a non existing parent node')
-    // } catch (e) {
-    //   // this is expected, it should throw because the parent does not exist
-    // }
-    // // move the child back to original parent
-    // await repo.reparentNode(child1Node, 'parent1', RELATIVE_NODE_POSITION_END, true)
-    // expect(await repo.getChildIds('parent1')).toEqual([child1Node.id])
-    // expect(await repo.getChildIds('parent2')).toEqual([])
-    // expect(await repo.getParentId('child1')).toEqual('parent1')
+test(
+  'Remote replica updates arrive out of order but converge on correct state',
+  testWithMoveOpTree(async (moveOpTree) => {
+    // First the child event arrives but in reality it should happen after the first two parents are applied
+    const childClock = 3
+    const childseq = new LogootSequenceWrapper()
+    const childpos = childseq.insertElement(
+      'child1',
+      RELATIVE_NODE_POSITION_END,
+      childClock,
+      'replica1'
+    )
+    const childTime = new Date().getTime()
+    await moveOpTree.applyMoveOp(
+      createMoveOp(childClock, 'child1', 'parent1', 'replica1', childTime, childpos)
+    )
+    let child1Node = await moveOpTree.loadNode('child1')
+    expect(child1Node).toNotExist('child1 should not exist as the parents are not present yet')
+    // now we send the required parent moveops so that in the end the child moveop can be applied
+    const parent1Clock = 1
+    const parentseq = new LogootSequenceWrapper()
+    const pos1 = parentseq.insertElement(
+      'parent1',
+      RELATIVE_NODE_POSITION_END,
+      parent1Clock,
+      'replica1'
+    )
+    await moveOpTree.applyMoveOp(
+      createMoveOp(parent1Clock, 'parent1', 'ROOT', 'replica1', new Date().getTime(), pos1)
+    )
+    const parent2Clock = 2
+    const pos2 = parentseq.insertElement(
+      'parent2',
+      RELATIVE_NODE_POSITION_END,
+      parent2Clock,
+      'replica1'
+    )
+    await moveOpTree.applyMoveOp(
+      createMoveOp(parent2Clock, 'parent2', 'ROOT', 'replica1', new Date().getTime(), pos2)
+    )
+    child1Node = await moveOpTree.loadNode('child1')
+    // Now that the required parent event has arrived, the child should also exist
+    expect(child1Node).toExist('child1 should exist')
+    expect(child1Node.parentId).toEqual('parent1')
+    expect(moveOpTree.getChildIds('parent1')).toEqual([child1Node.id])
   })
 )
