@@ -41,7 +41,7 @@ export class LogootSequenceWrapper {
    */
   deleteElement(element: string): atomIdent {
     const indexOfChild = this.toArray().indexOf(element)
-    if (indexOfChild > 0) {
+    if (indexOfChild >= 0) {
       // ordering here is crucial: get the atom ident first, and THEN delete the item, otherwise
       // it is the wrong value
       // TODO: I don't think we need getAtomIdent for Index, we should just iterate and get the atomident directly

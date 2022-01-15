@@ -2,6 +2,7 @@ import { test } from '../lib/tizzy'
 import expect from 'ceylon'
 
 import { LogootSequenceWrapper } from '../src/ts/repository/logoot-sequence-wrapper'
+import { RELATIVE_NODE_POSITION_END } from '../src/ts/domain/domain'
 
 // describe('logoot sequences have invariants', () => {
 
@@ -64,33 +65,15 @@ test('inserting two elements and deleting one', () => {
   expect(seq.toArray()).toEqual(['bar'])
 })
 
-// // describe('logoot sequences can be modified with indices', () => {
-
-// test('inserting one element in an empty sequence', () => {
-//   const seq = new LogootSequenceWrapper()
-//   seq.insertAtIndex('foo', 0, 1)
-//   expect(seq.toArray()).toEqual(['foo'])
-// })
-
-// test('inserting multiple elements in an empty sequence', () => {
-//   const seq = new LogootSequenceWrapper()
-//   seq.insertAtIndex('foo', 0, 1)
-//   seq.insertAtIndex('bar', 0, 2)
-//   seq.insertAtIndex('baz', 0, 3)
-//   expect(seq.toArray()).toEqual(['baz', 'bar', 'foo'])
-// })
-
-// test('inserting one element and deleting it again', () => {
-//   const seq = new LogootSequenceWrapper()
-//   seq.insertAtIndex('foo', 0, 1)
-//   seq.deleteAtIndex(0)
-//   expect(seq.toArray()).toEqual([])
-// })
-
-// test('inserting two element and deleting one', () => {
-//   const seq = new LogootSequenceWrapper()
-//   seq.insertAtIndex('foo', 0, 1)
-//   seq.insertAtIndex('bar', 0, 2)
-//   seq.deleteAtIndex(0)
-//   expect(seq.toArray()).toEqual(['foo'])
-// })
+test('deleting an element by id', () => {
+  const seq = new LogootSequenceWrapper()
+  seq.insertElement('foo', RELATIVE_NODE_POSITION_END, 1, 'replica1')
+  seq.insertElement('bar', RELATIVE_NODE_POSITION_END, 2, 'replica1')
+  seq.deleteElement('foo')
+  expect(seq.toArray()).toEqual(['bar'])
+  seq.insertElement('foo', RELATIVE_NODE_POSITION_END, 1, 'replica1')
+  seq.insertElement('qux', RELATIVE_NODE_POSITION_END, 1, 'replica1')
+  expect(seq.toArray()).toEqual(['bar', 'foo', 'qux'])
+  seq.deleteElement('foo')
+  expect(seq.toArray()).toEqual(['bar', 'qux'])
+})
