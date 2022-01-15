@@ -24,10 +24,6 @@ export interface LogMoveRecord {
   applied: boolean
 }
 
-export type PeerIdAndEventIdKeyType = [number, number]
-
-export type ClockAndPeerIdKeyType = [number, number]
-
 interface LogMoveSchema extends DBSchema {
   logmoveops: {
     key: [number, string]
