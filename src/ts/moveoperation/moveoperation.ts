@@ -103,9 +103,7 @@ export class MoveOpTree implements LifecycleAware {
     relativePosition: RelativeNodePosition
   ) {
     const replicaId = this.replicaStore.getReplicaId()
-    const clock = this.replicaStore.getClock() + 1
-    // TODO: remove clock storage bottleneck (this will also remove spurious clock updates if we reject operations because of cycles)
-    await this.replicaStore.setClock(clock)
+    const clock = this.replicaStore.getClock()
     const newParentSeq = this.getSeqForParent(parentId, this.parentChildMap)
     assert(
       newParentSeq != null,
@@ -151,8 +149,11 @@ export class MoveOpTree implements LifecycleAware {
         replicaId,
         clock,
       }
-      await this.recordMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
-      await this.storeTreeNode(toStoredNode(moveOp))
+      await this.updateLocalNodeInternal(
+        moveOp,
+        oldNode.parentId,
+        toNodeMetaData(oldNode, oldNode.logootPos)
+      )
     } else {
       assert(
         relativePosition != RELATIVE_NODE_POSITION_UNCHANGED,
@@ -166,9 +167,19 @@ export class MoveOpTree implements LifecycleAware {
         replicaId,
         clock,
       }
-      await this.recordMoveOp(moveOp, null, null)
-      await this.storeTreeNode(toStoredNode(moveOp))
+      await this.updateLocalNodeInternal(moveOp, null, null)
     }
+  }
+
+  private async updateLocalNodeInternal(
+    moveOp: MoveOp,
+    oldParentId: string,
+    oldMetadata: NodeMetadata
+  ): Promise<void> {
+    await this.recordMoveOp(moveOp, oldParentId, oldMetadata)
+    // TODO: remove clock storage bottleneck (this will also remove spurious clock updates if we reject operations because of cycles)
+    await this.replicaStore.setClock(moveOp.clock + 1)
+    await this.storeTreeNode(toStoredNode(moveOp))
   }
 
   private async recordUnappliedMoveOp(moveOp: MoveOp): Promise<void> {
@@ -363,8 +374,18 @@ export class MoveOpTree implements LifecycleAware {
   }
 
   // for the pump
-  async getMoveOpsSince(replicaId: string, clock: number): Promise<MoveOp[]> {
-    throw new Error('Method not implemented.')
+  async getLocalMoveOpsSince(clock: number, batchSize: number): Promise<MoveOp[]> {
+    const replicaId = this.replicaStore.getReplicaId()
+    const moveOps = await this.logMoveStore.getEventsForReplicaSince(replicaId, clock, batchSize)
+    return moveOps.map((logMoveRecord) => {
+      return {
+        clock: logMoveRecord.clock,
+        replicaId: logMoveRecord.replicaId,
+        nodeId: logMoveRecord.childId,
+        parentId: logMoveRecord.newParentId,
+        metadata: logMoveRecord.newPayload,
+      }
+    })
   }
 
   /**

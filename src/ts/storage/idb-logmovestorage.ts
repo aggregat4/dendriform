@@ -34,6 +34,7 @@ interface LogMoveSchema extends DBSchema {
     value: LogMoveRecord
     indexes: {
       nodeid: string
+      'ops-for-replica': [string, number]
     }
   }
 }
@@ -52,12 +53,11 @@ export class IdbLogMoveStorage implements LifecycleAware {
   async init(): Promise<void> {
     this.db = await openDB<LogMoveSchema>(this.dbName, 1, {
       upgrade(db) {
-        db.createObjectStore('logmoveops', {
+        const logmoveStore = db.createObjectStore('logmoveops', {
           keyPath: ['clock', 'replicaId'],
           autoIncrement: false, // we generate our own keys, this is required since compound indexes with an auto-incremented key do not work everywhere (yet)
         })
-        // eventsStore.createIndex('nodeid', 'nodeid')
-        // eventsStore.createIndex('clock-and-localpeerid', ['clock', 'localid'])
+        logmoveStore.createIndex('ops-for-replica', ['replicaId', 'clock'])
       },
     })
   }
@@ -136,5 +136,14 @@ export class IdbLogMoveStorage implements LifecycleAware {
         return
       }
     }
+  }
+
+  async getEventsForReplicaSince(
+    replicaId: string,
+    clock: number,
+    batchSize: number
+  ): Promise<LogMoveRecord[]> {
+    const range = IDBKeyRange.bound([replicaId, clock], [replicaId, Number.MAX_VALUE], true, true) // do not include lower bound
+    return await this.db.getAllFromIndex('logmoveops', 'ops-for-replica', range, batchSize)
   }
 }
