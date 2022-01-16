@@ -1,18 +1,8 @@
 /*
  * This file wires everything together for the dendriform tree.
  */
-import { TreeService } from './service/tree-service'
-import { TreeServiceCommandHandler } from './commands/command-handler-tree-service'
-import { UndoableCommandHandler } from './commands/command-handler-undoable'
 import { Tree } from './view/tree-component'
-import { LocalEventLog } from './eventlog/eventlog'
-import { RemoteEventLog } from './remote/eventlog-remote'
-import { EventPump } from './remote/eventpump'
-import { TreeActionRegistry, registerTreeActions } from './view/tree-actionregistry'
-import { LocalEventLogIdMapper } from './eventlog/idb-peerid-repository'
 import { deinitAll, isLifecycleAware, LifecycleAware } from './domain/lifecycle'
-import { IdbEventRepository } from './eventlog/idb-event-repository'
-import { LocalEventLogGarbageCollector } from './eventlog/eventlog-gc'
 
 customElements.define('dendriform-tree', Tree)
 

@@ -3,7 +3,7 @@ import {
   RELATIVE_NODE_POSITION_UNCHANGED,
   Subscription,
 } from '../domain/domain'
-import { NodeFlags, NodeMetadata } from '../eventlog/eventlog-domain'
+import { NodeFlags, NodeMetadata } from '../storage/nodestorage'
 import { atomIdent } from '../lib/modules/logootsequence'
 import { RepositoryNode } from '../repository/repository'
 import { IdbLogMoveStorage, LogMoveRecord } from '../storage/idb-logmovestorage'

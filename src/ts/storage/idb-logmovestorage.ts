@@ -1,6 +1,6 @@
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
-import { NodeMetadata } from '../eventlog/eventlog-domain'
+import { NodeMetadata } from './nodestorage'
 
 /**
  * A representation of all the log moves that we need to persist to allow
