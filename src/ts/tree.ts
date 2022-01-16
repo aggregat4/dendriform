@@ -2,7 +2,16 @@
  * This file wires everything together for the dendriform tree.
  */
 import { Tree } from './view/tree-component'
-import { deinitAll, isLifecycleAware, LifecycleAware } from './domain/lifecycle'
+import { deinitAll, initAll, isLifecycleAware, LifecycleAware, register } from './domain/lifecycle'
+import { TreeServiceCommandHandler } from './commands/command-handler-tree-service'
+import { UndoableCommandHandler } from './commands/command-handler-undoable'
+import { registerTreeActions, TreeActionRegistry } from './view/tree-actionregistry'
+import { TreeService } from './service/tree-service'
+import { LogAndTreeStorageRepository } from './repository/repository-logandtreestorage'
+import { MoveOpTree } from './moveoperation/moveoperation'
+import { IdbTreeStorage } from './storage/idb-treestorage'
+import { IdbLogMoveStorage } from './storage/idb-logmovestorage'
+import { IdbReplicaStorage } from './storage/idb-replicastorage'
 
 customElements.define('dendriform-tree', Tree)
 
@@ -15,28 +24,40 @@ export class TreeManager {
       await deinitAll(this.initializables)
       this.currentInitializer = null
     }
-    // const idbEventRepository = this.register(new IdbEventRepository(treeName))
-    // const peerIdMapper = this.register(new LocalEventLogIdMapper(treeName + '-peerid-mapping'))
-    // const localEventLog = this.register(new LocalEventLog(idbEventRepository, peerIdMapper))
-    // this.register(new LocalEventLogGarbageCollector(idbEventRepository))
     // const remoteEventLog = this.register(new RemoteEventLog('/', treeName))
-    // const repository = this.register(new EventlogRepository(localEventLog))
-    // const treeService = this.register(new TreeService(repository))
-    // const treeServiceCommandHandler = this.register(new TreeServiceCommandHandler(treeService))
-    // const commandHandler = this.register(new UndoableCommandHandler(treeServiceCommandHandler))
-    // const treeActionRegistry = this.register(new TreeActionRegistry())
-    // registerTreeActions(treeActionRegistry)
-    // const tree = this.register(
-    //   new Tree(commandHandler, treeService, treeActionRegistry, localEventLog)
-    // )
-    // // tree.commandHandler = commandHandler
-    // // tree.treeService = treeService
-    // // tree.treeActionRegistry = treeActionRegistry
-    // // tree.activityIndicating = localEventLog
+
+    const replicaStore = register(
+      new IdbReplicaStorage(`${treeName}-replicastorage`),
+      this.initializables
+    )
+    const logMoveStore = register(
+      new IdbLogMoveStorage(`${treeName}-logmovestorage`),
+      this.initializables
+    )
+    const treeStore = register(new IdbTreeStorage(`${treeName}-treestorage`), this.initializables)
+    const moveOpTree = register(
+      new MoveOpTree(replicaStore, logMoveStore, treeStore),
+      this.initializables
+    )
+    const repository = register(new LogAndTreeStorageRepository(moveOpTree), this.initializables)
+    const treeService = register(new TreeService(repository), this.initializables)
+    const treeServiceCommandHandler = register(
+      new TreeServiceCommandHandler(treeService),
+      this.initializables
+    )
+    const commandHandler = register(
+      new UndoableCommandHandler(treeServiceCommandHandler),
+      this.initializables
+    )
+    const treeActionRegistry = register(new TreeActionRegistry(), this.initializables)
+    registerTreeActions(treeActionRegistry)
+    const tree = register(
+      new Tree(commandHandler, treeActionRegistry, treeService),
+      this.initializables
+    )
     // this.register(new EventPump(localEventLog, remoteEventLog, localEventLog.getPeerId()))
-    // await this.initAll()
-    // return tree
-    return null
+    await initAll(this.initializables)
+    return tree
   }
 
   async loadNode(nodeId: string): Promise<void> {

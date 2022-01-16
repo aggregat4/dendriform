@@ -63,7 +63,6 @@ import {
   State,
   Status,
 } from '../repository/repository'
-import { ActivityIndicating } from '../domain/lifecycle'
 import { Subscription } from '../domain/domain'
 
 class TreeConfig {
@@ -72,10 +71,6 @@ class TreeConfig {
 
 export class Tree extends HTMLElement implements CommandExecutor {
   private readonly domCommandHandler = new DomCommandHandler()
-  private _commandHandler: UndoableCommandHandler
-  private _treeActionRegistry: TreeActionRegistry
-  private _activityIndicating: ActivityIndicating
-  private _treeService: TreeService
 
   private treeStatus: Status = { state: State.LOADING }
   private treeAncestors: RepositoryNode[] = []
@@ -90,16 +85,11 @@ export class Tree extends HTMLElement implements CommandExecutor {
   private currentFilterQuery = ''
 
   constructor(
-    commandHandler: UndoableCommandHandler,
-    treeService: TreeService,
-    treeActionRegistry: TreeActionRegistry,
-    activityIndicating: ActivityIndicating
+    readonly commandHandler: UndoableCommandHandler,
+    readonly treeActionRegistry: TreeActionRegistry,
+    readonly treeService: TreeService
   ) {
     super()
-    this._commandHandler = commandHandler
-    this._treeService = treeService
-    this._treeActionRegistry = treeActionRegistry
-    this._activityIndicating = activityIndicating
   }
 
   // We handle undo and redo internally since they are core functionality we don't want to make generic and overwritable
@@ -203,6 +193,12 @@ export class Tree extends HTMLElement implements CommandExecutor {
     this.dialogs = new Dialogs(this)
     const treeNodeMenu = this.querySelector('.node-menu') as unknown as DialogElement
     this.dialogs.registerDialog(new Dialog('menuTrigger', treeNodeMenu))
+    this.treeActionContext = new TreeActionContext(
+      this,
+      this.transientStateManager,
+      this.dialogs,
+      this.treeService
+    )
 
     const opmlImportElement = this.querySelector(
       'df-omplimportdialog'
@@ -224,44 +220,6 @@ export class Tree extends HTMLElement implements CommandExecutor {
 
     const infoMenuItem = this.querySelector('.info-menuitem') as unknown as TreeNodeActionMenuItem
     infoMenuItem.treeActionContext = this.treeActionContext
-  }
-
-  set commandHandler(commandHandler: UndoableCommandHandler) {
-    this._commandHandler = commandHandler
-  }
-
-  get commandHandler(): UndoableCommandHandler {
-    return this._commandHandler
-  }
-
-  set treeActionRegistry(treeActionRegistry: TreeActionRegistry) {
-    this._treeActionRegistry = treeActionRegistry
-  }
-
-  get treeActionRegistry(): TreeActionRegistry {
-    return this._treeActionRegistry
-  }
-
-  set activityIndicating(activityIndicating: ActivityIndicating) {
-    this._activityIndicating = activityIndicating
-  }
-
-  get activityIndicating(): ActivityIndicating {
-    return this._activityIndicating
-  }
-
-  set treeService(treeService: TreeService) {
-    this._treeService = treeService
-    this.treeActionContext = new TreeActionContext(
-      this,
-      this.transientStateManager,
-      this.dialogs,
-      this.treeService
-    )
-  }
-
-  get treeService(): TreeService {
-    return this._treeService
   }
 
   async loadNode(nodeId: string): Promise<void> {
