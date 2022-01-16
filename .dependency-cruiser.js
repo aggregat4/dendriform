@@ -253,6 +253,9 @@ module.exports = {
        "specify": for each dependency identify whether it only exists before compilation or also after
      */
     tsPreCompilationDeps: true,
+    
+    /* list of extensions (typically non-parseable) to scan. Empty by default. */
+    // extraExtensionsToScan: [".json", ".jpg", ".png", ".svg", ".webp"],
 
     /* if true combines the package.jsons found from the module up to the base
        folder the cruise is initiated from. Useful for how (some) mono-repos
@@ -396,7 +399,7 @@ module.exports = {
           dependency graph reporter (`archi`) you probably want to tweak
           this collapsePattern to your situation.
         */
-        collapsePattern: '^(node_modules|packages|src|lib|app|bin|test(s?)|spec(s?))/[^/]+',
+        collapsePattern: '^(packages|src|lib|app|bin|test(s?)|spec(s?))/[^/]+|node_modules/[^/]+',
 
         /* Options to tweak the appearance of your graph.See
            https://github.com/sverweij/dependency-cruiser/blob/master/doc/options-reference.md#reporteroptions
@@ -410,4 +413,4 @@ module.exports = {
     }
   }
 };
-// generated: dependency-cruiser@10.0.7 on 2021-08-06T07:56:44.294Z
+// generated: dependency-cruiser@11.2.1 on 2022-01-16T11:01:10.068Z

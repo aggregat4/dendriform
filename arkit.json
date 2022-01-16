@@ -8,7 +8,7 @@
     },
     {
       "type": "Dendriform",
-      "patterns": ["src/**/*.js", "src/**/*.ts"]
+      "patterns": ["src/ts/**/*.ts"]
     }
   ],
   "output": [
