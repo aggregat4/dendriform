@@ -1,0 +1,29 @@
+{
+  "$schema": "https://arkit.pro/schema.json",
+  "excludePatterns": ["test/**"],
+  "components": [
+    {
+      "type": "Dependency",
+      "patterns": ["node_modules/*"]
+    },
+    {
+      "type": "Dendriform",
+      "patterns": ["src/**/*.js", "src/**/*.ts"]
+    }
+  ],
+  "output": [
+    {
+      "path": "arkit.svg",
+      "groups": [
+        {
+          "first": true,
+          "components": ["Dendriform"]
+        },
+        {
+          "type": "Dependencies",
+          "components": ["Dependency"]
+        }
+      ]
+    }
+  ]
+}

@@ -35,7 +35,8 @@
     "unused-dependencies": "npx depcheck",
     "dependency-upgrades": "npx npm-upgrade",
     "dependency-graph": "npx depcruise --include-only \"^src\" --do-not-follow \"(tree.ts|main.ts)\" --output-type dot src | dot -T svg > dependencygraph.svg",
-    "dependency-check": "npx depcruise --config .dependency-cruiser.js src/"
+    "dependency-check": "npx depcruise --config .dependency-cruiser.js src/",
+    "arkit-graph": "npx arkit"
   },
   "author": "Boris Terzic <boris@terzic.be>",
   "license": "Apache-2.0",
