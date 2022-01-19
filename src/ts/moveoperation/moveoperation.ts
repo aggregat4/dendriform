@@ -57,7 +57,7 @@ export class MoveOpTree {
     relativePosition: RelativeNodePosition
   ) {
     const replicaId = this.replicaStore.getReplicaId()
-    const clock = this.replicaStore.getClock()
+    const clock = this.logMoveStore.getAndIncrementClock()
     if (!this.treeStore.isNodeKnown(parentId)) {
       throw new Error(
         'When updating a node we assume that the parent is known in our parent child map'
@@ -94,8 +94,6 @@ export class MoveOpTree {
     } else {
       await this.recordMoveOp(moveOp, null, null)
     }
-    // TODO: remove clock storage bottleneck (this will also remove spurious clock updates if we reject operations because of cycles)
-    await this.replicaStore.setClock(moveOp.clock + 1)
   }
 
   private async recordUnappliedMoveOp(moveOp: MoveOp): Promise<void> {
@@ -217,9 +215,7 @@ export class MoveOpTree {
    * change event.
    */
   private async updateRemoteNode(moveOp: MoveOp) {
-    const clock = this.replicaStore.getClock()
-    // TODO: remove clock storage bottleneck (this will also remove spurious clock updates if we reject operations because of cycles)
-    await this.replicaStore.setClock(Math.max(clock, moveOp.clock) + 1)
+    this.logMoveStore.updateWithExternalClock(moveOp.clock)
     // We always at least record the event, even if we cannot apply it right now
     // we may be able to apply it in the future once more events come in
     await this.recordUnappliedMoveOp(moveOp)

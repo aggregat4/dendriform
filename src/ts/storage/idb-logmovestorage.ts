@@ -43,6 +43,7 @@ export interface EventStorageListener {
 export class IdbLogMoveStorage implements LifecycleAware {
   private db: IDBPDatabase<LogMoveSchema>
   private listeners: EventStorageListener[] = []
+  private clock: number = -1
 
   constructor(readonly dbName: string) {}
 
@@ -56,12 +57,26 @@ export class IdbLogMoveStorage implements LifecycleAware {
         logmoveStore.createIndex('ops-for-replica', ['replicaId', 'clock'])
       },
     })
+    const maxClock = await this.getMaxClock()
+    this.clock = maxClock + 1
   }
 
   async deinit(): Promise<void> {
     if (this.db) {
       this.db.close()
       this.db = null
+    }
+  }
+
+  getAndIncrementClock(): number {
+    const clock = this.clock
+    this.clock++
+    return clock
+  }
+
+  updateWithExternalClock(externalClock: number): void {
+    if (externalClock > this.clock) {
+      this.clock = externalClock + 1
     }
   }
 
@@ -101,7 +116,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
       }
       await tx.done
     } catch (error) {
-      console.error(`store error: `, JSON.stringify(error))
+      console.error(`store error: `, error)
     }
   }
 
@@ -131,6 +146,15 @@ export class IdbLogMoveStorage implements LifecycleAware {
       } else {
         return
       }
+    }
+  }
+
+  private async getMaxClock(): Promise<number> {
+    let cursor = await this.db.transaction('logmoveops', 'readonly').store.openCursor(null, 'prev')
+    if (cursor) {
+      return cursor.value.clock
+    } else {
+      return 0
     }
   }
 

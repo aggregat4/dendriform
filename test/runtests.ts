@@ -5,7 +5,6 @@ import { TerminalReporter } from '../lib/tizzy-terminal-reporter'
 import { run } from '../lib/tizzy'
 
 // All the tests
-import './vectorclock.test'
 import './domain-search.test'
 import './keyboardshortcut.test'
 import './logoot-sequence-wrapper.test'

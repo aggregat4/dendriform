@@ -1578,3 +1578,13 @@ I have implemented the missing support for remote move operations in the moveope
 It is still annoying that there is such a duplication in logic between updateLocal and updateRemote methods. Can't find a good way to abstract out the common logic. I will at least need tests to check this.
 
 Which brings us to the next todo: write tests for all that new remote update logic and perhaps also its interaction with local updates!
+
+## 2022-0119 
+
+Got the tree working again in the browser and ran into some problems.
+
+Clock management was not threadsafe (we were not incrementing atomically). And we have some general problems like putting stuff in the wrong map. This didn't get caught in the compiler because I forgot to add type declarations to the local variables.
+
+We can now store and load nodes again.
+
+Where I left off: reopening a collapsed node does not actually load the children. I need to reload the page to see them.

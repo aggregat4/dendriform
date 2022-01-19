@@ -16,14 +16,13 @@ import { IdbReplicaStorage } from './storage/idb-replicastorage'
 customElements.define('dendriform-tree', Tree)
 
 export class TreeManager {
-  private currentInitializer: Promise<Tree>
+  private currentTree: Tree = null
   private initializables: LifecycleAware[] = []
 
   private async createAndInitTree(treeName: string): Promise<Tree> {
-    if (this.currentInitializer !== null) {
-      await deinitAll(this.initializables)
-      this.currentInitializer = null
-    }
+    await deinitAll(this.initializables)
+    this.initializables = []
+
     // const remoteEventLog = this.register(new RemoteEventLog('/', treeName))
 
     const replicaStore = register(
@@ -61,9 +60,7 @@ export class TreeManager {
   }
 
   async loadNode(nodeId: string): Promise<void> {
-    if (this.currentInitializer !== null) {
-      await this.currentInitializer.then((tree) => tree.loadNode(nodeId))
-    }
+    await this.currentTree?.loadNode(nodeId)
   }
 
   /**
@@ -75,11 +72,9 @@ export class TreeManager {
    * @param el The element to mount the tree component to.
    */
   async mountTree(el: HTMLElement, treeName: string): Promise<void> {
-    this.currentInitializer = this.createAndInitTree(treeName).then((tree) => {
-      tree.mount()
-      return el.appendChild(tree)
-    })
-    await this.currentInitializer
+    this.currentTree = await this.createAndInitTree(treeName)
+    this.currentTree.mount()
+    el.appendChild(this.currentTree)
   }
 
   getAvailableTrees(): Promise<string[]> {

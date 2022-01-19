@@ -9,7 +9,6 @@ import { generateUUID } from '../utils/util'
  */
 export interface ReplicaRecord {
   replicaId: string
-  clock: number
 }
 
 interface ReplicaSchema extends DBSchema {
@@ -42,7 +41,6 @@ export class IdbReplicaStorage implements LifecycleAware {
     if (replica == null) {
       this.replica = {
         replicaId: generateUUID(),
-        clock: 1,
       }
       await this.storeReplica(this.replica)
     } else {
@@ -59,18 +57,6 @@ export class IdbReplicaStorage implements LifecycleAware {
 
   getReplicaId(): string {
     return this.replica.replicaId
-  }
-
-  getClock(): number {
-    return this.replica.clock
-  }
-
-  // TODO:  this seems like it may be a bottleneck if we need to store the clock all the time
-  // maybe consider moving towards not explicitly storing this but deriving it from the actual
-  // clock values in the log? (reverse index access)
-  async setClock(clock: number): Promise<void> {
-    this.replica.clock = clock
-    await this.storeReplica(this.replica)
   }
 
   private async loadReplica(): Promise<ReplicaRecord> {

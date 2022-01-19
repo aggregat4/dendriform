@@ -3,7 +3,7 @@
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { RelativeNodePosition, RELATIVE_NODE_POSITION_UNCHANGED } from '../domain/domain'
 import { LifecycleAware } from '../domain/lifecycle'
-import { atomIdent, compareAtomIdents } from '../lib/modules/logootsequence'
+import { atomIdent } from '../lib/modules/logootsequence'
 import { LogootSequenceWrapper } from '../repository/logoot-sequence-wrapper'
 import { RepositoryNode } from '../repository/repository'
 import { assert } from '../utils/util'
@@ -71,8 +71,8 @@ export class IdbTreeStorage implements LifecycleAware {
 
   // TODO: consider moving all tree related logic into  IdTreeStorage and "just" expose RepositoryNodes from there (no StoredNodes and logootpos and all that jazz)
   private async initParentChildMap(): Promise<void> {
-    const newParentChildMap = {}
-    const newChildParentMap = {}
+    const newParentChildMap: { [key: string]: LogootSequenceWrapper } = {}
+    const newChildParentMap: { [key: string]: string } = {}
     // Special casing the ROOT node
     this.getOrCreateChildrenSequence('ROOT', newParentChildMap)
     // iterate over all nodes in tree storage and add them to the tree
@@ -81,7 +81,7 @@ export class IdbTreeStorage implements LifecycleAware {
       parentSeq.insertAtAtomIdent(node.id, node.logootPos)
       // we also need to create an empty sequence for the node itself if it does not already exist so we can query it later
       this.getOrCreateChildrenSequence(node.id, newParentChildMap)
-      newParentChildMap[node.id] = node.parentId
+      newChildParentMap[node.id] = node.parentId
     }
     this.parentChildMap = newParentChildMap
     this.childParentMap = newChildParentMap
