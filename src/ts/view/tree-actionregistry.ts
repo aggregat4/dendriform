@@ -229,7 +229,7 @@ class EditNoteAction extends TreeAction {
       'Start Editing Note'
     )
   }
-  handle(event: Event, treeActionContext: TreeActionContext) {
+  handle(event: Event) {
     event.preventDefault()
     const noteEl = (event.target as Element).nextElementSibling.nextElementSibling as HTMLElement
     startEditingNote(noteEl)

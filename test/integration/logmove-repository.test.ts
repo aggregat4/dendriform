@@ -28,9 +28,9 @@ function testWithRepo(t: (repo: LogAndTreeStorageRepository) => Promise<void>): 
       await t(repo)
     } finally {
       await deinitAll(initializables)
-      deleteDB('replicastoredb')
-      deleteDB('logmovestoredb')
-      deleteDB('treestoredb')
+      await deleteDB('replicastoredb')
+      await deleteDB('logmovestoredb')
+      await deleteDB('treestoredb')
     }
   }
 }

@@ -43,7 +43,7 @@ export interface EventStorageListener {
 export class IdbLogMoveStorage implements LifecycleAware {
   private db: IDBPDatabase<LogMoveSchema>
   private listeners: EventStorageListener[] = []
-  private clock: number = -1
+  private clock = -1
 
   constructor(readonly dbName: string) {}
 
@@ -108,7 +108,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
       // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
       for (const logMoveRecord of logMoveRecords) {
         // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
-        tx.store.add(logMoveRecord)
+        await tx.store.add(logMoveRecord)
         // TODO: this needs to be move to an async op at this point the events are not stored yet
         this.notifyListeners((listener: EventStorageListener) =>
           listener.eventStored(logMoveRecord)
@@ -116,12 +116,12 @@ export class IdbLogMoveStorage implements LifecycleAware {
       }
       await tx.done
     } catch (error) {
-      console.error(`store error: `, error)
+      console.error(`store error: `, JSON.stringify(error))
     }
   }
 
   async updateEvent(logMoveRecord: LogMoveRecord): Promise<void> {
-    this.db.put('logmoveops', logMoveRecord)
+    await this.db.put('logmoveops', logMoveRecord)
   }
 
   async undoAllNewerLogmoveRecordsInReverse(
@@ -141,7 +141,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
         (currentRecord.clock == clock && currentRecord.replicaId > replicaId)
       ) {
         callback(currentRecord)
-        cursor.delete()
+        await cursor.delete()
         cursor = await cursor.continue()
       } else {
         return
@@ -150,7 +150,9 @@ export class IdbLogMoveStorage implements LifecycleAware {
   }
 
   private async getMaxClock(): Promise<number> {
-    let cursor = await this.db.transaction('logmoveops', 'readonly').store.openCursor(null, 'prev')
+    const cursor = await this.db
+      .transaction('logmoveops', 'readonly')
+      .store.openCursor(null, 'prev')
     if (cursor) {
       return cursor.value.clock
     } else {

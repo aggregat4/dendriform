@@ -55,6 +55,7 @@ export class IdbTreeStorage implements LifecycleAware {
         })
       },
     })
+    console.debug(`Initialized db inside IdbTreeStorage.init() to `, this.db)
     await this.initParentChildMap()
   }
 
@@ -95,7 +96,7 @@ export class IdbTreeStorage implements LifecycleAware {
   }
 
   async loadNode(nodeId: string): Promise<StoredNode> {
-    return this.db.get('nodes', nodeId)
+    return await this.db.get('nodes', nodeId)
   }
 
   async storeNode(node: StoredNode, positionQualifier: LogootPositionQualifier): Promise<void> {
@@ -144,7 +145,14 @@ export class IdbTreeStorage implements LifecycleAware {
       }
     }
     console.debug(`New parent sequence: `, JSON.stringify(newParentSeq.toArray()))
-    await this.db.put('nodes', node)
+    // TODO: left off , error??
+    try {
+      await this.db.put('nodes', node)
+    } catch (e) {
+      console.error(`Error putting ${node.id} `, e)
+      throw e
+    }
+    console.debug(`after calling PUT`)
     // in case we create a new node we also need to make an empty logootsequence
     this.getOrCreateChildrenSequence(node.id, this.parentChildMap)
     this.childParentMap[node.id] = node.parentId

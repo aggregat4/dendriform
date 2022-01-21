@@ -230,8 +230,10 @@ export class MoveOpTree {
       )
       return
     }
+    console.debug(`Before storeNode`)
     await this.treeStore.storeNode(toStoredNode(moveOp), null)
     // we need to retrieve the current (or old) node so we can record the change from old to new (if it exists)
+    console.debug(`Before loadNode`)
     const oldNode = await this.loadNode(moveOp.nodeId)
     if (oldNode != null) {
       console.debug(`We have an existing node with id ${moveOp.nodeId}`)
@@ -266,7 +268,7 @@ export class MoveOpTree {
     if (nodeId == 'ROOT') {
       return ROOT_STORED_NODE
     } else {
-      return this.treeStore.loadNode(nodeId)
+      return await this.treeStore.loadNode(nodeId)
     }
   }
 

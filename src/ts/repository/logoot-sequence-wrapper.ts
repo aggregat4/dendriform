@@ -21,8 +21,6 @@ function insertMut(seq: sequence, index: number, anAtom: atom) {
 export class LogootSequenceWrapper {
   private seq: sequence = emptySequence()
 
-  constructor() {}
-
   insertElement(
     element: string,
     position: RelativeNodePosition,

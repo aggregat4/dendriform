@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer'
 
 // run all the test
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 ;(async () => {
   // Set puppeteer up so we can do all our tests including indexeddb
   const browser = await puppeteer.launch({

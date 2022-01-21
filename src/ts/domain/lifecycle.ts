@@ -3,6 +3,7 @@ export interface LifecycleAware {
   deinit(): Promise<void>
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isLifecycleAware(object: any): object is LifecycleAware {
   return 'init' in object && 'deinit' in object
 }
@@ -12,6 +13,7 @@ export interface ActivityIndicating {
   getActivityTitle(): string
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function register(object: any, initializables: LifecycleAware[]): any {
   if (isLifecycleAware(object)) {
     initializables.push(object)

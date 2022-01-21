@@ -309,15 +309,10 @@ export class Tree extends HTMLElement implements CommandExecutor {
       await this.performWithDom(
         new CommandBuilder(payload)
           .isUndoable()
-          .isSynchronous() // we need this to be a synchronous update so we can immediately reload the node afterwards
+          // synchronous updates trigger a re-render
+          .isSynchronous()
           .build()
       )
-      if (nodeClosed) {
-        // this should be efficient: we _are_ loading the entire tree but that node should be opned now and update
-        // NOTE: we used to only load the subtree here, that was definitely more efficient. Theoretically we could
-        // still do this and patch the loadedtree model
-        await this.rerenderTree()
-      }
     } else if (isInNoteElement(clickedElement)) {
       // for a note we need to take into account that a note may have its own markup (hence isInNoteElement)
       const noteElement = findNoteElementAncestor(clickedElement) as HTMLElement
@@ -440,9 +435,8 @@ export class Tree extends HTMLElement implements CommandExecutor {
 
   async performWithDom(command: Command): Promise<void> {
     if (command) {
-      const commandPromise = this.domCommandHandler
-        .exec(command)
-        .then(() => this.commandHandler.exec(command))
+      await this.domCommandHandler.exec(command)
+      await this.commandHandler.exec(command)
       // If a command requires a rerender this means we need to reload the tree
       // and then let Redom efficiently update all the nodes, however if we need
       // to focus afterwards, we need to be careful to do this after having loaded
@@ -451,17 +445,14 @@ export class Tree extends HTMLElement implements CommandExecutor {
         // if it is a batch command we don't want to immediately rerender
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const renderFunction = command.batch ? this.debouncedRerender : this.rerenderTree.bind(this)
-        await commandPromise.then(renderFunction).then(() => {
-          if (command.afterFocusNodeId) {
-            this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
-          }
-        })
+        await renderFunction()
+        if (command.afterFocusNodeId) {
+          this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
+        }
       } else {
-        await commandPromise.then(() => {
-          if (command.afterFocusNodeId) {
-            this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
-          }
-        })
+        if (command.afterFocusNodeId) {
+          this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
+        }
       }
     }
   }

@@ -33,7 +33,7 @@ export class IdbReplicaStorage implements LifecycleAware {
         })
       },
     })
-    this.loadOrCreateReplica()
+    await this.loadOrCreateReplica()
   }
 
   private async loadOrCreateReplica(): Promise<void> {

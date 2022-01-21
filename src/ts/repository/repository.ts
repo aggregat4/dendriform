@@ -1,5 +1,4 @@
 import { RelativeNodePosition, Subscription } from '../domain/domain'
-import { LifecycleAware } from '../domain/lifecycle'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 import { Predicate } from '../utils/util'
 
@@ -90,7 +89,7 @@ export interface ResolvedRepositoryNode {
   children: DeferredArray<ResolvedRepositoryNode>
 }
 
-export interface Repository extends LifecycleAware {
+export interface Repository {
   loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode>
 
   createNode(

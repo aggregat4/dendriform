@@ -3,7 +3,6 @@ import {
   RELATIVE_NODE_POSITION_UNCHANGED,
   Subscription,
 } from '../domain/domain'
-import { LifecycleAware } from '../domain/lifecycle'
 import { MoveOpTree } from '../moveoperation/moveoperation'
 import { secondsSinceEpoch } from '../utils/dateandtime'
 import { assert, Predicate } from '../utils/util'
@@ -18,12 +17,8 @@ import {
 } from './repository'
 
 // TODO: most of the real implementation (also subscribe to eventlog to update treeStorageStructure and notify subscribers)
-export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
+export class LogAndTreeStorageRepository implements Repository {
   constructor(readonly moveOpTree: MoveOpTree) {}
-
-  async init(): Promise<void> {}
-
-  async deinit(): Promise<void> {}
 
   async loadNode(nodeId: string, nodeFilter: Predicate<RepositoryNode>): Promise<RepositoryNode> {
     const storedNode = await this.moveOpTree.loadNode(nodeId)
@@ -59,15 +54,17 @@ export class LogAndTreeStorageRepository implements Repository, LifecycleAware {
     // TODO: implement synchronous and asynchronous storage if it becomes relevant
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async updateNode(node: RepositoryNode, parentId: string, synchronous: boolean): Promise<void> {
     await this.moveOpTree.updateLocalNode(node, parentId, RELATIVE_NODE_POSITION_UNCHANGED)
-    // TODO: implement synchronous and asynchronous storage if it becomes relevant
+    // TODO: implement synchronous and asynchronous storage if it becomes relevant (or delete the concept entirely!)
   }
 
   async reparentNode(
     node: RepositoryNode,
     parentId: string,
     position: RelativeNodePosition,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     synchronous: boolean
   ): Promise<void> {
     await this.moveOpTree.updateLocalNode(node, parentId, position)

@@ -2,7 +2,7 @@
  * This file wires everything together for the dendriform tree.
  */
 import { Tree } from './view/tree-component'
-import { deinitAll, initAll, isLifecycleAware, LifecycleAware, register } from './domain/lifecycle'
+import { deinitAll, initAll, LifecycleAware, register } from './domain/lifecycle'
 import { TreeServiceCommandHandler } from './commands/command-handler-tree-service'
 import { UndoableCommandHandler } from './commands/command-handler-undoable'
 import { registerTreeActions, TreeActionRegistry } from './view/tree-actionregistry'

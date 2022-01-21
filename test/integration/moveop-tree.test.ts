@@ -1,4 +1,4 @@
-import { test, fail } from '../../lib/tizzy'
+import { test } from '../../lib/tizzy'
 import expect from 'ceylon'
 import { deleteDB } from 'idb'
 import { MoveOp, MoveOpTree } from 'src/ts/moveoperation/moveoperation'
@@ -25,9 +25,9 @@ function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () =>
       await t(moveOpTree)
     } finally {
       await deinitAll(initializables)
-      deleteDB('replicastoredb')
-      deleteDB('logmovestoredb')
-      deleteDB('treestoredb')
+      await deleteDB('replicastoredb')
+      await deleteDB('logmovestoredb')
+      await deleteDB('treestoredb')
     }
   }
 }
