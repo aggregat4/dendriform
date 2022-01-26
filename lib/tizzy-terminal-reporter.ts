@@ -11,6 +11,7 @@ export class TerminalReporter implements Reporter {
     console.info('\n')
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   success(testname: string) {
     rgb.gray('• ')
   }

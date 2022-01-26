@@ -157,17 +157,14 @@ export class MoveOpTree {
    * - we redo all the previously undone moveoperations and record new logmove records
    */
   async applyMoveOp(moveOp: MoveOp): Promise<void> {
-    const undoneLogMoveOps = []
-    // UNDO all the newer logmoveops
-    await this.logMoveStore.undoAllNewerLogmoveRecordsInReverse(
+    const undoneLogMoveOps = await this.logMoveStore.undoAllNewerLogmoveRecordsInReverse(
       moveOp.clock,
-      moveOp.replicaId,
-      async (logMoveOp: LogMoveRecord) => {
-        undoneLogMoveOps.push(logMoveOp)
-        await this.undoLogMoveOp(logMoveOp)
-      }
+      moveOp.replicaId
     )
-    console.debug(`I have ${undoneLogMoveOps.length} logmoverecords that I undid and will redo`)
+    undoneLogMoveOps.forEach(async (logMoveRecord) => {
+      await this.undoLogMoveOp(logMoveRecord)
+    })
+    // console.debug(`I have ${undoneLogMoveOps.length} logmoverecords that I undid and will redo`)
     // APPLY the new logmoveop
     await this.updateRemoteNode(moveOp)
     // REDO all the logmoveops, but with a proper moveOperation so we can check for cycles, etc.
@@ -230,16 +227,16 @@ export class MoveOpTree {
       )
       return
     }
-    console.debug(`Before storeNode`)
+    // console.debug(`Before storeNode`)
     await this.treeStore.storeNode(toStoredNode(moveOp), null)
     // we need to retrieve the current (or old) node so we can record the change from old to new (if it exists)
-    console.debug(`Before loadNode`)
+    // console.debug(`Before loadNode`)
     const oldNode = await this.loadNode(moveOp.nodeId)
     if (oldNode != null) {
-      console.debug(`We have an existing node with id ${moveOp.nodeId}`)
+      // console.debug(`We have an existing node with id ${moveOp.nodeId}`)
       await this.updateMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
     } else {
-      console.debug(`Inserting a new node with id ${moveOp.nodeId}`)
+      // console.debug(`Inserting a new node with id ${moveOp.nodeId}`)
       await this.updateMoveOp(moveOp, null, null)
     }
   }

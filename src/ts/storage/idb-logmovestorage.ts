@@ -29,7 +29,6 @@ interface LogMoveSchema extends DBSchema {
     key: [number, string]
     value: LogMoveRecord
     indexes: {
-      nodeid: string
       'ops-for-replica': [string, number]
     }
   }
@@ -102,6 +101,8 @@ export class IdbLogMoveStorage implements LifecycleAware {
   }
 
   async storeEvents(logMoveRecords: LogMoveRecord[]): Promise<void> {
+    // const existingEvents = await this.getEventsForReplicaSince(logMoveRecords[0].replicaId, 0, 100)
+    // console.debug(`Current events before storing new events: ${JSON.stringify(existingEvents)}`)
     const tx = this.db.transaction('logmoveops', 'readwrite')
     try {
       // This is an efficient bulk add that does not wait for the success callback, inspired by
@@ -115,8 +116,14 @@ export class IdbLogMoveStorage implements LifecycleAware {
         )
       }
       await tx.done
+      console.log(`store success for logMoveRecords ${JSON.stringify(logMoveRecords)}`)
     } catch (error) {
-      console.error(`store error: `, JSON.stringify(error))
+      console.error(
+        `store error for logMoveRecords ${JSON.stringify(logMoveRecords)}: `,
+        JSON.stringify(error),
+        error
+      )
+      throw error
     }
   }
 
@@ -126,13 +133,12 @@ export class IdbLogMoveStorage implements LifecycleAware {
 
   async undoAllNewerLogmoveRecordsInReverse(
     clock: number,
-    replicaId: string,
-    callback: (logmoveop: LogMoveRecord) => void
-  ): Promise<void> {
-    let cursor = await this.db
-      .transaction('logmoveops', 'readwrite')
-      // iterate over the logmoverecords in reverse, newest logmoveop first
-      .store.openCursor(null, 'prev')
+    replicaId: string
+  ): Promise<LogMoveRecord[]> {
+    const deletedLogMoveRecords = []
+    const tx = this.db.transaction('logmoveops', 'readwrite')
+    // iterate over the logmoverecords in reverse, newest logmoveop first
+    let cursor = await tx.store.openCursor(null, 'prev')
     while (cursor) {
       const currentRecord = cursor.value
       // This is our total ordering operator on logmoverecords
@@ -140,13 +146,15 @@ export class IdbLogMoveStorage implements LifecycleAware {
         currentRecord.clock > clock ||
         (currentRecord.clock == clock && currentRecord.replicaId > replicaId)
       ) {
-        callback(currentRecord)
         await cursor.delete()
         cursor = await cursor.continue()
+        deletedLogMoveRecords.push(deletedLogMoveRecords)
       } else {
-        return
+        break
       }
     }
+    await tx.done
+    return Promise.resolve(deletedLogMoveRecords)
   }
 
   private async getMaxClock(): Promise<number> {

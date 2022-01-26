@@ -6,6 +6,8 @@ import puppeteer from 'puppeteer'
   // Set puppeteer up so we can do all our tests including indexeddb
   const browser = await puppeteer.launch({
     headless: true,
+    // devtools: true,
+    // slowMo: 2500,
     ignoreHTTPSErrors: true,
     args: ['--disable-web-security', '--allow-file-access-from-files'],
   })

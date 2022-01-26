@@ -55,7 +55,6 @@ export class IdbTreeStorage implements LifecycleAware {
         })
       },
     })
-    console.debug(`Initialized db inside IdbTreeStorage.init() to `, this.db)
     await this.initParentChildMap()
   }
 
@@ -96,6 +95,9 @@ export class IdbTreeStorage implements LifecycleAware {
   }
 
   async loadNode(nodeId: string): Promise<StoredNode> {
+    // console.debug(
+    //   `loadNode() in treestorage: before calling get on ${this.db} for nodeId ${nodeId}`
+    // )
     return await this.db.get('nodes', nodeId)
   }
 
@@ -116,12 +118,12 @@ export class IdbTreeStorage implements LifecycleAware {
     if (oldParentId) {
       const oldParentSeq = this.getChildrenSequence(oldParentId)
       oldParentSeq.deleteElement(node.id)
-      console.debug(`Deleted ${node.id} from its old parent sequence for parent ${oldParentId}`)
-      console.debug(`Old parent sequence is now: `, JSON.stringify(oldParentSeq.toArray()))
+      // console.debug(`Deleted ${node.id} from its old parent sequence for parent ${oldParentId}`)
+      // console.debug(`Old parent sequence is now: `, JSON.stringify(oldParentSeq.toArray()))
     }
     if (node.logootPos) {
       newParentSeq.insertAtAtomIdent(node.id, node.logootPos)
-      console.debug(`Added ${node.id} with explicit logootpos to new parent ${node.parentId}`)
+      // console.debug(`Added ${node.id} with explicit logootpos to new parent ${node.parentId}`)
     } else {
       if (positionQualifier.relativePosition == RELATIVE_NODE_POSITION_UNCHANGED) {
         assert(
@@ -129,7 +131,7 @@ export class IdbTreeStorage implements LifecycleAware {
           'If we store a local node and we claim its position is unchanged then it must have an existing position'
         )
         newParentSeq.insertAtAtomIdent(node.id, existingLogootPos)
-        console.debug(`Added ${node.id} with existing logootpos to new parent ${node.parentId}`)
+        // console.debug(`Added ${node.id} with existing logootpos to new parent ${node.parentId}`)
         node.logootPos = existingLogootPos
       } else {
         const newLogootPos = newParentSeq.insertElement(
@@ -138,21 +140,21 @@ export class IdbTreeStorage implements LifecycleAware {
           positionQualifier.clock,
           positionQualifier.replicaId
         )
-        console.debug(
-          `Added ${node.id} with newly generated logootpos to new parent ${node.parentId}`
-        )
+        // console.debug(
+        //   `Added ${node.id} with newly generated logootpos to new parent ${node.parentId}`
+        // )
         node.logootPos = newLogootPos
       }
     }
-    console.debug(`New parent sequence: `, JSON.stringify(newParentSeq.toArray()))
-    // TODO: left off , error??
+    // console.debug(`New parent sequence: `, JSON.stringify(newParentSeq.toArray()))
     try {
+      // console.debug(`about to call put on ${this.db} for node ${JSON.stringify(node)}`)
       await this.db.put('nodes', node)
     } catch (e) {
-      console.error(`Error putting ${node.id} `, e)
+      // console.error(`Error putting ${node.id} `, e)
       throw e
     }
-    console.debug(`after calling PUT`)
+    // console.debug(`after calling PUT`)
     // in case we create a new node we also need to make an empty logootsequence
     this.getOrCreateChildrenSequence(node.id, this.parentChildMap)
     this.childParentMap[node.id] = node.parentId
