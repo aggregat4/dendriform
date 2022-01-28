@@ -1579,7 +1579,7 @@ It is still annoying that there is such a duplication in logic between updateLoc
 
 Which brings us to the next todo: write tests for all that new remote update logic and perhaps also its interaction with local updates!
 
-## 2022-0119 
+## 2022-01-19 
 
 Got the tree working again in the browser and ran into some problems.
 
@@ -1588,3 +1588,20 @@ Clock management was not threadsafe (we were not incrementing atomically). And w
 We can now store and load nodes again.
 
 Where I left off: reopening a collapsed node does not actually load the children. I need to reload the page to see them.
+
+## 2022-01-28
+
+The storage tests I have now run through successfully.
+
+Ran into a missing parent node problem when importing a large opml file. Turns out I was not actually awaiting all the treeservice operations in treeservice-commandhandler. This should never have worked correctly.
+
+Importing the full workflow opml export now works, but it slow. It does finish in a minute or maybe two, but there is no progress indicating.
+
+TODO: spinner works, but layout of dialog sucks: close dialog after import, fix alignment of form elements and spinner, move close button on popup menu also outside of the menu items
+TODO: add a mechanism to rerender the tree (optionally) after importing
+
+There are still bugs with opening a collapsed node, it does not correctly rerender in all cases.
+
+TODO: fix collapsed node reopening bugs
+
+TODO: splitting at the end of a node does not work? It splits, but the new node is the entire old node with children?

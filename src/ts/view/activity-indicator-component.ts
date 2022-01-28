@@ -2,10 +2,10 @@ import { html, render } from 'lit-html'
 import { ActivityIndicating } from '../domain/lifecycle'
 
 export class ActivityIndicator extends HTMLElement {
-  private spinner: HTMLElement = null
-  private timerId = null
-  private _activityIndicating: ActivityIndicating = null
-  private readonly template = () => html` <style>
+  #spinner: HTMLElement = null
+  #timerId = null
+  #_activityIndicating: ActivityIndicating = null
+  #template = () => html` <style>
       .spinner {
         display: none;
       }
@@ -55,21 +55,20 @@ export class ActivityIndicator extends HTMLElement {
   }
 
   connectedCallback(): void {
-    render(this.template(), this.shadowRoot)
-    this.spinner = this.firstElementChild as HTMLElement
-    if (!this.timerId) {
-      this.timerId = setInterval(() => {
+    render(this.#template(), this.shadowRoot)
+    if (!this.#timerId) {
+      this.#timerId = setInterval(() => {
         this.updateActivityStatus()
       }, this.delayMs)
     }
   }
 
   set activityIndicating(activityIndicating: ActivityIndicating) {
-    this._activityIndicating = activityIndicating
+    this.#_activityIndicating = activityIndicating
   }
 
   get activityIndicating(): ActivityIndicating {
-    return this._activityIndicating
+    return this.#_activityIndicating
   }
 
   get delayMs(): number {
@@ -97,18 +96,26 @@ export class ActivityIndicator extends HTMLElement {
     if (!activityIndicating) {
       return
     }
-    const currentDisplay = this.spinner.style.display
+    if (!this.#spinner) {
+      const spinner = this.shadowRoot.querySelector('.spinner') as HTMLElement
+      if (spinner) {
+        this.#spinner = spinner
+      } else {
+        return
+      }
+    }
+    const currentDisplay = this.#spinner.style.display
     if (activityIndicating.isActive()) {
       if (currentDisplay !== 'block') {
         this.installPreventCloseWindowHandler()
-        this.spinner.style.display = 'block'
+        this.#spinner.style.display = 'block'
       }
-      this.spinner.title = activityIndicating.getActivityTitle() || 'Working...' // TODO: i18n
+      this.#spinner.title = activityIndicating.getActivityTitle() || 'Working...' // TODO: i18n
     } else {
       if (currentDisplay !== 'none') {
         this.uninstallPreventCloseWindowHandler()
-        this.spinner.style.display = 'none'
-        this.spinner.title = 'Idle' // TODO: i18n
+        this.#spinner.style.display = 'none'
+        this.#spinner.title = 'Idle' // TODO: i18n
       }
     }
   }
@@ -134,9 +141,9 @@ export class ActivityIndicator extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    if (this.timerId) {
-      clearInterval(this.timerId)
-      this.timerId = null
+    if (this.#timerId) {
+      clearInterval(this.#timerId)
+      this.#timerId = null
     }
   }
 }

@@ -67,15 +67,14 @@ export class TreeService {
     return this.repo.loadNode(nodeId, ALWAYS_TRUE)
   }
 
-  reparentNode(
+  async reparentNode(
     nodeId: string,
     newParentId: string,
     position: RelativeNodePosition,
     synchronous: boolean
   ): Promise<void> {
-    return this.repo
-      .loadNode(nodeId, NODE_IS_NOT_DELETED)
-      .then((node) => this.repo.reparentNode(node, newParentId, position, synchronous))
+    const node = await this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
+    return await this.repo.reparentNode(node, newParentId, position, synchronous)
   }
 
   reparentNodes(childIds: string[], newParentId: string, synchronous: boolean): Promise<void> {

@@ -8,6 +8,7 @@ import { DialogLifecycleAware } from './dialogs'
 import { sharedCommonStyles } from './shared-styles'
 import { ActivityIndicating } from '../domain/lifecycle'
 import { ResolvedRepositoryNode } from '../repository/repository'
+import { ActivityIndicator } from './activity-indicator-component'
 
 export class OpmlImportDialog
   extends HTMLElement
@@ -74,6 +75,8 @@ export class OpmlImportDialog
 
   connectedCallback(): void {
     this.rerender()
+    const spinner = this.shadowRoot.querySelector('df-spinner') as ActivityIndicator
+    spinner.activityIndicating = this
   }
 
   beforeShow(): void {
@@ -131,12 +134,10 @@ export class OpmlImportDialog
           this.success = 'Successfully imported OPML file'
           this.disabled = true
           this.resetFileSelector()
-          this.rerender()
         } catch (error) {
           console.error(error)
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           this.error = error.message
-          this.rerender()
           return
         } finally {
           this.importing = false
@@ -165,7 +166,7 @@ export class OpmlImportDialog
       .build()
     // It is important to await here since when create a child node we need the parent node to already be there
     // otherwise the effect will be that only the toplevel nodes are visible
-    await commandExecutor.performWithDom(command)
+    await commandExecutor.performWithoutDom(command)
     // NOTE: this assumes that the children are always loaded
     for (const childNode of node.children.elements) {
       await this.createNode(commandExecutor, childNode, node.node.id)
