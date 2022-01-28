@@ -116,13 +116,12 @@ export class IdbLogMoveStorage implements LifecycleAware {
         )
       }
       await tx.done
-      console.log(`store success for logMoveRecords ${JSON.stringify(logMoveRecords)}`)
     } catch (error) {
-      console.error(
-        `store error for logMoveRecords ${JSON.stringify(logMoveRecords)}: `,
-        JSON.stringify(error),
-        error
-      )
+      // console.error(
+      //   `store error for logMoveRecords ${JSON.stringify(logMoveRecords)}: `,
+      //   JSON.stringify(error),
+      //   error
+      // )
       throw error
     }
   }
@@ -148,7 +147,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
       ) {
         await cursor.delete()
         cursor = await cursor.continue()
-        deletedLogMoveRecords.push(deletedLogMoveRecords)
+        deletedLogMoveRecords.push(currentRecord)
       } else {
         break
       }

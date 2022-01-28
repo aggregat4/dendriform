@@ -161,23 +161,24 @@ export class MoveOpTree {
       moveOp.clock,
       moveOp.replicaId
     )
-    undoneLogMoveOps.forEach(async (logMoveRecord) => {
+    for (const logMoveRecord of undoneLogMoveOps) {
       await this.undoLogMoveOp(logMoveRecord)
-    })
+    }
     // console.debug(`I have ${undoneLogMoveOps.length} logmoverecords that I undid and will redo`)
     // APPLY the new logmoveop
     await this.updateRemoteNode(moveOp)
     // REDO all the logmoveops, but with a proper moveOperation so we can check for cycles, etc.
     // This will also update the child parent maps and treestore.
-    undoneLogMoveOps.reverse().map(async (logMoveOp: LogMoveRecord) => {
+    undoneLogMoveOps.reverse()
+    for (const logMoveRecord of undoneLogMoveOps) {
       await this.updateRemoteNode({
-        nodeId: logMoveOp.childId,
-        clock: logMoveOp.clock,
-        parentId: logMoveOp.newParentId,
-        replicaId: logMoveOp.replicaId,
-        metadata: logMoveOp.newPayload,
+        nodeId: logMoveRecord.childId,
+        clock: logMoveRecord.clock,
+        parentId: logMoveRecord.newParentId,
+        replicaId: logMoveRecord.replicaId,
+        metadata: logMoveRecord.newPayload,
       })
-    })
+    }
   }
 
   private async undoLogMoveOp(logMoveOp: LogMoveRecord) {

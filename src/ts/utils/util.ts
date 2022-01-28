@@ -323,3 +323,16 @@ export function parseXML(content: string): Document {
   // TODO: DOMParser returns an error document instead of throwing an exception on parsing, catch that
   return doc
 }
+
+export const getCircularReplacer = () => {
+  const seen = new WeakSet()
+  return (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return
+      }
+      seen.add(value)
+    }
+    return value
+  }
+}
