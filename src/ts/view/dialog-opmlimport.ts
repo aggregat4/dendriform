@@ -20,15 +20,14 @@ export class OpmlImportDialog
   private error: string = null
   private disabled = true
 
-  private readonly importTemplate = () => html`
-    ${sharedCommonStyles}
+  private readonly importTemplate = () => html` ${sharedCommonStyles}
     <style>
       /* ---------- OPML Import component ---------- */
       .opml-import-dialog {
         width: 400px;
         padding: 6px;
       }
-        /* Need to align the baseline, otherwise the text
+      /* Need to align the baseline, otherwise the text
           is not really centered vertically */
 
       .opml-import-dialog .error {
@@ -50,6 +49,10 @@ export class OpmlImportDialog
       .opml-import-dialog h1 {
         margin: 6px 12px 6px 12px;
       }
+
+      .opml-import-dialog .spinenr {
+        display: inline-block;
+      }
     </style>
     <div class="opml-import-dialog activityIndicating">
       <section>
@@ -58,13 +61,14 @@ export class OpmlImportDialog
         </header>
         ${this.error ? html`<div class="error">${this.error}</div>` : ''}
         ${this.success ? html`<div class="success">${this.success}</div>` : ''}
-        <input class="uploadOpml" type="file" @change=${this.handleFilesChanged.bind(
-          this
-        )}>Select OPML File</input>
-        <button class="import primary" ?disabled=${this.disabled} @click=${this.importFile.bind(
-    this
-  )}>Import File</button>
-        <df-spinner delayMs="250"/>
+        <input class="uploadOpml" type="file" @change=${this.handleFilesChanged.bind(this)} />
+        <button
+          class="import primary"
+          ?disabled=${this.disabled}
+          @click=${this.importFile.bind(this)}
+          >Import File</button
+        >
+        <df-spinner delayMs="250" />
       </section>
     </div>`
 

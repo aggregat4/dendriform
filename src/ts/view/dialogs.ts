@@ -24,6 +24,7 @@ export class DialogElement extends HTMLElement {
       /* Just the absolute basic styles for a responsive dialog */
       .dialog {
         background: white;
+        line-height: 1;
         display: none;
         position: fixed;
         z-index: 2; /* dialogs need to be above the overlay */
@@ -35,6 +36,7 @@ export class DialogElement extends HTMLElement {
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%);
+        padding: 28px 4px 4px 4px;
       }
 
       @keyframes fadeIn {
@@ -61,7 +63,7 @@ export class DialogElement extends HTMLElement {
         position: absolute;
         top: 0;
         right: 0;
-        padding: 6px;
+        padding: 4px 4px 0 0;
         color: #aaa;
         font-size: 1.5rem;
       }
