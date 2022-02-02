@@ -1595,13 +1595,13 @@ The storage tests I have now run through successfully.
 
 Ran into a missing parent node problem when importing a large opml file. Turns out I was not actually awaiting all the treeservice operations in treeservice-commandhandler. This should never have worked correctly.
 
-Importing the full workflow opml export now works, but it slow. It does finish in a minute or maybe two, but there is no progress indicating.
+Importing the full workflow opml export now works, but it is slow. It does finish in a minute or maybe two, but there is no progress indicating.
 
 TODO: spinner works, but layout of dialog sucks: close dialog after import, fix alignment of form elements and spinner, move close button on popup menu also outside of the menu items
 TODO: add a mechanism to rerender the tree (optionally) after importing
 
 There are still bugs with opening a collapsed node, it does not correctly rerender in all cases.
 
-TODO: fix collapsed node reopening bugs
+# 2022-02-02
 
-TODO: splitting at the end of a node does not work? It splits, but the new node is the entire old node with children?
+Fixed a few bugs related to opening a node (wasn't set to requiresrender) and splitting nodes was inconsistent between the actual DOM operation and the backend updates we were making. This is now consistent.
