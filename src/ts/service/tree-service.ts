@@ -45,21 +45,15 @@ export class TreeService {
     })
   }
 
-  createNode(
+  private createNode(
     id: string,
     parentId: string,
     name: string,
     content: string,
-    synchronous: boolean
+    synchronous: boolean,
+    position: RelativeNodePosition
   ): Promise<void> {
-    return this.repo.createNode(
-      id,
-      parentId,
-      name,
-      content,
-      synchronous,
-      RELATIVE_NODE_POSITION_END
-    )
+    return this.repo.createNode(id, parentId, name, content, synchronous, position)
   }
 
   loadNode(nodeId: string): Promise<RepositoryNode> {
@@ -185,29 +179,17 @@ export class TreeService {
     newSiblingName: string,
     synchronous: boolean
   ): Promise<void> {
-    return this.findNode(newSiblingId)
-      .then(async (sibling) => {
-        if (sibling) {
-          // we need to attempt undelete since this may be an undo operation of a merge, in this case the sibling exists
-          return this.undeleteNode(newSiblingId, parentId, synchronous)
-        } else {
-          return this.createNode(newSiblingId, parentId, newSiblingName, null, synchronous)
-            .then(() => this.repo.getParentId(nodeId))
-            .then((parentId) =>
-              this.reparentNode(
-                newSiblingId,
-                parentId,
-                { nodeId, beforeOrAfter: RelativeLinearPosition.BEFORE },
-                synchronous
-              )
-            )
-        }
+    const sibling = await this.findNode(newSiblingId)
+    if (sibling) {
+      // we need to attempt undelete since this may be an undo operation of a merge, in this case the sibling exists
+      await this.undeleteNode(newSiblingId, parentId, synchronous)
+    } else {
+      await this.createNode(newSiblingId, parentId, newSiblingName, null, synchronous, {
+        nodeId,
+        beforeOrAfter: RelativeLinearPosition.BEFORE,
       })
-      .then(() => this.repo.getChildIds(nodeId))
-      .then((childIds) => this.reparentNodes(childIds, newSiblingId, synchronous))
-      .then(async () => {
-        await this.renameNode(nodeId, parentId, nodeName, synchronous)
-      })
+    }
+    await this.renameNode(nodeId, parentId, nodeName, synchronous)
   }
 
   private findNode(nodeId: string): Promise<RepositoryNode> {

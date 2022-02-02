@@ -427,7 +427,6 @@ export class Tree extends HTMLElement implements CommandExecutor {
     await this.commandHandler.exec(command)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   private readonly debouncedRerender: () => void = debounce(
     this.rerenderTree.bind(this),
     5000
@@ -459,8 +458,6 @@ export class Tree extends HTMLElement implements CommandExecutor {
 
   private focusNode(nodeId: string, charPos: number) {
     const element = document.getElementById(nodeId)
-    // tslint:disable-next-line:no-console
-    // console.log(`focusing on node ${nodeId} at ${charPos}, exists?`, element)
     if (element) {
       const nameElement: HTMLElement = getNameElement(element) as HTMLElement
       nameElement.focus()
