@@ -204,7 +204,8 @@ export class OpenNodeByIdCommandPayload implements CommandPayload {
   }
 
   requiresRender(): boolean {
-    return false
+    // When opening a node we may need to load a bunch of children and display them
+    return true
   }
 }
 
