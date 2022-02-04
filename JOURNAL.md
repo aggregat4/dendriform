@@ -1597,7 +1597,6 @@ Ran into a missing parent node problem when importing a large opml file. Turns o
 
 Importing the full workflow opml export now works, but it is slow. It does finish in a minute or maybe two, but there is no progress indicating.
 
-TODO: spinner works, but layout of dialog sucks: close dialog after import, fix alignment of form elements and spinner, move close button on popup menu also outside of the menu items
 TODO: add a mechanism to rerender the tree (optionally) after importing
 
 There are still bugs with opening a collapsed node, it does not correctly rerender in all cases.
@@ -1605,3 +1604,11 @@ There are still bugs with opening a collapsed node, it does not correctly rerend
 # 2022-02-02
 
 Fixed a few bugs related to opening a node (wasn't set to requiresrender) and splitting nodes was inconsistent between the actual DOM operation and the backend updates we were making. This is now consistent.
+
+# 2022-02-04
+
+Improved the layout and styling of the opml import dialog by diving into some form styling details.
+
+Noticed that the main tree component is not yet shadow DOM. And since it still uses the main css file it does not profit from changes to the shared common styles.
+
+TODO: try to migrate the tree component to shadow DOM with an import of the shared styles and by moving tree.css into the component.
