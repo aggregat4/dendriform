@@ -24,11 +24,14 @@ export class OpmlImportDialog
     <style>
       /* ---------- OPML Import component ---------- */
       .opml-import-dialog {
-        width: 400px;
+        width: 550px;
+        max-width: 550px;
         padding: 6px;
       }
-      /* Need to align the baseline, otherwise the text
-          is not really centered vertically */
+
+      .opml-import-dialog input[type='file'] {
+        width: calc(100% - 24px);
+      }
 
       .opml-import-dialog .error {
         color: red;
@@ -38,20 +41,14 @@ export class OpmlImportDialog
         color: green;
       }
 
-      .opml-import-dialog input.uploadOpml {
-        max-width: 350px;
-      }
-
-      .opml-import-dialog div.error,
-      .opml-import-dialog div.success,
-      .opml-import-dialog input.uploadOpml,
-      .opml-import-dialog button.import,
-      .opml-import-dialog h1 {
+      .opml-import-dialog section > * {
         margin: 6px 12px 6px 12px;
       }
 
-      .opml-import-dialog .spinenr {
-        display: inline-block;
+      .bottom-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
     </style>
     <div class="opml-import-dialog activityIndicating">
@@ -61,14 +58,16 @@ export class OpmlImportDialog
         </header>
         ${this.error ? html`<div class="error">${this.error}</div>` : ''}
         ${this.success ? html`<div class="success">${this.success}</div>` : ''}
-        <input class="uploadOpml" type="file" @change=${this.handleFilesChanged.bind(this)} />
-        <button
-          class="import primary"
-          ?disabled=${this.disabled}
-          @click=${this.importFile.bind(this)}
-          >Import File</button
-        >
-        <df-spinner delayMs="250" />
+        <input id="uploadopml" type="file" @change=${this.handleFilesChanged.bind(this)} />
+        <div class="bottom-row">
+          <button
+            class="import primary"
+            ?disabled=${this.disabled}
+            @click=${this.importFile.bind(this)}
+            >Import File</button
+          >
+          <df-spinner delayMs="250" />
+        </div>
       </section>
     </div>`
 
@@ -95,7 +94,7 @@ export class OpmlImportDialog
   }
 
   private getUploadInput(): HTMLInputElement {
-    return this.shadowRoot.querySelector('input.uploadOpml')
+    return this.shadowRoot.querySelector('input#uploadopml')
   }
 
   isActive(): boolean {
@@ -154,7 +153,7 @@ export class OpmlImportDialog
 
   private resetFileSelector() {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    ;(this.shadowRoot.querySelector('.uploadOpml') as HTMLInputElement).value = ''
+    ;(this.shadowRoot.querySelector('#uploadopml') as HTMLInputElement).value = ''
   }
 
   private async createNode(
