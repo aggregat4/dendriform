@@ -1612,3 +1612,7 @@ Improved the layout and styling of the opml import dialog by diving into some fo
 Noticed that the main tree component is not yet shadow DOM. And since it still uses the main css file it does not profit from changes to the shared common styles.
 
 TODO: try to migrate the tree component to shadow DOM with an import of the shared styles and by moving tree.css into the component.
+
+There are still some styling things to tweak and optimise, but in general it feels like the next big step is to implement the logmoveops event pump with the new model and to adapt the backend to deal with this new approach. Since this also involves implementing the new joining model for nodes this will be a bit more involved.
+
+TODO: start client server protocol implementation
