@@ -35,9 +35,6 @@ class SubtreeChangedSubscription implements Subscription {
   }
 }
 
-// TODO: consider splitting oout a remote and local interface to differentiate
-// between the use cases of communicating with other replicas or providing the
-// information internally (MoveOpTree internally and ReplicaMoveOpTree externally?).
 export class MoveOpTree {
   private nodeChangedSubscriptions: SubtreeChangedSubscription[] = []
 
