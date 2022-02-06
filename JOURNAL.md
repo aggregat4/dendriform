@@ -1615,4 +1615,74 @@ TODO: try to migrate the tree component to shadow DOM with an import of the shar
 
 There are still some styling things to tweak and optimise, but in general it feels like the next big step is to implement the logmoveops event pump with the new model and to adapt the backend to deal with this new approach. Since this also involves implementing the new joining model for nodes this will be a bit more involved.
 
-TODO: start client server protocol implementation
+Where I left off: start client server protocol implementation
+
+# 2022-02-06
+
+Some notes on a client server protocol and invariants.
+
+We replace the static replicaset with a dynamic replicaset that is protected by server side consistency guarantees. The basic guarantee is that at the moment you get an updated list of replicas from the server, that is basically the fixed set of replicas at that time and it is guaranteed there is no other replica with a lower clock. This then allows a client to determine the causal stability threshold based on the clocks and subsequently allows it to garbage collect events.
+
+This also means that the server needs a dedicated operation to manage the replicaset. This **join operation** will get a write lock on the replicaset. All other operations take a read lock on the replicaset.
+
+The only other operation is a **sync operation** that consists of the client (optionally) sending a batch of events and (optionally) receiving a batch of events. Each sync operation send the current state of the clients view on the world so that the server may determine what events to send back. The server always returns its current view on the replicaset.
+
+Assumptions:
+- everyone sends events in ascending clock order (at least per replicaid)
+- clients are responsible for tracking the max clock they have sent to the server and that the server received (may have to revisit this in the future, could theoretically send it back on sync, this would allo an initial empty sync operation to tell the client where it left off)
+
+## Join Operation
+
+Context:
+- This operation holds a write lock on the replicaset in memory on the server so it is guaranteed that the sync operation gets a consistent state. Inversely this update can not continue until all pending sync operations have finished.
+- This is a possible source of contention but the assumption is that join operations are extremely rare. The scope of the lock is also limited to the replicas for the specific document.
+
+Request:
+```
+POST /documents/<docid>/replicas/{replicaId}
+```
+
+Response:
+```
+startclock // maxclock over all replicas + 1
+```
+
+## Sync Operation
+
+Context:
+- It is the client's responsibility to track the max clock that it has sent to the server.
+- Client and Server MUST always send events in ascending clock value (per replica)
+- Events are sent in batches that are limited in size. Clients determine server batchSize with a parameter.
+- Client events that have a replicaId that are not part of the known replicaset will be rejected with a 400 Bad Request. The client must join first.
+
+Request:
+```
+POST /documents/<docid>/events?batchSize=<int>
+
+{
+  // Unsent events by the replica, can be empty
+  events: [{logmoveevent}]
+
+  // Current state of the replicaset as known by the replica.
+  // Used by the server to determine what to send back
+  replicaset: [(replicaId, clock)]
+}
+```
+
+Response:
+```
+{
+  // Events the replica does not yet have, server 
+  // decides the strategy for sending events. Either
+  // per replica or just round robin or whatever.
+  // But always with a monotonically increasing
+  // clock per replica.
+  events: [{logmoveevent}],
+  
+  // Replicas known by the server, including the 
+  // current replica and their maxclocks. For the
+  // current replica this includes the clock of the
+  // events that were sent in the request.
+  replicaset: [(replicaId, clock)]
+}
+```
