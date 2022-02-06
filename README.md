@@ -143,7 +143,6 @@ describe('something' , () => {
 })
 ```
 Something like testWithRepo could just be delegating to describe but how would I solve passing a function with specific parameters to nested describes? Some generics trickery?
-1. IMPROVEMENT: upgrade to lit-html 2, see https://lit.dev/docs/releases/upgrade/
 1. IMPROVEMENT: maybe consider trying https://talwindcss.com/ and give that a go here. I am curious how it feels.
 
 Old TODOs:
