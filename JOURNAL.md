@@ -1683,3 +1683,16 @@ Response:
   replicaset: [(replicaId, clock)]
 }
 ```
+
+# 2022-02-09
+
+Considering how to implement the join protocol on the client side. Adding this protocol means that the client should not start accepting and storing events until we were able to make a connection to the server at least once to join the replicaset.
+
+It seems we need something like the ReplicaSetManager that at least the IdbLogMoveStorage depends on:
+
+* If it does not yet have events stored it must ask the ReplicaSetManager for the start clock, this can only be gotten by joining a replicaset
+* If it has no start clock, it must refuse to store all events (throw a specific error that we can catch somewhere sensible and display an error)
+
+One problem is that the replicaset manager must ask the logmovestorage for its current state of the replicaset (what max clock have we seen for each replica?). This causes a cyclic dependency. Can we avoid this? Must we?
+
+Perhaps the solution is to split the join protocol and the sync protocol implementations: this way the logmovestorage can ask the join protocol about the start clock, and only the start clock. And the sync protocol can ask the logmovestorage about the current view of the world and events to send to the server.

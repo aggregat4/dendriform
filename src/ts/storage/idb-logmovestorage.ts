@@ -1,5 +1,6 @@
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
+import { JoinProtocol } from '../replicaset/join-protocol'
 import { NodeMetadata } from './nodestorage'
 
 /**
@@ -44,7 +45,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
   private listeners: EventStorageListener[] = []
   private clock = -1
 
-  constructor(readonly dbName: string) {}
+  constructor(readonly dbName: string, readonly joinProtocol: JoinProtocol) {}
 
   async init(): Promise<void> {
     this.db = await openDB<LogMoveSchema>(this.dbName, 1, {
@@ -57,7 +58,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
       },
     })
     const maxClock = await this.getMaxClock()
-    this.clock = maxClock + 1
+    if (maxClock) this.clock = maxClock + 1
   }
 
   async deinit(): Promise<void> {
@@ -163,7 +164,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
     if (cursor) {
       return cursor.value.clock
     } else {
-      return 0
+      return -1
     }
   }
 

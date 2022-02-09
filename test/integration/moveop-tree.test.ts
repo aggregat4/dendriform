@@ -9,6 +9,7 @@ import { RELATIVE_NODE_POSITION_END } from 'src/ts/domain/domain'
 import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
 import { LogootSequenceWrapper } from 'src/ts/repository/logoot-sequence-wrapper'
 import { atomIdent } from 'src/ts/lib/modules/logootsequence'
+import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
 
 function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () => void {
   return async () => {
