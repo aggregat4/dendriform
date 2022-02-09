@@ -132,6 +132,7 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 ## TODOs
 
+1. TODO: try to migrate the tree component to shadow DOM with an import of the shared styles and by moving tree.css into the component.
 1. Extend tizzy to include the ability to "describe", meaning to add structure to tests so that you can have like a global context but still individually described test steps that are documented
 ```
 describe('something' , () => { 

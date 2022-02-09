@@ -1496,7 +1496,7 @@ Unclear whether something is missing on the client after that but then we should
 * repository-eventlog now always does a rebuild and notify when an external event comes in since all events are potentially structural. We "just" need to refactor rebuild at some point to do the undo/redo semantics as in kleppmann
 * All changes to nodes (moving, payload changes and reordering) causes the complete event to be duplicated. This means that even more than before we will be schlepping around notes and node name duplications. Once this refactoring is through I will need to start thinking about what to do with that data. Especially with nodes, but perhaps also the names. Should those "attachments" to a node just be child nodes of a different type (no logoot ordering, some type identifier in the payload?)? Are there other options to treat these payloads out of band? Maybe treat them all as children of another pseudo node called ATTACHMENTS and have the ability to refer to them by ID (would this also enable linking of nodes? in that case they would be special kinds of links) 
 * We definitely need to redo the map rebuilding, we can't retrieve all events every time. Also, we have a getAllLocalEvents() method on eventlog that delegates to the repository for a similar call. This is for getting the new events to send to the server. AFAICT this also causally sorts and deduplicates the events, which we probably do not want to do for sending to the server! I removed the sorting and deduplication stuff.
-* TODO: add the logoot position to the event payload!
+* add the logoot position to the event payload!
 * I remove the bulk tree loading option and always load recursively. Will need measure whether in the future I still need bulk loading. (`repository-eventlog.ts`)
 
 ## 2021-11-03
@@ -1534,7 +1534,6 @@ Using the server we can implement a join protocol and therefore manage the repli
 
 A peer can only call updateReplicaset after having sent all remaining events to the server, and getting all remaining events from the server.
 
-TODO: check this logic: how do we prevent 
 A peer can then only perform garbage collection after having called updateReplicaset. This guarantees that all known replicas are included and any replicas that were just trying to join will get clocks higher than the returned values. This prevents garbage collection of events that may still get concurrent updates. If a replica goes offline for a long time, its clock will remain on a low level and prevent events concurrent or newer to be garbage collected.
 
 This will effectively allow safe garbage collection, but it does not account for nodes going offline and not returning. They could cause garbage collection to become increasingly ineffective as we can't collect garbage anymore.
@@ -1577,7 +1576,7 @@ I have implemented the missing support for remote move operations in the moveope
 
 It is still annoying that there is such a duplication in logic between updateLocal and updateRemote methods. Can't find a good way to abstract out the common logic. I will at least need tests to check this.
 
-Which brings us to the next todo: write tests for all that new remote update logic and perhaps also its interaction with local updates!
+Which brings us to the next task: write tests for all that new remote update logic and perhaps also its interaction with local updates!
 
 ## 2022-01-19 
 
@@ -1597,8 +1596,6 @@ Ran into a missing parent node problem when importing a large opml file. Turns o
 
 Importing the full workflow opml export now works, but it is slow. It does finish in a minute or maybe two, but there is no progress indicating.
 
-TODO: add a mechanism to rerender the tree (optionally) after importing
-
 There are still bugs with opening a collapsed node, it does not correctly rerender in all cases.
 
 # 2022-02-02
@@ -1610,8 +1607,6 @@ Fixed a few bugs related to opening a node (wasn't set to requiresrender) and sp
 Improved the layout and styling of the opml import dialog by diving into some form styling details.
 
 Noticed that the main tree component is not yet shadow DOM. And since it still uses the main css file it does not profit from changes to the shared common styles.
-
-TODO: try to migrate the tree component to shadow DOM with an import of the shared styles and by moving tree.css into the component.
 
 There are still some styling things to tweak and optimise, but in general it feels like the next big step is to implement the logmoveops event pump with the new model and to adapt the backend to deal with this new approach. Since this also involves implementing the new joining model for nodes this will be a bit more involved.
 
