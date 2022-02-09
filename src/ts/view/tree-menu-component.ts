@@ -1,5 +1,5 @@
 import { html, render } from 'lit-html'
-import { until } from 'lit-html/directives/until'
+import { until } from 'lit-html/directives/until.js'
 import { TreeAction, TreeActionContext } from './tree-actions'
 import { epochSecondsToLocaleString } from '../utils/dateandtime'
 import { DialogLifecycleAware } from './dialogs'
