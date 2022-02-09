@@ -1625,11 +1625,11 @@ We replace the static replicaset with a dynamic replicaset that is protected by 
 
 This also means that the server needs a dedicated operation to manage the replicaset. This **join operation** will get a write lock on the replicaset. All other operations take a read lock on the replicaset.
 
-The only other operation is a **sync operation** that consists of the client (optionally) sending a batch of events and (optionally) receiving a batch of events. Each sync operation send the current state of the clients view on the world so that the server may determine what events to send back. The server always returns its current view on the replicaset.
+The only other operation is a **sync operation** that consists of the client (optionally) sending a batch of events and (optionally) receiving a batch of events. Each sync operation sends the current state of the clients view on the world so that the server may determine what events to send back. The server always returns its current view on the replicaset.
 
 Assumptions:
 - everyone sends events in ascending clock order (at least per replicaid)
-- clients are responsible for tracking the max clock they have sent to the server and that the server received (may have to revisit this in the future, could theoretically send it back on sync, this would allo an initial empty sync operation to tell the client where it left off)
+- clients are responsible for tracking the max clock they have sent to the server and that the server received (may have to revisit this in the future, could theoretically send it back on sync, this would allow an initial empty sync operation to tell the client where it left off)
 
 ## Join Operation
 
@@ -1640,6 +1640,7 @@ Context:
 Request:
 ```
 POST /documents/<docid>/replicas/{replicaId}
+Accept-Type: application/json
 ```
 
 Response:
@@ -1658,6 +1659,7 @@ Context:
 Request:
 ```
 POST /documents/<docid>/events?batchSize=<int>
+Accept-Type: application/json
 
 {
   // Unsent events by the replica, can be empty
