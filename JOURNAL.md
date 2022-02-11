@@ -1634,13 +1634,16 @@ Context:
 
 Request:
 ```
-POST /documents/<docid>/replicas/{replicaId}
+POST /documents/<docid>/replicaset/{replicaId}
 Accept-Type: application/json
 ```
 
 Response:
 ```
-startclock // maxclock over all replicas + 1
+{
+  alreadyKnown: <boolean>
+  startClock: <number> // maxclock over all replicas + 1
+}
 ```
 
 ## Sync Operation
@@ -1696,3 +1699,29 @@ It seems we need something like the ReplicaSetManager that at least the IdbLogMo
 One problem is that the replicaset manager must ask the logmovestorage for its current state of the replicaset (what max clock have we seen for each replica?). This causes a cyclic dependency. Can we avoid this? Must we?
 
 Perhaps the solution is to split the join protocol and the sync protocol implementations: this way the logmovestorage can ask the join protocol about the start clock, and only the start clock. And the sync protocol can ask the logmovestorage about the current view of the world and events to send to the server.
+
+# 2022-02-11
+
+I had an aditional thought on the join protocol implementation. I think we need to perform the join operation at each initial server connection as the application loads and not just on the initial connection. This way we can verify whether everything is in order. This will lead to some increased contention on the replicaset lock, but I feel it will still be very minimal?
+
+This will lead to the following possible states:
+
+- Assuming we have _no_ local start clock:
+  - the server is not reachable: we can not start accepting local changes (**OK**)
+  - the server is reachable and it does not yet know us: this is fine, we can store the startClock and start working (**OK**)
+  - the server is reachable and it does already know us: this means the local client had its data reset but is known, this is inherently a problem state since we should also have a new local replicaId that the server does not know. (**ERROR**)
+    - Recovery should probably be to reset everything locally and to restart with a new replicaId. The old replicaId will be dangling on the server
+
+- Assuming we have _a_ local start clock:
+  - the server is not reachable: we can take local changes, we are offline (**OK**)
+  - the server is reachable and it tells us it does not known us yet: this means that we are not known by the server but we think the server should know us. This is the most _dangerous_ state as we need some sort of recovery here (**ERROR**)
+    - Recovery: export OPML and reset local document?
+  - the server is reachable and it tells us it does know us: this is fine we can start syncing changes. (**OK**)
+
+We also have some error handling to do with technical server errors. We need to distinguish between 5xx and 4xx statuses: 5xx is like being offline, 4xx is our fault and we could potentially communicate some nuance to the application and inform the user.
+
+Like 404 is basically something is wrong with the client application and you should contact the owner. BAD REQUEST is basically the same.
+
+NOT AUTHENTICATED would be a hint that the user should log in. 
+
+But with all those flows if the app is written correctly and installed correctly, they should not happen so maybe not spend too much time on this now.
