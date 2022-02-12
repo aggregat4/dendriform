@@ -113,7 +113,7 @@ export class JoinProtocol implements LifecycleAware {
         }
       )
       const joinResponse = (await joinResponsePromise.json()) as JoinProtocolResponse
-      // Now we have a bunch of potential error cases:
+      // Now we have a bunch of potential error and non-error cases:
       if (this.#startClock == -1 && !joinResponse.alreadyKnown) {
         // OK: we are a fresh replica and the server doesn't know us, all is well
         this.#startClock = joinResponse.startClock
