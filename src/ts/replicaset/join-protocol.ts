@@ -1,11 +1,13 @@
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
 import {
+  ApplicationError,
   ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK,
   ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK,
 } from '../domain/errors'
 import { LifecycleAware } from '../domain/lifecycle'
 import { BackoffWithJitterTimeoutStrategy, JobScheduler } from '../utils/jobscheduler'
 import { assert } from '../utils/util'
+import { JoinProtocolClient } from './join-protocol-client'
 
 interface JoinedDocumentRecord {
   documentId: string
@@ -19,23 +21,24 @@ interface JoinedDocumentsSchema extends DBSchema {
   }
 }
 
-interface JoinProtocolResponse {
-  alreadyKnown: boolean
-  startClock: number
+export class ClientHasNotJoinedReplicaSetError extends Error {
+  constructor(readonly documentId: string) {
+    super(`Client has not yet joined the replicaset for document "${documentId}"`)
+    this.name = 'ClientHasNotJoinedReplicaSetError'
+  }
 }
 
 /**
- * This class is responsible for implementing the remote join protocol for a particular document.
- * It keeps track of the start clock for this particular document. This information also acts as
- * an indicator that we have joined the replicaset and that offline work on this document can
- * proceed.
+ * This class is responsible for implementing the remote join protocol for a
+ * particular document. It keeps track of the start clock for this particular
+ * document. This information also acts as an indicator that we have joined the
+ * replicaset and that offline work on this document can proceed.
  *
- * Given a document id it can return the current start clock or none if the join protocol
- * was not executed yet.
- * Using a backoff algorithm it will attempt to join the replicaset for a particular document
- * until it succeeds.
- * We always try to join with the server at least once. For subsequent join requests this can
- * help detect anomalous states between the client and the server.
+ * Given a document id it can return the current start clock or none if the join
+ * protocol was not executed yet. Using a backoff algorithm it will attempt to
+ * join the replicaset for a particular document until it succeeds. We always
+ * try to join with the server at least once. For subsequent join requests this
+ * can help detect anomalous states between the client and the server.
  */
 export class JoinProtocol implements LifecycleAware {
   private db: IDBPDatabase<JoinedDocumentsSchema>
@@ -54,7 +57,7 @@ export class JoinProtocol implements LifecycleAware {
     readonly dbName: string,
     readonly documentId: string,
     readonly replicaId: string,
-    readonly serverEndpoint: string
+    readonly client: JoinProtocolClient
   ) {}
 
   async init() {
@@ -103,16 +106,7 @@ export class JoinProtocol implements LifecycleAware {
 
   private async join() {
     try {
-      const joinResponsePromise = await fetch(
-        `${this.serverEndpoint}documents/${this.documentId}/replicaset/${this.replicaId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          },
-        }
-      )
-      const joinResponse = (await joinResponsePromise.json()) as JoinProtocolResponse
+      const joinResponse = await this.client.join(this.documentId, this.replicaId)
       // Now we have a bunch of potential error and non-error cases:
       if (this.#startClock == -1 && !joinResponse.alreadyKnown) {
         // OK: we are a fresh replica and the server doesn't know us, all is well
@@ -147,17 +141,34 @@ export class JoinProtocol implements LifecycleAware {
     }
   }
 
+  /**
+   * Indicates whether we have joined a replicaset or not. It does this by
+   * checking that we have a valid start clock.
+   *
+   * @throws ApplicationError if we are in a state that can not be resolved and
+   *   that indicates a serious error in the client or server.
+   */
   hasJoinedReplicaSet(): boolean {
     if (this.#clientAndServerStateConsistencyError !== null) {
-      throw Error(this.#clientAndServerStateConsistencyError)
+      throw new ApplicationError(this.#clientAndServerStateConsistencyError)
     }
     return this.#startClock > -1
   }
 
+  /**
+   * @returns The startclock for the documentId that this protocol was initialised with.
+   * @throws ClientHasNotJoinedReplicaSetError when the client has not yet
+   *   joined the replicaset for this document.
+   * @throws ApplicationError if we are in a state that can not be resolved and
+   *   that indicates a serious error in the client or server.
+   */
   getStartClock(): number {
     if (this.#clientAndServerStateConsistencyError !== null) {
-      throw Error(this.#clientAndServerStateConsistencyError)
+      throw new ApplicationError(this.#clientAndServerStateConsistencyError)
     }
-    throw new Error('Not implemented yet')
+    if (!this.hasJoinedReplicaSet()) {
+      throw new ClientHasNotJoinedReplicaSetError(this.documentId)
+    }
+    return this.#startClock
   }
 }

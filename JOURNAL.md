@@ -1735,3 +1735,10 @@ This plugin can autoformat jsdoc comments, specifically wrapping. It conserves n
 
 # 2022-02-16
 
+Started modeling errors around the join protocol. At the moment we distinguish between application errors (see domain/error) that can be percolated up to the GUI and be handled by a person, and local errors that are modeled as custom Error objects in a subsystem of dendriform that form part of the API of a certain service.
+
+Splitted the HTTP specific parts of the join protocol out of the implementation. This will allow using a mock implementation for tests.
+
+TODO: test the join protocol implementation with a mock client mplementation.
+
+TODO: consider how to deal with the client errors in the join protocol implementation
