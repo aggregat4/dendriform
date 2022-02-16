@@ -2,5 +2,7 @@ module.exports = {
   semi: false,
   singleQuote: true,
   printWidth: 100,
-  htmlWhitespaceSensitivity: "strict"
+  jsdocPrintWidth: 80,
+  htmlWhitespaceSensitivity: "strict",
+  "plugins": ["prettier-plugin-jsdoc"],
 }

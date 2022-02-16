@@ -1725,3 +1725,13 @@ Like 404 is basically something is wrong with the client application and you sho
 NOT AUTHENTICATED would be a hint that the user should log in. 
 
 But with all those flows if the app is written correctly and installed correctly, they should not happen so maybe not spend too much time on this now.
+
+# 2022-02-16
+
+Added the `prettier-plugin-jsdoc` prettier plugin to my configuration and configured it to use an 80 column with for JSDoc comments in prettierrc.js.
+
+This plugin can autoformat jsdoc comments, specifically wrapping. It conserves newlines. Seems like it will save some time when writing JSDoc block comments.
+
+
+# 2022-02-16
+
