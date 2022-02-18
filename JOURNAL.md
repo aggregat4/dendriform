@@ -1741,4 +1741,19 @@ Splitted the HTTP specific parts of the join protocol out of the implementation.
 
 TODO: test the join protocol implementation with a mock client mplementation.
 
-TODO: consider how to deal with the client errors in the join protocol implementation
+# 2022-02-18
+
+As I integrated the join protocol into the actual code I run into some questions. The only place where it currently needs to be is in IdbLogMoveStorage since this is the place where we consider what the max clock is that we know and where we need to make sure that we have joined the replicaset before we can start doing anything.
+
+Since we check the clock status in the IdbLogMoveStorage initialisation we would fail the entire chain of application initialisation if we have not yet joined the document replicaset. This is correct, but it also means that the application can basically never get started.
+
+We need a mechanism, with application (GUI) support that waits until we have joined the replicaset for a document and then proceed with initialisation.
+
+Intead of somehow complicating the entire initialisation process I have the following idea:
+
+- IdbLogMoveStorage gets expanded to move its clock initialisation logic from the constructor to an ensureClockInitialised() helper that is called before any operation that relates to clocks. This would basically throw when the replicaset has not been joined yet since we can't get a startClock. This will then cause all of these operations that are basically mutations of the tree to fail when we have not joined the replicaset yet.
+- In parallel we make the tree-component aware of the join protocol as well and it will not allow loading or showing the tree as long we have not yet joined the replicaset.
+
+TODO: implement this
+
+TODO: implement join protocol tests with mock client
