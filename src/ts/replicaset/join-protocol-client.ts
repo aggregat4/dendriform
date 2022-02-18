@@ -22,10 +22,10 @@ export class ServerNotAvailableError extends Error {
 }
 
 /** Requests to the server get rejected with authorization failed errors. */
-export class ClientAuthenticationError extends Error {
+export class ClientNotAuthorizedError extends Error {
   constructor() {
-    super(`Client is not authenticated`)
-    this.name = 'ClientAuthenticationError'
+    super(`Client is not authorized`)
+    this.name = 'ClientNotAuthorizedError'
   }
 }
 

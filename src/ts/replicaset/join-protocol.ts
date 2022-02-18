@@ -1,13 +1,20 @@
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
 import {
   ApplicationError,
+  ERROR_CLIENT_NOT_AUTHORIZED,
+  ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE,
   ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK,
   ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK,
 } from '../domain/errors'
 import { LifecycleAware } from '../domain/lifecycle'
 import { BackoffWithJitterTimeoutStrategy, JobScheduler } from '../utils/jobscheduler'
 import { assert } from '../utils/util'
-import { JoinProtocolClient } from './join-protocol-client'
+import {
+  ClientNotAuthorizedError,
+  IllegalClientServerStateError,
+  JoinProtocolClient,
+  ServerNotAvailableError,
+} from './join-protocol-client'
 
 interface JoinedDocumentRecord {
   documentId: string
@@ -105,40 +112,51 @@ export class JoinProtocol implements LifecycleAware {
   }
 
   private async join() {
+    let response = null
     try {
-      const joinResponse = await this.client.join(this.documentId, this.replicaId)
-      // Now we have a bunch of potential error and non-error cases:
-      if (this.#startClock == -1 && !joinResponse.alreadyKnown) {
-        // OK: we are a fresh replica and the server doesn't know us, all is well
-        this.#startClock = joinResponse.startClock
-        await this.saveDocument()
-      } else if (this.#startClock == -1 && joinResponse.alreadyKnown) {
-        // ERROR: we believe we are a fresh replica but the server already knows us
-        this.#clientAndServerStateConsistencyError = ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK
-      } else if (this.#startClock > -1 && !joinResponse.alreadyKnown) {
-        // ERROR: we believe we have already joined the replicaset but the server does not know us
-        this.#clientAndServerStateConsistencyError = ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK
-      } else if (this.#startClock > -1 && joinResponse.alreadyKnown) {
-        // OK: we think we are part of the replicaset and the server thinks so as well
-        //
-        // Theoretically we could have the problem that the server does not have some of our events
-        // but we will resolve this in the sync protocol: it will check what the server knows of us
-        // and we will send all missing messages. If messages are missing in the middle of the sequence
-        // well, there is nothing we can do about that, and also no way to detect that.
-      }
-      // No matter what state we are in after a successful request to the server,
-      // we need to stop the scheduler
-      this.joinJobScheduler.stop()
+      response = await this.client.join(this.documentId, this.replicaId)
     } catch (e) {
-      // TODO: sensibly deal with server errors, we probably need to log something and store some state on the server?
-      // If 5xx then we are more or less in offline mode
-      // if 4xx its our fault and maybe we could differentiate between a few cases (auth, bad request, not found)
-      console.error(`Error from server on join protocol request: `, e)
-      // TODO: only rethrow if we want the scheduler to backoff on the next attempt, so basically only rethrow
-      // if offline or 5xx comes back from server? Can we detect offline or connection issue? Or just rethrow if
-      // it is _NOT_ a 4xx?
-      throw e
+      if (e instanceof ClientNotAuthorizedError) {
+        this.#clientAndServerStateConsistencyError = ERROR_CLIENT_NOT_AUTHORIZED
+        this.joinJobScheduler.stop()
+        return
+      } else if (e instanceof IllegalClientServerStateError) {
+        this.#clientAndServerStateConsistencyError = ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE
+        this.joinJobScheduler.stop()
+        return
+      } else if (e instanceof ServerNotAvailableError) {
+        // this is fine, we are offline, we rethrow the exception so that the scheduler
+        // can back off and try again in a bit
+        throw e
+      } else {
+        // What to do with unknown errors like this? This can't be many things anymore since
+        // we catch as much as possible in the client implementation. We just rethrow and
+        // let the backoff retry again. Maybe it will fix itself.
+        throw e
+      }
     }
+    // Now we have a bunch of potential error and non-error cases:
+    if (this.#startClock == -1 && !response.alreadyKnown) {
+      // OK: we are a fresh replica and the server doesn't know us, all is well
+      this.#startClock = response.startClock
+      await this.saveDocument()
+    } else if (this.#startClock == -1 && response.alreadyKnown) {
+      // ERROR: we believe we are a fresh replica but the server already knows us
+      this.#clientAndServerStateConsistencyError = ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK
+    } else if (this.#startClock > -1 && !response.alreadyKnown) {
+      // ERROR: we believe we have already joined the replicaset but the server does not know us
+      this.#clientAndServerStateConsistencyError = ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK
+    } else if (this.#startClock > -1 && response.alreadyKnown) {
+      // OK: we think we are part of the replicaset and the server thinks so as well
+      //
+      // Theoretically we could have the problem that the server does not have some of our events
+      // but we will resolve this in the sync protocol: it will check what the server knows of us
+      // and we will send all missing messages. If messages are missing in the middle of the sequence
+      // well, there is nothing we can do about that, and also no way to detect that.
+    }
+    // No matter what state we are in after a successful request to the server,
+    // we need to stop the scheduler
+    this.joinJobScheduler.stop()
   }
 
   /**

@@ -29,3 +29,14 @@ export const ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK: ApplicationErrorCode = {
   errorDetail:
     'On joining a replicaset the server does not know our replicaId but we believe we had joined the document replicaset before.',
 }
+
+export const ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE: ApplicationErrorCode = {
+  errorCode: 'ERR-000300',
+  errorDetail:
+    'On joining a replicaset the server reports an error that indicates that the client is in an illegal state. Maybe a version mismatch or a programming error?',
+}
+
+export const ERROR_CLIENT_NOT_AUTHORIZED: ApplicationErrorCode = {
+  errorCode: 'ERR-000400',
+  errorDetail: 'Client is not authorized',
+}
