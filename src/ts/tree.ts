@@ -12,6 +12,8 @@ import { MoveOpTree } from './moveoperation/moveoperation'
 import { IdbTreeStorage } from './storage/idb-treestorage'
 import { IdbLogMoveStorage } from './storage/idb-logmovestorage'
 import { IdbReplicaStorage } from './storage/idb-replicastorage'
+import { JoinProtocol } from './replicaset/join-protocol'
+import { JoinProtocolHttpClient } from './replicaset/join-protocol-client-http'
 
 customElements.define('dendriform-tree', Tree)
 
@@ -23,14 +25,23 @@ export class TreeManager {
     await deinitAll(this.initializables)
     this.initializables = []
 
-    // const remoteEventLog = this.register(new RemoteEventLog('/', treeName))
-
     const replicaStore = register(
       new IdbReplicaStorage(`${treeName}-replicastorage`),
       this.initializables
     )
+
+    const joinProtocol = register(
+      new JoinProtocol(
+        `${treeName}-replicaset`,
+        treeName,
+        replicaStore,
+        new JoinProtocolHttpClient(`/`)
+      ),
+      this.initializables
+    )
+
     const logMoveStore = register(
-      new IdbLogMoveStorage(`${treeName}-logmovestorage`),
+      new IdbLogMoveStorage(`${treeName}-logmovestorage`, joinProtocol),
       this.initializables
     )
     const treeStore = register(new IdbTreeStorage(`${treeName}-treestorage`), this.initializables)
@@ -64,8 +75,8 @@ export class TreeManager {
   }
 
   /**
-   * Initialises the tree with the given name and mounts it to the given
-   * DOM element. It will deinitialise any previously initialised tree.
+   * Initialises the tree with the given name and mounts it to the given DOM
+   * element. It will deinitialise any previously initialised tree.
    *
    * Make sure to call mountTree only when DOMContentLoaded.
    *

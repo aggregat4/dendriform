@@ -4,9 +4,9 @@ import { JoinProtocol } from '../replicaset/join-protocol'
 import { NodeMetadata } from './nodestorage'
 
 /**
- * A representation of all the log moves that we need to persist to allow
- * for processing new incoming events. This table will be garbage collected
- * once we can identify at what clock we are causally stable.
+ * A representation of all the log moves that we need to persist to allow for
+ * processing new incoming events. This table will be garbage collected once we
+ * can identify at what clock we are causally stable.
  */
 export interface LogMoveRecord {
   clock: number
@@ -17,10 +17,11 @@ export interface LogMoveRecord {
   newPayload: NodeMetadata
   childId: string
   /**
-   * We need to store all lovemoverecords regardless of whether we applied them or not.
-   * We may decline to apply an event if perhaps its parent is not yet known at this time
-   * because the parent creation event has not arrived yet. When we undo the logmoverecords
-   * we need to be able to determine whether or not this event was applied.
+   * We need to store all lovemoverecords regardless of whether we applied them
+   * or not. We may decline to apply an event if perhaps its parent is not yet
+   * known at this time because the parent creation event has not arrived yet.
+   * When we undo the logmoverecords we need to be able to determine whether or
+   * not this event was applied.
    */
   applied: boolean
 }
@@ -97,26 +98,16 @@ export class IdbLogMoveStorage implements LifecycleAware {
     }
   }
 
-  getName(): string {
-    return this.dbName
-  }
-
-  async storeEvents(logMoveRecords: LogMoveRecord[]): Promise<void> {
+  async storeEvent(logMoveRecord: LogMoveRecord): Promise<void> {
     // const existingEvents = await this.getEventsForReplicaSince(logMoveRecords[0].replicaId, 0, 100)
     // console.debug(`Current events before storing new events: ${JSON.stringify(existingEvents)}`)
     const tx = this.db.transaction('logmoveops', 'readwrite')
     try {
-      // This is an efficient bulk add that does not wait for the success callback, inspired by
-      // https://github.com/dfahlander/Dexie.js/blob/fb735811fd72829a44c86f82b332bf6d03c21636/src/dbcore/dbcore-indexeddb.ts#L161
-      for (const logMoveRecord of logMoveRecords) {
-        // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
-        await tx.store.add(logMoveRecord)
-        // TODO: this needs to be move to an async op at this point the events are not stored yet
-        this.notifyListeners((listener: EventStorageListener) =>
-          listener.eventStored(logMoveRecord)
-        )
-      }
+      // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
+      await tx.store.add(logMoveRecord)
+      // TODO: this needs to be move to an async op at this point the events are not stored yet
       await tx.done
+      this.notifyListeners((listener: EventStorageListener) => listener.eventStored(logMoveRecord))
     } catch (error) {
       // console.error(
       //   `store error for logMoveRecords ${JSON.stringify(logMoveRecords)}: `,

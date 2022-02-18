@@ -30,7 +30,7 @@ test(
 test(
   'When we undo one event there are no events left',
   testWithLogMoveStorage(async (logMoveStorage) => {
-    await logMoveStorage.storeEvents([
+    await logMoveStorage.storeEvent([
       {
         clock: 1,
         replicaId: 'replica1',
@@ -63,13 +63,13 @@ test(
       oldParentId: null,
       oldPayload: null,
     }
-    await logMoveStorage.storeEvents([logMoveEvent])
+    await logMoveStorage.storeEvent([logMoveEvent])
     let events = await logMoveStorage.getEventsForReplicaSince('replica1', 0, 100)
     expect(events.length).toBe(1)
     await logMoveStorage.undoAllNewerLogmoveRecordsInReverse(0, 'replica1')
     events = await logMoveStorage.getEventsForReplicaSince('replica1', 0, 100)
     expect(events.length).toBe(0)
-    await logMoveStorage.storeEvents([logMoveEvent])
+    await logMoveStorage.storeEvent([logMoveEvent])
     events = await logMoveStorage.getEventsForReplicaSince('replica1', 0, 100)
     expect(events.length).toBe(1)
     expect(events[0]).toEqual(logMoveEvent)

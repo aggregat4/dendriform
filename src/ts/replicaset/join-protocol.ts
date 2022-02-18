@@ -7,6 +7,7 @@ import {
   ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK,
 } from '../domain/errors'
 import { LifecycleAware } from '../domain/lifecycle'
+import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 import { BackoffWithJitterTimeoutStrategy, JobScheduler } from '../utils/jobscheduler'
 import { assert } from '../utils/util'
 import {
@@ -63,7 +64,7 @@ export class JoinProtocol implements LifecycleAware {
   constructor(
     readonly dbName: string,
     readonly documentId: string,
-    readonly replicaId: string,
+    readonly replicaStore: IdbReplicaStorage,
     readonly client: JoinProtocolClient
   ) {}
 
@@ -114,7 +115,7 @@ export class JoinProtocol implements LifecycleAware {
   private async join() {
     let response = null
     try {
-      response = await this.client.join(this.documentId, this.replicaId)
+      response = await this.client.join(this.documentId, this.replicaStore.getReplicaId())
     } catch (e) {
       if (e instanceof ClientNotAuthorizedError) {
         this.#clientAndServerStateConsistencyError = ERROR_CLIENT_NOT_AUTHORIZED

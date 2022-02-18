@@ -45,8 +45,8 @@ export class MoveOpTree {
   ) {}
 
   /**
-   * This update operation will check whether the node already existed and if so record the appropriate
-   * change event.
+   * This update operation will check whether the node already existed and if so
+   * record the appropriate change event.
    */
   async updateLocalNode(
     node: RepositoryNode,
@@ -94,18 +94,16 @@ export class MoveOpTree {
   }
 
   private async recordUnappliedMoveOp(moveOp: MoveOp): Promise<void> {
-    await this.logMoveStore.storeEvents([
-      {
-        clock: moveOp.clock,
-        replicaId: moveOp.replicaId,
-        oldParentId: null,
-        oldPayload: null,
-        newParentId: moveOp.parentId,
-        newPayload: moveOp.metadata,
-        childId: moveOp.nodeId,
-        applied: false,
-      },
-    ])
+    await this.logMoveStore.storeEvent({
+      clock: moveOp.clock,
+      replicaId: moveOp.replicaId,
+      oldParentId: null,
+      oldPayload: null,
+      newParentId: moveOp.parentId,
+      newPayload: moveOp.metadata,
+      childId: moveOp.nodeId,
+      applied: false,
+    })
   }
 
   private async recordMoveOp(
@@ -113,18 +111,16 @@ export class MoveOpTree {
     oldParentId: string,
     oldPayload: NodeMetadata
   ): Promise<void> {
-    await this.logMoveStore.storeEvents([
-      {
-        clock: moveOp.clock,
-        replicaId: moveOp.replicaId,
-        oldParentId: oldParentId,
-        oldPayload: oldPayload,
-        newParentId: moveOp.parentId,
-        newPayload: moveOp.metadata,
-        childId: moveOp.nodeId,
-        applied: true,
-      },
-    ])
+    await this.logMoveStore.storeEvent({
+      clock: moveOp.clock,
+      replicaId: moveOp.replicaId,
+      oldParentId: oldParentId,
+      oldPayload: oldPayload,
+      newParentId: moveOp.parentId,
+      newPayload: moveOp.metadata,
+      childId: moveOp.nodeId,
+      applied: true,
+    })
   }
 
   private async updateMoveOp(
@@ -148,10 +144,13 @@ export class MoveOpTree {
    * This method implements move operations that come from a different replica.
    *
    * It performs the following:
-   * - for each operation in the logmovestorage that has a timestamp AFTER the current moveop, we undo it
-   * - if the child is equal to or an ancestor of the new parent, then the operation is ignored
-   * - we apply the new move operation
-   * - we redo all the previously undone moveoperations and record new logmove records
+   *
+   * - For each operation in the logmovestorage that has a timestamp AFTER the
+   *   current moveop, we undo it
+   * - If the child is equal to or an ancestor of the new parent, then the
+   *   operation is ignored
+   * - We apply the new move operation
+   * - We redo all the previously undone moveoperations and record new logmove records
    */
   async applyMoveOp(moveOp: MoveOp): Promise<void> {
     const undoneLogMoveOps = await this.logMoveStore.undoAllNewerLogmoveRecordsInReverse(
@@ -206,8 +205,8 @@ export class MoveOpTree {
   }
 
   /**
-   * This update operation will check whether the node already existed and if so record the appropriate
-   * change event.
+   * This update operation will check whether the node already existed and if so
+   * record the appropriate change event.
    */
   private async updateRemoteNode(moveOp: MoveOp) {
     this.logMoveStore.updateWithExternalClock(moveOp.clock)
@@ -255,7 +254,9 @@ export class MoveOpTree {
   }
 
   /**
-   * This method should also be used internally as it special cases the 'ROOT' node and will always return a node for it.
+   * This method should also be used internally as it special cases the 'ROOT'
+   * node and will always return a node for it.
+   *
    * @param nodeId
    * @returns
    */
