@@ -1,5 +1,4 @@
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
-import { ConsoleReporter } from 'lib/tizzy-console-reporter'
 import {
   ApplicationError,
   ERROR_CLIENT_NOT_AUTHORIZED,
