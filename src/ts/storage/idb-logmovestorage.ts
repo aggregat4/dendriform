@@ -67,6 +67,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
 
   private checkReplicaSetJoined() {
     if (this.joinProtocol.hasJoinedReplicaSet()) {
+      console.debug(`We believe we have joined the replicaset`)
       this.clock = Math.max(this.joinProtocol.getStartClock(), this.maxClock) + 1
     }
   }

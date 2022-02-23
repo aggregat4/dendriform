@@ -10,12 +10,20 @@ import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
 import { LogootSequenceWrapper } from 'src/ts/repository/logoot-sequence-wrapper'
 import { atomIdent } from 'src/ts/lib/modules/logootsequence'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
+import { MockJoinProtocolClient } from './integration-test-utils'
 
 function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () => void {
   return async () => {
     const initializables = []
     const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
-    const logMoveStore = register(new IdbLogMoveStorage('logmovestoredb'), initializables)
+    const joinProtocol = register(
+      new JoinProtocol('joinprotocoldb', 'doc1', replicaStore, new MockJoinProtocolClient(), true),
+      initializables
+    )
+    const logMoveStore = register(
+      new IdbLogMoveStorage('logmovestoredb', joinProtocol),
+      initializables
+    )
     const treeStore = register(new IdbTreeStorage('treestoredb'), initializables)
     const moveOpTree = register(
       new MoveOpTree(replicaStore, logMoveStore, treeStore),
@@ -29,6 +37,7 @@ function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () =>
       await deleteDB('replicastoredb')
       await deleteDB('logmovestoredb')
       await deleteDB('treestoredb')
+      await deleteDB('joinprotocoldb')
     }
   }
 }

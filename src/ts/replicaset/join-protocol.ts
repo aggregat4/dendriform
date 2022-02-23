@@ -1,4 +1,5 @@
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
+import { ConsoleReporter } from 'lib/tizzy-console-reporter'
 import {
   ApplicationError,
   ERROR_CLIENT_NOT_AUTHORIZED,
@@ -65,7 +66,8 @@ export class JoinProtocol implements LifecycleAware {
     readonly dbName: string,
     readonly documentId: string,
     readonly replicaStore: IdbReplicaStorage,
-    readonly client: JoinProtocolClient
+    readonly client: JoinProtocolClient,
+    readonly joinImmediately: boolean = false
   ) {}
 
   async init() {
@@ -89,7 +91,7 @@ export class JoinProtocol implements LifecycleAware {
     // we explicitly do not want to start immediately polling the server
     // this allows for faster initialisation and we we will notify listeners
     // as soon as we are ready
-    await this.#joinJobScheduler.start(false)
+    await this.#joinJobScheduler.start(this.joinImmediately)
   }
 
   async deinit() {
@@ -120,6 +122,7 @@ export class JoinProtocol implements LifecycleAware {
   }
 
   private async join() {
+    console.debug(`executing join() on JoinProtocol`)
     let response = null
     try {
       response = await this.client.join(this.documentId, this.replicaStore.getReplicaId())
@@ -143,6 +146,7 @@ export class JoinProtocol implements LifecycleAware {
       // Now we have a bunch of potential error and non-error cases:
       if (this.#startClock == -1 && !response.alreadyKnown) {
         // OK: we are a fresh replica and the server doesn't know us, all is well
+        console.debug(`We are initialising our clock since we joined the replicaset fresh!`)
         this.#startClock = response.startClock
         await this.saveDocument()
       } else if (this.#startClock == -1 && response.alreadyKnown) {

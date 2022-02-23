@@ -4,9 +4,7 @@ import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
 import { generateUUID } from '../utils/util'
 
-/**
- * Metadata about the state of the local replica.
- */
+/** Metadata about the state of the local replica. */
 export interface ReplicaRecord {
   replicaId: string
 }
@@ -42,6 +40,7 @@ export class IdbReplicaStorage implements LifecycleAware {
       this.replica = {
         replicaId: generateUUID(),
       }
+      console.debug(`Creating new replica with id ${this.replica.replicaId}`)
       await this.storeReplica(this.replica)
     } else {
       this.replica = replica
@@ -60,13 +59,12 @@ export class IdbReplicaStorage implements LifecycleAware {
   }
 
   private async loadReplica(): Promise<ReplicaRecord> {
-    return this.db.getAll('replica').then(async (replicas) => {
-      if (!replicas || replicas.length === 0) {
-        return null
-      } else {
-        return replicas[0]
-      }
-    })
+    const replicas = await this.db.getAll('replica')
+    if (!replicas || replicas.length === 0) {
+      return null
+    } else {
+      return replicas[0]
+    }
   }
 
   private async storeReplica(replica: ReplicaRecord) {

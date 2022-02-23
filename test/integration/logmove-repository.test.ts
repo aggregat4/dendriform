@@ -11,12 +11,21 @@ import { ALWAYS_TRUE } from 'src/ts/utils/util'
 import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
 import { secondsSinceEpoch } from 'src/ts/utils/dateandtime'
 import { ROOT_NODE } from 'src/ts/repository/repository'
+import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
+import { MockJoinProtocolClient } from './integration-test-utils'
 
 function testWithRepo(t: (repo: LogAndTreeStorageRepository) => Promise<void>): () => void {
   return async () => {
     const initializables = []
     const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
-    const logMoveStore = register(new IdbLogMoveStorage('logmovestoredb'), initializables)
+    const joinProtocol = register(
+      new JoinProtocol('joinprotocoldb', 'doc1', replicaStore, new MockJoinProtocolClient(), true),
+      initializables
+    )
+    const logMoveStore = register(
+      new IdbLogMoveStorage('logmovestoredb', joinProtocol),
+      initializables
+    )
     const treeStore = register(new IdbTreeStorage('treestoredb'), initializables)
     const moveOpTree = register(
       new MoveOpTree(replicaStore, logMoveStore, treeStore),
@@ -31,6 +40,7 @@ function testWithRepo(t: (repo: LogAndTreeStorageRepository) => Promise<void>): 
       await deleteDB('replicastoredb')
       await deleteDB('logmovestoredb')
       await deleteDB('treestoredb')
+      await deleteDB('joinprotocoldb')
     }
   }
 }
