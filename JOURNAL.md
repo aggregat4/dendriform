@@ -1754,6 +1754,4 @@ Intead of somehow complicating the entire initialisation process I have the foll
 - IdbLogMoveStorage gets expanded to move its clock initialisation logic from the constructor to an ensureClockInitialised() helper that is called before any operation that relates to clocks. This would basically throw when the replicaset has not been joined yet since we can't get a startClock. This will then cause all of these operations that are basically mutations of the tree to fail when we have not joined the replicaset yet.
 - In parallel we make the tree-component aware of the join protocol as well and it will not allow loading or showing the tree as long we have not yet joined the replicaset.
 
-TODO: implement this
-
 TODO: implement join protocol tests with mock client

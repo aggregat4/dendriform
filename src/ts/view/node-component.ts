@@ -5,9 +5,7 @@ import { unsafeHTML } from 'lit-html/directives/unsafe-html.js'
 import { DeferredArray, RepositoryNode } from '../repository/repository'
 import { FilteredRepositoryNode } from '../repository/search'
 
-/**
- * ☰ = trigram for heaven (U+2630)
- */
+/** ☰ = trigram for heaven (U+2630) */
 const nodeTemplate = (
   node: FilteredRepositoryNode,
   children: DeferredArray<FilteredRepositoryNode>,
@@ -48,9 +46,7 @@ function isRoot(node: RepositoryNode): boolean {
   return node.id === 'ROOT'
 }
 
-/**
- * Has special casing for nodes that are the first on the page, they are always open.
- */
+/** Has special casing for nodes that are the first on the page, they are always open. */
 function genClass(node: RepositoryNode, isFirst: boolean, isFilterIncluded: boolean): string {
   return (
     'node' +

@@ -51,9 +51,7 @@ export function getCursorPos(): number {
   }
 }
 
-/**
- * From https://stackoverflow.com/a/41034697/1996
- */
+/** From https://stackoverflow.com/a/41034697/1996 */
 function isChildOf(node: Node, parent: Node) {
   let currentNode = node
   while (currentNode !== null) {
@@ -65,9 +63,7 @@ function isChildOf(node: Node, parent: Node) {
   return false
 }
 
-/**
- * From https://stackoverflow.com/a/41034697/1996
- */
+/** From https://stackoverflow.com/a/41034697/1996 */
 export function getCursorPosAcrossMarkup(parent: Element): number {
   const selection = window.getSelection()
   let charCount = -1
@@ -153,9 +149,7 @@ function isCursorAtContentEditableFirstLine(
   }
 }
 
-/**
- * From https://stackoverflow.com/a/41034697/1996
- */
+/** From https://stackoverflow.com/a/41034697/1996 */
 export function setCursorPosAcrossMarkup(el: Element, chars: number): void {
   if (chars >= 0) {
     const selection = window.getSelection()
@@ -168,9 +162,7 @@ export function setCursorPosAcrossMarkup(el: Element, chars: number): void {
   }
 }
 
-/**
- * From https://stackoverflow.com/a/41034697/1996
- */
+/** From https://stackoverflow.com/a/41034697/1996 */
 function createRange(node: Node, count: number, range: Range): Range {
   if (!range) {
     range = document.createRange()
@@ -322,4 +314,32 @@ export function parseXML(content: string): Document {
   const doc = parser.parseFromString(content, 'application/xml')
   // TODO: DOMParser returns an error document instead of throwing an exception on parsing, catch that
   return doc
+}
+
+// Signals as per https://www.davideaversa.it/blog/simple-event-system-typescript/
+// license pending
+interface ISignal<S, T> {
+  on(handler: (source: S, data: T) => void): void
+  off(handler: (source: S, data: T) => void): void
+}
+
+export class Signal<S, T> implements ISignal<S, T> {
+  private handlers: Array<(source: S, data: T) => void> = []
+
+  public on(handler: (source: S, data: T) => void): void {
+    this.handlers.push(handler)
+  }
+
+  public off(handler: (source: S, data: T) => void): void {
+    this.handlers = this.handlers.filter((h) => h !== handler)
+  }
+
+  public trigger(source: S, data: T): void {
+    // Duplicate the array to avoid side effects during iteration.
+    this.handlers.slice(0).forEach((h) => h(source, data))
+  }
+
+  public expose(): ISignal<S, T> {
+    return this
+  }
 }

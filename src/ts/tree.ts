@@ -62,7 +62,7 @@ export class TreeManager {
     const treeActionRegistry = register(new TreeActionRegistry(), this.initializables)
     registerTreeActions(treeActionRegistry)
     const tree = register(
-      new Tree(commandHandler, treeActionRegistry, treeService),
+      new Tree(commandHandler, treeActionRegistry, treeService, joinProtocol),
       this.initializables
     )
     await initAll(this.initializables)

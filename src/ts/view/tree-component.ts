@@ -64,6 +64,7 @@ import {
   Status,
 } from '../repository/repository'
 import { Subscription } from '../domain/domain'
+import { JoinProtocol } from '../replicaset/join-protocol'
 
 class TreeConfig {
   showCompleted = false
@@ -87,9 +88,13 @@ export class Tree extends HTMLElement implements CommandExecutor {
   constructor(
     readonly commandHandler: UndoableCommandHandler,
     readonly treeActionRegistry: TreeActionRegistry,
-    readonly treeService: TreeService
+    readonly treeService: TreeService,
+    readonly joinProtocol: JoinProtocol
   ) {
     super()
+    // it may be that we had not joined the replicaset yet so whenever we get
+    // the event that something changed in our join status, rerender the tree
+    joinProtocol.JoinEvent.on(() => this.rerenderTree())
   }
 
   // We handle undo and redo internally since they are core functionality we don't want to make generic and overwritable
@@ -126,6 +131,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
         id="addNode"
         aria-label="Add Node"
         title="Add Node"
+        ?disabled=${!this.joinProtocol.hasJoinedReplicaSet()}
         @click=${this.onAddNodeButtonClick.bind(this)}
         >+</button
       >
@@ -133,6 +139,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
         <input
           class="searchField"
           type="search"
+          ?disabled=${!this.joinProtocol.hasJoinedReplicaSet()}
           @input=${debounce(this.onQueryChange.bind(this), 150)}
         />
         <df-spinner delayms="1000" />
@@ -161,7 +168,11 @@ export class Tree extends HTMLElement implements CommandExecutor {
   </div>`
 
   private renderTreeNodes() {
-    if (this.treeStatus.state === State.ERROR) {
+    if (!this.joinProtocol.hasJoinedReplicaSet()) {
+      return html`<div class="error"
+        >Was not able to join the replicaset for this document yet</div
+      >`
+    } else if (this.treeStatus.state === State.ERROR) {
       return html`<div class="error">
         Can not load tree from backing store: ${this.treeStatus.msg}
       </div>`
