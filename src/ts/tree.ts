@@ -65,7 +65,6 @@ export class TreeManager {
       new Tree(commandHandler, treeActionRegistry, treeService),
       this.initializables
     )
-    // this.register(new EventPump(localEventLog, remoteEventLog, localEventLog.getPeerId()))
     await initAll(this.initializables)
     return tree
   }
