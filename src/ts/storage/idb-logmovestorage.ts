@@ -1,6 +1,7 @@
 import { openDB, IDBPDatabase, DBSchema } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
 import { JoinProtocol } from '../replicaset/join-protocol'
+import { assert } from '../utils/util'
 import { NodeMetadata } from './nodestorage'
 
 /**
@@ -45,6 +46,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
   private db: IDBPDatabase<LogMoveSchema>
   private listeners: EventStorageListener[] = []
   private clock = -1
+  private maxClock = -1
 
   constructor(readonly dbName: string, readonly joinProtocol: JoinProtocol) {}
 
@@ -58,8 +60,23 @@ export class IdbLogMoveStorage implements LifecycleAware {
         logmoveStore.createIndex('ops-for-replica', ['replicaId', 'clock'])
       },
     })
-    const maxClock = await this.getMaxClock()
-    if (maxClock) this.clock = maxClock + 1
+    this.maxClock = await this.getMaxClock()
+    this.checkReplicaSetJoin()
+  }
+
+  private checkReplicaSetJoin() {
+    if (this.joinProtocol.hasJoinedReplicaSet()) {
+      this.clock = Math.max(this.joinProtocol.getStartClock(), this.maxClock) + 1
+    } else {
+      setTimeout(this.checkReplicaSetJoin, 1000)
+    }
+  }
+
+  private ensureClockIsInitialized() {
+    assert(
+      this.clock > -1,
+      `Our local clock is not initialized, we probably have not joined the replicaset yet`
+    )
   }
 
   async deinit(): Promise<void> {
@@ -70,12 +87,14 @@ export class IdbLogMoveStorage implements LifecycleAware {
   }
 
   getAndIncrementClock(): number {
+    this.ensureClockIsInitialized()
     const clock = this.clock
     this.clock++
     return clock
   }
 
   updateWithExternalClock(externalClock: number): void {
+    this.ensureClockIsInitialized()
     if (externalClock > this.clock) {
       this.clock = externalClock + 1
     }
@@ -99,14 +118,13 @@ export class IdbLogMoveStorage implements LifecycleAware {
   }
 
   async storeEvent(logMoveRecord: LogMoveRecord): Promise<void> {
-    // const existingEvents = await this.getEventsForReplicaSince(logMoveRecords[0].replicaId, 0, 100)
-    // console.debug(`Current events before storing new events: ${JSON.stringify(existingEvents)}`)
+    this.ensureClockIsInitialized()
     const tx = this.db.transaction('logmoveops', 'readwrite')
     try {
       // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
       await tx.store.add(logMoveRecord)
-      // TODO: this needs to be move to an async op at this point the events are not stored yet
       await tx.done
+      // TODO: this needs to be move to an async op at this point the events are not stored yet
       this.notifyListeners((listener: EventStorageListener) => listener.eventStored(logMoveRecord))
     } catch (error) {
       // console.error(
@@ -119,6 +137,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
   }
 
   async updateEvent(logMoveRecord: LogMoveRecord): Promise<void> {
+    this.ensureClockIsInitialized()
     await this.db.put('logmoveops', logMoveRecord)
   }
 
@@ -126,6 +145,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
     clock: number,
     replicaId: string
   ): Promise<LogMoveRecord[]> {
+    this.ensureClockIsInitialized()
     const deletedLogMoveRecords = []
     const tx = this.db.transaction('logmoveops', 'readwrite')
     // iterate over the logmoverecords in reverse, newest logmoveop first
