@@ -12,14 +12,20 @@ import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
 import { secondsSinceEpoch } from 'src/ts/utils/dateandtime'
 import { ROOT_NODE } from 'src/ts/repository/repository'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
-import { MockJoinProtocolClient } from './integration-test-utils'
+import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
 
 function testWithRepo(t: (repo: LogAndTreeStorageRepository) => Promise<void>): () => void {
   return async () => {
     const initializables = []
     const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
     const joinProtocol = register(
-      new JoinProtocol('joinprotocoldb', 'doc1', replicaStore, new MockJoinProtocolClient(), true),
+      new JoinProtocol(
+        'joinprotocoldb',
+        'doc1',
+        replicaStore,
+        new NewlyJoiningMockJoinProtocolClient(),
+        true
+      ),
       initializables
     )
     const logMoveStore = register(

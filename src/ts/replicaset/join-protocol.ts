@@ -191,9 +191,6 @@ export class JoinProtocol implements LifecycleAware {
    *   that indicates a serious error in the client or server.
    */
   getStartClock(): number {
-    if (this.#clientAndServerStateConsistencyError !== null) {
-      throw new ApplicationError(this.#clientAndServerStateConsistencyError)
-    }
     if (!this.hasJoinedReplicaSet()) {
       throw new ClientHasNotJoinedReplicaSetError(this.documentId)
     }
