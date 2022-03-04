@@ -317,7 +317,7 @@ export function parseXML(content: string): Document {
 }
 
 // Signals as per https://www.davideaversa.it/blog/simple-event-system-typescript/
-// license pending
+// MIT License as per https://gist.github.com/THeK3nger/7a68b9b05d592b78d641375e4a560c10
 interface ISignal<S, T> {
   on(handler: (source: S, data: T) => void): void
   off(handler: (source: S, data: T) => void): void
