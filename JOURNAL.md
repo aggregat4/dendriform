@@ -1757,3 +1757,15 @@ Intead of somehow complicating the entire initialisation process I have the foll
 # 2022-03-04
 
 Join protocol tests written. Next up is the sync client implementation.
+
+Since we are implementing the sync protocol separate from the join protocol we are ok in having a dependency to the moveoperation. The sync protocol needs to periodically:
+* get new local events to send to the server and transmit them in monotonic increasing clock order and in batches
+* get the new server events in monotonic increasing clock order (per replica) and in batches.
+
+As we also get the view of the entire replicaset from the server with each request, and we have the guarantee that this view is consistent, we can use this information to schedule garbage collection.
+
+For each replica, the minimum value of our maximum known clock of that replica and the server's latest view on the replicaset clocks, denotes the causal threshold. All events with clocks smaller than those threshold values can be safely deleted.
+
+We will postpone this garbage collection implementation until we have the basic syncing working. We can just submit new updates on the server's replicaset view to _some_ service in our architecture and just do a noop there for now.
+
+Later we will need to spawn a regular gc job that looks at that information and uses it to do occasional event purges. We probably should also use the RAF technique in this case so as to not impact UI performance.
