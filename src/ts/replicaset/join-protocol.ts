@@ -98,7 +98,7 @@ export class JoinProtocol implements LifecycleAware {
       this.#db.close()
       this.#db = null
     }
-    this.#joinJobScheduler.stop()
+    await this.#joinJobScheduler.stopAndWaitUntilDone()
   }
 
   public get JoinEvent(): Signal<JoinProtocol, string> {

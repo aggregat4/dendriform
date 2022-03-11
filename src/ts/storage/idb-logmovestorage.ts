@@ -4,6 +4,11 @@ import { JoinProtocol } from '../replicaset/join-protocol'
 import { assert } from '../utils/util'
 import { NodeMetadata } from './nodestorage'
 
+export interface Replica {
+  replicaId: string
+  clock: number
+}
+
 /**
  * A representation of all the log moves that we need to persist to allow for
  * processing new incoming events. This table will be garbage collected once we
@@ -43,15 +48,16 @@ export interface EventStorageListener {
 }
 
 export class IdbLogMoveStorage implements LifecycleAware {
-  private db: IDBPDatabase<LogMoveSchema>
-  private listeners: EventStorageListener[] = []
-  private clock = -1
-  private maxClock = -1
+  #db: IDBPDatabase<LogMoveSchema>
+  #listeners: EventStorageListener[] = []
+  #clock = -1
+  #maxClock = -1
+  #knownReplicaSet: { [key: string]: number } = {}
 
   constructor(readonly dbName: string, readonly joinProtocol: JoinProtocol) {}
 
   async init(): Promise<void> {
-    this.db = await openDB<LogMoveSchema>(this.dbName, 1, {
+    this.#db = await openDB<LogMoveSchema>(this.dbName, 1, {
       upgrade(db) {
         const logmoveStore = db.createObjectStore('logmoveops', {
           keyPath: ['clock', 'replicaId'],
@@ -60,7 +66,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
         logmoveStore.createIndex('ops-for-replica', ['replicaId', 'clock'])
       },
     })
-    this.maxClock = await this.getMaxClock()
+    this.#maxClock = await this.getMaxClock()
     this.checkReplicaSetJoined()
     this.joinProtocol.JoinEvent.on(() => this.checkReplicaSetJoined())
   }
@@ -68,58 +74,65 @@ export class IdbLogMoveStorage implements LifecycleAware {
   private checkReplicaSetJoined() {
     if (this.joinProtocol.hasJoinedReplicaSet()) {
       console.debug(`We believe we have joined the replicaset`)
-      this.clock = Math.max(this.joinProtocol.getStartClock(), this.maxClock) + 1
+      this.#clock = Math.max(this.joinProtocol.getStartClock(), this.#maxClock) + 1
     }
   }
 
   private ensureClockIsInitialized() {
     assert(
-      this.clock > -1,
+      this.#clock > -1,
       `Our local clock is not initialized, we probably have not joined the replicaset yet`
     )
   }
 
   async deinit(): Promise<void> {
-    if (this.db) {
-      this.db.close()
-      this.db = null
+    if (this.#db) {
+      this.#db.close()
+      this.#db = null
     }
   }
 
   getAndIncrementClock(): number {
     this.ensureClockIsInitialized()
-    const clock = this.clock
-    this.clock++
+    const clock = this.#clock
+    this.#clock++
     return clock
   }
 
   updateWithExternalClock(externalClock: number): void {
     this.ensureClockIsInitialized()
-    if (externalClock > this.clock) {
-      this.clock = externalClock + 1
+    if (externalClock > this.#clock) {
+      this.#clock = externalClock + 1
     }
   }
 
   addListener(listener: EventStorageListener): void {
-    this.listeners.push(listener)
+    this.#listeners.push(listener)
   }
 
   removeListener(listener: EventStorageListener): void {
-    const index = this.listeners.indexOf(listener)
+    const index = this.#listeners.indexOf(listener)
     if (index > -1) {
-      this.listeners.splice(index, 1)
+      this.#listeners.splice(index, 1)
     }
   }
 
   private notifyListeners(callback: (EventStorageListener) => void) {
-    for (const listener of this.listeners) {
+    for (const listener of this.#listeners) {
       callback(listener)
     }
   }
 
   async storeEvent(logMoveRecord: LogMoveRecord): Promise<void> {
+    if (this.#knownReplicaSet) {
+      // if we already have a replicaset cache, make sure to update it
+      const existingKnownClock = this.#knownReplicaSet[logMoveRecord.replicaId]
+      if (!existingKnownClock || existingKnownClock < logMoveRecord.clock) {
+        this.#knownReplicaSet[logMoveRecord.replicaId] = logMoveRecord.clock
+      }
+    }
     this.ensureClockIsInitialized()
-    const tx = this.db.transaction('logmoveops', 'readwrite')
+    const tx = this.#db.transaction('logmoveops', 'readwrite')
     try {
       // we only need to wait for onsuccess if we are interested in generated keys, and we are not since they are pregenerated
       await tx.store.add(logMoveRecord)
@@ -138,7 +151,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
 
   async updateEvent(logMoveRecord: LogMoveRecord): Promise<void> {
     this.ensureClockIsInitialized()
-    await this.db.put('logmoveops', logMoveRecord)
+    await this.#db.put('logmoveops', logMoveRecord)
   }
 
   async undoAllNewerLogmoveRecordsInReverse(
@@ -147,7 +160,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
   ): Promise<LogMoveRecord[]> {
     this.ensureClockIsInitialized()
     const deletedLogMoveRecords = []
-    const tx = this.db.transaction('logmoveops', 'readwrite')
+    const tx = this.#db.transaction('logmoveops', 'readwrite')
     // iterate over the logmoverecords in reverse, newest logmoveop first
     let cursor = await tx.store.openCursor(null, 'prev')
     while (cursor) {
@@ -169,7 +182,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
   }
 
   private async getMaxClock(): Promise<number> {
-    const cursor = await this.db
+    const cursor = await this.#db
       .transaction('logmoveops', 'readonly')
       .store.openCursor(null, 'prev')
     if (cursor) {
@@ -185,6 +198,26 @@ export class IdbLogMoveStorage implements LifecycleAware {
     batchSize: number
   ): Promise<LogMoveRecord[]> {
     const range = IDBKeyRange.bound([replicaId, clock], [replicaId, Number.MAX_VALUE], true, true) // do not include lower bound
-    return await this.db.getAllFromIndex('logmoveops', 'ops-for-replica', range, batchSize)
+    return await this.#db.getAllFromIndex('logmoveops', 'ops-for-replica', range, batchSize)
+  }
+
+  async getKnownReplicaSet(): Promise<Replica[]> {
+    if (!this.#knownReplicaSet) {
+      // we don't yet have a cached replicaset, so build it lazily
+      const knownReplicaSet: { [key: string]: number } = {}
+      let cursor = await this.#db.transaction('logmoveops', 'readonly').store.openCursor()
+      while (cursor) {
+        const logmoveRecord = cursor.value
+        const existingReplicaClock = knownReplicaSet[logmoveRecord.replicaId]
+        if (!existingReplicaClock || existingReplicaClock < logmoveRecord.clock) {
+          knownReplicaSet[logmoveRecord.replicaId] = logmoveRecord.clock
+        }
+        cursor = await cursor.continue()
+      }
+      this.#knownReplicaSet = knownReplicaSet
+    }
+    return Object.keys(this.#knownReplicaSet).map((key) => {
+      return { replicaId: key, clock: this.#knownReplicaSet[key] }
+    })
   }
 }

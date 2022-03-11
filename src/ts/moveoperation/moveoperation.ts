@@ -6,7 +6,7 @@ import {
 import { NodeFlags, NodeMetadata } from '../storage/nodestorage'
 import { atomIdent } from '../lib/modules/logootsequence'
 import { RepositoryNode } from '../repository/repository'
-import { IdbLogMoveStorage, LogMoveRecord } from '../storage/idb-logmovestorage'
+import { IdbLogMoveStorage, LogMoveRecord, Replica } from '../storage/idb-logmovestorage'
 import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 import { IdbTreeStorage, ROOT_STORED_NODE, StoredNode } from '../storage/idb-treestorage'
 import { assert } from '../utils/util'
@@ -14,9 +14,9 @@ import { assert } from '../utils/util'
 export interface MoveOp {
   nodeId: string
   parentId: string
-  metadata: NodeMetadata
   replicaId: string
   clock: number
+  metadata: NodeMetadata
 }
 
 class SubtreeChangedSubscription implements Subscription {
@@ -287,6 +287,10 @@ export class MoveOpTree {
     if (subscriptionIndex >= 0) {
       this.nodeChangedSubscriptions.splice(subscriptionIndex, 1)
     }
+  }
+
+  async getKnownReplicaSet(): Promise<Replica[]> {
+    return await this.logMoveStore.getKnownReplicaSet()
   }
 }
 

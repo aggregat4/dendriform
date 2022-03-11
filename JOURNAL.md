@@ -1656,7 +1656,7 @@ Context:
 
 Request:
 ```
-POST /documents/<docid>/events?batchSize=<int>
+POST /documents/<docid>/replicas/<replicaid>/events?batchSize=<int>
 Accept-Type: application/json
 
 {
@@ -1739,8 +1739,6 @@ Started modeling errors around the join protocol. At the moment we distinguish b
 
 Splitted the HTTP specific parts of the join protocol out of the implementation. This will allow using a mock implementation for tests.
 
-TODO: test the join protocol implementation with a mock client mplementation.
-
 # 2022-02-18
 
 As I integrated the join protocol into the actual code I run into some questions. The only place where it currently needs to be is in IdbLogMoveStorage since this is the place where we consider what the max clock is that we know and where we need to make sure that we have joined the replicaset before we can start doing anything.
@@ -1749,7 +1747,7 @@ Since we check the clock status in the IdbLogMoveStorage initialisation we would
 
 We need a mechanism, with application (GUI) support that waits until we have joined the replicaset for a document and then proceed with initialisation.
 
-Intead of somehow complicating the entire initialisation process I have the following idea:
+Instead of somehow complicating the entire initialisation process I have the following idea:
 
 - IdbLogMoveStorage gets expanded to move its clock initialisation logic from the constructor to an ensureClockInitialised() helper that is called before any operation that relates to clocks. This would basically throw when the replicaset has not been joined yet since we can't get a startClock. This will then cause all of these operations that are basically mutations of the tree to fail when we have not joined the replicaset yet.
 - In parallel we make the tree-component aware of the join protocol as well and it will not allow loading or showing the tree as long we have not yet joined the replicaset.
@@ -1764,8 +1762,18 @@ Since we are implementing the sync protocol separate from the join protocol we a
 
 As we also get the view of the entire replicaset from the server with each request, and we have the guarantee that this view is consistent, we can use this information to schedule garbage collection.
 
-For each replica, the minimum value of our maximum known clock of that replica and the server's latest view on the replicaset clocks, denotes the causal threshold. All events with clocks smaller than those threshold values can be safely deleted.
+For each replica, the smallest value of our maximum known clocks of all replicas denotes the causal threshold. All events with clocks smaller than those threshold values can be safely deleted.
 
 We will postpone this garbage collection implementation until we have the basic syncing working. We can just submit new updates on the server's replicaset view to _some_ service in our architecture and just do a noop there for now.
 
 Later we will need to spawn a regular gc job that looks at that information and uses it to do occasional event purges. We probably should also use the RAF technique in this case so as to not impact UI performance.
+
+# 2022-03-11
+
+Starting implementation of the sync protocol.
+
+There are a lot of similarities to the join protocol when it comes to initialising a local database to store some information that we need to reliably sync to the server, loading that, storing that and init and deinit. Both storages are keyed by document id.
+
+TODO: unify the join protocol and sync protocol storage into a document storage.
+
+Implemented some of the prerequisites for a sync protocol, can now do the actual transmission and dealing with the the results next.

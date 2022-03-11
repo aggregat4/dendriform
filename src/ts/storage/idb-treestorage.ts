@@ -198,8 +198,10 @@ export class IdbTreeStorage implements LifecycleAware {
 
   /**
    * Returns the children of the current node from our cache.
-   * @returns The array of children. In case the node is not known in our cache an empty list is returned.
-   *          The caller is responsible for verifying whether the node actually exists.
+   *
+   * @returns The array of children. In case the node is not known in our cache
+   *   an empty list is returned. The caller is responsible for verifying
+   *   whether the node actually exists.
    */
   getChildIds(nodeId: string): string[] {
     const children = this.parentChildMap[nodeId]
