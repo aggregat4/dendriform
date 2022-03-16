@@ -8,14 +8,13 @@ import {
   ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK,
 } from 'src/ts/domain/errors'
 import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
-import { ClientHasNotJoinedReplicaSetError, JoinProtocol } from 'src/ts/replicaset/join-protocol'
 import {
   ClientNotAuthorizedError,
   IllegalClientServerStateError,
-  JoinProtocolClient,
-  JoinProtocolResponse,
   ServerNotAvailableError,
-} from 'src/ts/replicaset/join-protocol-client'
+} from 'src/ts/replicaset/client-server-errors'
+import { ClientHasNotJoinedReplicaSetError, JoinProtocol } from 'src/ts/replicaset/join-protocol'
+import { JoinProtocolClient, JoinProtocolResponse } from 'src/ts/replicaset/join-protocol-client'
 import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
 
 function testWithJoinProtocol(

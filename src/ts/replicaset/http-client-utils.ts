@@ -2,7 +2,7 @@ import {
   ClientNotAuthorizedError,
   IllegalClientServerStateError,
   ServerNotAvailableError,
-} from './join-protocol-client'
+} from './client-server-errors'
 
 export async function performFetch(fetchFun: () => Promise<Response>): Promise<Response> {
   try {

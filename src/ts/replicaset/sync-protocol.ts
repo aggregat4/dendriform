@@ -1,9 +1,22 @@
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
+import {
+  ApplicationErrorCode,
+  ERROR_CLIENT_NOT_AUTHORIZED,
+  ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE,
+  ERROR_SERVER_NOT_AVAILABLE,
+  ERROR_UNKNOWN_CLIENT_SERVER_ERROR,
+} from '../domain/errors'
 import { LifecycleAware } from '../domain/lifecycle'
 import { MoveOpTree } from '../moveoperation/moveoperation'
 import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 import { BackoffWithJitterTimeoutStrategy, JobScheduler } from '../utils/jobscheduler'
-import { SyncProtocolClient } from './sync-protocol-client'
+import { assert } from '../utils/util'
+import {
+  ClientNotAuthorizedError,
+  IllegalClientServerStateError,
+  ServerNotAvailableError,
+} from './client-server-errors'
+import { SyncProtocolClient, SyncProtocolPayload } from './sync-protocol-client'
 
 interface SyncEventsRecord {
   documentId: string
@@ -39,6 +52,7 @@ export class SyncProtocol implements LifecycleAware {
 
   #db: IDBPDatabase<SyncEventsSchema>
   #lastSentClock = -1
+  #clientServerErrorState: ApplicationErrorCode = null
 
   constructor(
     readonly dbName: string,
@@ -86,11 +100,60 @@ export class SyncProtocol implements LifecycleAware {
       this.#lastSentClock,
       this.#EVENT_BATCH_SIZE
     )
-    const response = await this.client.sync({
-      events: eventsToSend,
-      replicaSet: knownReplicaSet,
-    })
-    // TODO: send new remote events to the moveoptree
-    // TODO: send the new state of the replicaset to the service that takes care of scheduling gc
+    let response: SyncProtocolPayload = null
+    try {
+      response = await this.client.sync({
+        events: eventsToSend,
+        replicaSet: knownReplicaSet,
+      })
+      // make sure we clear any previous error we may have had
+      this.#clientServerErrorState = null
+    } catch (e) {
+      const newLocal = e instanceof ClientNotAuthorizedError
+      if (newLocal) {
+        this.#clientServerErrorState = ERROR_CLIENT_NOT_AUTHORIZED
+      } else if (e instanceof IllegalClientServerStateError) {
+        this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE
+      } else if (e instanceof ServerNotAvailableError) {
+        // this is fine, we are offline, we rethrow the exception so that the scheduler
+        // can back off and try again in a bit
+        this.#clientServerErrorState = ERROR_SERVER_NOT_AVAILABLE
+        throw e
+      } else {
+        this.#clientServerErrorState = ERROR_UNKNOWN_CLIENT_SERVER_ERROR
+        // What to do with unknown errors like this? This can't be many things anymore since
+        // we catch as much as possible in the client implementation. We just rethrow and
+        // let the backoff retry again. Maybe it will fix itself.
+        throw e
+      }
+    }
+    // if there were no errors we need to check whether we should update our last known sent clock and persist it
+    if (eventsToSend.length > 0) {
+      let newMaxClock = this.#lastSentClock
+      for (const sentEvent of eventsToSend) {
+        if (sentEvent.clock > newMaxClock) {
+          newMaxClock = sentEvent.clock
+        }
+      }
+      assert(
+        newMaxClock > this.#lastSentClock,
+        `We have just send ${eventsToSend.length} events to the server but none of them had a clock higher than the one we had already sent before. This should never happen, clocks must increase monotonically.`
+      )
+      this.#lastSentClock = newMaxClock
+      await this.saveSyncEventsRecord({
+        documentId: this.documentId,
+        lastSentClock: this.#lastSentClock,
+      })
+    }
+    if (response !== null) {
+      for (const event of response.events) {
+        await this.moveOpTree.applyMoveOp(event)
+      }
+      this.moveOpTree.processNewReplicaSet(response.replicaSet)
+    }
+  }
+
+  getErrorState(): ApplicationErrorCode {
+    return this.#clientServerErrorState
   }
 }

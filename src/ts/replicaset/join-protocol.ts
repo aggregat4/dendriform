@@ -1,6 +1,7 @@
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
 import {
   ApplicationError,
+  ApplicationErrorCode,
   ERROR_CLIENT_NOT_AUTHORIZED,
   ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE,
   ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK,
@@ -13,9 +14,9 @@ import { assert, Signal } from '../utils/util'
 import {
   ClientNotAuthorizedError,
   IllegalClientServerStateError,
-  JoinProtocolClient,
   ServerNotAvailableError,
-} from './join-protocol-client'
+} from './client-server-errors'
+import { JoinProtocolClient } from './join-protocol-client'
 
 interface JoinedDocumentRecord {
   documentId: string
@@ -59,7 +60,7 @@ export class JoinProtocol implements LifecycleAware {
 
   #db: IDBPDatabase<JoinedDocumentsSchema>
   #startClock = -1
-  #clientAndServerStateConsistencyError = null
+  #clientServerErrorState: ApplicationErrorCode = null
 
   constructor(
     readonly dbName: string,
@@ -127,9 +128,9 @@ export class JoinProtocol implements LifecycleAware {
       response = await this.client.join(this.documentId, this.replicaStore.getReplicaId())
     } catch (e) {
       if (e instanceof ClientNotAuthorizedError) {
-        this.#clientAndServerStateConsistencyError = ERROR_CLIENT_NOT_AUTHORIZED
+        this.#clientServerErrorState = ERROR_CLIENT_NOT_AUTHORIZED
       } else if (e instanceof IllegalClientServerStateError) {
-        this.#clientAndServerStateConsistencyError = ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE
+        this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE
       } else if (e instanceof ServerNotAvailableError) {
         // this is fine, we are offline, we rethrow the exception so that the scheduler
         // can back off and try again in a bit
@@ -150,10 +151,10 @@ export class JoinProtocol implements LifecycleAware {
         await this.saveDocument()
       } else if (this.#startClock == -1 && response.alreadyKnown) {
         // ERROR: we believe we are a fresh replica but the server already knows us
-        this.#clientAndServerStateConsistencyError = ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK
+        this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK
       } else if (this.#startClock > -1 && !response.alreadyKnown) {
         // ERROR: we believe we have already joined the replicaset but the server does not know us
-        this.#clientAndServerStateConsistencyError = ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK
+        this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK
       } else if (this.#startClock > -1 && response.alreadyKnown) {
         // OK: we think we are part of the replicaset and the server thinks so as well
         //
@@ -177,8 +178,8 @@ export class JoinProtocol implements LifecycleAware {
    *   that indicates a serious error in the client or server.
    */
   hasJoinedReplicaSet(): boolean {
-    if (this.#clientAndServerStateConsistencyError !== null) {
-      throw new ApplicationError(this.#clientAndServerStateConsistencyError)
+    if (this.#clientServerErrorState !== null) {
+      throw new ApplicationError(this.#clientServerErrorState)
     }
     return this.#startClock > -1
   }

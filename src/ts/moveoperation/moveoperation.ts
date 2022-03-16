@@ -292,6 +292,23 @@ export class MoveOpTree {
   async getKnownReplicaSet(): Promise<Replica[]> {
     return await this.logMoveStore.getKnownReplicaSet()
   }
+
+  /**
+   * This method will accept a new state of the replicaset as seen by the server
+   * and will update its internal state to reflect this. Specifically this can
+   * trigger a GC of old events since we can use this replicaset to determine
+   * the causal threshold.
+   *
+   * The causal threshold is the set of maximum clocks for each replica where we
+   * know that we will never get an event older than those clocks in the future.
+   * Events with smaller clocks can be safely discarded since they will never
+   * need to be replayed again.
+   *
+   * @param replicaSet The new state of the replicaset as the sync server sees it.
+   */
+  processNewReplicaSet(replicaSet: Replica[]) {
+    // TODO: implement this
+  }
 }
 
 function toNodeMetaData(node: RepositoryNode, logootPos: atomIdent): NodeMetadata {

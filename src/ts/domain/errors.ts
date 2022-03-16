@@ -40,3 +40,13 @@ export const ERROR_CLIENT_NOT_AUTHORIZED: ApplicationErrorCode = {
   errorCode: 'ERR-000400',
   errorDetail: 'Client is not authorized',
 }
+
+export const ERROR_SERVER_NOT_AVAILABLE: ApplicationErrorCode = {
+  errorCode: 'ERR-000500',
+  errorDetail: 'Server is not available, we are de facto offline',
+}
+
+export const ERROR_UNKNOWN_CLIENT_SERVER_ERROR: ApplicationErrorCode = {
+  errorCode: 'ERR-000600',
+  errorDetail: 'Unknown client server error',
+}
