@@ -1642,7 +1642,6 @@ Response:
 ```
 {
   alreadyKnown: <boolean>
-  startClock: <number> // maxclock over all replicas + 1
 }
 ```
 
@@ -1774,6 +1773,14 @@ Starting implementation of the sync protocol.
 
 There are a lot of similarities to the join protocol when it comes to initialising a local database to store some information that we need to reliably sync to the server, loading that, storing that and init and deinit. Both storages are keyed by document id.
 
-TODO: unify the join protocol and sync protocol storage into a document storage.
-
 Implemented some of the prerequisites for a sync protocol, can now do the actual transmission and dealing with the the results next.
+
+# 2022-03-16
+
+Unified the synced document storage for the join and sync protocol. Still doesn't feel super good because there is an implicit dependency between the sync protocol and the join protocol on how to update and handle that storage. But it's ok for now.
+
+Also remove the startClock thing from the join protocol response: we already establish the max clock from the events we have in the log and we update the maxclock automatically based on what remote events come in. We only need to get the information from the server on whether it knows us already or not.
+
+TODO: integration tests for the sync protocol
+
+TODO: start reworking the server implementation to support the new protocol
