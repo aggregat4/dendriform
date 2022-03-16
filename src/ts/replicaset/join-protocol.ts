@@ -1,4 +1,3 @@
-import { DBSchema, IDBPDatabase, openDB } from 'idb'
 import {
   ApplicationError,
   ApplicationErrorCode,
@@ -8,27 +7,16 @@ import {
   ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK,
 } from '../domain/errors'
 import { LifecycleAware } from '../domain/lifecycle'
+import { IdbDocumentSyncStorage } from '../storage/idb-documentsyncstorage'
 import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 import { BackoffWithJitterTimeoutStrategy, JobScheduler } from '../utils/jobscheduler'
-import { assert, Signal } from '../utils/util'
+import { Signal } from '../utils/util'
 import {
   ClientNotAuthorizedError,
   IllegalClientServerStateError,
   ServerNotAvailableError,
 } from './client-server-errors'
 import { JoinProtocolClient } from './join-protocol-client'
-
-interface JoinedDocumentRecord {
-  documentId: string
-  startClock: number
-}
-
-interface JoinedDocumentsSchema extends DBSchema {
-  documents: {
-    key: string
-    value: JoinedDocumentRecord
-  }
-}
 
 export class ClientHasNotJoinedReplicaSetError extends Error {
   constructor(readonly documentId: string) {
@@ -58,12 +46,11 @@ export class JoinProtocol implements LifecycleAware {
     this.join.bind(this)
   )
 
-  #db: IDBPDatabase<JoinedDocumentsSchema>
-  #startClock = -1
+  #hasJoinedReplicaSet = false
   #clientServerErrorState: ApplicationErrorCode = null
 
   constructor(
-    readonly dbName: string,
+    readonly idbDocumentSyncStorage: IdbDocumentSyncStorage,
     readonly documentId: string,
     readonly replicaStore: IdbReplicaStorage,
     readonly client: JoinProtocolClient,
@@ -71,22 +58,14 @@ export class JoinProtocol implements LifecycleAware {
   ) {}
 
   async init() {
-    this.#db = await openDB<JoinedDocumentsSchema>(this.dbName, 1, {
-      upgrade(db) {
-        db.createObjectStore('documents', {
-          keyPath: 'documentId',
-          autoIncrement: false,
-        })
-      },
-    })
-    const document = await this.loadDocument()
+    const document = await this.idbDocumentSyncStorage.loadDocument(this.documentId)
     if (document) {
       // we initially prefill the local startclock with the saved value
       // if there is one. this will allow us to start editing offline
       // while this protocol tries to contact the server
       // It may mean that at a later point in time we detect a discrepancy
       // with the server and have to return some errors
-      this.#startClock = document.startClock
+      this.#hasJoinedReplicaSet = document.hasJoinedReplicaSet
     }
     // we explicitly do not want to start immediately polling the server
     // this allows for faster initialisation and we we will notify listeners
@@ -95,30 +74,11 @@ export class JoinProtocol implements LifecycleAware {
   }
 
   async deinit() {
-    if (this.#db) {
-      this.#db.close()
-      this.#db = null
-    }
     await this.#joinJobScheduler.stopAndWaitUntilDone()
   }
 
   public get JoinEvent(): Signal<JoinProtocol, string> {
     return this.#onJoinReplicaSet
-  }
-
-  private async loadDocument(): Promise<JoinedDocumentRecord> {
-    return await this.#db.get('documents', this.documentId)
-  }
-
-  private async saveDocument() {
-    assert(
-      this.#startClock > -1,
-      `If you store the current document you need to have a valid startClock`
-    )
-    return await this.#db.put('documents', {
-      documentId: this.documentId,
-      startClock: this.#startClock,
-    })
   }
 
   private async join() {
@@ -144,18 +104,22 @@ export class JoinProtocol implements LifecycleAware {
     }
     if (response != null) {
       // Now we have a bunch of potential error and non-error cases:
-      if (this.#startClock == -1 && !response.alreadyKnown) {
+      if (!this.#hasJoinedReplicaSet && !response.alreadyKnown) {
         // OK: we are a fresh replica and the server doesn't know us, all is well
         console.debug(`We are initialising our clock since we joined the replicaset fresh!`)
-        this.#startClock = response.startClock
-        await this.saveDocument()
-      } else if (this.#startClock == -1 && response.alreadyKnown) {
+        await this.idbDocumentSyncStorage.saveDocument({
+          documentId: this.documentId,
+          hasJoinedReplicaSet: true,
+          lastSentClock: -1,
+        })
+        this.#hasJoinedReplicaSet = true
+      } else if (!this.#hasJoinedReplicaSet && response.alreadyKnown) {
         // ERROR: we believe we are a fresh replica but the server already knows us
         this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK
-      } else if (this.#startClock > -1 && !response.alreadyKnown) {
+      } else if (this.#hasJoinedReplicaSet && !response.alreadyKnown) {
         // ERROR: we believe we have already joined the replicaset but the server does not know us
         this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK
-      } else if (this.#startClock > -1 && response.alreadyKnown) {
+      } else if (this.#hasJoinedReplicaSet && response.alreadyKnown) {
         // OK: we think we are part of the replicaset and the server thinks so as well
         //
         // Theoretically we could have the problem that the server does not have some of our events
@@ -181,20 +145,6 @@ export class JoinProtocol implements LifecycleAware {
     if (this.#clientServerErrorState !== null) {
       throw new ApplicationError(this.#clientServerErrorState)
     }
-    return this.#startClock > -1
-  }
-
-  /**
-   * @returns The startclock for the documentId that this protocol was initialised with.
-   * @throws ClientHasNotJoinedReplicaSetError when the client has not yet
-   *   joined the replicaset for this document.
-   * @throws ApplicationError if we are in a state that can not be resolved and
-   *   that indicates a serious error in the client or server.
-   */
-  getStartClock(): number {
-    if (!this.hasJoinedReplicaSet()) {
-      throw new ClientHasNotJoinedReplicaSetError(this.documentId)
-    }
-    return this.#startClock
+    return this.#hasJoinedReplicaSet
   }
 }

@@ -1,6 +1,5 @@
 export interface JoinProtocolResponse {
   alreadyKnown: boolean
-  startClock: number
 }
 
 export interface JoinProtocolClient {

@@ -51,7 +51,6 @@ export class IdbLogMoveStorage implements LifecycleAware {
   #db: IDBPDatabase<LogMoveSchema>
   #listeners: EventStorageListener[] = []
   #clock = -1
-  #maxClock = -1
   #knownReplicaSet: { [key: string]: number } = {}
 
   constructor(readonly dbName: string, readonly joinProtocol: JoinProtocol) {}
@@ -66,15 +65,17 @@ export class IdbLogMoveStorage implements LifecycleAware {
         logmoveStore.createIndex('ops-for-replica', ['replicaId', 'clock'])
       },
     })
-    this.#maxClock = await this.getMaxClock()
-    this.checkReplicaSetJoined()
-    this.joinProtocol.JoinEvent.on(() => this.checkReplicaSetJoined())
+    await this.checkReplicaSetJoined()
+    if (!this.joinProtocol.hasJoinedReplicaSet()) {
+      this.joinProtocol.JoinEvent.on(async () => await this.checkReplicaSetJoined())
+    }
   }
 
-  private checkReplicaSetJoined() {
+  private async checkReplicaSetJoined() {
     if (this.joinProtocol.hasJoinedReplicaSet()) {
       console.debug(`We believe we have joined the replicaset`)
-      this.#clock = Math.max(this.joinProtocol.getStartClock(), this.#maxClock) + 1
+      const maxClock = await this.getMaxClock()
+      this.#clock = maxClock + 1
     }
   }
 

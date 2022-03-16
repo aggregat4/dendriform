@@ -13,8 +13,9 @@ import {
   IllegalClientServerStateError,
   ServerNotAvailableError,
 } from 'src/ts/replicaset/client-server-errors'
-import { ClientHasNotJoinedReplicaSetError, JoinProtocol } from 'src/ts/replicaset/join-protocol'
+import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
 import { JoinProtocolClient, JoinProtocolResponse } from 'src/ts/replicaset/join-protocol-client'
+import { IdbDocumentSyncStorage } from 'src/ts/storage/idb-documentsyncstorage'
 import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
 
 function testWithJoinProtocol(
@@ -24,8 +25,12 @@ function testWithJoinProtocol(
   return async () => {
     const initializables = []
     const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
+    const documentSyncStore = register(
+      new IdbDocumentSyncStorage('documentsyncstoragedb'),
+      initializables
+    )
     const joinProtocol = register(
-      new JoinProtocol('joinprotocoldb', 'doc1', replicaStore, joinProtocolClient, true),
+      new JoinProtocol(documentSyncStore, 'doc1', replicaStore, joinProtocolClient, true),
       initializables
     )
     await initAll(initializables)
@@ -33,8 +38,8 @@ function testWithJoinProtocol(
       await t(joinProtocol)
     } finally {
       await deinitAll(initializables)
+      await deleteDB('documentsyncstoragedb')
       await deleteDB('replicastoredb')
-      await deleteDB('joinprotocoldb')
     }
   }
 }
@@ -67,26 +72,9 @@ class SuccessfulJoinProtocolClient implements JoinProtocolClient {
   join(documentId: string, replicaId: string): Promise<JoinProtocolResponse> {
     return Promise.resolve({
       alreadyKnown: this.alreadyKnown,
-      startClock: this.startClock,
     })
   }
 }
-
-test(
-  'join protocol: Server not reachable',
-  testWithJoinProtocol(
-    new ServerNotAvailableErrorThrowingClient(),
-    async (joinProtocol: JoinProtocol) => {
-      expect(joinProtocol.hasJoinedReplicaSet()).toBe(false)
-      try {
-        joinProtocol.getStartClock()
-      } catch (e) {
-        expect(e).toBeA(ClientHasNotJoinedReplicaSetError)
-        expect((e as ClientHasNotJoinedReplicaSetError).documentId).toEqual('doc1')
-      }
-    }
-  )
-)
 
 test(
   'join protocol: Client not authorized',
@@ -124,7 +112,6 @@ test(
     new SuccessfulJoinProtocolClient(100, false),
     async (joinProtocol: JoinProtocol) => {
       expect(joinProtocol.hasJoinedReplicaSet()).toBe(true)
-      expect(joinProtocol.getStartClock()).toBe(100)
     }
   )
 )

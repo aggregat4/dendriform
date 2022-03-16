@@ -13,14 +13,20 @@ import { secondsSinceEpoch } from 'src/ts/utils/dateandtime'
 import { ROOT_NODE } from 'src/ts/repository/repository'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
 import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
+import { IdbDocumentSyncStorage } from 'src/ts/storage/idb-documentsyncstorage'
 
 function testWithRepo(t: (repo: LogAndTreeStorageRepository) => Promise<void>): () => void {
   return async () => {
     const initializables = []
     const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
+    const documentSyncStore = register(
+      new IdbDocumentSyncStorage('documentsyncstoragedb'),
+      initializables
+    )
+
     const joinProtocol = register(
       new JoinProtocol(
-        'joinprotocoldb',
+        documentSyncStore,
         'doc1',
         replicaStore,
         new NewlyJoiningMockJoinProtocolClient(),
@@ -46,7 +52,7 @@ function testWithRepo(t: (repo: LogAndTreeStorageRepository) => Promise<void>): 
       await deleteDB('replicastoredb')
       await deleteDB('logmovestoredb')
       await deleteDB('treestoredb')
-      await deleteDB('joinprotocoldb')
+      await deleteDB('documentsyncstoragedb')
     }
   }
 }

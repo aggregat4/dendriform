@@ -6,6 +6,7 @@ import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
 import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
 import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
+import { IdbDocumentSyncStorage } from 'src/ts/storage/idb-documentsyncstorage'
 
 function testWithLogMoveStorage(
   t: (logMoveStorage: IdbLogMoveStorage) => Promise<void>
@@ -13,9 +14,13 @@ function testWithLogMoveStorage(
   return async () => {
     const initializables = []
     const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
+    const documentSyncStore = register(
+      new IdbDocumentSyncStorage('documentsyncstoragedb'),
+      initializables
+    )
     const joinProtocol = register(
       new JoinProtocol(
-        'joinprotocoldb',
+        documentSyncStore,
         'doc1',
         replicaStore,
         new NewlyJoiningMockJoinProtocolClient(),
@@ -33,7 +38,7 @@ function testWithLogMoveStorage(
     } finally {
       await deinitAll(initializables)
       await deleteDB('logmovestoredb')
-      await deleteDB('joinprotocoldb')
+      await deleteDB('documentsyncstoragedb')
     }
   }
 }

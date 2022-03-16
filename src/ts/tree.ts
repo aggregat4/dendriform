@@ -14,6 +14,7 @@ import { IdbLogMoveStorage } from './storage/idb-logmovestorage'
 import { IdbReplicaStorage } from './storage/idb-replicastorage'
 import { JoinProtocol } from './replicaset/join-protocol'
 import { JoinProtocolHttpClient } from './replicaset/join-protocol-client-http'
+import { IdbDocumentSyncStorage } from './storage/idb-documentsyncstorage'
 
 customElements.define('dendriform-tree', Tree)
 
@@ -30,9 +31,14 @@ export class TreeManager {
       this.initializables
     )
 
+    const idbDocumentSyncStorage = register(
+      new IdbDocumentSyncStorage(`${treeName}-documentsyncstorage`),
+      this.initializables
+    )
+
     const joinProtocol = register(
       new JoinProtocol(
-        `${treeName}-replicaset`,
+        idbDocumentSyncStorage,
         treeName,
         replicaStore,
         new JoinProtocolHttpClient(`/`)

@@ -11,14 +11,19 @@ import { LogootSequenceWrapper } from 'src/ts/repository/logoot-sequence-wrapper
 import { atomIdent } from 'src/ts/lib/modules/logootsequence'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
 import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
+import { IdbDocumentSyncStorage } from 'src/ts/storage/idb-documentsyncstorage'
 
 function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () => void {
   return async () => {
     const initializables = []
     const replicaStore = register(new IdbReplicaStorage('replicastoredb'), initializables)
+    const documentSyncStore = register(
+      new IdbDocumentSyncStorage('documentsyncstoragedb'),
+      initializables
+    )
     const joinProtocol = register(
       new JoinProtocol(
-        'joinprotocoldb',
+        documentSyncStore,
         'doc1',
         replicaStore,
         new NewlyJoiningMockJoinProtocolClient(),
@@ -43,7 +48,7 @@ function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () =>
       await deleteDB('replicastoredb')
       await deleteDB('logmovestoredb')
       await deleteDB('treestoredb')
-      await deleteDB('joinprotocoldb')
+      await deleteDB('documentsyncstoragedb')
     }
   }
 }
