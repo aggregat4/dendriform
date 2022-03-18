@@ -1781,6 +1781,19 @@ Unified the synced document storage for the join and sync protocol. Still doesn'
 
 Also remove the startClock thing from the join protocol response: we already establish the max clock from the events we have in the log and we update the maxclock automatically based on what remote events come in. We only need to get the information from the server on whether it knows us already or not.
 
-TODO: integration tests for the sync protocol
-
 TODO: start reworking the server implementation to support the new protocol
+
+# 2022-03-18
+
+Starting to write the syncprotocol integration test I realized it was going to be really tricky doing that in the same manner I wrote the other integration tests.
+
+The sync protocol itself already requires most of dendriform to work and does not have its own API. I would have to introspect all kinds of different services and stores to figure out whether I was having the expected effect.
+
+I am now investigating whether it wouldn't make more sense to write end to end tests instead. The idea being that it would help test the application itself and it could test the sync protocol at the same time.
+
+The current rough idea would be to:
+
+* Write a tiny, easily controllable, http service to serve the bundled example application as static files with no authentication and the simplest possible in memory implementation of the join and sync protocol
+* Use Puppeteer (or playwright) to instantiate two browsers and implement the client side tests
+
+I am looking at using deno for implementing the tiny http service (could be fun) and I have no idea yet whether it is feasible to have multiple clients in a test with Puppeteer.
