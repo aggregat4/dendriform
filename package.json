@@ -43,10 +43,10 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/file-saver": "2.0.5",
-    "@typescript-eslint/eslint-plugin": "5.15.0",
+    "@typescript-eslint/eslint-plugin": "5.16.0",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
-    "dependency-cruiser": "11.4.0",
+    "dependency-cruiser": "11.4.1",
     "esbuild": "0.14.27",
     "eslint": "8.11.0",
     "eslint-config-prettier": "8.5.0",
