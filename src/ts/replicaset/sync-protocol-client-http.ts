@@ -18,6 +18,7 @@ export class SyncProtocolHttpClient implements SyncProtocolClient {
             method: 'POST',
             body: JSON.stringify(payload),
             headers: {
+              Accept: 'application/json; charset=utf-8',
               'Content-Type': 'application/json; charset=utf-8',
             },
           }
