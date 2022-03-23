@@ -15,6 +15,8 @@ import { IdbReplicaStorage } from './storage/idb-replicastorage'
 import { JoinProtocol } from './replicaset/join-protocol'
 import { JoinProtocolHttpClient } from './replicaset/join-protocol-client-http'
 import { IdbDocumentSyncStorage } from './storage/idb-documentsyncstorage'
+import { SyncProtocol } from './replicaset/sync-protocol'
+import { SyncProtocolHttpClient } from './replicaset/sync-protocol-client-http'
 
 customElements.define('dendriform-tree', Tree)
 
@@ -55,6 +57,19 @@ export class TreeManager {
       new MoveOpTree(replicaStore, logMoveStore, treeStore),
       this.initializables
     )
+    // The sync protocol is itself not used by anything, it just needs to run
+    register(
+      new SyncProtocol(
+        idbDocumentSyncStorage,
+        joinProtocol,
+        treeName,
+        moveOpTree,
+        new SyncProtocolHttpClient('/'),
+        replicaStore
+      ),
+      this.initializables
+    )
+
     const repository = register(new LogAndTreeStorageRepository(moveOpTree), this.initializables)
     const treeService = register(new TreeService(repository), this.initializables)
     const treeServiceCommandHandler = register(
