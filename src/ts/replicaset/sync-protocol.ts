@@ -76,10 +76,15 @@ export class SyncProtocol implements LifecycleAware {
       )
       let response: SyncProtocolPayload = null
       try {
-        response = await this.client.sync({
-          events: eventsToSend,
-          replicaSet: knownReplicaSet,
-        })
+        response = await this.client.sync(
+          this.documentId,
+          this.replicaStore.getReplicaId(),
+          this.#EVENT_BATCH_SIZE,
+          {
+            events: eventsToSend,
+            replicaSet: knownReplicaSet,
+          }
+        )
         // make sure we clear any previous error we may have had
         this.#clientServerErrorState = null
       } catch (e) {

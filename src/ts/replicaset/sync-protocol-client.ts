@@ -7,5 +7,10 @@ export interface SyncProtocolPayload {
 }
 
 export interface SyncProtocolClient {
-  sync(payload: SyncProtocolPayload): Promise<SyncProtocolPayload>
+  sync(
+    documentId: string,
+    replicaId: string,
+    batchSize: number,
+    payload: SyncProtocolPayload
+  ): Promise<SyncProtocolPayload>
 }
