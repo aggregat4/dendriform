@@ -1797,3 +1797,19 @@ The current rough idea would be to:
 * Use Puppeteer (or playwright) to instantiate two browsers and implement the client side tests
 
 I am looking at using deno for implementing the tiny http service (could be fun) and I have no idea yet whether it is feasible to have multiple clients in a test with Puppeteer.
+
+# 2022-03-25
+
+Since I now have a test server I am looking at our behaviour and I think we need even more intelligent communication with the backend. Specifically we need to make sure that when we have a batch to send to the server and the batch is full, that we immediately schedule the next send so that we make sure the server gets our events ASAP.
+
+What we could also consider is doing the query for new events more regularly (that is the synchronize call runs much more frequently) but we only contact the server when we either have new local events to send or when we have X seconds since the last synchronisation.
+
+This would prioritize quickly sending new events and it would back off from the server more when we have nothing to send. It could delay getting new events from other replicas but it would be a bit more quiet.
+
+TODO: implement more regular syncs but only send when you have local events or some other time has passed.
+
+At some point in the future we may consider doing websockets or something to get notifications of new events.
+
+# 2022-03-25
+
+Starting the koa server from a script and then running puppeteer against it seems to work fine. As a next step we could either start writing tests with puppeteer or I look at playwright and its test framework and see if that doesn't make life easier. It also supports multiple browsers: https://playwright.dev/docs/browser-contexts
