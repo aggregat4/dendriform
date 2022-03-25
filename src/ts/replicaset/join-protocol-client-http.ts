@@ -8,7 +8,7 @@ export class JoinProtocolHttpClient implements JoinProtocolClient {
     const response = await performFetch(
       async () =>
         await fetch(`${this.serverEndpoint}documents/${documentId}/replicaset/${replicaId}`, {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             Accept: 'application/json; charset=utf-8',
             'Content-Type': 'application/json; charset=utf-8',

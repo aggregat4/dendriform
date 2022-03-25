@@ -31,7 +31,7 @@ import { SyncProtocolClient, SyncProtocolPayload } from './sync-protocol-client'
  *   will be rejected with a 400 Bad Request. The client must join first.
  */
 export class SyncProtocol implements LifecycleAware {
-  readonly #DEFAULT_DELAY_MS = 1000
+  readonly #DEFAULT_DELAY_MS = 5000
   readonly #MAX_DELAY_MS = 60 * 1000
   readonly #syncJobScheduler = new JobScheduler(
     new BackoffWithJitterTimeoutStrategy(this.#DEFAULT_DELAY_MS, this.#MAX_DELAY_MS),
@@ -60,7 +60,9 @@ export class SyncProtocol implements LifecycleAware {
   }
 
   private async synchronize() {
+    console.debug(`running synchronize`)
     if (this.joinProtocol.hasJoinedReplicaSet()) {
+      console.debug(`we have joined the replicaset and can sync`)
       if (!this.#documentSyncRecord) {
         const documentSyncRecord = await this.idbDocumentSyncStorage.loadDocument(this.documentId)
         assert(
@@ -70,10 +72,12 @@ export class SyncProtocol implements LifecycleAware {
         this.#documentSyncRecord = documentSyncRecord
       }
       const knownReplicaSet = await this.moveOpTree.getKnownReplicaSet()
+      console.debug(`last sent clock is ${this.#documentSyncRecord.lastSentClock}`)
       const eventsToSend = await this.moveOpTree.getLocalMoveOpsSince(
         this.#documentSyncRecord.lastSentClock,
         this.#EVENT_BATCH_SIZE
       )
+      console.debug(`${eventsToSend.length} events to send: `, eventsToSend)
       let response: SyncProtocolPayload = null
       try {
         response = await this.client.sync(
