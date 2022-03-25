@@ -3,9 +3,11 @@ import serve from 'koa-static'
 import mount from 'koa-mount'
 import Router from '@koa/router'
 import logger from 'koa-logger'
+import bodyParser from 'koa-body'
 
 const app = new Koa()
 app.use(logger())
+app.use(bodyParser())
 
 const staticFiles = serve('dist/')
 app.use(mount('/app', staticFiles))
@@ -27,11 +29,12 @@ router
       }
     }
     if (!documents[documentId].replicaSet[replicaId]) {
-      // TODO: verify whether -1 is really the right initial value
+      console.debug(`client is unknown`)
       documents[documentId].replicaSet[replicaId] = -1
       documents[documentId].events[replicaId] = []
       ctx.response.body = { alreadyKnown: false }
     } else {
+      console.debug(`client is known`)
       ctx.response.body = { alreadyKnown: true }
     }
   })
@@ -41,13 +44,16 @@ router
     const batchSize = ctx.params.batchSize
     const payload = ctx.request.body
     if (!documents[documentId]) {
+      console.debug(`document not known: ${documentId}`)
       ctx.throw(404, 'this document does not exist')
     }
     if (!documents[documentId].replicaSet[clientReplicaId]) {
+      console.debug(`replica not known: ${clientReplicaId}`)
       ctx.throw(404, 'has not joined replicaSet yet')
     }
     // update the server side replicaset to mark the new max clock of the client
     if (payload.events && payload.events.length > 0) {
+      console.debug(`Receiving ${payload.events.length} events`)
       for (const event of payload.events) {
         if (documents[documentId].replicaSet[clientReplicaId] < event.clock) {
           documents[documentId].replicaSet[clientReplicaId] = event.clock
@@ -60,7 +66,7 @@ router
     for (const serverReplicaId of Object.keys(documents[documentId].replicaSet)) {
       if (serverReplicaId !== clientReplicaId) {
         const clientKnownMaxClock = payload.replicaSet[serverReplicaId] || -1
-        for (const serverEvent of documents[documentId].replicaSet[serverReplicaId]) {
+        for (const serverEvent of documents[documentId].events[serverReplicaId]) {
           if (serverEevent.clock > clientKnownMaxClock) {
             responseEvents.push(serverEvent)
             if (responseEvents.length >= batchSize) {
@@ -80,6 +86,6 @@ router
   })
 
 app.use(router.routes())
-
-app.listen(3000)
-console.log('listening on port 3000')
+const server = app.listen(3000)
+console.log(`listening on port 3000`)
+export default server
