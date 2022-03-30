@@ -41,7 +41,7 @@ router
   .post('/documents/:documentId/replicaset/:replicaId/events', async (ctx) => {
     const documentId = ctx.params.documentId
     const clientReplicaId = ctx.params.replicaId
-    const batchSize = ctx.params.batchSize
+    const batchSize = parseInt(ctx.params.batchSize)
     const payload = ctx.request.body
     if (!documents[documentId]) {
       console.debug(`document not known: ${documentId}`)
@@ -67,7 +67,7 @@ router
       if (serverReplicaId !== clientReplicaId) {
         const clientKnownMaxClock = payload.replicaSet[serverReplicaId] || -1
         for (const serverEvent of documents[documentId].events[serverReplicaId]) {
-          if (serverEevent.clock > clientKnownMaxClock) {
+          if (serverEvent.clock > clientKnownMaxClock) {
             responseEvents.push(serverEvent)
             if (responseEvents.length >= batchSize) {
               break

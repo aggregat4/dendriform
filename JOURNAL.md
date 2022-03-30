@@ -1813,3 +1813,25 @@ At some point in the future we may consider doing websockets or something to get
 # 2022-03-25
 
 Starting the koa server from a script and then running puppeteer against it seems to work fine. As a next step we could either start writing tests with puppeteer or I look at playwright and its test framework and see if that doesn't make life easier. It also supports multiple browsers: https://playwright.dev/docs/browser-contexts
+
+# 2022-03-30
+
+It didn't seem clear to me whether Playwright would support multiple browser contexts in the same test and I decided tom push forward with Puppeteer a bit.
+
+Puppeteer is a bit too low level for convenient assertions. You need to evaluate code in the page (logical) to extract attributes and values from DOM nodes so you can assert on them. This could get really painful.
+
+Converted the e2e runners and files to `.ts` files since otherwise we can't easily import from our own codebase. Doing this immediately revealed two bugs in the tiny dendriform server implementation that were just typos and that JavaScript just ignored. :facepalm:
+
+# 2022-03-30
+
+I configured visual studio code to organize imports on save with an additional stanza in the TypeScript specific Settings:
+
+```
+{
+  "[typescript]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+}
+```
