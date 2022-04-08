@@ -1,9 +1,9 @@
-import Koa from 'koa'
-import serve from 'koa-static'
-import mount from 'koa-mount'
 import Router from '@koa/router'
-import logger from 'koa-logger'
+import Koa from 'koa'
 import bodyParser from 'koa-body'
+import logger from 'koa-logger'
+import mount from 'koa-mount'
+import serve from 'koa-static'
 
 const app = new Koa()
 app.use(logger())
@@ -61,7 +61,7 @@ router
         documents[documentId].events[clientReplicaId].push(event)
       }
     }
-    // based on the clients knowledge of replicas, send hereto unknown events back
+    // based on the client's knowledge of replicas, send hitherto unknown events back
     const responseEvents = []
     for (const serverReplicaId of Object.keys(documents[documentId].replicaSet)) {
       if (serverReplicaId !== clientReplicaId) {
