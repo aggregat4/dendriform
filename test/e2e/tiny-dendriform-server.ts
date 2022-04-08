@@ -28,7 +28,7 @@ router
         events: {},
       }
     }
-    if (!documents[documentId].replicaSet[replicaId]) {
+    if (documents[documentId].replicaSet[replicaId] === undefined) {
       console.debug(`client is unknown`)
       documents[documentId].replicaSet[replicaId] = -1
       documents[documentId].events[replicaId] = []
@@ -47,7 +47,7 @@ router
       console.debug(`document not known: ${documentId}`)
       ctx.throw(404, 'this document does not exist')
     }
-    if (!documents[documentId].replicaSet[clientReplicaId]) {
+    if (documents[documentId].replicaSet[clientReplicaId] === undefined) {
       console.debug(`replica not known: ${clientReplicaId}`)
       ctx.throw(404, 'has not joined replicaSet yet')
     }
