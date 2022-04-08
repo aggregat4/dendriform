@@ -1835,3 +1835,32 @@ I configured visual studio code to organize imports on save with an additional s
   },
 }
 ```
+
+# 2022-04-08
+
+I finally got E2E tests running with a bunch of trouble with node and ts-node not really getting along when it comes to knowing what a module is.
+
+I extended the growing e2e-utils a bit to have more debug information for failing e2e tests and I am grappling with using Puppeteer for tests.
+
+I get one error in my second test that is intermittent, but seems like a real bug. Need to investigate this (probably by adding debug output?):
+
+```
+console debug: We are initialising our clock since we joined the replicaset fresh!
+console debug: We are initialising our clock since we joined the replicaset fresh!
+console debug: We believe we have joined the replicaset
+console debug: We believe we have joined the replicaset
+error occurred:  [Error: Error: If we store a local node and we claim its position is unchanged then it must have an existing position
+    at R (http://localhost:3000/app/chunk-7WESAVXK.js:1:19476)
+    at Lo.storeNode (http://localhost:3000/app/chunk-7WESAVXK.js:336:25042)
+    at Oo.updateLocalNode (http://localhost:3000/app/chunk-7WESAVXK.js:336:26714)
+    at async Ao.updateNode (http://localhost:3000/app/chunk-7WESAVXK.js:336:16746)
+    at async Co.renameNode (http://localhost:3000/app/chunk-7WESAVXK.js:336:14882)
+    at async Co.splitNode (http://localhost:3000/app/chunk-7WESAVXK.js:336:16043)
+    at async bo.performAction (http://localhost:3000/app/chunk-7WESAVXK.js:336:4908)
+    at async bo.exec (http://localhost:3000/app/chunk-7WESAVXK.js:336:4822)
+    at async No.exec (http://localhost:3000/app/chunk-7WESAVXK.js:336:6757)
+    at async St.performWithDom (http://localhost:3000/app/chunk-7WESAVXK.js:336:3956)]
+E2E Tests done
+```
+
+I should also write something here about the two findings I made when implementing the first E2E tests. See the NOTE comments in the source code.
