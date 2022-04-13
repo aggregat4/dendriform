@@ -1,17 +1,17 @@
-import { test } from '../../lib/tizzy'
 import expect from 'ceylon'
 import { deleteDB } from 'idb'
-import { MoveOp, MoveOpTree } from 'src/ts/moveoperation/moveoperation'
-import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
-import { IdbLogMoveStorage } from 'src/ts/storage/idb-logmovestorage'
-import { IdbTreeStorage } from 'src/ts/storage/idb-treestorage'
 import { RELATIVE_NODE_POSITION_END } from 'src/ts/domain/domain'
 import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
-import { LogootSequenceWrapper } from 'src/ts/repository/logoot-sequence-wrapper'
 import { atomIdent } from 'src/ts/lib/modules/logootsequence'
+import { MoveOp, MoveOpTree } from 'src/ts/moveoperation/moveoperation'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
-import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
+import { LogootSequenceWrapper } from 'src/ts/repository/logoot-sequence-wrapper'
 import { IdbDocumentSyncStorage } from 'src/ts/storage/idb-documentsyncstorage'
+import { IdbLogMoveStorage } from 'src/ts/storage/idb-logmovestorage'
+import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
+import { IdbTreeStorage } from 'src/ts/storage/idb-treestorage'
+import { test } from '../../lib/tizzy'
+import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
 
 function testWithMoveOpTree(t: (moveOpTree: MoveOpTree) => Promise<void>): () => void {
   return async () => {
@@ -235,20 +235,16 @@ test(
       createMoveOp(remoteClock, 'parent1', 'ROOT', 'replica1', new Date().getTime(), pos1)
     )
     const childCreationTime = new Date().getTime()
-    await moveOpTree.updateLocalNode(
-      {
-        id: 'child1',
-        name: 'child1name',
-        note: 'child1note',
-        collapsed: true,
-        completed: true,
-        deleted: true,
-        created: childCreationTime,
-        updated: childCreationTime,
-      },
-      'parent1',
-      RELATIVE_NODE_POSITION_END
-    )
+    await moveOpTree.updateLocalNode('child1', 'parent1', RELATIVE_NODE_POSITION_END, (node) => {
+      node.name = 'child1name'
+      node.note = 'child1note'
+      node.collapsed = true
+      node.completed = true
+      node.deleted = true
+      node.created = childCreationTime
+      node.updated = childCreationTime
+      return true
+    })
     expect(moveOpTree.getChildIds('parent1')).toEqual(['child1'])
     const newMoveOps = await moveOpTree.getLocalMoveOpsSince(42, 100)
     expect(newMoveOps.length).toBe(1, 'There should only be one local move operation')

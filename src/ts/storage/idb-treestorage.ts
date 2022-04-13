@@ -1,6 +1,6 @@
 // Local storage of the current state of the tree and the contents of the nodes
 // Having this persisted tree storage will allow us to garbage collect the event log
-import { openDB, IDBPDatabase, DBSchema } from 'idb'
+import { DBSchema, IDBPDatabase, openDB } from 'idb'
 import { RelativeNodePosition, RELATIVE_NODE_POSITION_UNCHANGED } from '../domain/domain'
 import { LifecycleAware } from '../domain/lifecycle'
 import { atomIdent } from '../lib/modules/logootsequence'
@@ -128,7 +128,9 @@ export class IdbTreeStorage implements LifecycleAware {
       if (positionQualifier.relativePosition == RELATIVE_NODE_POSITION_UNCHANGED) {
         assert(
           !!existingLogootPos,
-          'If we store a local node and we claim its position is unchanged then it must have an existing position'
+          `If we store a local node and we claim its position is unchanged then it must have an existing position. Node: ${JSON.stringify(
+            node
+          )}`
         )
         newParentSeq.insertAtAtomIdent(node.id, existingLogootPos)
         // console.debug(`Added ${node.id} with existing logootpos to new parent ${node.parentId}`)

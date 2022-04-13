@@ -101,10 +101,15 @@ export interface Repository {
     relativePosition: RelativeNodePosition
   ): Promise<void>
 
-  updateNode(node: RepositoryNode, parentId: string, synchronous: boolean): Promise<void>
+  updateNode(
+    nodeId: string,
+    parentId: string,
+    synchronous: boolean,
+    updateFun: (node: RepositoryNode) => boolean
+  ): Promise<void>
 
   reparentNode(
-    node: RepositoryNode,
+    nodeId: string,
     parentId: string,
     position: RelativeNodePosition,
     synchronous: boolean

@@ -1,19 +1,19 @@
-import { test, fail } from '../../lib/tizzy'
 import expect from 'ceylon'
 import { deleteDB } from 'idb'
-import { LogAndTreeStorageRepository } from 'src/ts/repository/repository-logandtreestorage'
-import { MoveOpTree } from 'src/ts/moveoperation/moveoperation'
-import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
-import { IdbLogMoveStorage } from 'src/ts/storage/idb-logmovestorage'
-import { IdbTreeStorage } from 'src/ts/storage/idb-treestorage'
 import { RELATIVE_NODE_POSITION_END } from 'src/ts/domain/domain'
-import { ALWAYS_TRUE } from 'src/ts/utils/util'
 import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
-import { secondsSinceEpoch } from 'src/ts/utils/dateandtime'
-import { ROOT_NODE } from 'src/ts/repository/repository'
+import { MoveOpTree } from 'src/ts/moveoperation/moveoperation'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
-import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
+import { ROOT_NODE } from 'src/ts/repository/repository'
+import { LogAndTreeStorageRepository } from 'src/ts/repository/repository-logandtreestorage'
 import { IdbDocumentSyncStorage } from 'src/ts/storage/idb-documentsyncstorage'
+import { IdbLogMoveStorage } from 'src/ts/storage/idb-logmovestorage'
+import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
+import { IdbTreeStorage } from 'src/ts/storage/idb-treestorage'
+import { secondsSinceEpoch } from 'src/ts/utils/dateandtime'
+import { ALWAYS_TRUE } from 'src/ts/utils/util'
+import { fail, test } from '../../lib/tizzy'
+import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
 
 function testWithRepo(t: (repo: LogAndTreeStorageRepository) => Promise<void>): () => void {
   return async () => {
@@ -74,13 +74,15 @@ test(
     expect(loadedNode.created).toBeLessThan(currentTime + 1)
     expect(loadedNode.updated).toBeGreaterThan(currentTime - 120)
     expect(loadedNode.updated).toBeLessThan(currentTime + 1)
-    loadedNode.name = 'QUX'
-    loadedNode.note = 'QUX note'
-    loadedNode.collapsed = true
-    loadedNode.deleted = true
-    loadedNode.completed = true
     // just updating the contents of the node
-    await repo.updateNode(loadedNode, 'ROOT', true)
+    await repo.updateNode(loadedNode.id, 'ROOT', true, (node) => {
+      node.name = 'QUX'
+      node.note = 'QUX note'
+      node.collapsed = true
+      node.deleted = true
+      node.completed = true
+      return true
+    })
     const updatedNode = await repo.loadNode('abc123', ALWAYS_TRUE)
     expect(updatedNode).toExist()
     expect(updatedNode.name).toEqual('QUX')
@@ -107,18 +109,18 @@ test(
     expect(child1Tree.tree.children.elements).toHaveLength(0)
     expect(await repo.getChildIds('parent1')).toEqual([child1Node.id])
     expect(await repo.getParentId('child1')).toEqual('parent1')
-    await repo.reparentNode(child1Node, 'parent2', RELATIVE_NODE_POSITION_END, true)
+    await repo.reparentNode(child1Node.id, 'parent2', RELATIVE_NODE_POSITION_END, true)
     const newChild1Tree = await repo.loadTree('child1', ALWAYS_TRUE, true)
     expect(newChild1Tree.ancestors.map((a) => a.id)).toEqual(['parent2', 'ROOT'])
     // Move to non existent parent
     try {
-      await repo.reparentNode(child1Node, 'nonexistentparent', RELATIVE_NODE_POSITION_END, true)
+      await repo.reparentNode(child1Node.id, 'nonexistentparent', RELATIVE_NODE_POSITION_END, true)
       fail('We should not be able to reparent to a non existing parent node')
     } catch (e) {
       // this is expected, it should throw because the parent does not exist
     }
     // move the child back to original parent
-    await repo.reparentNode(child1Node, 'parent1', RELATIVE_NODE_POSITION_END, true)
+    await repo.reparentNode(child1Node.id, 'parent1', RELATIVE_NODE_POSITION_END, true)
     expect(await repo.getChildIds('parent1')).toEqual([child1Node.id])
     expect(await repo.getChildIds('parent2')).toEqual([])
     expect(await repo.getParentId('child1')).toEqual('parent1')

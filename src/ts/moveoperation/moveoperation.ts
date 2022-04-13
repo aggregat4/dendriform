@@ -3,12 +3,12 @@ import {
   RELATIVE_NODE_POSITION_UNCHANGED,
   Subscription,
 } from '../domain/domain'
-import { NodeFlags, NodeMetadata } from '../storage/nodestorage'
 import { atomIdent } from '../lib/modules/logootsequence'
 import { RepositoryNode } from '../repository/repository'
 import { IdbLogMoveStorage, LogMoveRecord, Replica } from '../storage/idb-logmovestorage'
 import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 import { IdbTreeStorage, ROOT_STORED_NODE, StoredNode } from '../storage/idb-treestorage'
+import { NodeFlags, NodeMetadata } from '../storage/nodestorage'
 import { assert } from '../utils/util'
 
 export interface MoveOp {
@@ -44,17 +44,56 @@ export class MoveOpTree {
     readonly treeStore: IdbTreeStorage
   ) {}
 
+  private createMoveOp(node: RepositoryNode, parentId: string, logootPos?: atomIdent): MoveOp {
+    const replicaId = this.replicaStore.getReplicaId()
+    const clock = this.logMoveStore.getAndIncrementClock()
+    return {
+      nodeId: node.id,
+      parentId: parentId,
+      metadata: toNodeMetaData(node, logootPos),
+      replicaId,
+      clock,
+    }
+  }
+
+  async createLocalNode(
+    node: RepositoryNode,
+    parentId: string,
+    relativePosition: RelativeNodePosition
+  ) {
+    assert(
+      relativePosition != RELATIVE_NODE_POSITION_UNCHANGED,
+      'When creating a new node you must provide a relative position'
+    )
+    if (!this.treeStore.isNodeKnown(parentId)) {
+      throw new Error(
+        'When updating a node we assume that the parent is known in our parent child map'
+      )
+    }
+    if (this.treeStore.isNodeKnown(node.id)) {
+      throw new Error(`A node with id ${node.id} already exists and can not be created`)
+    }
+    const moveOp = this.createMoveOp(node, parentId)
+    // first we try to store the node: this performs a bunch of sanity checks, if they fail, we can prevent storing the moveop
+    await this.treeStore.storeNode(toStoredNode(moveOp), {
+      clock: moveOp.clock,
+      replicaId: moveOp.replicaId,
+      relativePosition,
+    })
+    await this.recordMoveOp(moveOp)
+  }
+
   /**
    * This update operation will check whether the node already existed and if so
    * record the appropriate change event.
    */
   async updateLocalNode(
-    node: RepositoryNode,
+    nodeId: string,
     parentId: string,
-    relativePosition: RelativeNodePosition
+    relativePosition: RelativeNodePosition,
+    updateFun: (node: RepositoryNode) => boolean
   ) {
-    const replicaId = this.replicaStore.getReplicaId()
-    const clock = this.logMoveStore.getAndIncrementClock()
+    assert(updateFun !== null, `Require an update function in updateLocalNode`)
     if (!this.treeStore.isNodeKnown(parentId)) {
       throw new Error(
         'When updating a node we assume that the parent is known in our parent child map'
@@ -62,35 +101,28 @@ export class MoveOpTree {
     }
     // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
     // This prevents cycles
-    if (this.treeStore.isAncestorOf(node.id, parentId)) {
+    if (this.treeStore.isAncestorOf(nodeId, parentId)) {
       return
     }
-    const moveOp = {
-      nodeId: node.id,
-      parentId: parentId,
-      metadata: toNodeMetaData(node, null),
-      replicaId,
-      clock,
-    }
     // we need to retrieve the current (or old) node so we can record the change from old to new
-    const oldNode = await this.loadNode(node.id)
-    if (!oldNode) {
-      assert(
-        relativePosition != RELATIVE_NODE_POSITION_UNCHANGED,
-        'When creating a new node you must provide a relative position'
-      )
+    const oldNode = await this.loadNode(nodeId)
+    assert(
+      oldNode !== null,
+      `When updating a node and wanting to modify its contents, the node must already exist but we can't find the node with id ${nodeId}`
+    )
+    const newNode = copyNode(oldNode)
+    // the update function can indicate whether or not it changed anything and if not, we bail
+    if (!updateFun(newNode)) {
+      return
     }
+    const moveOp = this.createMoveOp(newNode, parentId, newNode.logootPos)
     // first we try to store the node: this performs a bunch of sanity checks, if they fail, we can prevent storing the moveop
     await this.treeStore.storeNode(toStoredNode(moveOp), {
       clock: moveOp.clock,
       replicaId: moveOp.replicaId,
       relativePosition,
     })
-    if (oldNode) {
-      await this.recordMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
-    } else {
-      await this.recordMoveOp(moveOp, null, null)
-    }
+    await this.recordMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
   }
 
   private async recordUnappliedMoveOp(moveOp: MoveOp): Promise<void> {
@@ -108,8 +140,8 @@ export class MoveOpTree {
 
   private async recordMoveOp(
     moveOp: MoveOp,
-    oldParentId: string,
-    oldPayload: NodeMetadata
+    oldParentId?: string,
+    oldPayload?: NodeMetadata
   ): Promise<void> {
     await this.logMoveStore.storeEvent({
       clock: moveOp.clock,
@@ -311,7 +343,7 @@ export class MoveOpTree {
   }
 }
 
-function toNodeMetaData(node: RepositoryNode, logootPos: atomIdent): NodeMetadata {
+function toNodeMetaData(node: RepositoryNode, logootPos?: atomIdent): NodeMetadata {
   return {
     name: node.name,
     note: node.note,
@@ -341,5 +373,20 @@ function toStoredNode(moveOp: MoveOp): StoredNode {
     collapsed: extractFlag(moveOp.metadata.flags, NodeFlags.collapsed),
     completed: extractFlag(moveOp.metadata.flags, NodeFlags.completed),
     deleted: extractFlag(moveOp.metadata.flags, NodeFlags.deleted),
+  }
+}
+
+function copyNode(node: StoredNode): StoredNode {
+  return {
+    id: node.id,
+    parentId: node.parentId,
+    name: node.name,
+    note: node.note,
+    created: node.created,
+    updated: node.updated,
+    logootPos: node.logootPos,
+    collapsed: node.collapsed,
+    completed: node.completed,
+    deleted: node.deleted,
   }
 }

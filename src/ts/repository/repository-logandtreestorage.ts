@@ -34,10 +34,11 @@ export class LogAndTreeStorageRepository implements Repository {
     parentId: string,
     name: string,
     content: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     synchronous: boolean,
     relativePosition: RelativeNodePosition
   ): Promise<void> {
-    await this.moveOpTree.updateLocalNode(
+    await this.moveOpTree.createLocalNode(
       {
         id: id,
         name: name,
@@ -55,19 +56,30 @@ export class LogAndTreeStorageRepository implements Repository {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async updateNode(node: RepositoryNode, parentId: string, synchronous: boolean): Promise<void> {
-    await this.moveOpTree.updateLocalNode(node, parentId, RELATIVE_NODE_POSITION_UNCHANGED)
+  async updateNode(
+    nodeId: string,
+    parentId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    synchronous: boolean,
+    updateFun: (node: RepositoryNode) => boolean
+  ): Promise<void> {
+    await this.moveOpTree.updateLocalNode(
+      nodeId,
+      parentId,
+      RELATIVE_NODE_POSITION_UNCHANGED,
+      updateFun
+    )
     // TODO: implement synchronous and asynchronous storage if it becomes relevant (or delete the concept entirely!)
   }
 
   async reparentNode(
-    node: RepositoryNode,
+    nodeId: string,
     parentId: string,
     position: RelativeNodePosition,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     synchronous: boolean
   ): Promise<void> {
-    await this.moveOpTree.updateLocalNode(node, parentId, position)
+    await this.moveOpTree.updateLocalNode(nodeId, parentId, position, () => true)
     // TODO: implement synchronous and asynchronous storage if it becomes relevant
   }
 

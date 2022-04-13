@@ -1,17 +1,11 @@
-import { ALWAYS_TRUE, Predicate } from '../utils/util'
 import {
   RelativeLinearPosition,
   RelativeNodePosition,
   RELATIVE_NODE_POSITION_END,
   Subscription,
 } from '../domain/domain'
-import {
-  LoadedTree,
-  NODE_IS_NOT_DELETED,
-  Repository,
-  RepositoryNode,
-  State,
-} from '../repository/repository'
+import { LoadedTree, Repository, RepositoryNode, State } from '../repository/repository'
+import { ALWAYS_TRUE, Predicate } from '../utils/util'
 import { MergeNameOrder } from './service'
 
 export class TreeService {
@@ -32,11 +26,14 @@ export class TreeService {
 
   // loads the node by id, renames it and then returns a Promise of a response when done
   async renameNode(nodeId: string, parentId: string, newName: string, synchronous: boolean) {
-    const node = await this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
-    if (newName !== node.name) {
-      node.name = newName
-      await this.repo.updateNode(node, parentId, synchronous)
-    }
+    await this.repo.updateNode(nodeId, parentId, synchronous, (node: RepositoryNode) => {
+      if (node.name === newName) {
+        return false
+      } else {
+        node.name = newName
+        return true
+      }
+    })
   }
 
   async loadNode(nodeId: string): Promise<RepositoryNode> {
@@ -50,8 +47,7 @@ export class TreeService {
     position: RelativeNodePosition,
     synchronous: boolean
   ) {
-    const node = await this.repo.loadNode(nodeId, NODE_IS_NOT_DELETED)
-    return await this.repo.reparentNode(node, newParentId, position, synchronous)
+    return await this.repo.reparentNode(nodeId, newParentId, position, synchronous)
   }
 
   async reparentNodes(childIds: string[], newParentId: string, synchronous: boolean) {
@@ -73,88 +69,68 @@ export class TreeService {
   }
 
   async deleteNode(nodeId: string, parentId: string, synchronous: boolean) {
-    await this.updateNode(
-      nodeId,
-      parentId,
-      synchronous,
-      (node: RepositoryNode) => (node.deleted = true)
-    )
+    await this.updateNode(nodeId, parentId, synchronous, (node: RepositoryNode) => {
+      node.deleted = true
+      return true
+    })
   }
 
   // undeletes a node, just removing its deleted flag
   async undeleteNode(nodeId: string, parentId: string, synchronous: boolean) {
-    await this.updateNode(
-      nodeId,
-      parentId,
-      synchronous,
-      (node: RepositoryNode) => (node.deleted = false)
-    )
+    await this.updateNode(nodeId, parentId, synchronous, (node: RepositoryNode) => {
+      node.deleted = false
+      return true
+    })
   }
 
   async completeNode(nodeId: string, parentId: string, synchronous: boolean) {
-    await this.updateNode(
-      nodeId,
-      parentId,
-      synchronous,
-      (node: RepositoryNode) => (node.completed = true)
-    )
+    await this.updateNode(nodeId, parentId, synchronous, (node: RepositoryNode) => {
+      node.completed = true
+      return true
+    })
   }
 
   async unCompleteNode(nodeId: string, parentId: string, synchronous: boolean) {
-    await this.updateNode(
-      nodeId,
-      parentId,
-      synchronous,
-      (node: RepositoryNode) => (node.completed = false)
-    )
+    await this.updateNode(nodeId, parentId, synchronous, (node: RepositoryNode) => {
+      node.completed = false
+      return true
+    })
   }
 
   async openNode(nodeId: string, parentId: string, synchronous: boolean) {
-    await this.updateNode(
-      nodeId,
-      parentId,
-      synchronous,
-      (node: RepositoryNode) => (node.collapsed = false)
-    )
+    await this.updateNode(nodeId, parentId, synchronous, (node: RepositoryNode) => {
+      node.collapsed = false
+      return true
+    })
   }
 
   async closeNode(nodeId: string, parentId: string, synchronous: boolean) {
-    await this.updateNode(
-      nodeId,
-      parentId,
-      synchronous,
-      (node: RepositoryNode) => (node.collapsed = true)
-    )
+    await this.updateNode(nodeId, parentId, synchronous, (node: RepositoryNode) => {
+      node.collapsed = true
+      return true
+    })
   }
 
   async updateNote(nodeId: string, parentId: string, note: string, synchronous: boolean) {
-    await this.updateNode(
-      nodeId,
-      parentId,
-      synchronous,
-      (node: RepositoryNode) => (node.note = note)
-    )
+    await this.updateNode(nodeId, parentId, synchronous, (node: RepositoryNode) => {
+      node.note = note
+      return true
+    })
   }
 
   private async updateNode(
     nodeId: string,
     parentId: string,
     synchronous: boolean,
-    updateFun: (node: RepositoryNode) => void
+    updateFun: (node: RepositoryNode) => boolean
   ) {
-    const node = await this.repo.loadNode(nodeId, ALWAYS_TRUE)
-    if (node) {
-      updateFun(node)
-      await this.repo.updateNode(node, parentId, synchronous)
-    } else {
-      throw new Error(`Node with id ${nodeId} does not exist`)
-    }
+    await this.repo.updateNode(nodeId, parentId, synchronous, updateFun)
   }
 
   /**
-   * Splitting means that the current node is renamed to the name AFTER the split
-   * position and a new node is inserted BEFORE the current node that contains the
-   * name BEFORE the split position.
+   * Splitting means that the current node is renamed to the name AFTER the
+   * split position and a new node is inserted BEFORE the current node that
+   * contains the name BEFORE the split position.
    */
   async splitNode(
     nodeId: string,
@@ -164,6 +140,7 @@ export class TreeService {
     newSiblingName: string,
     synchronous: boolean
   ) {
+    console.debug(`splitting node`)
     const sibling = await this.findNode(newSiblingId)
     if (sibling) {
       // we need to attempt undelete since this may be an undo operation of a merge, in this case the sibling exists
