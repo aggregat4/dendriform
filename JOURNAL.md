@@ -1849,3 +1849,19 @@ I should also write something here about the two findings I made when implementi
 # 2022-04-13
 
 Added the `prettier-plugin-organize-imports` prettier plugin to do import organization. I then disabled the built in vscode typescript `source.organizeImports` setting since it was conflicting with prettier. It was organizing and reformatting in a way that prettier didn't agree with and it led to conflicts.
+
+# 2022-04-13
+
+Refactored our approach to updating nodes to avoid a previous error and make it more efficient and robust.
+
+this causes a new test error to investigate:
+
+```
+console warning: Test failure in After a remote update our own clock is higher than the remote update clock , cause: TypeError: Cannot read properties of undefined (reading 'id')
+    at copyNode (file:///home/boris/dev/projects/dendriform/dendriform-client/dist/integration-tests.js:3176:14)
+    at MoveOpTree.updateLocalNode (file:///home/boris/dev/projects/dendriform/dendriform-client/dist/integration-tests.js:3003:21)
+    at async file:///home/boris/dev/projects/dendriform/dendriform-client/dist/integration-tests.js:3518:3
+    at async Object.fn (file:///home/boris/dev/projects/dendriform/dendriform-client/dist/integration-tests.js:3412:7)
+    at async run (file:///home/boris/dev/projects/dendriform/dendriform-client/dist/integration-tests.js:1819:7)
+    at async file:///home/boris/dev/projects/dendriform/dendriform-client/dist/integration-tests.js:3609:3
+```
