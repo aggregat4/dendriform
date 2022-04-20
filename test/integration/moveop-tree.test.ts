@@ -235,16 +235,20 @@ test(
       createMoveOp(remoteClock, 'parent1', 'ROOT', 'replica1', new Date().getTime(), pos1)
     )
     const childCreationTime = new Date().getTime()
-    await moveOpTree.updateLocalNode('child1', 'parent1', RELATIVE_NODE_POSITION_END, (node) => {
-      node.name = 'child1name'
-      node.note = 'child1note'
-      node.collapsed = true
-      node.completed = true
-      node.deleted = true
-      node.created = childCreationTime
-      node.updated = childCreationTime
-      return true
-    })
+    await moveOpTree.createLocalNode(
+      {
+        id: 'child1',
+        name: 'child1name',
+        note: 'child1note',
+        collapsed: true,
+        completed: true,
+        deleted: true,
+        created: childCreationTime,
+        updated: childCreationTime,
+      },
+      'parent1',
+      RELATIVE_NODE_POSITION_END
+    )
     expect(moveOpTree.getChildIds('parent1')).toEqual(['child1'])
     const newMoveOps = await moveOpTree.getLocalMoveOpsSince(42, 100)
     expect(newMoveOps.length).toBe(1, 'There should only be one local move operation')

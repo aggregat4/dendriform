@@ -1865,3 +1865,7 @@ console warning: Test failure in After a remote update our own clock is higher t
     at async run (file:///home/boris/dev/projects/dendriform/dendriform-client/dist/integration-tests.js:1819:7)
     at async file:///home/boris/dev/projects/dendriform/dendriform-client/dist/integration-tests.js:3609:3
 ```
+
+# 2022-04-20
+
+Integration tests are not properly failing or indicating that they are failing when an error is detected. I really need to clean that runner up.
