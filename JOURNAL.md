@@ -1869,3 +1869,15 @@ console warning: Test failure in After a remote update our own clock is higher t
 # 2022-04-20
 
 Integration tests are not properly failing or indicating that they are failing when an error is detected. I really need to clean that runner up.
+
+I had a look at our various tests and even when the integration tests and the E2E tests use Puppeteer, they are completely different kinds of tests and it is ok to have different infrastructure for them:
+
+* Integration tests are just normal headless tests that have to run in the browser to have access to certain subsystems like IndexedDb
+* E2E tests are assertions on existing webpages where we use Pupetteer "just" to have a headless browser
+
+There could be a tiny shared library of Puppeteer helpers, but in general they are two different approaches.
+
+Some things I need to do:
+* Create a Browser Reporter for Tizzy that can properly report test progress with events and which we can output nicely on the console.
+* Clean up error handling (all cases, errors in tests, timeouts, browser errors)
+* Come up with some sort of runner/progress for the E2E tests. Also do some tizzy integration?
