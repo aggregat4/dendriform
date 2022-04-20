@@ -1,4 +1,4 @@
-import { openDB, IDBPDatabase, DBSchema } from 'idb'
+import { DBSchema, IDBPDatabase, openDB } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
 import { JoinProtocol } from '../replicaset/join-protocol'
 import { assert } from '../utils/util'
@@ -73,7 +73,6 @@ export class IdbLogMoveStorage implements LifecycleAware {
 
   private async checkReplicaSetJoined() {
     if (this.joinProtocol.hasJoinedReplicaSet()) {
-      console.debug(`We believe we have joined the replicaset`)
       const maxClock = await this.getMaxClock()
       this.#clock = maxClock + 1
     }

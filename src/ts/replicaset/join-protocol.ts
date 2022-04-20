@@ -82,7 +82,7 @@ export class JoinProtocol implements LifecycleAware {
   }
 
   private async join() {
-    console.debug(`executing join() on JoinProtocol`)
+    // console.debug(`executing join() on JoinProtocol`)
     let response = null
     try {
       response = await this.client.join(this.documentId, this.replicaStore.getReplicaId())
@@ -106,7 +106,7 @@ export class JoinProtocol implements LifecycleAware {
       // Now we have a bunch of potential error and non-error cases:
       if (!this.#hasJoinedReplicaSet && !response.alreadyKnown) {
         // OK: we are a fresh replica and the server doesn't know us, all is well
-        console.debug(`We are initialising our clock since we joined the replicaset fresh!`)
+        // console.debug(`We are initialising our clock since we joined the replicaset fresh!`)
         await this.idbDocumentSyncStorage.saveDocument({
           documentId: this.documentId,
           hasJoinedReplicaSet: true,

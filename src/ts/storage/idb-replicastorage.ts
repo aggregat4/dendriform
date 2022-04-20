@@ -1,6 +1,6 @@
 // Local storage of the current state of the tree and the contents of the nodes
 // Having this persisted tree storage will allow us to garbage collect the event log
-import { openDB, IDBPDatabase, DBSchema } from 'idb'
+import { DBSchema, IDBPDatabase, openDB } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
 import { generateUUID } from '../utils/util'
 
@@ -40,7 +40,7 @@ export class IdbReplicaStorage implements LifecycleAware {
       this.replica = {
         replicaId: generateUUID(),
       }
-      console.debug(`Creating new replica with id ${this.replica.replicaId}`)
+      // console.debug(`Creating new replica with id ${this.replica.replicaId}`)
       await this.storeReplica(this.replica)
     } else {
       this.replica = replica

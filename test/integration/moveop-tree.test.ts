@@ -256,7 +256,6 @@ test(
       42,
       'Local clock values should be higher than preceding remote clock values'
     )
-    console.debug(`Local clock is now ${newMoveOps[0].clock}`)
     expect(newMoveOps[0].nodeId).toBe('child1')
     expect(newMoveOps[0].parentId).toBe('parent1')
     expect(newMoveOps[0].metadata.name).toBe('child1name')
