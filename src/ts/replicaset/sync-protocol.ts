@@ -66,7 +66,7 @@ export class SyncProtocol implements LifecycleAware {
       if (!this.#documentSyncRecord) {
         const documentSyncRecord = await this.idbDocumentSyncStorage.loadDocument(this.documentId)
         assert(
-          documentSyncRecord !== null,
+          !!documentSyncRecord,
           `We have apparently joined the replicaset but we have no document sync record stored, this should not happen, aborting sync`
         )
         this.#documentSyncRecord = documentSyncRecord
@@ -125,7 +125,7 @@ export class SyncProtocol implements LifecycleAware {
         this.#documentSyncRecord.lastSentClock = newMaxClock
         await this.idbDocumentSyncStorage.saveDocument(this.#documentSyncRecord)
       }
-      if (response !== null) {
+      if (!!response) {
         for (const event of response.events) {
           await this.moveOpTree.applyMoveOp(event)
         }

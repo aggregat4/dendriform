@@ -54,7 +54,7 @@ export function getCursorPos(): number {
 /** From https://stackoverflow.com/a/41034697/1996 */
 function isChildOf(node: Node, parent: Node) {
   let currentNode = node
-  while (currentNode !== null) {
+  while (!!currentNode) {
     if (currentNode === parent) {
       return true
     }

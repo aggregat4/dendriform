@@ -142,7 +142,7 @@ export class JoinProtocol implements LifecycleAware {
    *   that indicates a serious error in the client or server.
    */
   hasJoinedReplicaSet(): boolean {
-    if (this.#clientServerErrorState !== null) {
+    if (!!this.#clientServerErrorState) {
       throw new ApplicationError(this.#clientServerErrorState)
     }
     return this.#hasJoinedReplicaSet

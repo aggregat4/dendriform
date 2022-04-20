@@ -92,7 +92,7 @@ export class JobScheduler {
   }
 
   isRunning(): boolean {
-    return this.runningPromise !== null
+    return !!this.runningPromise
   }
 
   async stopAndWaitUntilDone(): Promise<void> {

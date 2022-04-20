@@ -93,7 +93,7 @@ export class MoveOpTree {
     relativePosition: RelativeNodePosition,
     updateFun: (node: RepositoryNode) => boolean
   ) {
-    assert(updateFun !== null, `Require an update function in updateLocalNode`)
+    assert(!!updateFun, `Require an update function in updateLocalNode`)
     if (!this.treeStore.isNodeKnown(parentId)) {
       throw new Error(
         'When updating a node we assume that the parent is known in our parent child map'
@@ -107,7 +107,7 @@ export class MoveOpTree {
     // we need to retrieve the current (or old) node so we can record the change from old to new
     const oldNode = await this.loadNode(nodeId)
     assert(
-      oldNode !== null,
+      !!oldNode,
       `When updating a node and wanting to modify its contents, the node must already exist but we can't find the node with id ${nodeId}`
     )
     const newNode = copyNode(oldNode)
