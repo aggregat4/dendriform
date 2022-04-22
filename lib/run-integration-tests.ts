@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import puppeteer from 'puppeteer'
+import { installTizzyPuppeteerBridge } from './tizzy-puppeteer-bridge'
 
 // run all the test
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -18,6 +20,8 @@ void (async () => {
   page.on('console', (msg) => {
     console.info(`console ${msg.type()}:`, msg.text())
   })
+  // setup the tizzy to puppeteer bridge so we get terminal output for our tests
+  await installTizzyPuppeteerBridge(page)
   await page.goto(`file://${process.cwd()}/${process.env.TIZZY_ITEST_RELATIVE_FILENAME}`)
   try {
     await page.waitForSelector('#integration-test-status', { timeout: 15000 })

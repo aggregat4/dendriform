@@ -1,5 +1,5 @@
-import { Reporter } from './tizzy'
 import rgb from 'barecolor'
+import { Reporter } from './tizzy'
 
 export class TerminalReporter implements Reporter {
   start(headline: string): void {
