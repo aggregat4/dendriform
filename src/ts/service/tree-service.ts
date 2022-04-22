@@ -140,7 +140,6 @@ export class TreeService {
     newSiblingName: string,
     synchronous: boolean
   ) {
-    console.debug(`splitting node`)
     const sibling = await this.findNode(newSiblingId)
     if (sibling) {
       // we need to attempt undelete since this may be an undo operation of a merge, in this case the sibling exists

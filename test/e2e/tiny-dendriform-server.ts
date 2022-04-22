@@ -29,7 +29,6 @@ router
       }
     }
     if (documents[documentId].replicaSet[replicaId] === undefined) {
-      console.debug(`client is unknown`)
       documents[documentId].replicaSet[replicaId] = -1
       documents[documentId].events[replicaId] = []
       ctx.response.body = { alreadyKnown: false }
