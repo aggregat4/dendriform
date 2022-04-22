@@ -120,7 +120,7 @@ export class SyncProtocol implements LifecycleAware {
         }
         assert(
           newMaxClock > this.#documentSyncRecord.lastSentClock,
-          `We have just send ${eventsToSend.length} events to the server but none of them had a clock higher than the one we had already sent before. This should never happen, clocks must increase monotonically.`
+          `We have just sent ${eventsToSend.length} events to the server but none of them had a clock higher than the one we had already sent before. This should never happen, clocks must increase monotonically.`
         )
         this.#documentSyncRecord.lastSentClock = newMaxClock
         await this.idbDocumentSyncStorage.saveDocument(this.#documentSyncRecord)
