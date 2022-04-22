@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { isCursorAtContentEditableBeginning } from '../utils/util'
 import { html, TemplateResult } from 'lit-html'
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js'
 import { DeferredArray, RepositoryNode } from '../repository/repository'
 import { FilteredRepositoryNode } from '../repository/search'
+import { isCursorAtContentEditableBeginning } from '../utils/util'
 
 /** ☰ = trigram for heaven (U+2630) */
 const nodeTemplate = (
@@ -12,7 +12,8 @@ const nodeTemplate = (
   first: boolean
 ) =>
   // prettier-ignore
-  html`<div
+  html`
+<div
   id="${node.node.id}"
   class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}">
   <div class="nc">

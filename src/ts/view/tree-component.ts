@@ -4,56 +4,11 @@ import {
   CloseNodeByIdCommandPayload,
   Command,
   CommandBuilder,
-  OpenNodeByIdCommandPayload,
   CreateChildNodeCommandPayload,
+  OpenNodeByIdCommandPayload,
 } from '../commands/commands'
-import { Filter, FilteredRepositoryNode, filterNode, parseQuery } from '../repository/search'
-import { TreeService } from '../service/tree-service'
-import {
-  debounce,
-  isEmpty,
-  pasteTextUnformatted,
-  Predicate,
-  createCompositeAndPredicate,
-  generateUUID,
-  setCursorPosAcrossMarkup,
-} from '../utils/util'
-import { DomCommandHandler } from './command-handler-dom'
-import {
-  KbdEventType,
-  KeyboardEventTrigger,
-  AllNodesSelector,
-  toRawShortCuts,
-  SemanticShortcut,
-  SemanticShortcutType,
-} from './keyboardshortcut'
-import {
-  findNoteElementAncestor,
-  getNameElement,
-  getClosestNodeElement,
-  getNodeId,
-  isInNoteElement,
-  isNodeClosed,
-  isToggleElement,
-  isMenuTriggerElement,
-  isEmbeddedLink,
-  isInNameNode,
-  isFilterTag,
-  extractFilterText,
-  getParentNodeId,
-} from './tree-dom-util'
-import { TreeActionContext } from './tree-actions'
-import { CommandExecutor, TransientState } from './tree-helpers'
-import './tree-menu-component' // direct import because of side effects in that module (custom element registration), see also https://github.com/Microsoft/TypeScript/wiki/FAQ#why-are-imports-being-elided-in-my-emit
-import { TreeNodeActionMenuItem } from './tree-menu-component'
-import { TreeActionRegistry } from './tree-actionregistry'
-import { Dialogs, Dialog, DialogElement } from './dialogs'
-import { startEditingNote, renderNode } from './node-component'
-import './action-opmlimport' // direct import to trigger side effects (custom element registration)
-import { OpmlImportAction } from './action-opmlimport'
-import { OpmlImportDialog } from './dialog-opmlimport'
-import { OpmlExportAction } from './action-opmlexport'
-import './activity-indicator-component' // for side effects
+import { Subscription } from '../domain/domain'
+import { JoinProtocol } from '../replicaset/join-protocol'
 import {
   LoadedTree,
   NODE_IS_NOT_COMPLETED,
@@ -63,8 +18,53 @@ import {
   State,
   Status,
 } from '../repository/repository'
-import { Subscription } from '../domain/domain'
-import { JoinProtocol } from '../replicaset/join-protocol'
+import { Filter, FilteredRepositoryNode, filterNode, parseQuery } from '../repository/search'
+import { TreeService } from '../service/tree-service'
+import {
+  createCompositeAndPredicate,
+  debounce,
+  generateUUID,
+  isEmpty,
+  pasteTextUnformatted,
+  Predicate,
+  setCursorPosAcrossMarkup,
+} from '../utils/util'
+import { OpmlExportAction } from './action-opmlexport'
+import './action-opmlimport' // direct import to trigger side effects (custom element registration)
+import { OpmlImportAction } from './action-opmlimport'
+import './activity-indicator-component' // for side effects
+import { DomCommandHandler } from './command-handler-dom'
+import { OpmlImportDialog } from './dialog-opmlimport'
+import { Dialog, DialogElement, Dialogs } from './dialogs'
+import {
+  AllNodesSelector,
+  KbdEventType,
+  KeyboardEventTrigger,
+  SemanticShortcut,
+  SemanticShortcutType,
+  toRawShortCuts,
+} from './keyboardshortcut'
+import { renderNode, startEditingNote } from './node-component'
+import { TreeActionRegistry } from './tree-actionregistry'
+import { TreeActionContext } from './tree-actions'
+import {
+  extractFilterText,
+  findNoteElementAncestor,
+  getClosestNodeElement,
+  getNameElement,
+  getNodeId,
+  getParentNodeId,
+  isEmbeddedLink,
+  isFilterTag,
+  isInNameNode,
+  isInNoteElement,
+  isMenuTriggerElement,
+  isNodeClosed,
+  isToggleElement,
+} from './tree-dom-util'
+import { CommandExecutor, TransientState } from './tree-helpers'
+import './tree-menu-component' // direct import because of side effects in that module (custom element registration), see also https://github.com/Microsoft/TypeScript/wiki/FAQ#why-are-imports-being-elided-in-my-emit
+import { TreeNodeActionMenuItem } from './tree-menu-component'
 
 class TreeConfig {
   showCompleted = false
