@@ -1881,3 +1881,7 @@ Some things I need to do:
 * Create a Browser Reporter for Tizzy that can properly report test progress with events and which we can output nicely on the console.
 * Clean up error handling (all cases, errors in tests, timeouts, browser errors)
 * Come up with some sort of runner/progress for the E2E tests. Also do some tizzy integration?
+
+Next up is writing more tests, especially multi-client tests.
+
+TODO: implement offline badge on main screen
