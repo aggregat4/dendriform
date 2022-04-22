@@ -1,5 +1,4 @@
-import { MoveOp } from '../moveoperation/moveoperation'
-import { Replica } from '../storage/idb-logmovestorage'
+import { MoveOp, Replica } from '../moveoperation/moveoperation-types'
 
 export interface SyncProtocolPayload {
   events: MoveOp[]

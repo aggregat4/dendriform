@@ -4,6 +4,7 @@ import bodyParser from 'koa-body'
 import logger from 'koa-logger'
 import mount from 'koa-mount'
 import serve from 'koa-static'
+import { MoveOp } from 'src/ts/moveoperation/moveoperation-types'
 
 const app = new Koa()
 app.use(logger())
@@ -12,13 +13,23 @@ app.use(bodyParser())
 const staticFiles = serve('dist/')
 app.use(mount('/app', staticFiles))
 
-// documentId -> {replicaSet, events}
-// replicaSet: {replicaId -> clock}
-// events: {replicaId -> Event[]}
-const documents = {}
+type EventsPerReplica = {
+  [key: string]: MoveOp[]
+}
+type Clock = number
+type ReplicaSet = {
+  [key: string]: Clock
+}
+interface Document {
+  replicaSet: ReplicaSet
+  events: EventsPerReplica
+}
+type Documents = {
+  [key: string]: Document
+}
+const documents: Documents = {}
 
 const router = new Router()
-router
   .put('/documents/:documentId/replicaset/:replicaId', async (ctx) => {
     const documentId = ctx.params.documentId
     const replicaId = ctx.params.replicaId
@@ -87,4 +98,5 @@ router
 app.use(router.routes())
 const server = app.listen(3000)
 console.log(`listening on port 3000`)
+
 export default server

@@ -5,19 +5,11 @@ import {
 } from '../domain/domain'
 import { atomIdent } from '../lib/modules/logootsequence'
 import { RepositoryNode } from '../repository/repository'
-import { IdbLogMoveStorage, LogMoveRecord, Replica } from '../storage/idb-logmovestorage'
+import { IdbLogMoveStorage, LogMoveRecord } from '../storage/idb-logmovestorage'
 import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 import { IdbTreeStorage, ROOT_STORED_NODE, StoredNode } from '../storage/idb-treestorage'
-import { NodeFlags, NodeMetadata } from '../storage/nodestorage'
 import { assert } from '../utils/util'
-
-export interface MoveOp {
-  nodeId: string
-  parentId: string
-  replicaId: string
-  clock: number
-  metadata: NodeMetadata
-}
+import { MoveOp, NodeFlags, NodeMetadata, Replica } from './moveoperation-types'
 
 class SubtreeChangedSubscription implements Subscription {
   constructor(

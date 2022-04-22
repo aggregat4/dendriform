@@ -1,4 +1,4 @@
-import { atomIdent } from '../lib/modules/logootsequence.js'
+import { atomIdent } from '../lib/modules/logootsequence'
 
 export const enum NodeFlags {
   deleted = 1,
@@ -26,4 +26,17 @@ export interface NodeMetadata {
   updated: number
   /** A logoot sequence position. */
   logootPos: atomIdent
+}
+
+export interface MoveOp {
+  nodeId: string
+  parentId: string
+  replicaId: string
+  clock: number
+  metadata: NodeMetadata
+}
+
+export interface Replica {
+  replicaId: string
+  clock: number
 }

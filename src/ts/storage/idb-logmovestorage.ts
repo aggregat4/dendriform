@@ -1,13 +1,8 @@
 import { DBSchema, IDBPDatabase, openDB } from 'idb'
 import { LifecycleAware } from '../domain/lifecycle'
+import { NodeMetadata, Replica } from '../moveoperation/moveoperation-types'
 import { JoinProtocol } from '../replicaset/join-protocol'
 import { assert } from '../utils/util'
-import { NodeMetadata } from './nodestorage'
-
-export interface Replica {
-  replicaId: string
-  clock: number
-}
 
 /**
  * A representation of all the log moves that we need to persist to allow for
