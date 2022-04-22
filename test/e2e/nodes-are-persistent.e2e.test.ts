@@ -1,6 +1,7 @@
 import expect from 'ceylon'
 import { Page } from 'puppeteer'
-import { classes, testWithBrowser } from './e2e-utils'
+import { waitForNodesLoaded } from './e2e-dendriform-utils'
+import { classes, testWithBrowser, textContent } from './e2e-puppeteer-utils'
 
 // const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
@@ -8,7 +9,7 @@ export default [
   testWithBrowser('Adding one node to an empty document', async (page: Page) => {
     // NOTE: we MUST wait for the root node to appear since in the beginning
     // we are waiting to join the replicaset and there will be an error div instead!
-    const rootNode = await page.waitForSelector('div#ROOT')
+    const rootNode = await waitForNodesLoaded(page)
     await page.click('button#addNode')
     const newNode = await rootNode.waitForSelector('div.node')
     expect((await classes(newNode)).includes('root')).toBe(
@@ -20,7 +21,7 @@ export default [
   testWithBrowser(
     'Adding two nodes foo and bar and making bar a child of foo with tab',
     async (page: Page) => {
-      let rootNode = await page.waitForSelector('div#ROOT')
+      let rootNode = await waitForNodesLoaded(page)
       await page.click('button#addNode')
       let firstNode = await rootNode.waitForSelector('div.node')
       const nameNode = await firstNode.waitForSelector('div.name')
@@ -34,10 +35,14 @@ export default [
       // it has been detached from the document and I think that may be lit doing that
       // as it rerenders portions of the page. This is important to take into account
       // for future tests!
-      rootNode = await page.waitForSelector('div#ROOT')
-      firstNode = await rootNode.waitForSelector('div.node')
-      const secondNode = await firstNode.waitForSelector('div.node')
+      rootNode = await page.$('div#ROOT')
+      firstNode = await rootNode.$('div.node')
+      const firstNameNode = await firstNode.$('div.name')
+      expect(await textContent(firstNameNode)).toBe('Foo')
+      const secondNode = await firstNode.$('div.node')
       expect(secondNode).toExist()
+      const secondNameNode = await secondNode.$('div.name')
+      expect(await textContent(secondNameNode)).toBe('Bar')
     }
   ),
 ]

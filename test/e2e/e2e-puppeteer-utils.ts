@@ -38,3 +38,7 @@ export async function testWithBrowser(testName: string, t: (page: Page) => Promi
 export async function classes(node: ElementHandle<Element>): Promise<string[]> {
   return await node.evaluate((el) => [...el.classList])
 }
+
+export async function textContent(node: ElementHandle<Element>): Promise<string> {
+  return await node.evaluate((n) => (n as HTMLElement).innerText)
+}
