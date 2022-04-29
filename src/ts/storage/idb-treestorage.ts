@@ -153,7 +153,7 @@ export class IdbTreeStorage implements LifecycleAware {
       // console.debug(`about to call put on ${this.db} for node ${JSON.stringify(node)}`)
       await this.db.put('nodes', node)
     } catch (e) {
-      // console.error(`Error putting ${node.id} `, e)
+      console.error(`Error putting ${node.id} `, e)
       throw e
     }
     // console.debug(`after calling PUT`)

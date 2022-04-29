@@ -88,7 +88,7 @@ export class MoveOpTree {
     assert(!!updateFun, `Require an update function in updateLocalNode`)
     if (!this.treeStore.isNodeKnown(parentId)) {
       throw new Error(
-        'When updating a node we assume that the parent is known in our parent child map'
+        `When updating a node we assume that the parent ${parentId} is known in our parent child map`
       )
     }
     // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
