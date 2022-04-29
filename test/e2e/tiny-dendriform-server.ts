@@ -1,3 +1,7 @@
+/*
+  This is a minimal, non-persistent implementation of a dendriform backend. 
+  It implements the join and sync protocols and uses Koa for its implementation.
+ */
 import Router from '@koa/router'
 import Koa from 'koa'
 import bodyParser from 'koa-body'
@@ -96,7 +100,22 @@ const router = new Router()
   })
 
 app.use(router.routes())
-const server = app.listen(3000)
-console.log(`listening on port 3000`)
 
-export default server
+export class DendriformServer {
+  #server
+
+  constructor(readonly app: Koa) {}
+
+  listen(port: number) {
+    this.#server = app.listen(port)
+    console.log(`tiny-dendriform-server listening on port ${port}`)
+  }
+
+  close() {
+    if (this.#server) {
+      this.#server.close()
+    }
+  }
+}
+
+export default new DendriformServer(app)

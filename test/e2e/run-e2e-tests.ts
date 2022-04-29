@@ -4,6 +4,7 @@ import server from './tiny-dendriform-server'
 void (async () => {
   console.log(`E2E Tests Start`)
   try {
+    server.listen(3000)
     await Promise.all(tests1)
     console.log(`E2E Tests done`)
   } finally {
