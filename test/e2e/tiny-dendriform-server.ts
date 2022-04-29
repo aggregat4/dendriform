@@ -101,21 +101,4 @@ const router = new Router()
 
 app.use(router.routes())
 
-export class DendriformServer {
-  #server
-
-  constructor(readonly app: Koa) {}
-
-  listen(port: number) {
-    this.#server = app.listen(port)
-    console.log(`tiny-dendriform-server listening on port ${port}`)
-  }
-
-  close() {
-    if (this.#server) {
-      this.#server.close()
-    }
-  }
-}
-
-export default new DendriformServer(app)
+export default app

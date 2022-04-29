@@ -1885,3 +1885,7 @@ Some things I need to do:
 Next up is writing more tests, especially multi-client tests.
 
 TODO: implement offline badge on main screen
+
+# 2022-04-29
+
+TODO: investigate failing of first concurrent test. It looks like events are not being synced over.
