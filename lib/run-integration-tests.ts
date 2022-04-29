@@ -1,18 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import puppeteer from 'puppeteer'
+import { createBrowser } from './puppeteer-utils'
 import { installTizzyPuppeteerBridge } from './tizzy-puppeteer-bridge'
 
 // run all the test
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 void (async () => {
   // Set puppeteer up so we can do all our tests including indexeddb
-  const browser = await puppeteer.launch({
-    headless: true,
-    // devtools: true,
-    // slowMo: 2500,
-    ignoreHTTPSErrors: true,
-    args: ['--disable-web-security', '--allow-file-access-from-files'],
-  })
+  const browser = await createBrowser(puppeteer)
   const page = await browser.newPage()
   page.on('pageerror', (e) => {
     console.error(`error occurred: `, e)

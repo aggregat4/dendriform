@@ -6,7 +6,7 @@ import './logmove-storage.test'
 import './moveop-tree.test'
 
 void (async () => {
-  await run(new BrowserReporter(), 'All Browser Tests')
+  await run(new BrowserReporter(), 'Integration Tests Inside the Browser')
   const div = document.createElement('div')
   div.setAttribute('id', 'integration-test-status')
   document.body.appendChild(div)

@@ -16,7 +16,7 @@ export function fail(msg: string) {
 }
 
 export async function run(reporter: Reporter, headline: string): Promise<boolean> {
-  reporter.start(`${headline} with ${suite.length} tests`)
+  reporter.start(`Running '${headline}' with ${suite.length} tests`)
   let success = true
   for (const test of suite) {
     try {

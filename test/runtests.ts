@@ -11,5 +11,5 @@ import './util.test'
 
 void (async () => {
   // Run tests async since the trun is async
-  await run(new TerminalReporter(), 'All Tests')
+  await run(new TerminalReporter(), 'Unit Tests')
 })()
