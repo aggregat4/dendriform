@@ -1,5 +1,5 @@
-import { createBrowser } from 'lib/puppeteer-utils'
 import puppeteer, { Browser, ElementHandle, Page } from 'puppeteer'
+import { createBrowser } from '../../lib/puppeteer-utils'
 
 async function openApp(browser: Browser): Promise<Page> {
   const context = await browser.createIncognitoBrowserContext()
