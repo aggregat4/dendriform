@@ -9,12 +9,21 @@ function getRequestedNodeId() {
   return getHashValue('node') || 'ROOT'
 }
 
+function getDocumentUrlParam() {
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.get('document')
+}
+
 const treeManager = new TreeManager()
 
+const defaultDocument = 'dendriform-eventlog'
+
 function init() {
+  const documentToOpen = getDocumentUrlParam() || defaultDocument
+  // we can't do toplevel await and it doesn't matter here anyway
+  // this is the top of the stack, this initialization should run async
   void treeManager
-    .getAvailableTrees()
-    .then((trees) => treeManager.mountTree(document.body, trees[0]))
+    .mountTree(document.body, documentToOpen)
     .then(() => treeManager.loadNode(getRequestedNodeId()))
 }
 

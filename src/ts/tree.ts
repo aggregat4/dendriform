@@ -1,22 +1,22 @@
 /*
  * This file wires everything together for the dendriform tree.
  */
-import { Tree } from './view/tree-component'
-import { deinitAll, initAll, LifecycleAware, register } from './domain/lifecycle'
 import { TreeServiceCommandHandler } from './commands/command-handler-tree-service'
 import { UndoableCommandHandler } from './commands/command-handler-undoable'
-import { registerTreeActions, TreeActionRegistry } from './view/tree-actionregistry'
-import { TreeService } from './service/tree-service'
-import { LogAndTreeStorageRepository } from './repository/repository-logandtreestorage'
+import { deinitAll, initAll, LifecycleAware, register } from './domain/lifecycle'
 import { MoveOpTree } from './moveoperation/moveoperation'
-import { IdbTreeStorage } from './storage/idb-treestorage'
-import { IdbLogMoveStorage } from './storage/idb-logmovestorage'
-import { IdbReplicaStorage } from './storage/idb-replicastorage'
 import { JoinProtocol } from './replicaset/join-protocol'
 import { JoinProtocolHttpClient } from './replicaset/join-protocol-client-http'
-import { IdbDocumentSyncStorage } from './storage/idb-documentsyncstorage'
 import { SyncProtocol } from './replicaset/sync-protocol'
 import { SyncProtocolHttpClient } from './replicaset/sync-protocol-client-http'
+import { LogAndTreeStorageRepository } from './repository/repository-logandtreestorage'
+import { TreeService } from './service/tree-service'
+import { IdbDocumentSyncStorage } from './storage/idb-documentsyncstorage'
+import { IdbLogMoveStorage } from './storage/idb-logmovestorage'
+import { IdbReplicaStorage } from './storage/idb-replicastorage'
+import { IdbTreeStorage } from './storage/idb-treestorage'
+import { registerTreeActions, TreeActionRegistry } from './view/tree-actionregistry'
+import { Tree } from './view/tree-component'
 
 customElements.define('dendriform-tree', Tree)
 
@@ -106,14 +106,5 @@ export class TreeManager {
     this.currentTree = await this.createAndInitTree(treeName)
     this.currentTree.mount()
     el.appendChild(this.currentTree)
-  }
-
-  getAvailableTrees(): Promise<string[]> {
-    // TODO: try to get available trees from the server and in the fallback case
-    // at least return the default base tree that is always there (?? Maybe? or
-    // rather find out which ones we have locally? this would mean having a table
-    // with all trees locally as well and initialising that if it is empty with the
-    // default tree)
-    return Promise.resolve(['dendriform-eventlog'])
   }
 }
