@@ -60,9 +60,9 @@ export class SyncProtocol implements LifecycleAware {
   }
 
   private async synchronize() {
-    console.debug(`running synchronize`)
+    // console.debug(`running synchronize`)
     if (this.joinProtocol.hasJoinedReplicaSet()) {
-      console.debug(`we have joined the replicaset and can sync`)
+      // console.debug(`we have joined the replicaset and can sync`)
       if (!this.#documentSyncRecord) {
         const documentSyncRecord = await this.idbDocumentSyncStorage.loadDocument(this.documentId)
         assert(
@@ -72,12 +72,15 @@ export class SyncProtocol implements LifecycleAware {
         this.#documentSyncRecord = documentSyncRecord
       }
       const knownReplicaSet = await this.moveOpTree.getKnownReplicaSet()
-      console.debug(`last sent clock is ${this.#documentSyncRecord.lastSentClock}`)
+      // console.debug(`last sent clock is ${this.#documentSyncRecord.lastSentClock}`)
       const eventsToSend = await this.moveOpTree.getLocalMoveOpsSince(
         this.#documentSyncRecord.lastSentClock,
         this.#EVENT_BATCH_SIZE
       )
-      console.debug(`${eventsToSend.length} events to send: `, eventsToSend)
+      console.debug(
+        `${eventsToSend.length} events to send from client ${this.replicaStore.getReplicaId()}: `,
+        eventsToSend
+      )
       let response: SyncProtocolPayload = null
       try {
         response = await this.client.sync(
@@ -126,6 +129,11 @@ export class SyncProtocol implements LifecycleAware {
         await this.idbDocumentSyncStorage.saveDocument(this.#documentSyncRecord)
       }
       if (!!response) {
+        console.debug(
+          `Client ${this.replicaStore.getReplicaId()} got ${
+            response.events.length
+          } events from server`
+        )
         for (const event of response.events) {
           await this.moveOpTree.applyMoveOp(event)
         }

@@ -93,6 +93,11 @@ const router = new Router()
         break
       }
     }
+    if (responseEvents.length > 0) {
+      console.debug(
+        `server sending back ${responseEvents.length} events to client ${clientReplicaId}`
+      )
+    }
     ctx.response.body = {
       events: responseEvents,
       replicaSet: documents[documentId].replicaSet,
