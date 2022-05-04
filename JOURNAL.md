@@ -1889,3 +1889,5 @@ TODO: implement offline badge on main screen
 # 2022-04-29
 
 TODO: investigate failing of first concurrent test. It looks like events are not being synced over.
+
+  -> concretely add debug output to trace the path back
