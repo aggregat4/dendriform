@@ -1,25 +1,31 @@
 import puppeteer, { Browser, ElementHandle, Page } from 'puppeteer'
 import { createBrowser } from '../../lib/puppeteer-utils'
 
-async function openApp(browser: Browser): Promise<Page> {
+async function openApp(browser: Browser, documentName: string): Promise<Page> {
   const context = await browser.createIncognitoBrowserContext()
   const page = await context.newPage()
-  await page.goto(`http://localhost:3000/app/example/`)
+  await page.goto(
+    `http://localhost:3000/app/example/${documentName ? '?document=' + documentName : ''}`
+  )
   page.on('console', (msg) => {
     console.info(`console ${msg.type()}:`, msg.text())
   })
   return page
 }
 
-export async function testWithBrowser(testName: string, t: (page: Page) => Promise<void>) {
+export async function testWithBrowser(
+  testName: string,
+  documentName: string,
+  t: (page: Page, documentName: string) => Promise<void>
+) {
   const browser = await createBrowser(puppeteer)
-  const page: Page = await openApp(browser)
+  const page: Page = await openApp(browser, documentName)
   const pageErrors = []
   page.on('pageerror', (e) => {
     pageErrors.push(e)
   })
   try {
-    await t(page)
+    await t(page, documentName)
     if (pageErrors.length > 0) {
       pageErrors.forEach((pe) => {
         console.error(`Page error in ${testName}: `, pe)

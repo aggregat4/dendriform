@@ -6,20 +6,25 @@ import { classes, testWithBrowser, textContent } from './e2e-puppeteer-utils'
 // const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 
 export default [
-  testWithBrowser('Adding one node to an empty document', async (page: Page) => {
-    // NOTE: we MUST wait for the root node to appear since in the beginning
-    // we are waiting to join the replicaset and there will be an error div instead!
-    const rootNode = await waitForNodesLoaded(page)
-    await page.click('button#addNode')
-    const newNode = await rootNode.waitForSelector('div.node')
-    expect((await classes(newNode)).includes('root')).toBe(
-      false,
-      'New node should not be root node'
-    )
-  }),
+  testWithBrowser(
+    'Adding one node to an empty document',
+    'adding-node-to-empty-doc',
+    async (page: Page) => {
+      // NOTE: we MUST wait for the root node to appear since in the beginning
+      // we are waiting to join the replicaset and there will be an error div instead!
+      const rootNode = await waitForNodesLoaded(page)
+      await page.click('button#addNode')
+      const newNode = await rootNode.waitForSelector('div.node')
+      expect((await classes(newNode)).includes('root')).toBe(
+        false,
+        'New node should not be root node'
+      )
+    }
+  ),
 
   testWithBrowser(
     'Adding two nodes foo and bar and making bar a child of foo with tab',
+    'adding-two-nodes-and-indenting',
     async (page: Page) => {
       let rootNode = await waitForNodesLoaded(page)
       await page.click('button#addNode')
