@@ -34,6 +34,7 @@ export class SyncProtocol implements LifecycleAware {
   readonly #DEFAULT_DELAY_MS = 5000
   readonly #MAX_DELAY_MS = 60 * 1000
   readonly #syncJobScheduler = new JobScheduler(
+    'Sync Protocol Scheduler',
     new BackoffWithJitterTimeoutStrategy(this.#DEFAULT_DELAY_MS, this.#MAX_DELAY_MS),
     this.synchronize.bind(this)
   )

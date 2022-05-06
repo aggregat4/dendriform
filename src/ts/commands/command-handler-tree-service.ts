@@ -1,20 +1,20 @@
+import { TreeService } from '../service/tree-service'
 import {
+  CloseNodeByIdCommandPayload,
   Command,
   CommandHandler,
-  SplitNodeByIdCommandPayload,
+  CompleteNodeByIdCommandPayload,
+  CreateChildNodeCommandPayload,
+  DeleteNodeByIdCommandPayload,
   MergeNodesByIdCommandPayload,
+  OpenNodeByIdCommandPayload,
   RenameNodeByIdCommandPayload,
   ReparentNodeByIdCommandPayload,
-  OpenNodeByIdCommandPayload,
-  CloseNodeByIdCommandPayload,
-  UndeleteNodeByIdCommandPayload,
-  DeleteNodeByIdCommandPayload,
-  UpdateNoteByIdCommandPayload,
-  CreateChildNodeCommandPayload,
-  CompleteNodeByIdCommandPayload,
+  SplitNodeByIdCommandPayload,
   UnCompleteNodeByIdCommandPayload,
+  UndeleteNodeByIdCommandPayload,
+  UpdateNoteByIdCommandPayload,
 } from './commands'
-import { TreeService } from '../service/tree-service'
 
 export class TreeServiceCommandHandler implements CommandHandler {
   constructor(readonly treeService: TreeService) {}

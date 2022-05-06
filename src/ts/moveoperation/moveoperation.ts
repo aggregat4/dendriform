@@ -88,7 +88,7 @@ export class MoveOpTree {
     assert(!!updateFun, `Require an update function in updateLocalNode`)
     if (!this.treeStore.isNodeKnown(parentId)) {
       throw new Error(
-        `When updating a node we assume that the parent ${parentId} is known in our parent child map`
+        `When updating a node ${nodeId} we assume that the parent ${parentId} is known in our parent child map`
       )
     }
     // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
@@ -184,7 +184,7 @@ export class MoveOpTree {
     for (const logMoveRecord of undoneLogMoveOps) {
       await this.undoLogMoveOp(logMoveRecord)
     }
-    // console.debug(`I have ${undoneLogMoveOps.length} logmoverecords that I undid and will redo`)
+    console.debug(`I have ${undoneLogMoveOps.length} logmoverecords that I undid and will redo`)
     // APPLY the new logmoveop
     await this.updateRemoteNode(moveOp)
     // REDO all the logmoveops, but with a proper moveOperation so we can check for cycles, etc.
@@ -233,6 +233,7 @@ export class MoveOpTree {
    * record the appropriate change event.
    */
   private async updateRemoteNode(moveOp: MoveOp) {
+    console.debug(`DEBUG: updateRemoteNode for ${JSON.stringify(moveOp)}`)
     this.logMoveStore.updateWithExternalClock(moveOp.clock)
     // We always at least record the event, even if we cannot apply it right now
     // we may be able to apply it in the future once more events come in
@@ -244,22 +245,22 @@ export class MoveOpTree {
     // This prevents cycles
     if (this.treeStore.isAncestorOf(moveOp.nodeId, moveOp.parentId)) {
       console.debug(
-        `The new node ${moveOp.nodeId} is an ancestor f ${moveOp.parentId}, can not apply operation`
+        `The new node ${moveOp.nodeId} is an ancestor of ${moveOp.parentId}, can not apply operation`
       )
       return
     }
-    // console.debug(`Before storeNode`)
-    await this.treeStore.storeNode(toStoredNode(moveOp), null)
     // we need to retrieve the current (or old) node so we can record the change from old to new (if it exists)
-    // console.debug(`Before loadNode`)
+    console.debug(`Before loadNode`)
     const oldNode = await this.loadNode(moveOp.nodeId)
     if (oldNode != null) {
-      // console.debug(`We have an existing node with id ${moveOp.nodeId}`)
+      console.debug(`We have an existing node with id ${moveOp.nodeId}`)
       await this.updateMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
     } else {
-      // console.debug(`Inserting a new node with id ${moveOp.nodeId}`)
+      console.debug(`Inserting a new node with id ${moveOp.nodeId}`)
       await this.updateMoveOp(moveOp, null, null)
     }
+    console.debug(`Before storeNode`)
+    await this.treeStore.storeNode(toStoredNode(moveOp), null)
   }
 
   // for the pump

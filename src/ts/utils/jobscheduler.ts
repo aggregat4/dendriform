@@ -41,7 +41,11 @@ export class JobScheduler {
   private runningPromise: Promise<void> = null
   private timerHandle: number = null
 
-  constructor(readonly timeoutStrategy: TimeoutStrategy, readonly job: () => Promise<void>) {}
+  constructor(
+    readonly name: string,
+    readonly timeoutStrategy: TimeoutStrategy,
+    readonly job: () => Promise<void>
+  ) {}
 
   async start(immediate: boolean): Promise<void> {
     if (this.scheduled) {
@@ -67,6 +71,7 @@ export class JobScheduler {
       await this.runningPromise
       newTimeout = this.timeoutStrategy.calcNewTimeout(true)
     } catch (e) {
+      console.error(`Error during job execution for '${this.name}':`, e)
       newTimeout = this.timeoutStrategy.calcNewTimeout(false)
     }
     this.runningPromise = null

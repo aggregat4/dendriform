@@ -1,5 +1,5 @@
 import puppeteer, { Browser, ElementHandle, Page } from 'puppeteer'
-import { createBrowser } from '../../lib/puppeteer-utils'
+import { createBrowser, setupPageConsoleHandler } from '../../lib/puppeteer-utils'
 
 async function openApp(browser: Browser, documentName: string): Promise<Page> {
   const context = await browser.createIncognitoBrowserContext()
@@ -7,9 +7,7 @@ async function openApp(browser: Browser, documentName: string): Promise<Page> {
   await page.goto(
     `http://localhost:3000/app/example/${documentName ? '?document=' + documentName : ''}`
   )
-  page.on('console', (msg) => {
-    console.info(`console ${msg.type()}:`, msg.text())
-  })
+  setupPageConsoleHandler(page)
   return page
 }
 

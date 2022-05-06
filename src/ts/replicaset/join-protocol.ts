@@ -42,6 +42,7 @@ export class JoinProtocol implements LifecycleAware {
   readonly #DEFAULT_DELAY_MS = 1000
   readonly #MAX_DELAY_MS = 60 * 1000
   readonly #joinJobScheduler = new JobScheduler(
+    'JoinProtocol Scheduler',
     new BackoffWithJitterTimeoutStrategy(this.#DEFAULT_DELAY_MS, this.#MAX_DELAY_MS),
     this.join.bind(this)
   )
