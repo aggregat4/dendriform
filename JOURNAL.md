@@ -1891,3 +1891,17 @@ TODO: implement offline badge on main screen
 TODO: investigate failing of first concurrent test. It looks like events are not being synced over.
 
   -> concretely add debug output to trace the path back
+
+# 2022-05-06
+
+There is a big caching + async problem: we have a cache of the parent-child structure inside of idb-treestorage. This cache speeds up two checks: whether a node is known at all and getting the children of a node.
+
+The problem is that querying and updating the cache is interleaved with a bunch of Indexeddb async operations. This means that client side DOM operations are being triggered at a good clip, and some of those operations will be scheduled async for certain portions of their operations (like say storing a new node) and newer operations that assume these nodes exist will query the cache for them and find that they do not yet exist.
+
+We could solve this (perhaps) in two ways:
+- Either insert a queue and make sure all actions and commands are executed sequentially. This would severly reduce throughput I think.
+- Remove the cache and do everything directly on indexeddb. This would slowdown two calls (isNodeKnown and getChildIds) but if we assume that indexeddb serializes updates, we would be consistent again. Since these queries are happening async anyway, the performance hint may not be noticeable by the client.
+
+I would tend to the latter. The only worry I is the loadTreeRecursive call in repository-logandtreestorage where we do use the getChildIds to retrieve a tree with some performance. On the other hand this call is doing individual node loads anyway, perhaps we can use an index and get all the children of a node in bulk and even gain performance?
+
+TODO: disable cache, go directly to indexeddb and see how performant we could implement the getChildIds cache
