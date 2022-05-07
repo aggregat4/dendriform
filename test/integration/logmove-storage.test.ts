@@ -1,12 +1,12 @@
-import { test } from '../../lib/tizzy'
 import expect from 'ceylon'
 import { deleteDB } from 'idb'
-import { IdbLogMoveStorage } from 'src/ts/storage/idb-logmovestorage'
 import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
-import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
-import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
 import { IdbDocumentSyncStorage } from 'src/ts/storage/idb-documentsyncstorage'
+import { IdbLogMoveStorage } from 'src/ts/storage/idb-logmovestorage'
+import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
+import { test } from '../../lib/tizzy'
+import { NewlyJoiningMockJoinProtocolClient } from './integration-test-utils'
 
 function testWithLogMoveStorage(
   t: (logMoveStorage: IdbLogMoveStorage) => Promise<void>

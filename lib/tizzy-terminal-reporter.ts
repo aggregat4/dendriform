@@ -25,7 +25,7 @@ export class TerminalReporter implements Reporter {
 function prettyError(e: Error): void {
   const msg = e.stack
   if (!msg) {
-    return rgb.yellow(e)
+    return rgb.yellow(JSON.stringify(e))
   }
   const i = msg.indexOf('\n')
   rgb.yellowln(msg.slice(0, i))

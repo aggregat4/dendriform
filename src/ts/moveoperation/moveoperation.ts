@@ -57,22 +57,26 @@ export class MoveOpTree {
       relativePosition != RELATIVE_NODE_POSITION_UNCHANGED,
       'When creating a new node you must provide a relative position'
     )
-    if (!this.treeStore.isNodeKnown(parentId)) {
-      throw new Error(
-        'When updating a node we assume that the parent is known in our parent child map'
-      )
+    const replicaId = this.replicaStore.getReplicaId()
+    const clock = this.logMoveStore.getAndIncrementClock()
+    const nodeModification = await this.treeStore.storeNode(
+      fromRepositoryNodeToStoredNode(node, parentId),
+      {
+        clock: clock,
+        replicaId: replicaId,
+        relativePosition,
+      }
+    )
+    if (nodeModification.modified) {
+      const moveOp = {
+        nodeId: node.id,
+        parentId,
+        metadata: toNodeMetaData(nodeModification.newNode, nodeModification.newNode.logootPos),
+        replicaId,
+        clock,
+      }
+      await this.recordMoveOp(moveOp)
     }
-    if (this.treeStore.isNodeKnown(node.id)) {
-      throw new Error(`A node with id ${node.id} already exists and can not be created`)
-    }
-    const moveOp = this.createMoveOp(node, parentId)
-    // first we try to store the node: this performs a bunch of sanity checks, if they fail, we can prevent storing the moveop
-    await this.treeStore.storeNode(toStoredNode(moveOp), {
-      clock: moveOp.clock,
-      replicaId: moveOp.replicaId,
-      relativePosition,
-    })
-    await this.recordMoveOp(moveOp)
   }
 
   /**
@@ -85,39 +89,52 @@ export class MoveOpTree {
     relativePosition: RelativeNodePosition,
     updateFun: (node: RepositoryNode) => boolean
   ) {
+    await this.updateLocalNodeInternal(nodeId, parentId, relativePosition, updateFun)
+  }
+
+  private async updateLocalNodeInternal(
+    nodeId: string,
+    parentId: string,
+    relativePosition: RelativeNodePosition,
+    updateFun: (node: StoredNode) => boolean
+  ) {
     assert(!!updateFun, `Require an update function in updateLocalNode`)
-    if (!this.treeStore.isNodeKnown(parentId)) {
-      throw new Error(
-        `When updating a node ${nodeId} we assume that the parent ${parentId} is known in our parent child map`
+    const replicaId = this.replicaStore.getReplicaId()
+    const clock = this.logMoveStore.getAndIncrementClock()
+    const nodeModification = await this.treeStore.updateNode(
+      nodeId,
+      {
+        clock: clock,
+        replicaId: replicaId,
+        relativePosition,
+      },
+      updateFun
+    )
+    if (nodeModification.modified) {
+      const moveOp = {
+        nodeId,
+        parentId,
+        metadata: toNodeMetaData(nodeModification.newNode, nodeModification.newNode.logootPos),
+        replicaId,
+        clock,
+      }
+      await this.recordMoveOp(
+        moveOp,
+        nodeModification.oldNode.parentId,
+        toNodeMetaData(nodeModification.oldNode, nodeModification.oldNode.logootPos)
       )
     }
-    // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
-    // This prevents cycles
-    if (this.treeStore.isAncestorOf(nodeId, parentId)) {
-      return
-    }
-    // we need to retrieve the current (or old) node so we can record the change from old to new
-    const oldNode = await this.loadNode(nodeId)
-    assert(
-      !!oldNode,
-      `When updating a node and wanting to modify its contents, the node must already exist but we can't find the node with id ${nodeId}`
-    )
-    const newNode = copyNode(oldNode)
-    // the update function can indicate whether or not it changed anything and if not, we bail
-    if (!updateFun(newNode)) {
-      return
-    }
-    const moveOp = this.createMoveOp(newNode, parentId, newNode.logootPos)
-    // first we try to store the node: this performs a bunch of sanity checks, if they fail, we can prevent storing the moveop
-    await this.treeStore.storeNode(toStoredNode(moveOp), {
-      clock: moveOp.clock,
-      replicaId: moveOp.replicaId,
-      relativePosition,
+  }
+
+  async reparentNode(nodeId: string, parentId: string, position: RelativeNodePosition) {
+    await this.updateLocalNodeInternal(nodeId, parentId, position, (node) => {
+      node.parentId = parentId
+      return true
     })
-    await this.recordMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
   }
 
   private async recordUnappliedMoveOp(moveOp: MoveOp): Promise<void> {
+    console.debug(`recordUnappliedMoveOp`)
     await this.logMoveStore.storeEvent({
       clock: moveOp.clock,
       replicaId: moveOp.replicaId,
@@ -238,29 +255,36 @@ export class MoveOpTree {
     // We always at least record the event, even if we cannot apply it right now
     // we may be able to apply it in the future once more events come in
     await this.recordUnappliedMoveOp(moveOp)
-    if (!this.treeStore.isNodeKnown(moveOp.parentId)) {
-      return
+    // TODO: this is not in one transaction, maybe have to change this somehow, maybe it doesn't matter for external nodes?
+    const oldNode = await this.treeStore.loadNode(moveOp.nodeId)
+    const newNode = toStoredNode(moveOp)
+    console.debug(
+      `DEBUG: in updateRemoteNode, about to call storeNode with ${JSON.stringify(newNode)}`
+    )
+    const stored = await this.treeStore.storeNode(newNode, null)
+    // const nodeModification = await this.treeStore.updateNode(moveOp.nodeId, null, (node) => {
+    //   node.name = newNode.name
+    //   node.note = newNode.note
+    //   node.updated = newNode.updated
+    //   node.created = newNode.created
+    //   node.collapsed = newNode.collapsed
+    //   node.completed = newNode.completed
+    //   node.deleted = newNode.deleted
+    //   return true
+    // })
+    if (stored) {
+      if (oldNode != null) {
+        console.debug(`We have an existing node with id ${moveOp.nodeId}`)
+        await this.updateMoveOp(
+          moveOp,
+          oldNode.parentId,
+          toNodeMetaData(oldNode, oldNode.logootPos)
+        )
+      } else {
+        console.debug(`Inserting a new node with id ${moveOp.nodeId}`)
+        await this.updateMoveOp(moveOp, null, null)
+      }
     }
-    // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
-    // This prevents cycles
-    if (this.treeStore.isAncestorOf(moveOp.nodeId, moveOp.parentId)) {
-      console.debug(
-        `The new node ${moveOp.nodeId} is an ancestor of ${moveOp.parentId}, can not apply operation`
-      )
-      return
-    }
-    // we need to retrieve the current (or old) node so we can record the change from old to new (if it exists)
-    console.debug(`Before loadNode`)
-    const oldNode = await this.loadNode(moveOp.nodeId)
-    if (oldNode != null) {
-      console.debug(`We have an existing node with id ${moveOp.nodeId}`)
-      await this.updateMoveOp(moveOp, oldNode.parentId, toNodeMetaData(oldNode, oldNode.logootPos))
-    } else {
-      console.debug(`Inserting a new node with id ${moveOp.nodeId}`)
-      await this.updateMoveOp(moveOp, null, null)
-    }
-    console.debug(`Before storeNode`)
-    await this.treeStore.storeNode(toStoredNode(moveOp), null)
   }
 
   // for the pump
@@ -354,6 +378,21 @@ function extractFlag(flags: number, flag: NodeFlags): boolean {
   return (flags & flag) == flag
 }
 
+function fromRepositoryNodeToStoredNode(node: RepositoryNode, parentId: string): StoredNode {
+  return {
+    id: node.id,
+    parentId,
+    name: node.name,
+    note: node.note,
+    created: node.created,
+    updated: node.updated,
+    logootPos: null,
+    collapsed: node.collapsed,
+    completed: node.completed,
+    deleted: node.deleted,
+  }
+}
+
 function toStoredNode(moveOp: MoveOp): StoredNode {
   return {
     id: moveOp.nodeId,
@@ -366,20 +405,5 @@ function toStoredNode(moveOp: MoveOp): StoredNode {
     collapsed: extractFlag(moveOp.metadata.flags, NodeFlags.collapsed),
     completed: extractFlag(moveOp.metadata.flags, NodeFlags.completed),
     deleted: extractFlag(moveOp.metadata.flags, NodeFlags.deleted),
-  }
-}
-
-function copyNode(node: StoredNode): StoredNode {
-  return {
-    id: node.id,
-    parentId: node.parentId,
-    name: node.name,
-    note: node.note,
-    created: node.created,
-    updated: node.updated,
-    logootPos: node.logootPos,
-    collapsed: node.collapsed,
-    completed: node.completed,
-    deleted: node.deleted,
   }
 }

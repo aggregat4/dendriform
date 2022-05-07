@@ -79,7 +79,7 @@ export class LogAndTreeStorageRepository implements Repository {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     synchronous: boolean
   ): Promise<void> {
-    await this.moveOpTree.updateLocalNode(nodeId, parentId, position, () => true)
+    await this.moveOpTree.reparentNode(nodeId, parentId, position)
     // TODO: implement synchronous and asynchronous storage if it becomes relevant
   }
 

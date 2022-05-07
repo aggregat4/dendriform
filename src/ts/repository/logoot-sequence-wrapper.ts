@@ -1,12 +1,12 @@
 import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import {
-  atomIdent,
-  emptySequence,
-  insertAtom,
-  genAtomIdent,
-  compareAtomIdents,
-  sequence,
   atom,
+  atomIdent,
+  compareAtomIdents,
+  emptySequence,
+  genAtomIdent,
+  insertAtom,
+  sequence,
 } from '../lib/modules/logootsequence'
 
 function insertMut(seq: sequence, index: number, anAtom: atom) {

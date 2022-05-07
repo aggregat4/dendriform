@@ -1,6 +1,6 @@
 // Local storage of the current state of the tree and the contents of the nodes
 // Having this persisted tree storage will allow us to garbage collect the event log
-import { DBSchema, IDBPDatabase, openDB } from 'idb'
+import { DBSchema, IDBPDatabase, IDBPTransaction, openDB } from 'idb'
 import { RelativeNodePosition, RELATIVE_NODE_POSITION_UNCHANGED } from '../domain/domain'
 import { LifecycleAware } from '../domain/lifecycle'
 import { atomIdent } from '../lib/modules/logootsequence'
@@ -30,6 +30,12 @@ export interface LogootPositionQualifier {
   clock: number
   replicaId: string
   relativePosition: RelativeNodePosition
+}
+
+export interface NodeModification {
+  modified: boolean
+  oldNode: StoredNode
+  newNode: StoredNode
 }
 
 interface TreeStoreSchema extends DBSchema {
@@ -95,14 +101,49 @@ export class IdbTreeStorage implements LifecycleAware {
   }
 
   async loadNode(nodeId: string): Promise<StoredNode> {
-    // console.debug(
-    //   `loadNode() in treestorage: before calling get on ${this.db} for nodeId ${nodeId}`
-    // )
+    console.debug(
+      `loadNode() in treestorage: before calling get on ${this.db} for nodeId ${nodeId}`
+    )
     return await this.db.get('nodes', nodeId)
   }
 
-  async storeNode(node: StoredNode, positionQualifier: LogootPositionQualifier): Promise<void> {
+  /*
+   * @param node The node to store.
+   * @param positionQualifier Where the node should be positioned in the sequence of its parent's children.
+   * @returns true when the node was stored, false when the node isn't stored. For example in case storing
+   *   the node would cause a cycle.
+   */
+  async storeNode(
+    node: StoredNode,
+    positionQualifier: LogootPositionQualifier
+  ): Promise<NodeModification> {
+    const tx = this.db.transaction('nodes', 'readwrite')
+    return await this.storeNodeInternal(tx, node, positionQualifier)
+  }
+
+  async storeNodeInternal(
+    tx: IDBPTransaction<TreeStoreSchema, ['nodes'], 'readwrite'>,
+    node: StoredNode,
+    positionQualifier: LogootPositionQualifier
+  ): Promise<NodeModification> {
     console.debug(`DEBUG: storeNode for node ${JSON.stringify(node)}`)
+    if (!this.isNodeKnown(node.parentId)) {
+      throw new Error(
+        `When updating a node ${node.id} we assume that the parent ${node.parentId} is known in our parent child map`
+      )
+    }
+    // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
+    // This prevents cycles
+    if (this.isAncestorOf(node.id, node.parentId)) {
+      console.debug(
+        `The new node ${node.id} is an ancestor of ${node.parentId}, can not apply operation`
+      )
+      return {
+        modified: false,
+        oldNode: null,
+        newNode: null,
+      }
+    }
     const newParentSeq = this.getChildrenSequence(node.parentId)
     assert(
       !!newParentSeq,
@@ -152,7 +193,7 @@ export class IdbTreeStorage implements LifecycleAware {
     console.debug(`New parent sequence: `, JSON.stringify(newParentSeq.toArray()))
     try {
       // console.debug(`about to call put on ${this.db} for node ${JSON.stringify(node)}`)
-      await this.db.put('nodes', node)
+      await tx.store.put(node)
     } catch (e) {
       console.error(`Error putting ${node.id} `, e)
       throw e
@@ -161,6 +202,40 @@ export class IdbTreeStorage implements LifecycleAware {
     // in case we create a new node we also need to make an empty logootsequence
     this.getOrCreateChildrenSequence(node.id, this.parentChildMap)
     this.childParentMap[node.id] = node.parentId
+    return {
+      modified: true,
+      newNode: node,
+      oldNode: null,
+    }
+  }
+
+  async updateNode(
+    nodeId: string,
+    positionQualifier: LogootPositionQualifier,
+    updateFun: (node: StoredNode) => boolean
+  ): Promise<NodeModification> {
+    const tx = this.db.transaction('nodes', 'readwrite')
+    // we need to retrieve the current (or old) node so we can record the change from old to new
+    const oldNode = await tx.store.get(nodeId)
+    assert(
+      !!oldNode,
+      `When updating a node and wanting to modify its contents, the node must already exist but we can't find the node with id ${nodeId}`
+    )
+    const newNode = copyNode(oldNode)
+    // the update function can indicate whether or not it changed anything and if not, we bail
+    if (!updateFun(newNode)) {
+      return {
+        modified: false,
+        oldNode,
+        newNode,
+      }
+    }
+    const nodeModification = await this.storeNodeInternal(tx, newNode, positionQualifier)
+    return {
+      modified: nodeModification.modified,
+      oldNode,
+      newNode: nodeModification.newNode,
+    }
   }
 
   async deleteNode(nodeId: string): Promise<void> {
@@ -182,6 +257,7 @@ export class IdbTreeStorage implements LifecycleAware {
     }
   }
 
+  // TODO: cacherefactoring: just use loadnode for now to determine parent?
   isAncestorOf(nodeId: string, parentId: string): boolean {
     if (parentId == nodeId) {
       return true
@@ -195,6 +271,7 @@ export class IdbTreeStorage implements LifecycleAware {
     }
   }
 
+  // TODO: cacherefactoring: change to a db query
   isNodeKnown(nodeId: string): boolean {
     return !!this.parentChildMap[nodeId]
   }
@@ -205,6 +282,8 @@ export class IdbTreeStorage implements LifecycleAware {
    * @returns The array of children. In case the node is not known in our cache
    *   an empty list is returned. The caller is responsible for verifying
    *   whether the node actually exists.
+   *
+   * TODO: cacherefactoring: change this to a getChildren call that retrieves them all (for loadRecursive)
    */
   getChildIds(nodeId: string): string[] {
     const children = this.parentChildMap[nodeId]
@@ -213,5 +292,20 @@ export class IdbTreeStorage implements LifecycleAware {
     } else {
       return []
     }
+  }
+}
+
+export function copyNode(node: StoredNode): StoredNode {
+  return {
+    id: node.id,
+    parentId: node.parentId,
+    name: node.name,
+    note: node.note,
+    created: node.created,
+    updated: node.updated,
+    logootPos: node.logootPos,
+    collapsed: node.collapsed,
+    completed: node.completed,
+    deleted: node.deleted,
   }
 }
