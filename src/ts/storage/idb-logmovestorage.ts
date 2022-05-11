@@ -135,11 +135,11 @@ export class IdbLogMoveStorage implements LifecycleAware {
       // TODO: this needs to be move to an async op at this point the events are not stored yet
       this.notifyListeners((listener: EventStorageListener) => listener.eventStored(logMoveRecord))
     } catch (error) {
-      // console.error(
-      //   `store error for logMoveRecords ${JSON.stringify(logMoveRecords)}: `,
-      //   JSON.stringify(error),
-      //   error
-      // )
+      console.error(
+        `store error for logMoveRecords ${JSON.stringify(logMoveRecord)}: `,
+        JSON.stringify(error),
+        error
+      )
       throw error
     }
   }

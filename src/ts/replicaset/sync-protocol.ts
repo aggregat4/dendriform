@@ -40,6 +40,7 @@ export class SyncProtocol implements LifecycleAware {
   )
   readonly #EVENT_BATCH_SIZE = 250
 
+  #processingEvents = false
   #documentSyncRecord: DocumentSyncRecord = null
   #clientServerErrorState: ApplicationErrorCode = null
 
@@ -62,7 +63,11 @@ export class SyncProtocol implements LifecycleAware {
 
   private async synchronize() {
     // console.debug(`running synchronize`)
-    if (this.joinProtocol.hasJoinedReplicaSet()) {
+    if (!this.joinProtocol.hasJoinedReplicaSet() || this.#processingEvents) {
+      return
+    }
+    try {
+      this.#processingEvents = true
       // console.debug(`we have joined the replicaset and can sync`)
       if (!this.#documentSyncRecord) {
         const documentSyncRecord = await this.idbDocumentSyncStorage.loadDocument(this.documentId)
@@ -140,6 +145,11 @@ export class SyncProtocol implements LifecycleAware {
         }
         this.moveOpTree.processNewReplicaSet(response.replicaSet)
       }
+    } catch (syncError) {
+      console.error(`Error during sync: `, JSON.stringify(syncError))
+      throw syncError
+    } finally {
+      this.#processingEvents = false
     }
   }
 

@@ -194,6 +194,11 @@ export class MoveOpTree {
    * - We redo all the previously undone moveoperations and record new logmove records
    */
   async applyMoveOp(moveOp: MoveOp): Promise<void> {
+    console.debug(
+      `applyMoveOp on replica ${this.replicaStore.getReplicaId()} for moveop ${JSON.stringify(
+        moveOp
+      )}`
+    )
     const undoneLogMoveOps = await this.logMoveStore.undoAllNewerLogmoveRecordsInReverse(
       moveOp.clock,
       moveOp.replicaId
@@ -250,7 +255,11 @@ export class MoveOpTree {
    * record the appropriate change event.
    */
   private async updateRemoteNode(moveOp: MoveOp) {
-    console.debug(`DEBUG: updateRemoteNode for ${JSON.stringify(moveOp)}`)
+    console.debug(
+      `DEBUG: updateRemoteNode for ${JSON.stringify(
+        moveOp
+      )} on replica ${this.replicaStore.getReplicaId()}`
+    )
     this.logMoveStore.updateWithExternalClock(moveOp.clock)
     // We always at least record the event, even if we cannot apply it right now
     // we may be able to apply it in the future once more events come in
