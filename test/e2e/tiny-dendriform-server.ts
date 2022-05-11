@@ -33,6 +33,15 @@ type Documents = {
 }
 const documents: Documents = {}
 
+function findMaxKnownClock(replicaSet: any, serverReplicaId: string) {
+  for (const replica of replicaSet) {
+    if (replica.replicaId === serverReplicaId) {
+      return replica.clock
+    }
+  }
+  return -1
+}
+
 const router = new Router()
   .put('/documents/:documentId/replicaset/:replicaId', async (ctx) => {
     const documentId = ctx.params.documentId
@@ -75,11 +84,14 @@ const router = new Router()
         documents[documentId].events[clientReplicaId].push(event)
       }
     }
+    console.debug(`client has sent replicaset: `, payload.replicaSet)
     // based on the client's knowledge of replicas, send hitherto unknown events back
     const responseEvents = []
     for (const serverReplicaId of Object.keys(documents[documentId].replicaSet)) {
       if (serverReplicaId !== clientReplicaId) {
-        const clientKnownMaxClock = payload.replicaSet[serverReplicaId] || -1
+        // TODO: this is wrong, the client replicaset is an array of objects, not a dictionary itself
+        const clientKnownMaxClock = findMaxKnownClock(payload.replicaSet, serverReplicaId)
+        console.debug(`client knows maxclock ${clientKnownMaxClock} for replica ${serverReplicaId}`)
         for (const serverEvent of documents[documentId].events[serverReplicaId]) {
           if (serverEvent.clock > clientKnownMaxClock) {
             responseEvents.push(serverEvent)
