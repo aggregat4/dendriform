@@ -1904,4 +1904,10 @@ We could solve this (perhaps) in two ways:
 
 I would tend to the latter. The only worry I is the loadTreeRecursive call in repository-logandtreestorage where we do use the getChildIds to retrieve a tree with some performance. On the other hand this call is doing individual node loads anyway, perhaps we can use an index and get all the children of a node in bulk and even gain performance?
 
-TODO: disable cache, go directly to indexeddb and see how performant we could implement the getChildIds cache
+## 2022-05-11
+
+Tests now seem to run, we are failing at the end because the E2E test does not terminate normally.
+
+We made sure that the client side syncing now has no overlapping sync requests to prevent data inconcistencies and we fixed the tiny server implementation to correctly deal with client side replicasets.
+
+TODO: What is left now is to verify whether we are confident that the caching problem is now mitigated, or whether we need to do more. Specifically we need to trace the path of local node updates and verify that when we do local operations in quick succession, the database reads and writes are sequential.
