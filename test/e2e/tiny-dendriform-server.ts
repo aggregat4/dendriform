@@ -33,6 +33,10 @@ type Documents = {
 }
 const documents: Documents = {}
 
+/**
+ * The client replicaSet is of a different format as our server replicaset. It is just an array with objects.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findMaxKnownClock(replicaSet: any, serverReplicaId: string) {
   for (const replica of replicaSet) {
     if (replica.replicaId === serverReplicaId) {
