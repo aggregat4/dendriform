@@ -259,7 +259,9 @@ export class IdbTreeStorage implements LifecycleAware {
 
   // TODO: cacherefactoring: just use loadnode for now to determine parent?
   isAncestorOf(nodeId: string, parentId: string): boolean {
-    if (parentId == nodeId) {
+    // require special casing for ROOT as that node is not regularly part of the tree
+    // if (parentId === nodeId || parentId === 'ROOT') {
+    if (parentId === nodeId) {
       return true
     } else {
       const grandParentId = this.childParentMap[parentId]

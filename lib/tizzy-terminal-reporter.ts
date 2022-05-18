@@ -16,18 +16,24 @@ export class TerminalReporter implements Reporter {
     rgb.gray('• ')
   }
 
-  failure(testname: string, error: Error) {
+  failure(testname: string, error: string | Error) {
     rgb.red(`\n\n! ${testname} \n\n`)
     prettyError(error)
   }
 }
 
-function prettyError(e: Error): void {
-  const msg = e.stack
-  if (!msg) {
-    return rgb.yellow(JSON.stringify(e))
+function prettyError(e: string | Error): void {
+  if (typeof e === 'string') {
+    rgb.yellow(e)
+  } else {
+    if (e.message) {
+      rgb.yellow(`error message: ${e.message}`)
+    }
+    const msg = e.stack
+    if (msg) {
+      const i = msg.indexOf('\n')
+      rgb.yellowln(msg.slice(0, i))
+      rgb.gray(msg.slice(i))
+    }
   }
-  const i = msg.indexOf('\n')
-  rgb.yellowln(msg.slice(0, i))
-  rgb.gray(msg.slice(i))
 }

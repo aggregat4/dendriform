@@ -1,37 +1,37 @@
-import { RelativeLinearPosition } from '../domain/domain'
-import { filterNode } from '../repository/search'
+import { render } from 'lit-html'
 import {
   CloseNodeByIdCommandPayload,
   Command,
   CommandHandler,
+  CompleteNodeByIdCommandPayload,
+  CreateChildNodeCommandPayload,
   DeleteNodeByIdCommandPayload,
   MergeNodesByIdCommandPayload,
   OpenNodeByIdCommandPayload,
   RenameNodeByIdCommandPayload,
   ReparentNodeByIdCommandPayload,
   SplitNodeByIdCommandPayload,
+  UnCompleteNodeByIdCommandPayload,
   UndeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
-  CreateChildNodeCommandPayload,
-  CompleteNodeByIdCommandPayload,
-  UnCompleteNodeByIdCommandPayload,
 } from '../commands/commands'
+import { RelativeLinearPosition } from '../domain/domain'
+import { createNewResolvedRepositoryNodeWithContent } from '../repository/repository'
+import { filterNode } from '../repository/search'
 import { MergeNameOrder } from '../service/service'
+import { containsMarkup, markupHtml, toHtml } from '../utils/markup'
+import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup } from '../utils/util'
+import { renderNode } from './node-component'
 import {
   getChildrenElement,
   getChildrenElementOrCreate,
   getNameElement,
-  hasChildren,
   getNoteElement,
+  getParentNode,
+  hasChildren,
   hideToggle,
   unhideToggle,
-  getParentNode,
 } from './tree-dom-util'
-import { containsMarkup, markupHtml, toHtml } from '../utils/markup'
-import { renderNode } from './node-component'
-import { render } from 'lit-html'
-import { getCursorPosAcrossMarkup, setCursorPosAcrossMarkup } from '../utils/util'
-import { createNewResolvedRepositoryNodeWithContent } from '../repository/repository'
 
 export class DomCommandHandler implements CommandHandler {
   async exec(command: Command): Promise<void> {
@@ -134,6 +134,12 @@ export class DomCommandHandler implements CommandHandler {
 
   private replaceElementWithTaggedContent(el: Element, newName: string): void {
     el.innerHTML = toHtml(markupHtml(newName))
+    // DEBUG
+    if (el.textContent === 'arB') {
+      console.error(`arB inverted text after toHtml(toMarkupHtml())`)
+      throw Error(`inverted arB after toHtml markup`)
+    }
+    // DEBUG
   }
 
   private createDomNode(id: string, name: string, note: string): Element {

@@ -1,58 +1,58 @@
 import {
+  Command,
+  CommandBuilder,
+  CompleteNodeByIdCommandPayload,
+  DeleteNodeByIdCommandPayload,
+  MergeNodesByIdCommandPayload,
+  RenameNodeByIdCommandPayload,
+  ReparentNodeByIdCommandPayload,
+  SplitNodeByIdCommandPayload,
+  UnCompleteNodeByIdCommandPayload,
+  UpdateNoteByIdCommandPayload,
+} from '../commands/commands'
+import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
+import { MergeNameOrder } from '../service/service'
+import {
+  generateUUID,
+  getCursorPos,
+  getTextAfterCursor,
+  getTextBeforeCursor,
+  isCursorAtBeginning,
+  isCursorAtEnd,
+  isEmpty,
+  isTextSelected,
+} from '../utils/util'
+import {
+  AllNodesSelector,
   KbdEventType,
-  RawKbdShortcut,
-  KeyboardEventTrigger,
-  NodeClassSelector,
   KbdKey,
   KbdModifier,
   KbdModifierType,
-  toRawShortCuts,
+  KeyboardEventTrigger,
+  NodeClassSelector,
+  RawKbdShortcut,
   SemanticShortcut,
   SemanticShortcutType,
-  AllNodesSelector,
+  toRawShortCuts,
 } from './keyboardshortcut'
+import { startEditingNote } from './node-component'
+import { TreeAction, TreeActionContext } from './tree-actions'
 import {
+  findLastChildNode,
+  findNextNode,
+  findPreviousNode,
   getClosestNodeElement,
+  getNameElement,
   getNodeId,
   getNodeName,
   getNodeNote,
-  findPreviousNode,
-  getNameElement,
-  findNextNode,
-  hasChildren,
   getParentNode,
-  hasParentNode,
-  findLastChildNode,
-  isNodeCompleted,
   getParentNodeId,
+  hasChildren,
+  hasParentNode,
+  isNodeCompleted,
 } from './tree-dom-util'
-import {
-  getCursorPos,
-  getTextBeforeCursor,
-  getTextAfterCursor,
-  generateUUID,
-  isTextSelected,
-  isCursorAtBeginning,
-  isEmpty,
-  isCursorAtEnd,
-} from '../utils/util'
-import {
-  CommandBuilder,
-  RenameNodeByIdCommandPayload,
-  UpdateNoteByIdCommandPayload,
-  SplitNodeByIdCommandPayload,
-  DeleteNodeByIdCommandPayload,
-  MergeNodesByIdCommandPayload,
-  Command,
-  ReparentNodeByIdCommandPayload,
-  UnCompleteNodeByIdCommandPayload,
-  CompleteNodeByIdCommandPayload,
-} from '../commands/commands'
-import { MergeNameOrder } from '../service/service'
-import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import { CommandExecutor } from './tree-helpers'
-import { TreeAction, TreeActionContext } from './tree-actions'
-import { startEditingNote } from './node-component'
 
 export class TreeActionRegistry {
   private readonly keyboardActions = new Map<KbdEventType, TreeAction[]>()
@@ -189,7 +189,19 @@ class SplitNodeAction extends TreeAction {
     const nodeId = getNodeId(targetNode)
     const parentNodeId = getParentNodeId(targetNode)
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
+    // DEBUG
+    if (beforeSplitNamePart === 'arB') {
+      console.error(`We have an inverted Bar string when getting the beforeSplitNamePart`)
+      throw Error(`inverted Bar before`)
+    }
+    // GUBED
     const afterSplitNamePart = getTextAfterCursor(event) || ''
+    // DEBUG
+    if (afterSplitNamePart === 'arB') {
+      console.error(`We have an inverted Bar string when getting the afterSplitNamePart`)
+      throw Error(`inverted Bar after`)
+    }
+    // GUBED
     const newNodeId = generateUUID()
     // make sure we save the transientstate so we can undo properly, especially when we split at the end of a node
     treeActionContext.transientStateManager.savePreviousNodeState(

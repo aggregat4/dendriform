@@ -11,6 +11,11 @@ export class BrowserReporter implements Reporter {
     window.dispatchEvent(new CustomEvent('tizzySuccess', { detail: { testname } }))
   }
   failure(testname: string, error: Error) {
-    window.dispatchEvent(new CustomEvent('tizzyFailure', { detail: { testname, error } }))
+    // console.error(error.toString())
+    window.dispatchEvent(
+      new CustomEvent('tizzyFailure', {
+        detail: { testname, error: `${error.toString()}\n${error.stack}` },
+      })
+    )
   }
 }

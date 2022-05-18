@@ -1911,3 +1911,13 @@ Tests now seem to run, we are failing at the end because the E2E test does not t
 We made sure that the client side syncing now has no overlapping sync requests to prevent data inconcistencies and we fixed the tiny server implementation to correctly deal with client side replicasets.
 
 TODO: What is left now is to verify whether we are confident that the caching problem is now mitigated, or whether we need to do more. Specifically we need to trace the path of local node updates and verify that when we do local operations in quick succession, the database reads and writes are sequential.
+
+# 2022-05-18
+
+Was finally able to fix my test reporting a bit and am finding out I have an error in the integration tests.
+
+This also seems a plausible error: it tests whether we can receive remote events out of order and apply them by storing them if we are not ready to process them and by replaying them when we get new older events.
+
+In this particular case we assert that the parent node must be known when storing the child node. This is of course correct and I think we had an explicit check for this before. So we need to store the moveOp and then when the preconditions are not met, just silently exit and not persist the change.
+
+TODO: I may have to add a parameter to storeNode() in IdbTreeStorage so I can qualify whether an unknown parent should be an error or rather a silent return.

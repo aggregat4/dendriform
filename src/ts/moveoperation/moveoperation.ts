@@ -8,7 +8,7 @@ import { RepositoryNode } from '../repository/repository'
 import { IdbLogMoveStorage, LogMoveRecord } from '../storage/idb-logmovestorage'
 import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 import { IdbTreeStorage, ROOT_STORED_NODE, StoredNode } from '../storage/idb-treestorage'
-import { assert } from '../utils/util'
+import { assert, debounce } from '../utils/util'
 import { MoveOp, NodeFlags, NodeMetadata, Replica } from './moveoperation-types'
 
 class SubtreeChangedSubscription implements Subscription {
@@ -19,7 +19,9 @@ class SubtreeChangedSubscription implements Subscription {
   ) {}
 
   notify(): void {
-    this.listener()
+    // An attempt at making sure we don't constantly call the notify method
+    // for now we are happy to onyl get an update every 1s
+    debounce(this.listener, 1000)
   }
 
   cancel(): void {
@@ -28,7 +30,7 @@ class SubtreeChangedSubscription implements Subscription {
 }
 
 export class MoveOpTree {
-  private nodeChangedSubscriptions: SubtreeChangedSubscription[] = []
+  #nodeChangedSubscriptions: SubtreeChangedSubscription[] = []
 
   constructor(
     readonly replicaStore: IdbReplicaStorage,
@@ -221,6 +223,13 @@ export class MoveOpTree {
         metadata: logMoveRecord.newPayload,
       })
     }
+    for (const subscription of this.#nodeChangedSubscriptions) {
+      console.debug(`checking subscription to ${subscription.parentId}`)
+      if (this.treeStore.isAncestorOf(moveOp.nodeId, subscription.parentId)) {
+        console.debug(`Notifying subscriber of node change for parent ${subscription.parentId}`)
+        subscription.notify()
+      }
+    }
   }
 
   private async undoLogMoveOp(logMoveOp: LogMoveRecord) {
@@ -271,16 +280,6 @@ export class MoveOpTree {
       `DEBUG: in updateRemoteNode, about to call storeNode with ${JSON.stringify(newNode)}`
     )
     const stored = await this.treeStore.storeNode(newNode, null)
-    // const nodeModification = await this.treeStore.updateNode(moveOp.nodeId, null, (node) => {
-    //   node.name = newNode.name
-    //   node.note = newNode.note
-    //   node.updated = newNode.updated
-    //   node.created = newNode.created
-    //   node.collapsed = newNode.collapsed
-    //   node.completed = newNode.completed
-    //   node.deleted = newNode.deleted
-    //   return true
-    // })
     if (stored) {
       if (oldNode != null) {
         console.debug(`We have an existing node with id ${moveOp.nodeId}`)
@@ -336,14 +335,16 @@ export class MoveOpTree {
       nodeChangeListener,
       (subToCancel) => this.unsubscribe(subToCancel)
     )
-    this.nodeChangedSubscriptions.push(subscription)
+    this.#nodeChangedSubscriptions.push(subscription)
     return subscription
   }
 
   private unsubscribe(subscription: Subscription): void {
-    const subscriptionIndex = this.nodeChangedSubscriptions.findIndex((sub) => sub === subscription)
+    const subscriptionIndex = this.#nodeChangedSubscriptions.findIndex(
+      (sub) => sub === subscription
+    )
     if (subscriptionIndex >= 0) {
-      this.nodeChangedSubscriptions.splice(subscriptionIndex, 1)
+      this.#nodeChangedSubscriptions.splice(subscriptionIndex, 1)
     }
   }
 

@@ -31,7 +31,7 @@ export async function testWithBrowser(
       throw Error(`Page errors were caught while executing test`)
     }
   } catch (e) {
-    console.error(`Error executing E2E test '${testName}'`)
+    console.error(`Error executing E2E test '${testName}':`, e.message)
     // console.debug(await page.evaluate(() => document.body.innerHTML))
     throw e
   } finally {

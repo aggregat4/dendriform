@@ -2,7 +2,7 @@ export interface Reporter {
   start(headline: string): void
   end(noftests: number): void
   success(testname: string)
-  failure(testname: string, error: Error)
+  failure(testname: string, error: string | Error)
 }
 
 const suite = []
