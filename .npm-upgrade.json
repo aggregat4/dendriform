@@ -1,0 +1,8 @@
+{
+  "ignore": {
+    "koa-body": {
+      "versions": "5.0.0",
+      "reason": "Can't find a changelog for this version, it's weird."
+    }
+  }
+}
