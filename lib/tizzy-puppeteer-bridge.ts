@@ -7,15 +7,19 @@ export async function installTizzyPuppeteerBridge(page: Page) {
   await page.exposeFunction('onTizzyEvent', ({ type, detail }) => {
     switch (type) {
       case 'tizzyStart':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         terminalReporter.start((detail as any).headline)
         break
       case 'tizzyEnd':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         terminalReporter.end((detail as any).noftests)
         break
       case 'tizzySuccess':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         terminalReporter.success((detail as any).testname)
         break
       case 'tizzyFailure':
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         terminalReporter.failure((detail as any).testname, (detail as any).error)
         break
     }
