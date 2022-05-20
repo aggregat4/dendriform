@@ -1920,4 +1920,3 @@ This also seems a plausible error: it tests whether we can receive remote events
 
 In this particular case we assert that the parent node must be known when storing the child node. This is of course correct and I think we had an explicit check for this before. So we need to store the moveOp and then when the preconditions are not met, just silently exit and not persist the change.
 
-TODO: I may have to add a parameter to storeNode() in IdbTreeStorage so I can qualify whether an unknown parent should be an error or rather a silent return.
