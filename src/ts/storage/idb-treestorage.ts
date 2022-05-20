@@ -8,6 +8,13 @@ import { LogootSequenceWrapper } from '../repository/logoot-sequence-wrapper'
 import { RepositoryNode } from '../repository/repository'
 import { assert } from '../utils/util'
 
+// The return boolean indicates whether processing should continue or not
+type NodeStorageValidator = (
+  treeStorage: IdbTreeStorage,
+  nodeId: string,
+  parentId: string
+) => boolean
+
 export interface StoredNode extends RepositoryNode {
   parentId: string
   logootPos: atomIdent
@@ -116,44 +123,51 @@ export class IdbTreeStorage implements LifecycleAware {
   async storeNode(
     node: StoredNode,
     positionQualifier: LogootPositionQualifier,
-    returnOnParentUnknown: boolean
+    nodeValidator: NodeStorageValidator
   ): Promise<NodeModification> {
     const tx = this.db.transaction('nodes', 'readwrite')
-    return await this.storeNodeInternal(tx, node, positionQualifier, returnOnParentUnknown)
+    return await this.storeNodeInternal(tx, node, positionQualifier, nodeValidator)
   }
 
   async storeNodeInternal(
     tx: IDBPTransaction<TreeStoreSchema, ['nodes'], 'readwrite'>,
     node: StoredNode,
     positionQualifier: LogootPositionQualifier,
-    returnOnParentUnknown: boolean
+    nodeValidator: NodeStorageValidator
   ): Promise<NodeModification> {
     console.debug(`DEBUG: storeNode for node ${JSON.stringify(node)}`)
-    if (!this.isNodeKnown(node.parentId)) {
-      if (returnOnParentUnknown) {
-        return {
-          modified: false,
-          newNode: null,
-          oldNode: null,
-        }
-      } else {
-        throw new Error(
-          `When updating a node ${node.id} we assume that the parent ${node.parentId} is known in our parent child map`
-        )
-      }
-    }
-    // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
-    // This prevents cycles
-    if (this.isAncestorOf(node.id, node.parentId)) {
-      console.debug(
-        `The new node ${node.id} is an ancestor of ${node.parentId}, can not apply operation`
-      )
+    if (!nodeValidator(this, node.id, node.parentId)) {
       return {
         modified: false,
         oldNode: null,
         newNode: null,
       }
     }
+    // if (!this.isNodeKnown(node.parentId)) {
+    //   if (returnOnParentUnknown) {
+    //     return {
+    //       modified: false,
+    //       newNode: null,
+    //       oldNode: null,
+    //     }
+    //   } else {
+    //     throw new Error(
+    //       `When updating a node ${node.id} we assume that the parent ${node.parentId} is known in our parent child map`
+    //     )
+    //   }
+    // }
+    // // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
+    // // This prevents cycles
+    // if (this.isAncestorOf(node.parentId, node.id)) {
+    //   console.debug(
+    //     `The new node ${node.id} is an ancestor of ${node.parentId}, can not apply operation`
+    //   )
+    //   return {
+    //     modified: false,
+    //     oldNode: null,
+    //     newNode: null,
+    //   }
+    // }
     const newParentSeq = this.getChildrenSequence(node.parentId)
     assert(
       !!newParentSeq,
@@ -240,7 +254,25 @@ export class IdbTreeStorage implements LifecycleAware {
         newNode,
       }
     }
-    const nodeModification = await this.storeNodeInternal(tx, newNode, positionQualifier, false)
+    const nodeModification = await this.storeNodeInternal(
+      tx,
+      newNode,
+      positionQualifier,
+      (treeStorage: IdbTreeStorage, nodeId: string, parentId: string) => {
+        // if the parents remain the same there is nothing to check: the parent must exist and it can not be an ancestor of itself
+        if (oldNode.parentId !== parentId) {
+          if (!treeStorage.isNodeKnown(parentId)) {
+            throw new Error(
+              `When updating a node ${nodeId} we assume that the parent ${parentId} is known in our parent child map`
+            )
+          }
+          if (treeStorage.isAncestorOf(parentId, nodeId)) {
+            throw new Error(`Can't update a node to be a child of itself`)
+          }
+          return true
+        }
+      }
+    )
     return {
       modified: nodeModification.modified,
       oldNode,
@@ -268,15 +300,16 @@ export class IdbTreeStorage implements LifecycleAware {
   }
 
   // TODO: cacherefactoring: just use loadnode for now to determine parent?
-  isAncestorOf(nodeId: string, parentId: string): boolean {
+  isAncestorOf(childId: string, parentId: string): boolean {
+    console.debug(`calling isAncestorOf with childId '${childId}' and parentId '${parentId}'`)
     // require special casing for ROOT as that node is not regularly part of the tree
-    // if (parentId === nodeId || parentId === 'ROOT') {
-    if (parentId === nodeId) {
+    if (parentId === childId || parentId === 'ROOT') {
+      // if (parentId === nodeId) {
       return true
     } else {
       const grandParentId = this.childParentMap[parentId]
       if (grandParentId != null) {
-        return this.isAncestorOf(nodeId, grandParentId)
+        return this.isAncestorOf(childId, grandParentId)
       } else {
         return false
       }

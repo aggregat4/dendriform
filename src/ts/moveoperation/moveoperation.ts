@@ -68,7 +68,17 @@ export class MoveOpTree {
         replicaId: replicaId,
         relativePosition,
       },
-      false
+      (treeStorage: IdbTreeStorage, nodeId: string, parentId: string) => {
+        if (!treeStorage.isNodeKnown(parentId)) {
+          throw new Error(
+            `When updating a node ${nodeId} we assume that the parent ${parentId} is known in our parent child map`
+          )
+        }
+        if (treeStorage.isAncestorOf(parentId, nodeId)) {
+          throw new Error(`Can't update a node to be a child of itself`)
+        }
+        return true
+      }
     )
     if (nodeModification.modified) {
       const moveOp = {
@@ -256,7 +266,18 @@ export class MoveOpTree {
           logootPos: logMoveOp.oldPayload.logootPos,
         },
         null,
-        false
+        (treeStorage: IdbTreeStorage, nodeId: string, parentId: string) => {
+          // TODO: I am unsure if this is the correct validation for undoLogMoveOp. Maybe we need to be more lenient here and silently skip some failures and just not update? Or not?
+          if (!treeStorage.isNodeKnown(parentId)) {
+            throw new Error(
+              `When updating a node ${nodeId} we assume that the parent ${parentId} is known in our parent child map`
+            )
+          }
+          if (treeStorage.isAncestorOf(parentId, nodeId)) {
+            throw new Error(`Can't update a node to be a child of itself`)
+          }
+          return true
+        }
       )
     }
   }
@@ -281,8 +302,20 @@ export class MoveOpTree {
     console.debug(
       `DEBUG: in updateRemoteNode, about to call storeNode with ${JSON.stringify(newNode)}`
     )
-    // setting returnOnUnknownParent to true as we want to soft fail here: if the parent node is not known, we just don't store this but we recorded the moveop and we can try again when we get new moveops in the future (that may add this parent)
-    const stored = await this.treeStore.storeNode(newNode, null, true)
+    // in case of missing parent nodes or potential cycles, we want to silently fail and continue: if the parent node is not known, we just don't store this but we recorded the moveop and we can try again when we get new moveops in the future (that may add this parent)
+    const stored = await this.treeStore.storeNode(
+      newNode,
+      null,
+      (treeStorage: IdbTreeStorage, nodeId: string, parentId: string) => {
+        if (!treeStorage.isNodeKnown(parentId)) {
+          return false
+        }
+        if (treeStorage.isAncestorOf(parentId, nodeId)) {
+          return false
+        }
+        return true
+      }
+    )
     if (stored.modified) {
       if (oldNode != null) {
         console.debug(`We have an existing node with id ${moveOp.nodeId}`)
