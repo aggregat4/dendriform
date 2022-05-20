@@ -67,7 +67,8 @@ export class MoveOpTree {
         clock: clock,
         replicaId: replicaId,
         relativePosition,
-      }
+      },
+      false
     )
     if (nodeModification.modified) {
       const moveOp = {
@@ -254,7 +255,8 @@ export class MoveOpTree {
           updated: logMoveOp.oldPayload.updated,
           logootPos: logMoveOp.oldPayload.logootPos,
         },
-        null
+        null,
+        false
       )
     }
   }
@@ -279,8 +281,9 @@ export class MoveOpTree {
     console.debug(
       `DEBUG: in updateRemoteNode, about to call storeNode with ${JSON.stringify(newNode)}`
     )
-    const stored = await this.treeStore.storeNode(newNode, null)
-    if (stored) {
+    // setting returnOnUnknownParent to true as we want to soft fail here: if the parent node is not known, we just don't store this but we recorded the moveop and we can try again when we get new moveops in the future (that may add this parent)
+    const stored = await this.treeStore.storeNode(newNode, null, true)
+    if (stored.modified) {
       if (oldNode != null) {
         console.debug(`We have an existing node with id ${moveOp.nodeId}`)
         await this.updateMoveOp(

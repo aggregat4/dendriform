@@ -115,22 +115,32 @@ export class IdbTreeStorage implements LifecycleAware {
    */
   async storeNode(
     node: StoredNode,
-    positionQualifier: LogootPositionQualifier
+    positionQualifier: LogootPositionQualifier,
+    returnOnParentUnknown: boolean
   ): Promise<NodeModification> {
     const tx = this.db.transaction('nodes', 'readwrite')
-    return await this.storeNodeInternal(tx, node, positionQualifier)
+    return await this.storeNodeInternal(tx, node, positionQualifier, returnOnParentUnknown)
   }
 
   async storeNodeInternal(
     tx: IDBPTransaction<TreeStoreSchema, ['nodes'], 'readwrite'>,
     node: StoredNode,
-    positionQualifier: LogootPositionQualifier
+    positionQualifier: LogootPositionQualifier,
+    returnOnParentUnknown: boolean
   ): Promise<NodeModification> {
     console.debug(`DEBUG: storeNode for node ${JSON.stringify(node)}`)
     if (!this.isNodeKnown(node.parentId)) {
-      throw new Error(
-        `When updating a node ${node.id} we assume that the parent ${node.parentId} is known in our parent child map`
-      )
+      if (returnOnParentUnknown) {
+        return {
+          modified: false,
+          newNode: null,
+          oldNode: null,
+        }
+      } else {
+        throw new Error(
+          `When updating a node ${node.id} we assume that the parent ${node.parentId} is known in our parent child map`
+        )
+      }
     }
     // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
     // This prevents cycles
@@ -230,7 +240,7 @@ export class IdbTreeStorage implements LifecycleAware {
         newNode,
       }
     }
-    const nodeModification = await this.storeNodeInternal(tx, newNode, positionQualifier)
+    const nodeModification = await this.storeNodeInternal(tx, newNode, positionQualifier, false)
     return {
       modified: nodeModification.modified,
       oldNode,
