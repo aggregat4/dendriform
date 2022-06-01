@@ -95,7 +95,9 @@ const router = new Router()
       if (serverReplicaId !== clientReplicaId) {
         // TODO: this is wrong, the client replicaset is an array of objects, not a dictionary itself
         const clientKnownMaxClock = findMaxKnownClock(payload.replicaSet, serverReplicaId)
-        console.debug(`client knows maxclock ${clientKnownMaxClock} for replica ${serverReplicaId}`)
+        console.debug(
+          `client knows maximum clock ${clientKnownMaxClock} for replica ${serverReplicaId}`
+        )
         for (const serverEvent of documents[documentId].events[serverReplicaId]) {
           if (serverEvent.clock > clientKnownMaxClock) {
             responseEvents.push(serverEvent)
