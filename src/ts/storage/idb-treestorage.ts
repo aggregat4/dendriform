@@ -269,8 +269,8 @@ export class IdbTreeStorage implements LifecycleAware {
           if (treeStorage.isAncestorOf(parentId, nodeId)) {
             throw new Error(`Can't update a node to be a child of itself`)
           }
-          return true
         }
+        return true
       }
     )
     return {
