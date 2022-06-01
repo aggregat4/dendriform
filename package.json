@@ -45,12 +45,12 @@
     "@koa/router": "10.1.1",
     "@types/file-saver": "2.0.5",
     "@types/koa__router": "8.0.11",
-    "@typescript-eslint/eslint-plugin": "5.25.0",
+    "@typescript-eslint/eslint-plugin": "5.27.0",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
-    "dependency-cruiser": "11.7.1",
-    "esbuild": "0.14.39",
-    "eslint": "8.15.0",
+    "dependency-cruiser": "11.8.0",
+    "esbuild": "0.14.42",
+    "eslint": "8.16.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-prettier": "4.0.0",
     "jsdom": "19.0.0",
@@ -63,13 +63,13 @@
     "prettier": "2.6.2",
     "prettier-plugin-jsdoc": "0.3.38",
     "prettier-plugin-organize-imports": "2.3.4",
-    "puppeteer": "14.1.0",
-    "ts-node": "10.7.0",
-    "typescript": "4.6.4"
+    "puppeteer": "14.1.2",
+    "ts-node": "10.8.0",
+    "typescript": "4.7.2"
   },
   "dependencies": {
     "file-saver": "2.0.5",
     "idb": "7.0.1",
-    "lit-html": "2.2.4"
+    "lit-html": "2.2.5"
   }
 }
