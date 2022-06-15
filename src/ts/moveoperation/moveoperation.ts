@@ -74,7 +74,7 @@ export class MoveOpTree {
             `When updating a node ${nodeId} we assume that the parent ${parentId} is known in our parent child map`
           )
         }
-        if (treeStorage.isAncestorOf(parentId, nodeId)) {
+        if (treeStorage.isAncestorOf(nodeId, parentId)) {
           throw new Error(`Can't update a node to be a child of itself`)
         }
         return true
@@ -236,7 +236,7 @@ export class MoveOpTree {
     }
     for (const subscription of this.#nodeChangedSubscriptions) {
       console.debug(`checking subscription to ${subscription.parentId}`)
-      if (this.treeStore.isAncestorOf(moveOp.nodeId, subscription.parentId)) {
+      if (this.treeStore.isAncestorOf(subscription.parentId, moveOp.nodeId)) {
         console.debug(`Notifying subscriber of node change for parent ${subscription.parentId}`)
         subscription.notify()
       }
@@ -273,7 +273,7 @@ export class MoveOpTree {
               `When updating a node ${nodeId} we assume that the parent ${parentId} is known in our parent child map`
             )
           }
-          if (treeStorage.isAncestorOf(parentId, nodeId)) {
+          if (treeStorage.isAncestorOf(nodeId, parentId)) {
             throw new Error(`Can't update a node to be a child of itself`)
           }
           return true
@@ -310,7 +310,7 @@ export class MoveOpTree {
         if (!treeStorage.isNodeKnown(parentId)) {
           return false
         }
-        if (treeStorage.isAncestorOf(parentId, nodeId)) {
+        if (treeStorage.isAncestorOf(nodeId, parentId)) {
           return false
         }
         return true

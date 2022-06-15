@@ -266,7 +266,7 @@ export class IdbTreeStorage implements LifecycleAware {
               `When updating a node ${nodeId} we assume that the parent ${parentId} is known in our parent child map`
             )
           }
-          if (treeStorage.isAncestorOf(parentId, nodeId)) {
+          if (treeStorage.isAncestorOf(nodeId, parentId)) {
             throw new Error(`Can't update a node to be a child of itself`)
           }
         }
@@ -300,16 +300,16 @@ export class IdbTreeStorage implements LifecycleAware {
   }
 
   // TODO: cacherefactoring: just use loadnode for now to determine parent?
-  isAncestorOf(childId: string, parentId: string): boolean {
-    console.debug(`calling isAncestorOf with childId '${childId}' and parentId '${parentId}'`)
-    // require special casing for ROOT as that node is not regularly part of the tree
-    if (parentId === childId || parentId === 'ROOT') {
-      // if (parentId === nodeId) {
+  isAncestorOf(potentialAncestor: string, nodeId: string): boolean {
+    console.debug(
+      `calling isAncestorOf with childId '${potentialAncestor}' and parentId '${nodeId}'`
+    )
+    if (nodeId === potentialAncestor) {
       return true
     } else {
-      const grandParentId = this.childParentMap[parentId]
+      const grandParentId = this.childParentMap[nodeId]
       if (grandParentId != null) {
-        return this.isAncestorOf(childId, grandParentId)
+        return this.isAncestorOf(potentialAncestor, grandParentId)
       } else {
         return false
       }
