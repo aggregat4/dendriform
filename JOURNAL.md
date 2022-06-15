@@ -1920,3 +1920,6 @@ This also seems a plausible error: it tests whether we can receive remote events
 
 In this particular case we assert that the parent node must be known when storing the child node. This is of course correct and I think we had an explicit check for this before. So we need to store the moveOp and then when the preconditions are not met, just silently exit and not persist the change.
 
+# 2022-06-15
+
+I fixed my isAncestorOf check, which was completely wrong and got rid of a bunch of inexplicable test errors.
