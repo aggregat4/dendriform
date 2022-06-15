@@ -40,12 +40,14 @@ export default [
       // it has been detached from the document and I think that may be lit doing that
       // as it rerenders portions of the page. This is important to take into account
       // for future tests!
-      rootNode = await page.$('div#ROOT')
+      rootNode = await waitForNodesLoaded(page)
       firstNode = await rootNode.$('div.node')
       const firstNameNode = await firstNode.$('div.name')
       expect(await textContent(firstNameNode)).toBe('Foo')
       const secondNode = await firstNode.$('div.node')
-      expect(secondNode).toExist()
+      // TODO: figure out why ceylon thinks toExist() is false on this node. Is it doing a toString or something!?
+      //expect(secondNode).toExist(`the second node should exist and instead is: ${secondNode}`)
+      expect(secondNode).toNotBe(null, `the second node should exist and instead is: ${secondNode}`)
       const secondNameNode = await secondNode.$('div.name')
       expect(await textContent(secondNameNode)).toBe('Bar')
     }
