@@ -1923,3 +1923,5 @@ In this particular case we assert that the parent node must be known when storin
 # 2022-06-15
 
 I fixed the isAncestorOf check, which was completely wrong and got rid of a bunch of inexplicable test errors.
+
+Turns out ceylon (the assertion library I use) says that an object that is Puppeteer node handle does not exist when asserting it. Even if it is actually an instance.
