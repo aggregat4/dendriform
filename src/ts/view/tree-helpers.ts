@@ -9,8 +9,7 @@ import {
 } from './tree-dom-util'
 
 export interface CommandExecutor {
-  performWithDom(command: Command): Promise<void>
-  performWithoutDom(command: Command): Promise<void>
+  perform(command: Command): Promise<void>
 }
 
 interface TransientStateInfo {

@@ -84,7 +84,7 @@ export class TreeActionRegistry {
       if (action.trigger.isTriggered(eventType, event)) {
         if (action instanceof CommandCreationAction) {
           const command = action.createCommand(event, treeActionContext)
-          await treeActionContext.commandExecutor.performWithDom(command)
+          await treeActionContext.commandExecutor.perform(command)
         } else if (action instanceof ExecutableAction) {
           await action.exec(event, treeActionContext)
         }
@@ -226,7 +226,6 @@ class SplitNodeAction extends CommandCreationAction {
       .withAfterFocusNodeId(nodeId)
       .withAfterFocusPos(0)
       .build()
-    console.log(`BORIS creating split command`)
     return command
   }
 }

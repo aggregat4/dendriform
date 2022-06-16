@@ -169,7 +169,7 @@ export class OpmlImportDialog
       .build()
     // It is important to await here since when create a child node we need the parent node to already be there
     // otherwise the effect will be that only the toplevel nodes are visible
-    await commandExecutor.performWithDom(command)
+    await commandExecutor.perform(command)
     // NOTE: this assumes that the children are always loaded
     for (const childNode of node.children.elements) {
       await this.createNode(commandExecutor, childNode, node.node.id)

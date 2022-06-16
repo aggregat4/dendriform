@@ -317,7 +317,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
       const payload = nodeClosed
         ? new OpenNodeByIdCommandPayload(getNodeId(node), parentNodeId)
         : new CloseNodeByIdCommandPayload(getNodeId(node), parentNodeId)
-      await this.performWithDom(
+      await this.perform(
         new CommandBuilder(payload)
           .isUndoable()
           // synchronous updates trigger a re-render
@@ -413,7 +413,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
       .isUndoable()
       .isBatch()
       .build()
-    await this.performWithDom(command)
+    await this.perform(command)
   }
 
   private async onDocumentKeydown(event: KeyboardEvent) {
@@ -434,16 +434,12 @@ export class Tree extends HTMLElement implements CommandExecutor {
     }
   }
 
-  async performWithoutDom(command: Command) {
-    await this.commandHandler.exec(command)
-  }
-
   private readonly debouncedRerender: () => void = debounce(
     this.rerenderTree.bind(this),
     5000
   ).bind(this)
 
-  async performWithDom(command: Command) {
+  async perform(command: Command) {
     if (command) {
       await this.domCommandHandler.exec(command)
       if (!command.payload.requiresRender() && command.afterFocusNodeId) {
@@ -490,12 +486,12 @@ export class Tree extends HTMLElement implements CommandExecutor {
   private async onUndo(event: Event): Promise<void> {
     event.preventDefault()
     event.stopPropagation()
-    await this.performWithDom(this.commandHandler.popUndoCommand())
+    await this.perform(this.commandHandler.popUndoCommand())
   }
 
   private async onRedo(event: Event): Promise<void> {
     event.preventDefault()
     event.stopPropagation()
-    await this.performWithDom(this.commandHandler.popRedoCommand())
+    await this.perform(this.commandHandler.popRedoCommand())
   }
 }
