@@ -1,8 +1,8 @@
 import { html, render } from 'lit-html'
 import { until } from 'lit-html/directives/until.js'
-import { TreeAction, TreeActionContext } from './tree-actions'
 import { epochSecondsToLocaleString } from '../utils/dateandtime'
 import { DialogLifecycleAware } from './dialogs'
+import { ExecutableAction, TreeActionContext } from './tree-actions'
 
 abstract class TreeNodeMenuItem extends HTMLElement {
   private _treeActionContext: TreeActionContext
@@ -45,7 +45,7 @@ abstract class TreeNodeMenuItem extends HTMLElement {
 }
 
 export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
-  private _treeAction: TreeAction
+  private _treeAction: ExecutableAction
   private readonly template = () => html`
     ${this.menuItemStyle}
     <div class="menuItem" @click=${this.onClick.bind(this)}>
@@ -58,16 +58,16 @@ export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
     super()
   }
 
-  set treeAction(treeAction: TreeAction) {
+  set treeAction(treeAction: ExecutableAction) {
     this._treeAction = treeAction
   }
 
-  get treeAction(): TreeAction {
+  get treeAction(): ExecutableAction {
     return this._treeAction
   }
 
   private onClick(e) {
-    return this._treeAction.handle(e, this.treeActionContext)
+    return this._treeAction.exec(e, this.treeActionContext)
   }
 
   connectedCallback(): void {

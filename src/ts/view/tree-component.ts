@@ -372,7 +372,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
     await this.rerenderTree()
   }
 
-  private onInput(event: InputEvent) {
+  private async onInput(event: InputEvent) {
     // apparently we can get some fancy newfangled input events we may want to ignore
     // see https://www.w3.org/TR/input-events-1/
     if (
@@ -382,23 +382,23 @@ export class Tree extends HTMLElement implements CommandExecutor {
     ) {
       return
     }
-    this.treeActionRegistry.executeKeyboardActions(
+    await this.treeActionRegistry.executeKeyboardActions(
       KbdEventType.Input,
       event,
       this.treeActionContext
     )
   }
 
-  private onKeypress(event: KeyboardEvent) {
-    this.treeActionRegistry.executeKeyboardActions(
+  private async onKeypress(event: KeyboardEvent) {
+    await this.treeActionRegistry.executeKeyboardActions(
       KbdEventType.Keypress,
       event,
       this.treeActionContext
     )
   }
 
-  private onKeydown(event: KeyboardEvent): void {
-    this.treeActionRegistry.executeKeyboardActions(
+  private async onKeydown(event: KeyboardEvent) {
+    await this.treeActionRegistry.executeKeyboardActions(
       KbdEventType.Keydown,
       event,
       this.treeActionContext

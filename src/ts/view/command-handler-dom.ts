@@ -37,6 +37,7 @@ export class DomCommandHandler implements CommandHandler {
   async exec(command: Command): Promise<void> {
     const cmd = command.payload
     if (cmd instanceof SplitNodeByIdCommandPayload) {
+      console.log(`BORIS split command dom command handler invoked`)
       return this.domSplitNode(
         document.getElementById(cmd.nodeId),
         cmd.newNodeName,

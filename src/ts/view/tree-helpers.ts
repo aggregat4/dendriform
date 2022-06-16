@@ -1,12 +1,12 @@
 import { Command } from '../commands/commands'
+import { getCursorPos } from '../utils/util'
 import {
-  isNameNode,
   getClosestNodeElement,
   getNodeId,
   getNodeName,
   getNodeNote,
+  isNameNode,
 } from './tree-dom-util'
-import { getCursorPos } from '../utils/util'
 
 export interface CommandExecutor {
   performWithDom(command: Command): Promise<void>

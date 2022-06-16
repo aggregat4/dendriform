@@ -61,7 +61,7 @@ function genClass(node: RepositoryNode, isFirst: boolean, isFilterIncluded: bool
 
 // install event handler to listen for escape (or backspace in the beginning when empty,
 //   or arrow up in beginning, etc)
-export function startEditingNote(noteEl: HTMLElement): void {
+export function startEditingNote(noteEl: HTMLElement) {
   // hard assumption that we have two siblings and the last one is the note element
   noteEl.setAttribute('contenteditable', 'true')
   noteEl.classList.add('editing')

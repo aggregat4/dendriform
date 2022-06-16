@@ -1,14 +1,14 @@
 import { html, render } from 'lit-html'
-import { TreeActionContext } from './tree-actions'
-import { parseXML } from '../utils/util'
 import { CommandBuilder, CreateChildNodeCommandPayload } from '../commands/commands'
-import { CommandExecutor } from './tree-helpers'
+import { ActivityIndicating } from '../domain/lifecycle'
 import { opmlDocumentToRepositoryNodes } from '../opml/opml-util'
+import { ResolvedRepositoryNode } from '../repository/repository'
+import { parseXML } from '../utils/util'
+import { ActivityIndicator } from './activity-indicator-component'
 import { DialogLifecycleAware } from './dialogs'
 import { sharedCommonStyles } from './shared-styles'
-import { ActivityIndicating } from '../domain/lifecycle'
-import { ResolvedRepositoryNode } from '../repository/repository'
-import { ActivityIndicator } from './activity-indicator-component'
+import { TreeActionContext } from './tree-actions'
+import { CommandExecutor } from './tree-helpers'
 
 export class OpmlImportDialog
   extends HTMLElement
@@ -169,7 +169,7 @@ export class OpmlImportDialog
       .build()
     // It is important to await here since when create a child node we need the parent node to already be there
     // otherwise the effect will be that only the toplevel nodes are visible
-    await commandExecutor.performWithoutDom(command)
+    await commandExecutor.performWithDom(command)
     // NOTE: this assumes that the children are always loaded
     for (const childNode of node.children.elements) {
       await this.createNode(commandExecutor, childNode, node.node.id)
