@@ -84,16 +84,7 @@ export class TreeActionRegistry {
       if (action.trigger.isTriggered(eventType, event)) {
         if (action instanceof CommandCreationAction) {
           const command = action.createCommand(event, treeActionContext)
-          if (command) {
-            if (command.payload.requiresRender()) {
-              // if we need to rerender the tree after the command, we wait for execution
-              // so that no other actions can interleave with it
-              await treeActionContext.commandExecutor.performWithDom(command)
-            } else {
-              // ONLY if we do not require a rerender of the tree do we just async execute the command
-              void treeActionContext.commandExecutor.performWithDom(command)
-            }
-          }
+          await treeActionContext.commandExecutor.performWithDom(command)
         } else if (action instanceof ExecutableAction) {
           await action.exec(event, treeActionContext)
         }

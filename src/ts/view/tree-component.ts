@@ -416,7 +416,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
     await this.performWithDom(command)
   }
 
-  private async onDocumentKeydown(event: KeyboardEvent): Promise<void> {
+  private async onDocumentKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       // Escape should clear the searchfield and blur the focus when we have an active query
       if (this.filterIsActive()) {
@@ -434,7 +434,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
     }
   }
 
-  async performWithoutDom(command: Command): Promise<void> {
+  async performWithoutDom(command: Command) {
     await this.commandHandler.exec(command)
   }
 
@@ -443,7 +443,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
     5000
   ).bind(this)
 
-  async performWithDom(command: Command): Promise<void> {
+  async performWithDom(command: Command) {
     if (command) {
       await this.domCommandHandler.exec(command)
       if (!command.payload.requiresRender() && command.afterFocusNodeId) {
@@ -455,8 +455,9 @@ export class Tree extends HTMLElement implements CommandExecutor {
         // arrived in the meantime
         this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
       }
-      await this.commandHandler.exec(command)
       if (command.payload.requiresRender()) {
+        // in case we require a rerender we want to wait until the backend is done before yielding back to the client since they may significantly alter the tree
+        await this.commandHandler.exec(command)
         // if it is a batch command we don't want to immediately rerender
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const renderFunction = command.batch ? this.debouncedRerender : this.rerenderTree.bind(this)
@@ -468,6 +469,9 @@ export class Tree extends HTMLElement implements CommandExecutor {
           // In practice the problem may be limited since people can't type instantly, but it is still a concern.
           this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
         }
+      } else {
+        // if the command does not require a rerender we can just execute async
+        void this.commandHandler.exec(command)
       }
     }
   }
