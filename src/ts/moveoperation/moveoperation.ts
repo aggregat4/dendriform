@@ -12,16 +12,20 @@ import { assert, debounce } from '../utils/util'
 import { MoveOp, NodeFlags, NodeMetadata, Replica } from './moveoperation-types'
 
 class SubtreeChangedSubscription implements Subscription {
+  #_debouncedListener = null
+
   constructor(
     readonly parentId: string,
     readonly listener: () => void,
     readonly cancelCallback: (subToCancel: Subscription) => void
-  ) {}
+  ) {
+    // An attempt at making sure we don't constantly call the notify method
+    // for now we are happy to only get an update every 1s
+    this.#_debouncedListener = debounce(listener, 1000)
+  }
 
   notify(): void {
-    // An attempt at making sure we don't constantly call the notify method
-    // for now we are happy to onyl get an update every 1s
-    debounce(this.listener, 1000)
+    this.#_debouncedListener()
   }
 
   cancel(): void {
