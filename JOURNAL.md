@@ -1930,11 +1930,9 @@ Turns out ceylon (the assertion library I use) says that an object that is Puppe
 
 I traced down a bug where nodes were being renamed to the right letters in the wrong order. E.g. instead of 'Bar' we got 'arB'. But not always.
 
-I was able to trace this back to how we handle Commands in `tree-component.ts`: in performWithDom we were executing the command in the dom, then the backend and then optionally rerendering the tree.
+I was able to trace this back to how we handle Commands in `tree-component.ts`: in performWithDom we were executing the command in the dom, then the backend and then optionally rerendering the tree. If the command was specifying an "after focus node" then we would refocus the cursor _after_ all the above operations are done.
 
-If the command was specifying an "after focus node" then we would refocus the cursor _after_ all the above operations are done.
-
-In reality this means that as keyboard events come in, they all trigger commands to be executed and when a long running command, at some point in the future, suddenly returns and requires a DOM operation like focusing the node, this will basically intervleave with other commands that were triggered afterwards. 
+In reality this means that as keyboard events come in, they all trigger commands to be executed and when a long running command suddenly returns and requires a DOM operation like focusing the node, this will basically intervleave with other commands that were triggered afterwards. 
 
 In our concrete case this manifested with an 'Enter' keypress from a split command interleaving with a few following letter presses that came after it. This caused the cursor to jump forward and to insert the new characters before the existing string.
 
