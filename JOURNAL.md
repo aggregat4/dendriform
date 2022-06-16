@@ -1925,3 +1925,19 @@ In this particular case we assert that the parent node must be known when storin
 I fixed the isAncestorOf check, which was completely wrong and got rid of a bunch of inexplicable test errors.
 
 Turns out ceylon (the assertion library I use) says that an object that is Puppeteer node handle does not exist when asserting it. Even if it is actually an instance.
+
+# 2022-06-16
+
+I traced down a bug where nodes were being renamed to the right letters in the wrong order. E.g. instead of 'Bar' we got 'arB'. But not always.
+
+I was able to trace this back to how we handle Commands in `tree-component.ts`: in performWithDom we were executing the command in the dom, then the backend and then optionally rerendering the tree.
+
+If the command was specifying an "after focus node" then we would refocus the cursor _after_ all the above operations are done.
+
+In reality this means that as keyboard events come in, they all trigger commands to be executed and when a long running command, at some point in the future, suddenly returns and requires a DOM operation like focusing the node, this will basically intervleave with other commands that were triggered afterwards. 
+
+In our concrete case this manifested with an 'Enter' keypress from a split command interleaving with a few following letter presses that came after it. This caused the cursor to jump forward and to insert the new characters before the existing string.
+
+This is now fixed for commands that do _not_ require a rerender of the tree. For commands that _do_ rerender the tree, we still execute the focus command after that rerender. I assume that can still cause really weird effects, especially if we test it in a unit test that types really fast.
+
+Maybe the solution in these cases is to make sure that we block user input for as long as the rerender requiring operation runs. Not sure yet how to technically solve that.
