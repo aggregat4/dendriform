@@ -446,21 +446,26 @@ export class Tree extends HTMLElement implements CommandExecutor {
   async performWithDom(command: Command): Promise<void> {
     if (command) {
       await this.domCommandHandler.exec(command)
+      if (!command.payload.requiresRender() && command.afterFocusNodeId) {
+        // if the command does not require a rerender of the tree and we need
+        // to refocus the cursor after the action, we need to do it BEFORE we
+        // trigger any backend operations. Otherwise we will possible interleave
+        // this dom operation that can happen very late (depending on how much
+        // needs to happen in the backend) with newer dom operations that have
+        // arrived in the meantime
+        this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
+      }
       await this.commandHandler.exec(command)
-      // If a command requires a rerender this means we need to reload the tree
-      // and then let Redom efficiently update all the nodes, however if we need
-      // to focus afterwards, we need to be careful to do this after having loaded
-      // the tree
       if (command.payload.requiresRender()) {
         // if it is a batch command we don't want to immediately rerender
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const renderFunction = command.batch ? this.debouncedRerender : this.rerenderTree.bind(this)
         await renderFunction()
         if (command.afterFocusNodeId) {
-          this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
-        }
-      } else {
-        if (command.afterFocusNodeId) {
+          // FIXME: we still have potential bugs here: similar to the no-rerender case, if we do a DOM operation
+          // like refocusing the cursor AFTER a bunch of backend operations AND after a full rerender
+          // then we may well interfere with newer dom operations that happen afterwards
+          // In practice the problem may be limited since people can't type instantly, but it is still a concern.
           this.focusNode(command.afterFocusNodeId, command.afterFocusPos)
         }
       }
