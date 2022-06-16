@@ -143,31 +143,6 @@ export class IdbTreeStorage implements LifecycleAware {
         newNode: null,
       }
     }
-    // if (!this.isNodeKnown(node.parentId)) {
-    //   if (returnOnParentUnknown) {
-    //     return {
-    //       modified: false,
-    //       newNode: null,
-    //       oldNode: null,
-    //     }
-    //   } else {
-    //     throw new Error(
-    //       `When updating a node ${node.id} we assume that the parent ${node.parentId} is known in our parent child map`
-    //     )
-    //   }
-    // }
-    // // if the new node is equal to the parent or is an ancestor of the parent, we ignore the moveop
-    // // This prevents cycles
-    // if (this.isAncestorOf(node.parentId, node.id)) {
-    //   console.debug(
-    //     `The new node ${node.id} is an ancestor of ${node.parentId}, can not apply operation`
-    //   )
-    //   return {
-    //     modified: false,
-    //     oldNode: null,
-    //     newNode: null,
-    //   }
-    // }
     const newParentSeq = this.getChildrenSequence(node.parentId)
     assert(
       !!newParentSeq,

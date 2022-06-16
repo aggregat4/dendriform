@@ -184,24 +184,11 @@ class SplitNodeAction extends TreeAction {
   }
 
   async handle(event: Event, treeActionContext: TreeActionContext) {
-    event.preventDefault()
     const targetNode = getClosestNodeElement(event.target as Element)
     const nodeId = getNodeId(targetNode)
     const parentNodeId = getParentNodeId(targetNode)
     const beforeSplitNamePart = getTextBeforeCursor(event) || ''
-    // DEBUG
-    if (beforeSplitNamePart === 'arB') {
-      console.error(`We have an inverted Bar string when getting the beforeSplitNamePart`)
-      throw Error(`inverted Bar before`)
-    }
-    // GUBED
     const afterSplitNamePart = getTextAfterCursor(event) || ''
-    // DEBUG
-    if (afterSplitNamePart === 'arB') {
-      console.error(`We have an inverted Bar string when getting the afterSplitNamePart`)
-      throw Error(`inverted Bar after`)
-    }
-    // GUBED
     const newNodeId = generateUUID()
     // make sure we save the transientstate so we can undo properly, especially when we split at the end of a node
     treeActionContext.transientStateManager.savePreviousNodeState(
@@ -210,6 +197,7 @@ class SplitNodeAction extends TreeAction {
       getNodeNote(targetNode),
       0
     )
+    event.preventDefault()
     const command = new CommandBuilder(
       new SplitNodeByIdCommandPayload(
         newNodeId,

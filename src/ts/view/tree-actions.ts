@@ -1,7 +1,7 @@
-import { CommandExecutor, TransientState } from './tree-helpers'
-import { KeyboardEventTrigger } from './keyboardshortcut'
-import { Dialogs } from './dialogs'
 import { TreeService } from '../service/tree-service'
+import { Dialogs } from './dialogs'
+import { KeyboardEventTrigger } from './keyboardshortcut'
+import { CommandExecutor, TransientState } from './tree-helpers'
 
 export abstract class TreeAction {
   constructor(

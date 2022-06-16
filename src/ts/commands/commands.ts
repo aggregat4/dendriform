@@ -1,4 +1,4 @@
-import { RelativeNodePosition, RelativeLinearPosition } from '../domain/domain'
+import { RelativeLinearPosition, RelativeNodePosition } from '../domain/domain'
 import { MergeNameOrder } from '../service/service'
 
 export interface CommandHandler {
@@ -240,8 +240,8 @@ export class UndeleteNodeByIdCommandPayload implements CommandPayload {
     return new DeleteNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
-  // we need the node to reappear in the tree: therefore we trigger a rerender and it will get loaded
   requiresRender(): boolean {
+    // we need the node to reappear in the tree: therefore we trigger a rerender and it will get loaded
     return true
   }
 }
@@ -253,9 +253,9 @@ export class CompleteNodeByIdCommandPayload implements CommandPayload {
     return new UnCompleteNodeByIdCommandPayload(this.nodeId, this.parentId)
   }
 
-  // In case the tree is set to not show completed nodes, we need a rerender since
-  // we need to make sure nodes are removed from the tree afterwards for navigation to work
   requiresRender(): boolean {
+    // In case the tree is set to not show completed nodes, we need a rerender since
+    // we need to make sure nodes are removed from the tree afterwards for navigation to work
     return true
   }
 }

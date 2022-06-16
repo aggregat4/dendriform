@@ -1,4 +1,4 @@
-import { OperatingSystem, guessOperatingSystem } from '../utils/util'
+import { guessOperatingSystem, OperatingSystem } from '../utils/util'
 
 export const enum KbdEventType {
   Input,
