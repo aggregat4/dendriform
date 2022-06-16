@@ -307,3 +307,109 @@ export class CreateChildNodeCommandPayload implements CommandPayload {
     return false
   }
 }
+
+export class StartEditingNoteCommandPayload implements CommandPayload {
+  constructor(readonly nodeId: string) {}
+
+  inverse(): CommandPayload {
+    return new StopEditingNoteCommandPayload(this.nodeId)
+  }
+  requiresRender(): boolean {
+    return false
+  }
+}
+
+export class StopEditingNoteCommandPayload implements CommandPayload {
+  constructor(readonly nodeId: string) {}
+
+  inverse(): CommandPayload {
+    return new StopEditingNoteCommandPayload(this.nodeId)
+  }
+  requiresRender(): boolean {
+    return false
+  }
+}
+
+export class MoveCursorUpCommandPayload implements CommandPayload {
+  constructor(readonly nodeId: string) {}
+
+  inverse(): CommandPayload {
+    return new MoveCursorDownCommandPayload(this.nodeId)
+  }
+  requiresRender(): boolean {
+    return false
+  }
+}
+
+export class MoveCursorDownCommandPayload implements CommandPayload {
+  constructor(readonly nodeId: string) {}
+
+  inverse(): CommandPayload {
+    return new MoveCursorUpCommandPayload(this.nodeId)
+  }
+  requiresRender(): boolean {
+    return false
+  }
+}
+
+export enum AbstractNodes {
+  BEGINNING_OF_TREE,
+  END_OF_TREE,
+  CONCRETE_NODE,
+}
+
+export interface TargetNode {
+  type: AbstractNodes
+  nodeId: string
+}
+
+export const BEGINNING_OF_TREE_NODE: TargetNode = {
+  type: AbstractNodes.BEGINNING_OF_TREE,
+  nodeId: null,
+}
+export const END_OF_TREE_NODE: TargetNode = {
+  type: AbstractNodes.END_OF_TREE,
+  nodeId: null,
+}
+
+export class GoToNodeCommandPayload implements CommandPayload {
+  constructor(readonly newNode: TargetNode, readonly oldNode: TargetNode) {}
+
+  inverse(): CommandPayload {
+    return new GoToNodeCommandPayload(this.oldNode, this.newNode)
+  }
+  requiresRender(): boolean {
+    return false
+  }
+}
+
+export class NoopCommandPayload implements CommandPayload {
+  inverse(): CommandPayload {
+    return new NoopCommandPayload()
+  }
+  requiresRender(): boolean {
+    return false
+  }
+}
+
+// export class GoToBeginningOfTreeCommandPayload implements CommandPayload {
+//   constructor(readonly nodeId: string) {}
+
+//   inverse(): CommandPayload {
+//     return new GoToNodeCommandPayload(this.nodeId)
+//   }
+//   requiresRender(): boolean {
+//     return false
+//   }
+// }
+
+// export class GoToEndOfTreeCommandPayload implements CommandPayload {
+//   constructor(readonly nodeId: string) {}
+
+//   inverse(): CommandPayload {
+//     return new MoveCursorUpCommandPayload(this.nodeId)
+//   }
+//   requiresRender(): boolean {
+//     return false
+//   }
+// }

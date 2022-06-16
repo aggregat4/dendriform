@@ -6,11 +6,16 @@ import {
   CompleteNodeByIdCommandPayload,
   CreateChildNodeCommandPayload,
   DeleteNodeByIdCommandPayload,
+  GoToNodeCommandPayload,
   MergeNodesByIdCommandPayload,
+  MoveCursorDownCommandPayload,
+  MoveCursorUpCommandPayload,
+  NoopCommandPayload,
   OpenNodeByIdCommandPayload,
   RenameNodeByIdCommandPayload,
   ReparentNodeByIdCommandPayload,
   SplitNodeByIdCommandPayload,
+  StartEditingNoteCommandPayload,
   UnCompleteNodeByIdCommandPayload,
   UndeleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
@@ -86,8 +91,18 @@ export class TreeServiceCommandHandler implements CommandHandler {
         payload.parentId,
         command.synchronous
       )
+    } else if (payload instanceof StartEditingNoteCommandPayload) {
+      // NOOP in treeservice
+    } else if (payload instanceof MoveCursorUpCommandPayload) {
+      // NOOP in treeservice
+    } else if (payload instanceof MoveCursorDownCommandPayload) {
+      // NOOP in treeservice
+    } else if (payload instanceof GoToNodeCommandPayload) {
+      // NOOP in treeservice
+    } else if (payload instanceof NoopCommandPayload) {
+      // NOOP
     } else {
-      throw new Error(`Received an unknown command with name`)
+      throw new Error(`Received an unknown command of type ${payload.constructor.name}`)
     }
   }
 }

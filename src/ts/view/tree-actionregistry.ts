@@ -1,12 +1,20 @@
 import {
+  AbstractNodes,
+  BEGINNING_OF_TREE_NODE,
   Command,
   CommandBuilder,
   CompleteNodeByIdCommandPayload,
   DeleteNodeByIdCommandPayload,
+  END_OF_TREE_NODE,
+  GoToNodeCommandPayload,
   MergeNodesByIdCommandPayload,
+  MoveCursorDownCommandPayload,
+  MoveCursorUpCommandPayload,
+  NoopCommandPayload,
   RenameNodeByIdCommandPayload,
   ReparentNodeByIdCommandPayload,
   SplitNodeByIdCommandPayload,
+  StartEditingNoteCommandPayload,
   UnCompleteNodeByIdCommandPayload,
   UpdateNoteByIdCommandPayload,
 } from '../commands/commands'
@@ -35,7 +43,6 @@ import {
   SemanticShortcutType,
   toRawShortCuts,
 } from './keyboardshortcut'
-import { startEditingNote } from './node-component'
 import {
   CommandCreationAction,
   ExecutableAction,
@@ -43,11 +50,9 @@ import {
   TreeActionContext,
 } from './tree-actions'
 import {
-  findLastChildNode,
   findNextNode,
   findPreviousNode,
   getClosestNodeElement,
-  getNameElement,
   getNodeId,
   getNodeName,
   getNodeNote,
@@ -246,9 +251,9 @@ class EditNoteAction extends CommandCreationAction {
   }
   createCommand(event: Event): Command {
     event.preventDefault()
-    const noteEl = (event.target as Element).nextElementSibling.nextElementSibling as HTMLElement
-    startEditingNote(noteEl)
-    return null
+    const targetNode = getClosestNodeElement(event.target as Element)
+    const nodeId = getNodeId(targetNode)
+    return new CommandBuilder(new StartEditingNoteCommandPayload(nodeId)).build()
   }
 }
 
@@ -291,11 +296,8 @@ class MoveCursorUpAction extends CommandCreationAction {
   createCommand(event: Event): Command {
     event.preventDefault()
     const nodeElement = getClosestNodeElement(event.target as Element)
-    const previousNode = findPreviousNode(nodeElement)
-    if (previousNode) {
-      ;(getNameElement(previousNode) as HTMLElement).focus()
-    }
-    return null
+    const nodeId = getNodeId(nodeElement)
+    return new CommandBuilder(new MoveCursorUpCommandPayload(nodeId)).build()
   }
 }
 
@@ -338,11 +340,8 @@ class MoveCursorDownAction extends CommandCreationAction {
   createCommand(event: Event): Command {
     event.preventDefault()
     const nodeElement = getClosestNodeElement(event.target as Element)
-    const nextNode = findNextNode(nodeElement)
-    if (nextNode) {
-      ;(getNameElement(nextNode) as HTMLElement).focus()
-    }
-    return null
+    const nodeId = getNodeId(nodeElement)
+    return new CommandBuilder(new MoveCursorDownCommandPayload(nodeId)).build()
   }
 }
 
@@ -701,13 +700,14 @@ class GotoBeginningOfTreeAction extends CommandCreationAction {
     )
   }
   createCommand(event: Event): Command {
-    // Move to the top of the current tree (not the root, but its first child)
-    const treeDiv = (event.target as Element).closest('.tree')
-    const firstNode = treeDiv.querySelector('div.node div.node')
-    if (firstNode) {
-      ;(getNameElement(firstNode) as HTMLElement).focus()
-    }
-    return null
+    const eventNode = getClosestNodeElement(event.target as Element)
+    const nodeId = getNodeId(eventNode)
+    return new CommandBuilder(
+      new GoToNodeCommandPayload(BEGINNING_OF_TREE_NODE, {
+        type: AbstractNodes.CONCRETE_NODE,
+        nodeId,
+      })
+    ).build()
   }
 }
 
@@ -723,16 +723,14 @@ class GotoEndOfTreeAction extends CommandCreationAction {
     )
   }
   createCommand(event: Event): Command {
-    // Move to the bottom (last leaf node) of the current tree
-    const treeDiv = (event.target as Element).closest('.tree')
-    const rootNode = treeDiv.querySelector('div.node')
-    if (rootNode) {
-      const lastNode = findLastChildNode(rootNode)
-      if (lastNode) {
-        ;(getNameElement(lastNode) as HTMLElement).focus()
-      }
-    }
-    return null
+    const eventNode = getClosestNodeElement(event.target as Element)
+    const nodeId = getNodeId(eventNode)
+    return new CommandBuilder(
+      new GoToNodeCommandPayload(END_OF_TREE_NODE, {
+        type: AbstractNodes.CONCRETE_NODE,
+        nodeId,
+      })
+    ).build()
   }
 }
 
@@ -751,6 +749,6 @@ class SaveDocumentAction extends CommandCreationAction {
     // suppress saving the page with ctrl s since that is just annoying
     // everything should be saved by now
     event.preventDefault()
-    return null
+    return new CommandBuilder(new NoopCommandPayload()).build()
   }
 }
