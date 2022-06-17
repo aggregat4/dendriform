@@ -248,13 +248,11 @@ export class Tree extends HTMLElement implements CommandExecutor {
       this.treeChangeSubscription.cancel()
       this.treeChangeSubscription = null
     }
-    console.log(`BORIS about to load new tree`)
     const loadedTree = await this.treeService.loadTree(
       nodeId,
       this.getNodeVisibilityPredicate(),
       this.shouldCollapsedChildrenBeLoaded()
     )
-    console.log(`BORIS tree loaded, doing a rerender with: ${JSON.stringify(loadedTree)}`)
     this.update(loadedTree)
     this.treeChangeSubscription = this.treeService.subscribeToChanges(
       nodeId,
