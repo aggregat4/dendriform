@@ -108,9 +108,9 @@ export class IdbTreeStorage implements LifecycleAware {
   }
 
   async loadNode(nodeId: string): Promise<StoredNode> {
-    console.debug(
-      `loadNode() in treestorage: before calling get on ${this.db} for nodeId ${nodeId}`
-    )
+    // console.debug(
+    //   `loadNode() in treestorage: before calling get on ${this.db} for nodeId ${nodeId}`
+    // )
     return await this.db.get('nodes', nodeId)
   }
 
