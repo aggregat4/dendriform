@@ -19,13 +19,13 @@ const nodeTemplate = (
   class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}">
   <div class="nc">
     <a href="#node=${node.node.id}" title="Focus on this node"></a>
-    <div class="name" .innerHTML="${live(node.filteredName ? node.filteredName.fragment : '')}" contenteditable="true"></div>
+    <div class="name" .innerHTML="${live(node.filteredName ?? '')}" contenteditable="true"></div>
     <span
       class="toggle ${node.children.loaded && !node.node.collapsed && children.elements.length === 0
         ? 'hidden'
         : ''}"
       title="Open or close node"></span>
-    <div class="note" .innerHTML="${live(node.filteredNote ? node.filteredNote.fragment : '')}" contenteditable="false"></div>
+    <div class="note" .innerHTML="${live(node.filteredNote ?? '')}" contenteditable="false"></div>
     <span class="menuTrigger" title="Show menu" aria-haspopup="true">☰</span>
   </div>
   <div class="children">

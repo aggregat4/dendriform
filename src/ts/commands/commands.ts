@@ -118,7 +118,7 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
   }
 
   requiresRender(): boolean {
-    return false
+    return true
   }
 }
 
@@ -146,7 +146,7 @@ export class MergeNodesByIdCommandPayload implements CommandPayload {
   }
 
   requiresRender(): boolean {
-    return false
+    return true
   }
 }
 
@@ -190,7 +190,7 @@ export class ReparentNodeByIdCommandPayload implements CommandPayload {
   }
 
   requiresRender(): boolean {
-    return false
+    return true
   }
 }
 
@@ -215,7 +215,7 @@ export class CloseNodeByIdCommandPayload implements CommandPayload {
   }
 
   requiresRender(): boolean {
-    return false
+    return true
   }
 }
 
@@ -227,7 +227,7 @@ export class DeleteNodeByIdCommandPayload implements CommandPayload {
   }
 
   requiresRender(): boolean {
-    return false
+    return true
   }
 }
 
@@ -302,7 +302,7 @@ export class CreateChildNodeCommandPayload implements CommandPayload {
   }
 
   requiresRender(): boolean {
-    return false
+    return true
   }
 }
 
