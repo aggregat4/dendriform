@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { html, TemplateResult } from 'lit-html'
-import { unsafeHTML } from 'lit-html/directives/unsafe-html.js'
+import { live } from 'lit-html/directives/live.js'
+import { repeat } from 'lit-html/directives/repeat.js'
 import { DeferredArray, RepositoryNode } from '../repository/repository'
 import { FilteredRepositoryNode } from '../repository/search'
 import { isCursorAtContentEditableBeginning } from '../utils/util'
@@ -18,17 +19,17 @@ const nodeTemplate = (
   class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}">
   <div class="nc">
     <a href="#node=${node.node.id}" title="Focus on this node"></a>
-    <div class="name" contenteditable="true">${unsafeHTML(node.filteredName ? node.filteredName.fragment : '')}</div>
+    <div class="name" .innerHTML="${live(node.filteredName ? node.filteredName.fragment : '')}" contenteditable="true"></div>
     <span
       class="toggle ${node.children.loaded && !node.node.collapsed && children.elements.length === 0
         ? 'hidden'
         : ''}"
       title="Open or close node"></span>
-    <div class="note" contenteditable="false">${unsafeHTML(node.filteredNote ? node.filteredNote.fragment : '')}</div>
+    <div class="note" .innerHTML="${live(node.filteredNote ? node.filteredNote.fragment : '')}" contenteditable="false"></div>
     <span class="menuTrigger" title="Show menu" aria-haspopup="true">☰</span>
   </div>
   <div class="children">
-    ${children.elements.map((child) => nodeTemplate(child, getChildElements(child), false))}
+    ${repeat(children.elements, (child: FilteredRepositoryNode) => child.node.id, (child: FilteredRepositoryNode) => { console.log(`NODEID ${child.node.id}`); return renderNode(child, false) })}
   </div>
 </div>`
 

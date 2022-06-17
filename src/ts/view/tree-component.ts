@@ -1,4 +1,5 @@
 import { html, render } from 'lit-html'
+import { repeat } from 'lit-html/directives/repeat.js'
 import { UndoableCommandHandler } from '../commands/command-handler-undoable'
 import {
   CloseNodeByIdCommandPayload,
@@ -180,7 +181,13 @@ export class Tree extends HTMLElement implements CommandExecutor {
       return html`<div class="error">Loading tree...</div>`
     } else if (this.treeStatus.state === State.LOADED) {
       // this assumes that when state is loaded we also have a filtered tree root
-      return renderNode(this.filteredTreeRoot, true)
+      // return renderNode(this.filteredTreeRoot, true)
+      const rootels = [this.filteredTreeRoot]
+      return html`${repeat(
+        rootels,
+        (child: FilteredRepositoryNode) => child.node.id,
+        (child: FilteredRepositoryNode) => renderNode(child, true)
+      )}`
     }
   }
 
@@ -241,11 +248,13 @@ export class Tree extends HTMLElement implements CommandExecutor {
       this.treeChangeSubscription.cancel()
       this.treeChangeSubscription = null
     }
+    console.log(`BORIS about to load new tree`)
     const loadedTree = await this.treeService.loadTree(
       nodeId,
       this.getNodeVisibilityPredicate(),
       this.shouldCollapsedChildrenBeLoaded()
     )
+    console.log(`BORIS tree loaded, doing a rerender with: ${JSON.stringify(loadedTree)}`)
     this.update(loadedTree)
     this.treeChangeSubscription = this.treeService.subscribeToChanges(
       nodeId,
@@ -411,7 +420,6 @@ export class Tree extends HTMLElement implements CommandExecutor {
       new CreateChildNodeCommandPayload(newNodeId, '', null, this.filteredTreeRoot.node.id)
     )
       .isUndoable()
-      .isBatch()
       .build()
     await this.perform(command)
   }

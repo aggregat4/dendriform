@@ -299,19 +299,19 @@ export class DomCommandHandler implements CommandHandler {
   }
 
   private domCompleteNode(node: Element): void {
-    node.classList.add('completed-visual-only')
-    setTimeout(() => {
-      node.classList.add('completed')
-      node.classList.remove('completed-visual-only')
-    }, 250)
+    // node.classList.add('completed-visual-only')
+    // node.classList.add('completed')
+    // setTimeout(() => {
+    //   node.classList.remove('completed-visual-only')
+    // }, 250)
   }
 
   private domUnCompleteNode(node: Element): void {
     // node can be null in case of undo
-    if (node) {
-      node.classList.remove('completed')
-      node.classList.remove('completed-visual-only')
-    }
+    // if (node) {
+    //   node.classList.remove('completed')
+    //   node.classList.remove('completed-visual-only')
+    // }
   }
 }
 
