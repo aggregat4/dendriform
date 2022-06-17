@@ -19,17 +19,17 @@ const nodeTemplate = (
   class="${genClass(node.node, first, node.filterApplied && node.isIncluded())}">
   <div class="nc">
     <a href="#node=${node.node.id}" title="Focus on this node"></a>
-    <div class="name" .innerHTML="${live(node.filteredName ?? '')}" contenteditable="true"></div>
+    <div class="name" .innerHTML="${live(node.filteredName?.fragment ?? '')}" contenteditable="true"></div>
     <span
       class="toggle ${node.children.loaded && !node.node.collapsed && children.elements.length === 0
         ? 'hidden'
         : ''}"
       title="Open or close node"></span>
-    <div class="note" .innerHTML="${live(node.filteredNote ?? '')}" contenteditable="false"></div>
+    <div class="note" .innerHTML="${live(node.filteredNote?.fragment ?? '')}" contenteditable="false"></div>
     <span class="menuTrigger" title="Show menu" aria-haspopup="true">☰</span>
   </div>
   <div class="children">
-    ${repeat(children.elements, (child: FilteredRepositoryNode) => child.node.id, (child: FilteredRepositoryNode) => { console.log(`NODEID ${child.node.id}`); return renderNode(child, false) })}
+    ${repeat(children.elements, (child: FilteredRepositoryNode) => child.node.id, (child: FilteredRepositoryNode) => renderNode(child, false))}
   </div>
 </div>`
 
