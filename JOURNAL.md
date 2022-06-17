@@ -1939,3 +1939,12 @@ In our concrete case this manifested with an 'Enter' keypress from a split comma
 This is now fixed for commands that do _not_ require a rerender of the tree. For commands that _do_ rerender the tree, we still execute the focus command after that rerender. I assume that can still cause really weird effects, especially if we test it in a unit test that types really fast.
 
 Maybe the solution in these cases is to make sure that we block user input for as long as the rerender requiring operation runs. Not sure yet how to technically solve that.
+
+# 2022-06-17
+
+First manual test after fixing all the issues uncovered by automated testing. A bunch of things are broken (and also don't have tests yet!):
+* when searching words are highlighted but parts of the tree are duplicated. Feels like maybe we don't clear the tree correctly when rerendering?
+* Marking things as completed seems to basically work, but the next element (after the one that disappears) also gets a strikethrough and we need to reload to see the correct state
+* Adding a note seems to work, but when splitting a node with a note, the note get's put on the new sibling instead of staying on the old one. That seems wrong?
+* When joining a test replicaset with a new browser it connects to the server and syncs events but between the notice that we are trying to connect to the server disappearing and the tree to appear there is a period of blank nothingness that could be quite disorienting when it then suddenly pops in. Optimally we would have some activity indicator showing that stuff is happening
+* when text has markup I lose focus after typing one additional character
