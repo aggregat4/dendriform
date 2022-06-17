@@ -84,8 +84,7 @@ export class SyncProtocol implements LifecycleAware {
         this.#EVENT_BATCH_SIZE
       )
       console.debug(
-        `${eventsToSend.length} events to send from client ${this.replicaStore.getReplicaId()}: `,
-        eventsToSend
+        `${eventsToSend.length} events to send from client ${this.replicaStore.getReplicaId()}`
       )
       let response: SyncProtocolPayload = null
       try {

@@ -276,9 +276,6 @@ export class IdbTreeStorage implements LifecycleAware {
 
   // TODO: cacherefactoring: just use loadnode for now to determine parent?
   isAncestorOf(potentialAncestor: string, nodeId: string): boolean {
-    console.debug(
-      `calling isAncestorOf with childId '${potentialAncestor}' and parentId '${nodeId}'`
-    )
     if (nodeId === potentialAncestor) {
       return true
     } else {
