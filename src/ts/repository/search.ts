@@ -1,4 +1,4 @@
-import { containsMarkup, toHtml, markupHtml, markupHtmlWithFilterHits } from '../utils/markup'
+import { containsMarkup, markupHtml, markupHtmlWithFilterHits, toHtml } from '../utils/markup'
 import { findFirst, isEmpty } from '../utils/util'
 import { DeferredArray, RepositoryNode, ResolvedRepositoryNode } from './repository'
 
