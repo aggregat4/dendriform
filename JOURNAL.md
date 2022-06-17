@@ -1948,3 +1948,9 @@ First manual test after fixing all the issues uncovered by automated testing. A 
 * Adding a note seems to work, but when splitting a node with a note, the note get's put on the new sibling instead of staying on the old one. That seems wrong?
 * When joining a test replicaset with a new browser it connects to the server and syncs events but between the notice that we are trying to connect to the server disappearing and the tree to appear there is a period of blank nothingness that could be quite disorienting when it then suddenly pops in. Optimally we would have some activity indicator showing that stuff is happening
 * when text has markup I lose focus after typing one additional character
+
+Also I'm using lit wrong. I have manual DOM mutation and that invalidates its caches. This leads to all sorts of weird behaviour. I have moved the contenteditable fields to a property accessor with a wrapped `live` directive that seems to make lit at least diff those contents against the DOM always. 
+
+However we will split nodes manually and this causes the tree to diverge from lits view of the world and then it can't correctly update the DOM anymore. 
+
+I will start an experiment to see if I can get rid of all manual dom manipulation in the DOM command handler.
