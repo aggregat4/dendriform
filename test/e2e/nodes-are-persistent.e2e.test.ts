@@ -33,6 +33,7 @@ export default [
       await nameNode.focus()
       await page.keyboard.type('Foo')
       await page.keyboard.press('Enter')
+      await page.waitForTimeout(200)
       await page.keyboard.type('Bar')
       await page.keyboard.press('Tab')
       // NOTE: I am refetching these nodes since otherwise the 'secondNode' selector will fail!
@@ -40,6 +41,7 @@ export default [
       // it has been detached from the document and I think that may be lit doing that
       // as it rerenders portions of the page. This is important to take into account
       // for future tests!
+      await page.waitForTimeout(200)
       rootNode = await waitForNodesLoaded(page)
       firstNode = await rootNode.$('div.node')
       const firstNameNode = await firstNode.$('div.name')

@@ -23,8 +23,10 @@ export default [
           await nameNodeAlpha.focus()
           await pageAlpha.keyboard.type('Foo')
           await pageAlpha.keyboard.press('Enter')
+          await pageAlpha.waitForTimeout(200)
           await pageAlpha.keyboard.type('Bar')
           await pageAlpha.keyboard.press('Tab')
+          await pageAlpha.waitForTimeout(200)
           // Now see whether these changes arrive on page 2
           // console.debug(`DEBUG: waiting for changes to page 2`)
           const rootNodeBeta = await waitForNodesLoaded(pageBeta)

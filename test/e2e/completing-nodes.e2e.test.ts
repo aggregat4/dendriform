@@ -15,9 +15,15 @@ export default [
       await nameNode.focus()
       await page.keyboard.type('Foo')
       await page.keyboard.press('Enter')
+      await page.waitForTimeout(200)
+
       await page.keyboard.type('Bar')
       await page.keyboard.press('Enter')
+      await page.waitForTimeout(200)
+
       await page.keyboard.type('Baz')
+      await page.waitForTimeout(200)
+
       rootNode = await waitForNodesLoaded(page)
       // firstNode = await rootNode.$('div.node')
       let childNodes = await rootNode.$$('div.node')
@@ -29,7 +35,8 @@ export default [
       await page.keyboard.down('Control')
       await page.keyboard.press('Enter')
       await page.keyboard.up('Control')
-      await page.waitForTimeout(1000)
+      await page.waitForTimeout(200)
+
       childNodes = await rootNode.$$('div.node')
       expect(childNodes.length).toBe(
         2,
