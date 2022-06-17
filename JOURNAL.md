@@ -1969,3 +1969,9 @@ I have marked both contenteditables as "live" content in lit using the following
 AFAICT this causes lit to use the actual live values from the DOM to check whether the node needs to be rerendered or not.
 
 Apparently this actually works. All operations seem to at least visually work.
+
+I was also able to fix some bugs and get all the tests to work now. We need to add some delay between user input operations since we need to give the app the chance to process them and update the UI. Now we pass all tests.
+
+New bug found: moving nodes does not update the gui immediately, only after reload. Why are we not rerendering?
+
+I think this is not actually a rendering issue, but we are not correctly repositioning the nodes in the logoot sequence.
