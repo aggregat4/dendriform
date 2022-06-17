@@ -8,7 +8,6 @@ export interface CommandHandler {
 interface CommandPayload {
   inverse(): CommandPayload
   requiresRender(): boolean
-  // idea: add notion of batch vs interactive, in batch case rerender is debounced?
 }
 
 export class Command {
@@ -38,7 +37,6 @@ export class CommandBuilder {
   private afterFocusNodeId: string = null
   private afterFocusPos = -1
   private undoable = false
-  // TODO: verify whether we still need this
   private batch = false
   private synchronous = false
 
@@ -391,25 +389,3 @@ export class NoopCommandPayload implements CommandPayload {
     return false
   }
 }
-
-// export class GoToBeginningOfTreeCommandPayload implements CommandPayload {
-//   constructor(readonly nodeId: string) {}
-
-//   inverse(): CommandPayload {
-//     return new GoToNodeCommandPayload(this.nodeId)
-//   }
-//   requiresRender(): boolean {
-//     return false
-//   }
-// }
-
-// export class GoToEndOfTreeCommandPayload implements CommandPayload {
-//   constructor(readonly nodeId: string) {}
-
-//   inverse(): CommandPayload {
-//     return new MoveCursorUpCommandPayload(this.nodeId)
-//   }
-//   requiresRender(): boolean {
-//     return false
-//   }
-// }
