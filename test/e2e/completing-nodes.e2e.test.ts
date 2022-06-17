@@ -28,10 +28,11 @@ export default [
       // firstNode = await rootNode.$('div.node')
       let childNodes = await rootNode.$$('div.node')
       expect(childNodes.length).toBe(3, `There should be three children of our root node now`)
-      // Now mark the second node as completed
+      // Go to the second node
       const secondNameEl = await childNodes[1].$('div.name')
       await secondNameEl.focus()
       expect(await textContent(secondNameEl)).toBe('Bar')
+      // And mark it completed
       await page.keyboard.down('Control')
       await page.keyboard.press('Enter')
       await page.keyboard.up('Control')
