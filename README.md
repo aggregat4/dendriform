@@ -132,6 +132,10 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 ## TODOs
 
+1. BUG: Adding a note seems to work, but when splitting a node with a note, the note get's put on the new sibling instead of staying on the old one. That seems wrong?
+1. BUG: when text has markup I lose focus after typing one additional character
+1. BUG: Undo is broken
+1. IMPROVEMENT: When joining a test replicaset with a new browser it connects to the server and syncs events but between the notice that we are trying to connect to the server disappearing and the tree to appear there is a period of blank nothingness that could be quite disorienting when it then suddenly pops in. Optimally we would have some activity indicator showing that stuff is happening
 1. TODO: try to migrate the tree component to shadow DOM with an import of the shared styles and by moving tree.css into the component.
 1. Extend tizzy to include the ability to "describe", meaning to add structure to tests so that you can have like a global context but still individually described test steps that are documented
 ```
@@ -144,32 +148,19 @@ describe('something' , () => {
 })
 ```
 Something like testWithRepo could just be delegating to describe but how would I solve passing a function with specific parameters to nested describes? Some generics trickery?
-1. IMPROVEMENT: maybe consider trying https://talwindcss.com/ and give that a go here. I am curious how it feels.
+1. EXPERIMENT: maybe consider trying https://talwindcss.com/ and give that a go here. I am curious how it feels.
 1. IMPROVEMENT: make pagedown and page up move the cursor as well? Check in other apps
-
-Old TODOs:
-
-1. BUG: marking as completed is broken, seems to render too many nodes as completed?
-1. BUG: after opml import you can not expand (or collapse) the newly imported nodes
-1. IMPROVEMENT: make the actual GC phase (deleting) also be windowed and use RAF
-1. IMPROVEMENT: consider putting the bulk add and delete operations for IDB into some utility functions that are on the DB object or operate on the DB object. (if they work)
-1. BUG/FEATURE: we need to figure out how to correctly deal with the server having different state than us, specifically if the server says it has no events and we think it does. We probably need to push everything to it? How do you ever delete a document?
-1. Describe the architecture of the client: first high level overview with technologies and abstract components, then real components and dependencies, external APIs, storage format, ...
 1. Add a feature to quickly move nodes to another parent node. Either with a bunch of fixed targets and autocomplete and remembering the last used? is last used an antipattern since you may need a different one each time? Or based on tags somehow? Or autocomplete on all nodes with last used?
-1. Move garbage collection to a web worker, maybe use comlink?
-1. Move event pumping to a web worker? Maybe not since then storage would be in a web worker and collide with my ID generation for the events?
 1. Put all the (sensible) standard actions into menuitems for the node popup
 1. As long as we don't support formatting the importer needs to strip all HTML tags and optionally convert some tags to markdown?
 1. Implement import by pasting into a text area.
 1. Test with touch
 1. Implement multi-select and delete and move operations (at least with keyboard)
 1. Escape should dismiss dialogs
-1. Redesign the menu: trigger it differently on desktop and have an alternative for mobile
-
 1. We need some sort of versioning support: when the software evolves and it is running "in production" we need a way to gracefully upgrade. Our two external interfaces are the remote events and the local indexeddb storage of events. The local store can theoretically be recreated completely but we need to identify the version change, remote events we could maybe transform?
 1. Check if it works on iOS and Android
 1. i18n
-1. (also consider search, maybe other find mechanism? [regex?](https://stackoverflow.com/a/38151393/1996) )
+1. (also consider search in i18n, maybe other find mechanism? [regex?](https://stackoverflow.com/a/38151393/1996) )
 1. Implement a global inbox capture feature: some shortcut to popup some input box whose contents get added as last child to some dedicated inbox node) (what node though? config? hmm)
 1. Override pasting of text to have more control: workflowy does some intelligent things with newlines, etc
 1. Accessibility: is that even possible with this tree? How do I make the commands accessible? Do I need a menu per item anyway? How can I make moving a node in the tree accessible?
