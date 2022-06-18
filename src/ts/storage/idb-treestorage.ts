@@ -135,7 +135,11 @@ export class IdbTreeStorage implements LifecycleAware {
     positionQualifier: LogootPositionQualifier,
     nodeValidator: NodeStorageValidator
   ): Promise<NodeModification> {
-    console.debug(`DEBUG: storeNode for node ${JSON.stringify(node)}`)
+    console.debug(
+      `DEBUG: storeNode for node ${JSON.stringify(node)} with positionQualifier: ${JSON.stringify(
+        positionQualifier
+      )}`
+    )
     if (!nodeValidator(this, node.id, node.parentId)) {
       return {
         modified: false,

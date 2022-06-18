@@ -146,6 +146,8 @@ export class MoveOpTree {
   async reparentNode(nodeId: string, parentId: string, position: RelativeNodePosition) {
     await this.updateLocalNodeInternal(nodeId, parentId, position, (node) => {
       node.parentId = parentId
+      // resetting the logootPos as we are repositioning the node when we reparent
+      node.logootPos = null
       return true
     })
   }
