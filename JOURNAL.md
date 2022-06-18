@@ -1975,3 +1975,9 @@ I was also able to fix some bugs and get all the tests to work now. We need to a
 New bug found: moving nodes does not update the gui immediately, only after reload. Why are we not rerendering?
 
 I think this is not actually a rendering issue, but we are not correctly repositioning the nodes in the logoot sequence.
+
+# 2022-06-18
+
+Good progress, fixed node moving up and down and adding test in the process.
+
+Updated readme with current known bugs and potential improvements.
