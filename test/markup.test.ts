@@ -1,7 +1,7 @@
-import { test } from '../lib/tizzy'
 import expect from 'ceylon'
+import { test } from '../lib/tizzy'
 
-import { toHtml, markupHtml, markupHtmlIncludingFilterHits } from '../src/ts/utils/markup'
+import { markupHtml, markupHtmlIncludingFilterHits, toHtml } from '../src/ts/utils/markup'
 
 // describe('markupMNode marks up text correctly', () => {
 
