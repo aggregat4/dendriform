@@ -153,8 +153,12 @@ function isCursorAtContentEditableFirstLine(
 export function setCursorPosAcrossMarkup(el: Element, chars: number): void {
   if (chars >= 0) {
     const selection = window.getSelection()
-    const range = createRange(el, chars, undefined)
+    const range = createRange(el, { count: chars }, undefined)
     if (range) {
+      console.log(
+        `BORIS Calling set cursor pos across markup for charpos ${chars} and range `,
+        range
+      )
       range.collapse(false)
       selection.removeAllRanges()
       selection.addRange(range)
@@ -163,27 +167,26 @@ export function setCursorPosAcrossMarkup(el: Element, chars: number): void {
 }
 
 /** From https://stackoverflow.com/a/41034697/1996 */
-function createRange(node: Node, count: number, range: Range): Range {
+function createRange(node: Node, charCount: { count: number }, range: Range): Range {
   if (!range) {
     range = document.createRange()
     range.selectNode(node)
     range.setStart(node, 0)
   }
-  let newCount = count
-  if (newCount === 0) {
-    range.setEnd(node, newCount)
-  } else if (node && newCount > 0) {
+  if (charCount.count === 0) {
+    range.setEnd(node, charCount.count)
+  } else if (node && charCount.count > 0) {
     if (node.nodeType === Node.TEXT_NODE) {
-      if (node.textContent.length < newCount) {
-        newCount -= node.textContent.length
+      if (node.textContent.length < charCount.count) {
+        charCount.count -= node.textContent.length
       } else {
-        range.setEnd(node, newCount)
-        newCount = 0
+        range.setEnd(node, charCount.count)
+        charCount.count = 0
       }
     } else {
       for (let lp = 0; lp < node.childNodes.length; lp++) {
-        range = createRange(node.childNodes[lp], newCount, range)
-        if (newCount === 0) {
+        range = createRange(node.childNodes[lp], charCount, range)
+        if (charCount.count === 0) {
           break
         }
       }
