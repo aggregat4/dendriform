@@ -1,4 +1,4 @@
-import { containsMarkup, markupHtml, markupHtmlWithFilterHits, toHtml } from '../utils/markup'
+import { containsMarkup, markupHtml, markupHtmlIncludingFilterHits, toHtml } from '../utils/markup'
 import { findFirst, isEmpty } from '../utils/util'
 import { DeferredArray, RepositoryNode, ResolvedRepositoryNode } from './repository'
 
@@ -52,7 +52,7 @@ function filterHtml(rawHtml: string, filter?: Filter): FilteredFragment {
     } else {
       return {
         fragment: toHtml(
-          markupHtmlWithFilterHits(
+          markupHtmlIncludingFilterHits(
             rawHtml,
             filter.queryComponents.map((qc) => qc.value)
           )

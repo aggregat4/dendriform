@@ -132,10 +132,10 @@ function createFilterMarkTagMNode(s: string): MNode {
 }
 
 export function markupHtml(rawHtml: string): MNode {
-  return markupHtmlWithFilterHits(rawHtml, [])
+  return markupHtmlIncludingFilterHits(rawHtml, [])
 }
 
-export function markupHtmlWithFilterHits(rawHtml: string, filterStrings: string[]): MNode {
+export function markupHtmlIncludingFilterHits(rawHtml: string, filterStrings: string[]): MNode {
   const markedUp = new MNode(null, [], rawHtml)
   for (const filterString of filterStrings) {
     findAndMarkText(markedUp, new Markup(new RegExp(filterString, 'i'), createFilterMarkTagMNode))
