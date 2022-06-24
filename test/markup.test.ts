@@ -1,7 +1,7 @@
 import { test } from '../lib/tizzy'
 import expect from 'ceylon'
 
-import { toHtml, markupHtml, markupHtmlWithFilterHits } from '../src/ts/utils/markup'
+import { toHtml, markupHtml, markupHtmlIncludingFilterHits } from '../src/ts/utils/markup'
 
 // describe('markupMNode marks up text correctly', () => {
 
@@ -47,12 +47,12 @@ test('a filter match at beginning of line', () => {
 })
 
 test('a filter hit followed by a tag', () => {
-  const node = markupHtmlWithFilterHits('findme #foo bar', ['findme'])
+  const node = markupHtmlIncludingFilterHits('findme #foo bar', ['findme'])
   expect(toHtml(node)).toBe('<mark>findme</mark> <span class="filterTag">#foo</span> bar')
 })
 
 test('a tag followed by a filter hit followed by a tag', () => {
-  const node = markupHtmlWithFilterHits('@me findme #foo bar', ['findme'])
+  const node = markupHtmlIncludingFilterHits('@me findme #foo bar', ['findme'])
   expect(toHtml(node)).toBe(
     '<span class="filterTag">@me</span> <mark>findme</mark> <span class="filterTag">#foo</span> bar'
   )
