@@ -1981,3 +1981,11 @@ I think this is not actually a rendering issue, but we are not correctly reposit
 Good progress, fixed node moving up and down and adding test in the process.
 
 Updated readme with current known bugs and potential improvements.
+
+# 2022-06-18
+
+Fixing undo bugs. I did not save the beforefocuspos and afterfocuspos for the update name and note commands. Additionally since update name and update note do _not_ require a rerender (since we do them in place), we were also not doing a rerender on undoing the operation.
+
+However when undoing a rename we just replace the node contents and we don't actually type in the element. So I made it possible for an undo action to require a rerender when the original command did not.
+
+The combination of doing a rerender and of storing the actual before and after cursor positions for those operations makes undo work for editing names and notes.
