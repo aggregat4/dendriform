@@ -155,15 +155,22 @@ export class RenameNodeByIdCommandPayload implements CommandPayload {
     readonly nodeId: string,
     readonly parentId: string,
     readonly oldName: string,
-    readonly newName: string
+    readonly newName: string,
+    readonly _requiresRender: boolean = false
   ) {}
 
   inverse(): CommandPayload {
-    return new RenameNodeByIdCommandPayload(this.nodeId, this.parentId, this.newName, this.oldName)
+    return new RenameNodeByIdCommandPayload(
+      this.nodeId,
+      this.parentId,
+      this.newName,
+      this.oldName,
+      true
+    )
   }
 
   requiresRender(): boolean {
-    return false
+    return this._requiresRender
   }
 }
 
@@ -277,15 +284,22 @@ export class UpdateNoteByIdCommandPayload implements CommandPayload {
     readonly nodeId: string,
     readonly parentId: string,
     readonly oldNote: string,
-    readonly newNote: string
+    readonly newNote: string,
+    readonly _requiresRender: boolean = false
   ) {}
 
   inverse(): CommandPayload {
-    return new UpdateNoteByIdCommandPayload(this.nodeId, this.parentId, this.newNote, this.oldNote)
+    return new UpdateNoteByIdCommandPayload(
+      this.nodeId,
+      this.parentId,
+      this.newNote,
+      this.oldNote,
+      true
+    )
   }
 
   requiresRender(): boolean {
-    return false
+    return this._requiresRender
   }
 }
 

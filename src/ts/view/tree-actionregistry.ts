@@ -132,7 +132,7 @@ class UpdateNameAction extends CommandCreationAction {
     const parentNodeId = getParentNodeId(targetNode)
     const oldName = treeActionContext.transientStateManager.getState().focusNodePreviousName
     // const beforeFocusNodeId = nodeId
-    // const beforeFocusPos = treeActionContext.transientStateManager.getState().focusNodePreviousPos
+    const beforeFocusPos = treeActionContext.transientStateManager.getState().focusNodePreviousPos
     const afterFocusPos = getCursorPos()
     treeActionContext.transientStateManager.savePreviousNodeState(
       nodeId,
@@ -145,6 +145,10 @@ class UpdateNameAction extends CommandCreationAction {
       new RenameNodeByIdCommandPayload(nodeId, parentNodeId, oldName, newName)
     )
       .isUndoable()
+      .withBeforeFocusNodeId(nodeId)
+      .withBeforeFocusPos(beforeFocusPos)
+      .withAfterFocusNodeId(nodeId)
+      .withAfterFocusPos(afterFocusPos)
       .build()
   }
 }
@@ -163,6 +167,7 @@ class UpdateNoteAction extends CommandCreationAction {
     const parentNodeId = getParentNodeId(targetNode)
     const name = getNodeName(targetNode)
     const newNote = getNodeNote(targetNode)
+    const beforeFocusPos = treeActionContext.transientStateManager.getState().focusNodePreviousPos
     const oldNote = treeActionContext.transientStateManager.getState().focusNodePreviousNote
     const afterFocusPos = getCursorPos()
     treeActionContext.transientStateManager.savePreviousNodeState(
@@ -176,6 +181,10 @@ class UpdateNoteAction extends CommandCreationAction {
       new UpdateNoteByIdCommandPayload(nodeId, parentNodeId, oldNote, newNote)
     )
       .isUndoable()
+      .withBeforeFocusNodeId(nodeId)
+      .withBeforeFocusPos(beforeFocusPos)
+      .withAfterFocusNodeId(nodeId)
+      .withAfterFocusPos(afterFocusPos)
       .build()
   }
 }
