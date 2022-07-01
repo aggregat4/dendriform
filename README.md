@@ -132,7 +132,8 @@ What's missing is to also throttle the actual garbage collection itself (deletin
 
 ## TODOs
 
-1. BUG: Undo is broken
+1. BUG: undo for renaming is broken because it does not rerender
+2. BUG: undo for splitting is broken because it restores the wrong nodes 
 1. IMPROVEMENT: When splitting a node with a note, the note should only move to the new node when we don't split at the end of the name (see workflowy)
 1. IMPROVEMENT: When joining a test replicaset with a new browser it connects to the server and syncs events but between the notice that we are trying to connect to the server disappearing and the tree to appear there is a period of blank nothingness that could be quite disorienting when it then suddenly pops in. Optimally we would have some activity indicator showing that stuff is happening
 1. IMPROVEMENT: try to migrate the tree component to shadow DOM with an import of the shared styles and by moving tree.css into the component.
