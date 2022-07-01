@@ -94,7 +94,6 @@ export class CommandBuilder {
 }
 
 export class SplitNodeByIdCommandPayload implements CommandPayload {
-  // uses parameter properties to have a sort of data class
   constructor(
     readonly siblingId: string,
     readonly siblingParentId: string,
@@ -108,11 +107,11 @@ export class SplitNodeByIdCommandPayload implements CommandPayload {
   inverse(): CommandPayload {
     return new MergeNodesByIdCommandPayload(
       this.siblingId,
-      this.siblingParentId,
       this.newNodeName,
+      this.siblingParentId,
       this.nodeId,
-      this.nodeParentId,
       this.remainingNodeName,
+      this.nodeParentId,
       this.mergeNameOrder
     )
   }
