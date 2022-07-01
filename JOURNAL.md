@@ -1982,10 +1982,18 @@ Good progress, fixed node moving up and down and adding test in the process.
 
 Updated readme with current known bugs and potential improvements.
 
-# 2022-06-18
+# 2022-07-01
 
 Fixing undo bugs. I did not save the beforefocuspos and afterfocuspos for the update name and note commands. Additionally since update name and update note do _not_ require a rerender (since we do them in place), we were also not doing a rerender on undoing the operation.
 
 However when undoing a rename we just replace the node contents and we don't actually type in the element. So I made it possible for an undo action to require a rerender when the original command did not.
 
 The combination of doing a rerender and of storing the actual before and after cursor positions for those operations makes undo work for editing names and notes.
+
+# 2022-07-01
+
+Note for the future: I was worried that since lit-html updates are async, I would not be able to have the correct timing for updating cursor positions after undo.
+
+In my research on how to hook into the update lifecycle for lit-html I did not find anything helpful (lit itself has lifecycle hooks, but not lit-html) but I did find a bug thread where there is discussion on how to do DOM things after render and that thread indicates that doing a post render operation by scheduling in the next RAF (requestAnimationFrame) would work because of the microtask rendering architecture. 
+
+See <https://github.com/lit/lit-element/issues/365>.
