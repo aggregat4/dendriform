@@ -46,10 +46,9 @@ abstract class TreeNodeMenuItem extends HTMLElement {
 
 export class TreeNodeActionMenuItem extends TreeNodeMenuItem {
   private _treeAction: ExecutableAction
-  private readonly template = () => html`
-    ${this.menuItemStyle}
+  private readonly template = () => html` ${this.menuItemStyle}
     <div class="menuItem" @click=${this.onClick.bind(this)}>
-      <span class="name">${this.treeAction?.name || ''}<span>
+      <span class="name">${this.treeAction?.name || ''}</span>
       <kbd>${this.treeAction?.trigger.toString() || ''}</kbd>
       <slot></slot>
     </div>`

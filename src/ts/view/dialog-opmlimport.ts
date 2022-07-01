@@ -66,7 +66,7 @@ export class OpmlImportDialog
             @click=${this.importFile.bind(this)}
             >Import File</button
           >
-          <df-spinner delayMs="250" />
+          <df-spinner delayMs="250"></df-spinner>
         </div>
       </section>
     </div>`

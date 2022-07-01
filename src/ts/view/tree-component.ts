@@ -143,7 +143,7 @@ export class Tree extends HTMLElement implements CommandExecutor {
           ?disabled=${!this.joinProtocol.hasJoinedReplicaSet()}
           @input=${debounce(this.onQueryChange.bind(this), 150)}
         />
-        <df-spinner delayms="1000" />
+        <df-spinner delayms="1000"></df-spinner>
       </div>
       <fieldset class="config">
         <label>
