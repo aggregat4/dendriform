@@ -155,10 +155,6 @@ export function setCursorPosAcrossMarkup(el: Element, chars: number): void {
     const selection = window.getSelection()
     const range = createRange(el, { count: chars }, undefined)
     if (range) {
-      console.log(
-        `BORIS Calling set cursor pos across markup for charpos ${chars} and range `,
-        range
-      )
       range.collapse(false)
       selection.removeAllRanges()
       selection.addRange(range)
