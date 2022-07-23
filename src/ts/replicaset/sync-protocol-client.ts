@@ -5,7 +5,13 @@ export interface SyncProtocolPayload {
   replicaSet: Replica[]
 }
 
+export interface JoinProtocolResponse {
+  alreadyKnown: boolean
+}
+
 export interface SyncProtocolClient {
+  join(documentId: string, replicaId: string): Promise<JoinProtocolResponse>
+
   sync(
     documentId: string,
     replicaId: string,
