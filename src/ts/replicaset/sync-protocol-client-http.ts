@@ -13,7 +13,7 @@ export class SyncProtocolHttpClient implements SyncProtocolClient {
     const response = await performFetch(
       async () =>
         await fetch(
-          `${this.serverEndpoint}documents/${documentId}/replicaset/${replicaId}/events?batchSize=${batchSize}`,
+          `${this.serverEndpoint}documents/${documentId}/replicaset/${replicaId}/ops?batchSize=${batchSize}`,
           {
             method: 'POST',
             body: JSON.stringify(payload),
