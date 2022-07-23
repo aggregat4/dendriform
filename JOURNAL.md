@@ -1997,3 +1997,22 @@ Note for the future: I was worried that since lit-html updates are async, I woul
 In my research on how to hook into the update lifecycle for lit-html I did not find anything helpful (lit itself has lifecycle hooks, but not lit-html) but I did find a bug thread where there is discussion on how to do DOM things after render and that thread indicates that doing a post render operation by scheduling in the next RAF (requestAnimationFrame) would work because of the microtask rendering architecture. 
 
 See <https://github.com/lit/lit-element/issues/365>.
+
+# 2022-07-23
+
+I'm unhappy with the joining/leaving semantics of the current protocols. The joining is only in memory and implicit and as long as a replica has not sent an actual event it doesn't really mean anything. We also still have the issue of not being able to reduce the replicaset.
+
+Proposal: joining and leaving are explicit events. As long as the replica has never sent an event, he has not joined and can not start adding data. We extend moveOp with a type that indicates JOIN/LEAVE/OTHER (0,1,2).
+
+This would mean changing joining to sending a specific event. This would also mean that we no longer need the join operation on the server but we could use a GET on replicaset/replicaid to check whether we are known (200 response).
+
+On the server we we have one striped readwrite lock (many stripes) that each delegates to a cache that is built by querying the database and that can be updated when sync events come in.
+
+* GET /documents/:documentId/replicaset
+** can be used to check whether you are in it or not
+
+* POST /documents/:documentId/replicaset/:replicaId/ops
+** can be used to post a JOIN message, afterwards a GET to the previous endpoint should show you in it
+** can be used to post other messages, but should only be done after having joined since otherwise messages may be pruned by other replicas as they GC (since your messages can be below the causality threshold)
+
+
