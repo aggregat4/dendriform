@@ -65,7 +65,7 @@ const router = new Router()
       ctx.response.body = { alreadyKnown: true }
     }
   })
-  .post('/documents/:documentId/replicaset/:replicaId/events', async (ctx) => {
+  .post('/documents/:documentId/replicaset/:replicaId/ops', async (ctx) => {
     const documentId = ctx.params.documentId
     const clientReplicaId = ctx.params.replicaId
     const batchSize = parseInt(ctx.params.batchSize)
