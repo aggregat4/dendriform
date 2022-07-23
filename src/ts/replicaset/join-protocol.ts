@@ -27,8 +27,8 @@ export class ClientHasNotJoinedReplicaSetError extends Error {
 
 /**
  * This class is responsible for implementing the remote join protocol for a
- * particular document. It keeps track of the start clock for this particular
- * document. This information also acts as an indicator that we have joined the
+ * particular document. It keeps track of the start clock for this document.
+ * This information also acts as an indicator that we have joined the
  * replicaset and that offline work on this document can proceed.
  *
  * Given a document id it can return the current start clock or none if the join
