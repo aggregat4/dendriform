@@ -2016,3 +2016,8 @@ On the server we we have one striped readwrite lock (many stripes) that each del
 ** can be used to post other messages, but should only be done after having joined since otherwise messages may be pruned by other replicas as they GC (since your messages can be below the causality threshold)
 
 
+# 2022-07-24
+
+I slept on it. If we need to model replicaset membership explicitly, why not keep it completely out of band? I may as well have a separate table with replicas per document and have ReST operations on that. Dynamic replicaset management is out of band to move operations and it is only needed so clients can do GC for all events before a causal threshold.
+
+I am reverting my merging of join and sync protocols. By persisting the membership info I can probably even keep my test server implementation the same (since it is just in memory) and I can keep the current API Semantics. I "only" need to implement the persistent server variation of this.
