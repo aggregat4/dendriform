@@ -16,7 +16,7 @@ import {
   IllegalClientServerStateError,
   ServerNotAvailableError,
 } from './client-server-errors'
-import { SyncProtocolClient } from './sync-protocol-client'
+import { JoinProtocolClient } from './join-protocol-client'
 
 export class ClientHasNotJoinedReplicaSetError extends Error {
   constructor(readonly documentId: string) {
@@ -54,7 +54,7 @@ export class JoinProtocol implements LifecycleAware {
     readonly idbDocumentSyncStorage: IdbDocumentSyncStorage,
     readonly documentId: string,
     readonly replicaStore: IdbReplicaStorage,
-    readonly client: SyncProtocolClient,
+    readonly client: JoinProtocolClient,
     readonly joinImmediately: boolean = false
   ) {}
 

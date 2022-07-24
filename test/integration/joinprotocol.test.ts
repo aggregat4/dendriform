@@ -8,18 +8,18 @@ import {
   ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK,
 } from 'src/ts/domain/errors'
 import { deinitAll, initAll, register } from 'src/ts/domain/lifecycle'
+import {
+  ClientNotAuthorizedError,
+  IllegalClientServerStateError,
+  ServerNotAvailableError,
+} from 'src/ts/replicaset/client-server-errors'
 import { JoinProtocol } from 'src/ts/replicaset/join-protocol'
-import { SyncProtocolClient } from 'src/ts/replicaset/sync-protocol-client'
+import { JoinProtocolClient, JoinProtocolResponse } from 'src/ts/replicaset/join-protocol-client'
 import { IdbDocumentSyncStorage } from 'src/ts/storage/idb-documentsyncstorage'
 import { IdbReplicaStorage } from 'src/ts/storage/idb-replicastorage'
-import {
-  ClientNotAuthorizedErrorThrowingClient,
-  IllegalClientServerStateErrorThrowingClient,
-  SuccessfulJoinProtocolClient,
-} from './integration-test-utils'
 
 function testWithJoinProtocol(
-  joinProtocolClient: SyncProtocolClient,
+  joinProtocolClient: JoinProtocolClient,
   t: (joinProtocol: JoinProtocol) => Promise<void>
 ): () => void {
   return async () => {
@@ -41,6 +41,38 @@ function testWithJoinProtocol(
       await deleteDB('documentsyncstoragedb')
       await deleteDB('replicastoredb')
     }
+  }
+}
+
+class ServerNotAvailableErrorThrowingClient implements JoinProtocolClient {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  join(documentId: string, replicaId: string): Promise<JoinProtocolResponse> {
+    throw new ServerNotAvailableError('')
+  }
+}
+
+class ClientNotAuthorizedErrorThrowingClient implements JoinProtocolClient {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  join(documentId: string, replicaId: string): Promise<JoinProtocolResponse> {
+    throw new ClientNotAuthorizedError()
+  }
+}
+
+class IllegalClientServerStateErrorThrowingClient implements JoinProtocolClient {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  join(documentId: string, replicaId: string): Promise<JoinProtocolResponse> {
+    throw new IllegalClientServerStateError('test illegal state')
+  }
+}
+
+class SuccessfulJoinProtocolClient implements JoinProtocolClient {
+  constructor(readonly startClock: number, readonly alreadyKnown: boolean) {}
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  join(documentId: string, replicaId: string): Promise<JoinProtocolResponse> {
+    return Promise.resolve({
+      alreadyKnown: this.alreadyKnown,
+    })
   }
 }
 

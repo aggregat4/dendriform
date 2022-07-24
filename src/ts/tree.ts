@@ -6,6 +6,7 @@ import { UndoableCommandHandler } from './commands/command-handler-undoable'
 import { deinitAll, initAll, LifecycleAware, register } from './domain/lifecycle'
 import { MoveOpTree } from './moveoperation/moveoperation'
 import { JoinProtocol } from './replicaset/join-protocol'
+import { JoinProtocolHttpClient } from './replicaset/join-protocol-client-http'
 import { SyncProtocol } from './replicaset/sync-protocol'
 import { SyncProtocolHttpClient } from './replicaset/sync-protocol-client-http'
 import { LogAndTreeStorageRepository } from './repository/repository-logandtreestorage'
@@ -37,10 +38,13 @@ export class TreeManager {
       this.initializables
     )
 
-    const client = new SyncProtocolHttpClient(`/`)
-
     const joinProtocol = register(
-      new JoinProtocol(idbDocumentSyncStorage, treeName, replicaStore, client),
+      new JoinProtocol(
+        idbDocumentSyncStorage,
+        treeName,
+        replicaStore,
+        new JoinProtocolHttpClient(`/`)
+      ),
       this.initializables
     )
 
@@ -60,7 +64,7 @@ export class TreeManager {
         joinProtocol,
         treeName,
         moveOpTree,
-        client,
+        new SyncProtocolHttpClient('/'),
         replicaStore
       ),
       this.initializables
