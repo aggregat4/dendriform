@@ -3,8 +3,6 @@ import {
   ApplicationErrorCode,
   ERROR_CLIENT_NOT_AUTHORIZED,
   ERROR_JOIN_PROTOCOL_CLIENT_ILLEGALSTATE,
-  ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK,
-  ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK,
 } from '../domain/errors'
 import { LifecycleAware } from '../domain/lifecycle'
 import { IdbDocumentSyncStorage } from '../storage/idb-documentsyncstorage'
@@ -16,7 +14,7 @@ import {
   IllegalClientServerStateError,
   ServerNotAvailableError,
 } from './client-server-errors'
-import { JoinProtocolClient } from './join-protocol-client'
+import { JoinProtocolClient, JoinProtocolResponse } from './join-protocol-client'
 
 export class ClientHasNotJoinedReplicaSetError extends Error {
   constructor(readonly documentId: string) {
@@ -49,6 +47,7 @@ export class JoinProtocol implements LifecycleAware {
 
   #hasJoinedReplicaSet = false
   #clientServerErrorState: ApplicationErrorCode = null
+  #serverKnownClock = -1
 
   constructor(
     readonly idbDocumentSyncStorage: IdbDocumentSyncStorage,
@@ -84,9 +83,12 @@ export class JoinProtocol implements LifecycleAware {
 
   private async join() {
     // console.debug(`executing join() on JoinProtocol`)
-    let response = null
+    let response: JoinProtocolResponse = null
     try {
-      response = await this.client.join(this.documentId, this.replicaStore.getReplicaId())
+      response = (await this.client.join(
+        this.documentId,
+        this.replicaStore.getReplicaId()
+      )) as JoinProtocolResponse
     } catch (e) {
       if (e instanceof ClientNotAuthorizedError) {
         this.#clientServerErrorState = ERROR_CLIENT_NOT_AUTHORIZED
@@ -104,30 +106,24 @@ export class JoinProtocol implements LifecycleAware {
       }
     }
     if (response != null) {
-      // Now we have a bunch of potential error and non-error cases:
-      if (!this.#hasJoinedReplicaSet && !response.alreadyKnown) {
-        // OK: we are a fresh replica and the server doesn't know us, all is well
-        // console.debug(`We are initialising our clock since we joined the replicaset fresh!`)
-        await this.idbDocumentSyncStorage.saveDocument({
-          documentId: this.documentId,
-          hasJoinedReplicaSet: true,
-          lastSentClock: -1,
-        })
-        this.#hasJoinedReplicaSet = true
-      } else if (!this.#hasJoinedReplicaSet && response.alreadyKnown) {
-        // ERROR: we believe we are a fresh replica but the server already knows us
-        this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK
-      } else if (this.#hasJoinedReplicaSet && !response.alreadyKnown) {
-        // ERROR: we believe we have already joined the replicaset but the server does not know us
-        this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK
-      } else if (this.#hasJoinedReplicaSet && response.alreadyKnown) {
-        // OK: we think we are part of the replicaset and the server thinks so as well
-        //
-        // Theoretically we could have the problem that the server does not have some of our events
-        // but we will resolve this in the sync protocol: it will check what the server knows of us
-        // and we will send all missing messages. If messages are missing in the middle of the sequence
-        // well, there is nothing we can do about that, and also no way to detect that.
-      }
+      // TODO: Old error cases that we no longer detect. Is this a problem?
+      // } else if (!this.#hasJoinedReplicaSet && response.alreadyKnown) {
+      //   // ERROR: we believe we are a fresh replica but the server already knows us
+      //   this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_MISSING_LOCAL_CLOCK
+      // } else if (this.#hasJoinedReplicaSet && !response.alreadyKnown) {
+      //   // ERROR: we believe we have already joined the replicaset but the server does not know us
+      //   this.#clientServerErrorState = ERROR_JOIN_PROTOCOL_MISSING_SERVER_CLOCK
+      console.debug(
+        `Have successfully called join with serverknownclock: ${JSON.stringify(response)}`
+      )
+      const document = await this.idbDocumentSyncStorage.loadDocument(this.documentId)
+      await this.idbDocumentSyncStorage.saveDocument({
+        documentId: this.documentId,
+        hasJoinedReplicaSet: true,
+        lastSentClock: !!document ? document.lastSentClock : -1,
+      })
+      this.#hasJoinedReplicaSet = true
+      this.#serverKnownClock = response[this.replicaStore.getReplicaId()]
     }
     // No matter what state we are in after a request to the server where we have not thrown an exception,
     // we need to stop the scheduler
@@ -147,5 +143,9 @@ export class JoinProtocol implements LifecycleAware {
       throw new ApplicationError(this.#clientServerErrorState)
     }
     return this.#hasJoinedReplicaSet
+  }
+
+  getServerKnownClock(): number {
+    return this.#serverKnownClock
   }
 }

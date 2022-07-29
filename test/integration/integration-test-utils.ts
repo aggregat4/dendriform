@@ -7,10 +7,8 @@ export class NewlyJoiningMockJoinProtocolClient implements JoinProtocolClient {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     replicaId: string
   ): Promise<JoinProtocolResponse> {
-    return Promise.resolve({
-      // The mock client must pretend the client is new, otherwise the joinprotocol will fail
-      alreadyKnown: false,
-      startClock: 1,
-    })
+    const response = {}
+    response[replicaId] = 1
+    return Promise.resolve(response)
   }
 }

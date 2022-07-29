@@ -69,7 +69,8 @@ export class IdbLogMoveStorage implements LifecycleAware {
   private async checkReplicaSetJoined() {
     if (this.joinProtocol.hasJoinedReplicaSet()) {
       const maxClock = await this.getMaxClock()
-      this.#clock = maxClock + 1
+      const serverKnownClock = this.joinProtocol.getServerKnownClock()
+      this.#clock = Math.max(maxClock, serverKnownClock) + 1
     }
   }
 

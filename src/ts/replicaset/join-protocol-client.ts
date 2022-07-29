@@ -1,5 +1,5 @@
 export interface JoinProtocolResponse {
-  alreadyKnown: boolean
+  [key: string]: number
 }
 
 export interface JoinProtocolClient {

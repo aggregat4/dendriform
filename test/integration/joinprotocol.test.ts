@@ -66,13 +66,13 @@ class IllegalClientServerStateErrorThrowingClient implements JoinProtocolClient 
 }
 
 class SuccessfulJoinProtocolClient implements JoinProtocolClient {
-  constructor(readonly startClock: number, readonly alreadyKnown: boolean) {}
+  constructor(readonly startClock: number) {}
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   join(documentId: string, replicaId: string): Promise<JoinProtocolResponse> {
-    return Promise.resolve({
-      alreadyKnown: this.alreadyKnown,
-    })
+    const response = {}
+    response[replicaId] = 1
+    return Promise.resolve(response)
   }
 }
 
@@ -109,7 +109,7 @@ test(
 test(
   'join protocol: Successful join, not previously known',
   testWithJoinProtocol(
-    new SuccessfulJoinProtocolClient(100, false),
+    new SuccessfulJoinProtocolClient(100),
     async (joinProtocol: JoinProtocol) => {
       expect(joinProtocol.hasJoinedReplicaSet()).toBe(true)
     }
@@ -119,7 +119,7 @@ test(
 test(
   'join protocol: Successful join, previously known, but we have no preexisting start clock',
   testWithJoinProtocol(
-    new SuccessfulJoinProtocolClient(100, true),
+    new SuccessfulJoinProtocolClient(100),
     async (joinProtocol: JoinProtocol) => {
       try {
         joinProtocol.hasJoinedReplicaSet()

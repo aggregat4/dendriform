@@ -46,6 +46,17 @@ function findMaxKnownClock(replicaSet: any, serverReplicaId: string) {
   return -1
 }
 
+function findMaxClockInReplicaSet(replicaSet: ReplicaSet) {
+  let maxClock = -1
+  let k: keyof ReplicaSet
+  for (k in replicaSet) {
+    if (maxClock < replicaSet[k]) {
+      maxClock = replicaSet[k]
+    }
+  }
+  return maxClock
+}
+
 const router = new Router()
   .put('/documents/:documentId/replicaset/:replicaId', async (ctx) => {
     const documentId = ctx.params.documentId
@@ -57,13 +68,12 @@ const router = new Router()
       }
     }
     if (documents[documentId].replicaSet[replicaId] === undefined) {
-      documents[documentId].replicaSet[replicaId] = -1
+      // the new replica gets a starting clock that is one larger than the largest known click
+      documents[documentId].replicaSet[replicaId] =
+        findMaxClockInReplicaSet(documents[documentId].replicaSet) + 1
       documents[documentId].events[replicaId] = []
-      ctx.response.body = { alreadyKnown: false }
-    } else {
-      console.debug(`client is known`)
-      ctx.response.body = { alreadyKnown: true }
     }
+    ctx.response.body = documents[documentId].replicaSet
   })
   .post('/documents/:documentId/replicaset/:replicaId/ops', async (ctx) => {
     const documentId = ctx.params.documentId
