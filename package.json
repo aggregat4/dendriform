@@ -20,7 +20,7 @@
     "compile": "npx tsc --noEmit",
     "eslint": "npx eslint src",
     "bundle-and-minify": "npx esbuild --bundle --sourcemap --target=es2018 --outdir=dist --minify --format=esm --splitting src/ts/tree.ts src/example/main.ts && cp src/css/*.css dist/example && cp src/example/index2.html dist/example/index.html",
-    "bundle": "npx esbuild --bundle --sourcemap --target=es2018 --outdir=dist --format=esm --splitting src/ts/tree.ts src/example/main.ts && cp src/css/*.css dist/example && cp src/example/index2.html dist/example/index.html",
+    "bundle": "npx esbuild --bundle --sourcemap --target=es2018 --outdir=dist --format=esm --splitting --entry-names=[dir]/[name]-[hash] src/ts/tree.ts src/example/main.ts src/css/*.css && cp src/example/index2.html dist/example/index.html",
     "bundle-integration-tests": "npx esbuild --bundle --sourcemap --target=es2018 --outdir=dist --format=esm test/integration/integration-tests.ts",
     "unit-tests": "npx ts-node test/runtests.ts",
     "integration-tests": "npm run bundle-integration-tests && TIZZY_ITEST_RELATIVE_FILENAME=test/integration/integration-tests.html npx ts-node lib/run-integration-tests.ts",
