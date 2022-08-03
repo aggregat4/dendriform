@@ -40,3 +40,19 @@ export interface Replica {
   replicaId: string
   clock: number
 }
+
+export interface OperationMetadata extends NodeMetadata {
+  nodeId: string
+  parentId: string
+}
+
+/**
+ * This the moveop we send to the server, it isn't interested in internal
+ * information like the node id and parent id.
+ * We move the specific information that we need into the metadata.
+ */
+export interface Operation {
+  replicaId: string
+  clock: number
+  metadata: OperationMetadata
+}

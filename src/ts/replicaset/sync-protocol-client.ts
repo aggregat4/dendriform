@@ -1,7 +1,7 @@
-import { MoveOp, Replica } from '../moveoperation/moveoperation-types'
+import { Operation, Replica } from '../moveoperation/moveoperation-types'
 
 export interface SyncProtocolPayload {
-  events: MoveOp[]
+  events: Operation[]
   replicaSet: Replica[]
 }
 

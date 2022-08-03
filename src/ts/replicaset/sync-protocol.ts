@@ -7,6 +7,7 @@ import {
 } from '../domain/errors'
 import { LifecycleAware } from '../domain/lifecycle'
 import { MoveOpTree } from '../moveoperation/moveoperation'
+import { MoveOp, Operation } from '../moveoperation/moveoperation-types'
 import { DocumentSyncRecord, IdbDocumentSyncStorage } from '../storage/idb-documentsyncstorage'
 import { IdbReplicaStorage } from '../storage/idb-replicastorage'
 import { BackoffWithJitterTimeoutStrategy, JobScheduler } from '../utils/jobscheduler'
@@ -93,7 +94,7 @@ export class SyncProtocol implements LifecycleAware {
           this.replicaStore.getReplicaId(),
           this.#EVENT_BATCH_SIZE,
           {
-            events: eventsToSend,
+            events: eventsToSend.map(moveOpToOperation),
             replicaSet: knownReplicaSet,
           }
         )
@@ -139,7 +140,8 @@ export class SyncProtocol implements LifecycleAware {
             response.events.length
           } events from server`
         )
-        for (const event of response.events) {
+        const serverOperations = response.events.map(operationToMoveOp)
+        for (const event of serverOperations) {
           await this.moveOpTree.applyMoveOp(event)
         }
         this.moveOpTree.processNewReplicaSet(response.replicaSet)
@@ -154,5 +156,39 @@ export class SyncProtocol implements LifecycleAware {
 
   getErrorState(): ApplicationErrorCode {
     return this.#clientServerErrorState
+  }
+}
+
+function moveOpToOperation(moveop: MoveOp): Operation {
+  return {
+    replicaId: moveop.replicaId,
+    clock: moveop.clock,
+    metadata: {
+      name: moveop.metadata.name,
+      note: moveop.metadata.note,
+      flags: moveop.metadata.flags,
+      created: moveop.metadata.created,
+      updated: moveop.metadata.updated,
+      logootPos: moveop.metadata.logootPos,
+      nodeId: moveop.nodeId,
+      parentId: moveop.parentId,
+    },
+  }
+}
+
+function operationToMoveOp(op: Operation): MoveOp {
+  return {
+    nodeId: op.metadata.nodeId,
+    parentId: op.metadata.parentId,
+    replicaId: op.replicaId,
+    clock: op.clock,
+    metadata: {
+      name: op.metadata.name,
+      note: op.metadata.note,
+      flags: op.metadata.flags,
+      created: op.metadata.created,
+      updated: op.metadata.updated,
+      logootPos: op.metadata.logootPos,
+    },
   }
 }
