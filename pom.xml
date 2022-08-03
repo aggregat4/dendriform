@@ -45,18 +45,18 @@
                         </goals>
                     </execution>
                     <execution>
-                        <id>npm build</id>
+                        <id>npm build and test</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>run build</arguments>
+                            <arguments>run bt</arguments>
                         </configuration>
                     </execution>
                 </executions>
                 <configuration>
-                    <nodeVersion>v16.15.1</nodeVersion>
+                    <nodeVersion>v17.3.1</nodeVersion>
                 </configuration>
             </plugin>
             <plugin>
