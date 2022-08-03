@@ -68,7 +68,7 @@ const router = new Router()
       }
     }
     if (documents[documentId].replicaSet[replicaId] === undefined) {
-      // the new replica gets a starting clock that is one larger than the largest known click
+      // the new replica gets a starting clock that is one larger than the largest known clock
       documents[documentId].replicaSet[replicaId] =
         findMaxClockInReplicaSet(documents[documentId].replicaSet) + 1
       documents[documentId].events[replicaId] = []
