@@ -45,13 +45,23 @@
                         </goals>
                     </execution>
                     <execution>
-                        <id>npm build and test</id>
+                        <id>npm build</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
-                        <phase>generate-resources</phase>
+                        <phase>compile</phase>
                         <configuration>
-                            <arguments>run bt</arguments>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm test</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>test</phase>
+                        <configuration>
+                            <arguments>run test</arguments>
                         </configuration>
                     </execution>
                 </executions>
