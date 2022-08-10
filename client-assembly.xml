@@ -7,19 +7,18 @@
     </formats>
     <fileSets>
         <fileSet>
-            <directory>dist</directory>
+            <directory>dist/css</directory>
             <includes>
-                <include>tree.css</include>
+                <include>*.css</include>
+                <include>*.css.map</include>
             </includes>
             <outputDirectory>/css/</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>dist</directory>
+            <directory>dist/ts</directory>
             <includes>
                 <include>*.js</include>
                 <include>*.js.map</include>
-                <include>*.mjs</include>
-                <include>*.mjs.map</include>
             </includes>
             <outputDirectory>/js/</outputDirectory>
         </fileSet>
