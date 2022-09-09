@@ -11,7 +11,7 @@ export async function createBrowser(puppeteer) {
 
 export function setupPageConsoleHandler(page: Page) {
   page.on('console', (msg) => {
-    if (msg.type() !== 'debug' || process.env.TIZZY_DEBUG) {
+    if (msg.type() !== 'debug' || !!process.env.TIZZY_DEBUG) {
       console.log(`console ${msg.type()}:`, msg.text())
     }
     // if (msg.type() === 'error') {
