@@ -2021,3 +2021,7 @@ On the server we we have one striped readwrite lock (many stripes) that each del
 I slept on it. If we need to model replicaset membership explicitly, why not keep it completely out of band? I may as well have a separate table with replicas per document and have ReST operations on that. Dynamic replicaset management is out of band to move operations and it is only needed so clients can do GC for all events before a causal threshold.
 
 I am reverting my merging of join and sync protocols. By persisting the membership info I can probably even keep my test server implementation the same (since it is just in memory) and I can keep the current API Semantics. I "only" need to implement the persistent server variation of this.
+
+# 2022-09-09
+
+ensureClockIsInitialized in IdbLogMoveStorage is throwing. There is some sort of race condition where the join protocol gets the info it has joined the replicaset but it gets the value -1 as the clock for the client. This then causes cascading failures since we assume we have joined, take that -1 and make 0 out of it, which then causes us to think we are have not initialized the clock yet.
