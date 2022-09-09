@@ -11,7 +11,9 @@ import serve from 'koa-static'
 import { MoveOp } from 'src/ts/moveoperation/moveoperation-types'
 
 const app = new Koa()
-app.use(logger())
+if (!!process.env.TIZZY_DEBUG) {
+  app.use(logger())
+}
 app.use(bodyParser())
 
 const staticFiles = serve('dist/')
@@ -26,7 +28,7 @@ type ReplicaSet = {
 }
 interface Document {
   replicaSet: ReplicaSet
-  events: EventsPerReplica
+  operations: EventsPerReplica
 }
 type Documents = {
   [key: string]: Document
@@ -64,14 +66,14 @@ const router = new Router()
     if (!documents[documentId]) {
       documents[documentId] = {
         replicaSet: {},
-        events: {},
+        operations: {},
       }
     }
     if (documents[documentId].replicaSet[replicaId] === undefined) {
       // the new replica gets a starting clock that is one larger than the largest known clock
       documents[documentId].replicaSet[replicaId] =
         findMaxClockInReplicaSet(documents[documentId].replicaSet) + 1
-      documents[documentId].events[replicaId] = []
+      documents[documentId].operations[replicaId] = []
     }
     ctx.response.body = documents[documentId].replicaSet
   })
@@ -89,16 +91,22 @@ const router = new Router()
       ctx.throw(404, 'has not joined replicaSet yet')
     }
     // update the server side replicaset to mark the new max clock of the client
-    if (payload.events && payload.events.length > 0) {
-      console.debug(`Receiving ${payload.events.length} events`)
-      for (const event of payload.events) {
+    if (payload.operations && payload.operations.length > 0) {
+      console.debug(`Receiving ${payload.operations.length} events`)
+      for (const event of payload.operations) {
         if (documents[documentId].replicaSet[clientReplicaId] < event.clock) {
           documents[documentId].replicaSet[clientReplicaId] = event.clock
         }
-        documents[documentId].events[clientReplicaId].push(event)
+        documents[documentId].operations[clientReplicaId].push(event)
       }
     }
-    console.debug(`client has sent replicaset: `, payload.replicaSet)
+    console.debug(
+      `client has sent replicaset: `,
+      payload.replicaSet,
+      ` with `,
+      payload.operations.length,
+      ` operations`
+    )
     // based on the client's knowledge of replicas, send hitherto unknown events back
     const responseEvents = []
     for (const serverReplicaId of Object.keys(documents[documentId].replicaSet)) {
@@ -108,7 +116,7 @@ const router = new Router()
         console.debug(
           `client knows maximum clock ${clientKnownMaxClock} for replica ${serverReplicaId}`
         )
-        for (const serverEvent of documents[documentId].events[serverReplicaId]) {
+        for (const serverEvent of documents[documentId].operations[serverReplicaId]) {
           if (serverEvent.clock > clientKnownMaxClock) {
             responseEvents.push(serverEvent)
             if (responseEvents.length >= batchSize) {
@@ -127,8 +135,13 @@ const router = new Router()
       )
     }
     ctx.response.body = {
-      events: responseEvents,
-      replicaSet: documents[documentId].replicaSet,
+      operations: responseEvents,
+      replicaSet: Object.entries(documents[documentId].replicaSet).map((arr) => {
+        return {
+          replicaId: arr[0],
+          clock: arr[1],
+        }
+      }),
     }
   })
 

@@ -80,12 +80,12 @@ export class SyncProtocol implements LifecycleAware {
       }
       const knownReplicaSet = await this.moveOpTree.getKnownReplicaSet()
       // console.debug(`last sent clock is ${this.#documentSyncRecord.lastSentClock}`)
-      const eventsToSend = await this.moveOpTree.getLocalMoveOpsSince(
+      const operationsToSend = await this.moveOpTree.getLocalMoveOpsSince(
         this.#documentSyncRecord.lastSentClock,
         this.#EVENT_BATCH_SIZE
       )
       console.debug(
-        `${eventsToSend.length} events to send from client ${this.replicaStore.getReplicaId()}`
+        `${operationsToSend.length} events to send from client ${this.replicaStore.getReplicaId()}`
       )
       let response: SyncProtocolPayload = null
       try {
@@ -94,7 +94,7 @@ export class SyncProtocol implements LifecycleAware {
           this.replicaStore.getReplicaId(),
           this.#EVENT_BATCH_SIZE,
           {
-            events: eventsToSend.map(moveOpToOperation),
+            operations: operationsToSend.map(moveOpToOperation),
             replicaSet: knownReplicaSet,
           }
         )
@@ -120,16 +120,16 @@ export class SyncProtocol implements LifecycleAware {
         }
       }
       // if there were no errors we need to check whether we should update our last known sent clock and persist it
-      if (eventsToSend.length > 0) {
+      if (operationsToSend.length > 0) {
         let newMaxClock = this.#documentSyncRecord.lastSentClock
-        for (const sentEvent of eventsToSend) {
+        for (const sentEvent of operationsToSend) {
           if (sentEvent.clock > newMaxClock) {
             newMaxClock = sentEvent.clock
           }
         }
         assert(
           newMaxClock > this.#documentSyncRecord.lastSentClock,
-          `We have just sent ${eventsToSend.length} events to the server but none of them had a clock higher than the one we had already sent before. This should never happen, clocks must increase monotonically.`
+          `We have just sent ${operationsToSend.length} events to the server but none of them had a clock higher than the one we had already sent before. This should never happen, clocks must increase monotonically.`
         )
         this.#documentSyncRecord.lastSentClock = newMaxClock
         await this.idbDocumentSyncStorage.saveDocument(this.#documentSyncRecord)
@@ -137,10 +137,10 @@ export class SyncProtocol implements LifecycleAware {
       if (!!response) {
         console.debug(
           `Client ${this.replicaStore.getReplicaId()} got ${
-            response.events.length
+            response.operations.length
           } events from server`
         )
-        const serverOperations = response.events.map(operationToMoveOp)
+        const serverOperations = response.operations.map(operationToMoveOp)
         for (const event of serverOperations) {
           await this.moveOpTree.applyMoveOp(event)
         }
