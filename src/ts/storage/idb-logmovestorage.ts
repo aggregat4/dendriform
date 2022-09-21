@@ -60,6 +60,7 @@ export class IdbLogMoveStorage implements LifecycleAware {
         logmoveStore.createIndex('ops-for-replica', ['replicaId', 'clock'])
       },
     })
+    console.log(`clock is '${this.#clock}' at startup`)
     await this.checkReplicaSetJoined()
     if (!this.joinProtocol.hasJoinedReplicaSet()) {
       this.joinProtocol.JoinEvent.on(async () => await this.checkReplicaSetJoined())
@@ -70,14 +71,21 @@ export class IdbLogMoveStorage implements LifecycleAware {
     if (this.joinProtocol.hasJoinedReplicaSet()) {
       const maxClock = await this.getMaxClock()
       const serverKnownClock = this.joinProtocol.getServerKnownClock()
-      this.#clock = Math.max(maxClock, serverKnownClock) + 1
+      const newClock = Math.max(0, Math.max(maxClock, serverKnownClock)) + 1
+      // TODO: fix bug  because we have: Setting new clock to 'NaN' because maxClock = -1 and serverKnownClock = undefined
+      console.log(
+        `Setting new clock to '${newClock}' because maxClock = ${maxClock} and serverKnownClock = ${serverKnownClock}`
+      )
+      this.#clock = newClock
     }
   }
 
   private ensureClockIsInitialized() {
     assert(
       this.#clock > -1,
-      `Our local clock is not initialized, we probably have not joined the replicaset yet`
+      `Our local clock is not initialized: '${
+        this.#clock
+      }', we probably have not joined the replicaset yet`
     )
   }
 

@@ -70,8 +70,7 @@ class SuccessfulJoinProtocolClient implements JoinProtocolClient {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   join(documentId: string, replicaId: string): Promise<JoinProtocolResponse> {
-    const response = {}
-    response[replicaId] = 1
+    const response = { replicas: [{ replicaId: replicaId, clock: 1 }] }
     return Promise.resolve(response)
   }
 }

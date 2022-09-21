@@ -2,7 +2,7 @@ import { Operation, Replica } from '../moveoperation/moveoperation-types'
 
 export interface SyncProtocolPayload {
   operations: Operation[]
-  replicaSet: Replica[]
+  replicaSet: { replicas: Replica[] }
 }
 
 export interface SyncProtocolClient {

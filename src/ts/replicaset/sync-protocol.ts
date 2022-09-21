@@ -95,7 +95,7 @@ export class SyncProtocol implements LifecycleAware {
           this.#EVENT_BATCH_SIZE,
           {
             operations: operationsToSend.map(moveOpToOperation),
-            replicaSet: knownReplicaSet,
+            replicaSet: { replicas: knownReplicaSet },
           }
         )
         // make sure we clear any previous error we may have had
@@ -144,7 +144,7 @@ export class SyncProtocol implements LifecycleAware {
         for (const event of serverOperations) {
           await this.moveOpTree.applyMoveOp(event)
         }
-        this.moveOpTree.processNewReplicaSet(response.replicaSet)
+        this.moveOpTree.processNewReplicaSet(response.replicaSet.replicas)
       }
     } catch (syncError) {
       console.error(`Error during sync: `, JSON.stringify(syncError))

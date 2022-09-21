@@ -1,5 +1,7 @@
+import { Replica } from '../moveoperation/moveoperation-types'
+
 export interface JoinProtocolResponse {
-  [key: string]: number
+  replicas: Replica[]
 }
 
 export interface JoinProtocolClient {

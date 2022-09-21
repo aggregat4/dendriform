@@ -123,7 +123,13 @@ export class JoinProtocol implements LifecycleAware {
         lastSentClock: !!document ? document.lastSentClock : -1,
       })
       this.#hasJoinedReplicaSet = true
-      this.#serverKnownClock = response[this.replicaStore.getReplicaId()]
+      const serverKnowledgeOfClient = response.replicas.filter(
+        (replica) => replica['replicaId'] === this.replicaStore.getReplicaId()
+      )
+      this.#serverKnownClock =
+        serverKnowledgeOfClient && serverKnowledgeOfClient.length > 0
+          ? serverKnowledgeOfClient[0].clock
+          : -1
     }
     // No matter what state we are in after a request to the server where we have not thrown an exception,
     // we need to stop the scheduler
