@@ -51,7 +51,7 @@
     "@typescript-eslint/eslint-plugin": "5.30.7",
     "barecolor": "1.0.1",
     "ceylon": "0.9.1",
-    "dependency-cruiser": "11.12.0",
+    "dependency-cruiser": "12.3.0",
     "esbuild": "0.14.49",
     "eslint": "8.20.0",
     "eslint-config-prettier": "8.5.0",
